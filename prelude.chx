@@ -1,0 +1,99 @@
+; Copyright (c) 2016, Antonie Blom
+;  
+;  Permission to use, copy, modify, and/or distribute this software for any
+;  purpose with or without fee is hereby granted, provided that the above
+;  copyright notice and this permission notice appear in all copies.
+;  
+;  THE SOFTWARE IS PROVIDED "AS IS" AND THE AUTHOR DISCLAIMS ALL WARRANTIES
+;  WITH REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED WARRANTIES OF
+;  MERCHANTABILITY AND FITNESS. IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR
+;  ANY SPECIAL, DIRECT, INDIRECT, OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES
+;  WHATSOEVER RESULTING FROM LOSS OF USE, DATA OR PROFITS, WHETHER IN AN
+;  ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF
+;  OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
+
+(const alias const)
+
+(const defmacro (\\ (name args body) (const name (\\ args body))))
+(defmacro defun (name args body) (const name (\ args body)))
+(defmacro if (cond then else) (case cond (0 else) (_ then)))
+
+(const pi 3.1415926535897932384)
+(const nil ())
+
+; aka car
+(defun head ((: x _)) x)
+; aka cdr
+(defun tail ((: _ xs)) xs)
+
+(defun call (f args) (eval (: f args)))
+(defun list args args)
+(defun foldr (f start lst)
+  (case lst
+    (() start)
+    ((: z zs) (f z (foldr f start zs)))
+  ))
+(defun foldl (f start lst)
+  (case lst
+    (() start)
+    ((: z zs) (foldl f (f start z)))
+  ))
+
+(defun ~ (x) (- 0 x))
+(defun map (f xs)
+  (case xs
+    (() ())
+    ((: z zs) (: (f z) (map f zs)))
+  ))
+
+(defun ++ args
+  (case args
+    ( (xs       ()) xs )
+    ( (()       ys) ys )
+    ( ((: z zs) ys) (: z (++ zs ys)) )
+  ))
+; aka flatten
+(defun concat (xs) (foldr ++ () xs))
+(defun append args (concat args))
+
+; helper function for reverse (there's no let yet)
+(defun reverse' (xs ys)
+  (case xs
+    (() ys)
+    ((: z zs) (reverse' zs (: z ys)))
+  ))
+(defun reverse (xs) (reverse' xs ()))
+
+(defun sum (args) (foldr + 0 args))
+(defun add args (sum args))
+(defun product (args) (foldr * 1 args))
+(defun mul args (product args))
+(alias sub -)
+(alias div /)
+
+(defun not (x) (eq 0 x))
+(defun to-bool (x) (not (not x)))
+(defun and args
+  (case args
+    ((1 1) 1)
+    ((_ _) 0)
+  ))
+(defun or args
+  (case args
+    ((0 0) 0)
+    ((_ _) 1)
+  ))
+(defun all (args) (foldr and 1 args))
+(defun any (args) (foldr or 0 args))
+(defun eq (: x xs) (all (map (\ (y) (= x y)) xs)))
+(defun /= (a b) (not (= a b)))
+(alias ne /=)
+
+(defun .. (from to)
+  (case (- from to)
+    (0 (list to))
+    (_ (: from (.. (+ 1 from) to)))
+  ))
+
+(defun print (arg) (print-to 1 arg))
+(defun read () (read-from 0))
