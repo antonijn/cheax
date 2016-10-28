@@ -1,0 +1,5 @@
+cmake_minimum_required (VERSION 2.6)
+add_definitions (-DCMAKE_INSTALL_PREFIX="${CMAKE_INSTALL_PREFIX}")
+add_executable(cheaky cheaky.c)
+target_link_libraries(cheaky LINK_PUBLIC cheax gc)
+install(TARGETS cheaky DESTINATION bin)
