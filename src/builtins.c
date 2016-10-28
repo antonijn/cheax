@@ -50,6 +50,7 @@ DECL_BUILTIN(sub);
 DECL_BUILTIN(mul);
 DECL_BUILTIN(div);
 DECL_BUILTIN(eq);
+DECL_BUILTIN(lt);
 
 #define DEF_BUILTIN(name, cname) \
 	static struct chx_macro mc_##cname = { { VK_BUILTIN }, builtin_##cname }; \
@@ -77,6 +78,7 @@ void export_builtins(CHEAX *c)
 	DEF_BUILTIN("*", mul);
 	DEF_BUILTIN("/", div);
 	DEF_BUILTIN("=", eq);
+	DEF_BUILTIN("<", lt);
 }
 
 static bool expect_args(CHEAX *c, const char *fname, int num, struct chx_cons *args)
@@ -365,4 +367,19 @@ static struct chx_value *builtin_eq(CHEAX *c, struct chx_cons *args)
 		return &yes.base;
 	else
 		return &no.base;
+}
+static struct chx_value *builtin_lt(CHEAX *c, struct chx_cons *args)
+{
+	EXPECT_ARGS(c, "<", 2, args);
+	struct chx_value *l = cheax_eval(c, args->value);
+	struct chx_value *r = cheax_eval(c, args->next->value);
+	if (aop_use_double(l, r)) {
+		double ld = to_double(l);
+		double rd = to_double(r);
+		return ld < rd ? &yes.base : &no.base;
+	} else {
+		int li = to_int(l);
+		int ri = to_int(r);
+		return li < ri ? &yes.base : &no.base;
+	}
 }
