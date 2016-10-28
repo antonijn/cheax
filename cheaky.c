@@ -21,7 +21,7 @@ int main(void)
 	CHEAX *c = cheax_init();
 	bool quit = false;
 	cheax_sync(c, "quit", CHEAX_BOOL, &quit);
-	FILE *prel = fopen("prelude.chx", "rb");
+	FILE *prel = fopen(CMAKE_INSTALL_PREFIX "/share/cheax/prelude.chx", "rb");
 	cheax_exec(c, prel);
 	fclose(prel);
 	while (!quit) {

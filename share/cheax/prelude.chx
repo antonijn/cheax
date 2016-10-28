@@ -63,6 +63,11 @@
     ((: z zs) (reverse' zs (: z ys)))
   ))
 (defun reverse (xs) (reverse' xs ()))
+(defun filter (p xs)
+  (case xs
+    (() ())
+    ((: z zs) (if (p z) (: z (filter p zs)) (filter p zs)))
+  ))
 
 (defun sum (args) (foldr + 0 args))
 (defun add args (sum args))
