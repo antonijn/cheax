@@ -21,7 +21,7 @@ As far as I know it's one of the few lisps that supports pattern-matching. For
 instance, head (car) and tail (cdr) are implemented as follows:
 
   (defun head ((: x _)) x)
-  (defun tail ((: _ xs)) xds
+  (defun tail ((: _ xs)) xs)
 
 Calling (head '(1 2 3)) will match ((1 2 3)) with ((: x _)), which in turn
 matches (1 2 3) with (: x _), which results in x = 1. This allows for some very
