@@ -69,6 +69,7 @@
     ((: z zs) (if (p z) (: z (filter p zs)) (filter p zs)))
   ))
 
+(defun length (xs) (foldr (\ (_ l) (+ 1 l)) 0 xs))
 (defun sum (args) (foldr + 0 args))
 (defun add args (sum args))
 (defun product (args) (foldr * 1 args))
