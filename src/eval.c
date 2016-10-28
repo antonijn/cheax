@@ -269,6 +269,8 @@ static struct chx_value *call_func(CHEAX *c, struct chx_lambda *lda, struct chx_
 static struct chx_value *cheax_eval_sexpr(CHEAX *c, struct chx_cons *input)
 {
 	struct chx_value *func = cheax_eval(c, input->value);
+	if (func == NULL)
+		return NULL;
 	if (func->kind == VK_BUILTIN) {
 		struct chx_macro *macro = (struct chx_macro *)func;
 		return macro->perform(c, input->next);
