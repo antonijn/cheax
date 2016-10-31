@@ -18,19 +18,18 @@
  */
 
 #include <cheax.h>
+#include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
 
 int main(void)
 {
 	CHEAX *c = cheax_init();
-	bool quit = false;
-	cheax_sync(c, "quit", CHEAX_BOOL, &quit);
 	if (cheax_load_prelude(c)) {
 		perror("failed to load prelude");
 		return EXIT_FAILURE;
 	}
-	while (!quit) {
+	while (true) {
 		printf("> ");
 		cheax_print(stdout, cheax_eval(c, cheax_read(stdin)));
 		printf("\n");
