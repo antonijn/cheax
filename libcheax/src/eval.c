@@ -171,6 +171,7 @@ int cheax_load_prelude(CHEAX *c)
 	if (!f)
 		return -1;
 	cheax_exec(c, f);
+	fclose(f);
 	return 0;
 }
 
