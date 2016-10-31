@@ -165,6 +165,15 @@ void cheax_syncnd(CHEAX *c, const char *name, enum cheax_type ty, void *var)
 	sync(c, name, ty, var, SF_NODUMP);
 }
 
+int cheax_load_prelude(CHEAX *c)
+{
+	FILE *f = fopen(CMAKE_INSTALL_PREFIX "/share/cheax/prelude.chx", "rb");
+	if (!f)
+		return -1;
+	cheax_exec(c, f);
+	return 0;
+}
+
 static struct chx_value *cheax_eval_sexpr(CHEAX *c, struct chx_cons *input);
 struct chx_value *cheax_eval(CHEAX *c, struct chx_value *input)
 {

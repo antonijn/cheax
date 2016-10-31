@@ -98,6 +98,7 @@ void cheax_syncnd(CHEAX *c, const char *name, enum cheax_type ty, void *var);
 
 struct chx_value *cheax_eval(CHEAX *c, struct chx_value *expr);
 struct chx_value *cheax_read(FILE *f);
+int cheax_load_prelude(CHEAX *c);
 void cheax_print(FILE *output, struct chx_value *expr);
 
 static inline void cheax_exec(CHEAX *c, FILE *f)

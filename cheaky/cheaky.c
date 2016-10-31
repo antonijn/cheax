@@ -19,15 +19,17 @@
 
 #include <cheax.h>
 #include <stdio.h>
+#include <stdlib.h>
 
 int main(void)
 {
 	CHEAX *c = cheax_init();
 	bool quit = false;
 	cheax_sync(c, "quit", CHEAX_BOOL, &quit);
-	FILE *prel = fopen(CMAKE_INSTALL_PREFIX "/share/cheax/prelude.chx", "rb");
-	cheax_exec(c, prel);
-	fclose(prel);
+	if (cheax_load_prelude(c)) {
+		perror("failed to load prelude");
+		return EXIT_FAILURE;
+	}
 	while (!quit) {
 		printf("> ");
 		cheax_print(stdout, cheax_eval(c, cheax_read(stdin)));

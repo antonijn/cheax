@@ -1,5 +1,5 @@
-add_definitions (-DCMAKE_INSTALL_PREFIX="${CMAKE_INSTALL_PREFIX}")
 add_library (cheax SHARED src/read.c src/eval.c src/builtins.c)
+add_definitions (-DCMAKE_INSTALL_PREFIX="${CMAKE_INSTALL_PREFIX}")
 target_link_libraries(cheax gc)
 target_include_directories (cheax PUBLIC include)
 install (TARGETS cheax DESTINATION lib)
