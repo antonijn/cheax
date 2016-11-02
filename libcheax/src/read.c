@@ -30,16 +30,39 @@ struct tok {
 };
 
 struct lexer {
-	FILE *f;
 	int cur;
+	void *info;
+	int (*get)(void *info);
 };
 
 static void lxadv(struct lexer *lx, struct tok *tk);
 static struct chx_value *ast_read(struct lexer *lx, struct tok *tk);
 
-static inline void lxinit(struct lexer *lx, struct tok *tk, FILE *f)
+struct sstream {
+	const char *str;
+	int idx;
+};
+static int get_sgetc(void *s)
 {
-	lx->f = f;
+	struct sstream *ss = s;
+	return ss->str[++ss->idx];
+}
+static void lxinits(struct lexer *lx, struct tok *tk, struct sstream *s)
+{
+	lx->info = s;
+	lx->get = get_sgetc;
+	lx->cur = get_sgetc(s);
+	lxadv(lx, tk);
+}
+
+static int get_fgetc(void *f)
+{
+	return fgetc(f);
+}
+static inline void lxinitf(struct lexer *lx, struct tok *tk, FILE *f)
+{
+	lx->info = f;
+	lx->get = get_fgetc;
 	lx->cur = fgetc(f);
 	lxadv(lx, tk);
 }
@@ -47,7 +70,7 @@ static inline void lxinit(struct lexer *lx, struct tok *tk, FILE *f)
 static int lxadvch(struct lexer *lx)
 {
 	int res = lx->cur;
-	lx->cur = fgetc(lx->f);
+	lx->cur = lx->get(lx->info);
 	return res;
 }
 
@@ -184,6 +207,14 @@ struct chx_value *cheax_read(FILE *infile)
 {
 	struct lexer lx;
 	struct tok tk;
-	lxinit(&lx, &tk, infile);
+	lxinitf(&lx, &tk, infile);
+	return ast_read(&lx, &tk);
+}
+struct chx_value *cheax_readstr(const char *str)
+{
+	struct sstream ss = { .str = str, .idx = -1 };
+	struct lexer lx;
+	struct tok tk;
+	lxinits(&lx, &tk, &ss);
 	return ast_read(&lx, &tk);
 }
