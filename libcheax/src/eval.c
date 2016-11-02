@@ -175,6 +175,23 @@ int cheax_load_prelude(CHEAX *c)
 	return 0;
 }
 
+void cheax_exec(CHEAX *c, FILE *f)
+{
+	char shebang[2] = { 0 };
+	fread(shebang, 2, 1, f);
+	if (shebang[0] == '#' && shebang[1] == '!') {
+		while (fgetc(f) != '\n')
+			;
+	} else {
+		ungetc(shebang[1], f);
+		ungetc(shebang[0], f);
+	}
+
+	struct chx_value *v;
+	while (v = cheax_read(f))
+		cheax_eval(c, v);
+}
+
 static struct chx_value *cheax_eval_sexpr(CHEAX *c, struct chx_cons *input);
 struct chx_value *cheax_eval(CHEAX *c, struct chx_value *input)
 {

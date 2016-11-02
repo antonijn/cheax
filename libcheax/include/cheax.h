@@ -101,20 +101,6 @@ struct chx_value *cheax_read(FILE *f);
 int cheax_load_prelude(CHEAX *c);
 void cheax_print(FILE *output, struct chx_value *expr);
 
-static inline void cheax_exec(CHEAX *c, FILE *f)
-{
-	struct chx_value *v;
-	char shebang[2] = { 0 };
-	fread(shebang, 2, 1, f);
-	if (shebang[0] == '#' && shebang[1] == '!') {
-		while (fgetc(f) != '\n')
-			;
-	} else {
-		ungetc(shebang[1], f);
-		ungetc(shebang[0], f);
-	}
-	while ((v = cheax_read(f)))
-		cheax_eval(c, v);
-}
+void cheax_exec(CHEAX *c, FILE *f);
 
 #endif
