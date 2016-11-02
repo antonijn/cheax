@@ -13,11 +13,36 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  */
 
-#include "read.h"
-
+#include <cheax.h>
+#include <stdlib.h>
+#include <stdio.h>
 #include <string.h>
-#include <gc.h>
 #include <ctype.h>
+#include <gc.h>
+
+enum tok_kind {
+	TK_ID, TK_INT, TK_DOUBLE, TK_LPAR, TK_RPAR, TK_QUOTE, TK_EOF
+};
+
+struct tok {
+	enum tok_kind kind;
+	char lexeme[101];
+};
+
+struct lexer {
+	FILE *f;
+	int cur;
+};
+
+static void lxadv(struct lexer *lx, struct tok *tk);
+static struct chx_value *ast_read(struct lexer *lx, struct tok *tk);
+
+static inline void lxinit(struct lexer *lx, struct tok *tk, FILE *f)
+{
+	lx->f = f;
+	lx->cur = fgetc(f);
+	lxadv(lx, tk);
+}
 
 static int lxadvch(struct lexer *lx)
 {
@@ -133,7 +158,7 @@ struct chx_value *read_cons(struct lexer *lx, struct tok *tk)
 	return &res->base;
 }
 
-struct chx_value *ast_read(struct lexer *lx, struct tok *tk)
+static struct chx_value *ast_read(struct lexer *lx, struct tok *tk)
 {
 	switch (tk->kind) {
 	case TK_ID:
