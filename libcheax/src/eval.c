@@ -164,6 +164,16 @@ void cheax_syncnd(CHEAX *c, const char *name, enum cheax_type ty, void *var)
 	sync(c, name, ty, var, SF_NODUMP);
 }
 
+void cheax_defmacro(CHEAX *c, const char *name, macro fun)
+{
+	struct chx_macro *mc = malloc(sizeof(struct chx_macro));
+	*mc = (struct chx_macro){
+		.base = { VK_BUILTIN },
+		.perform = fun
+	};
+	chx_def_sym(c, name, &mc->base);
+}
+
 int cheax_load_prelude(CHEAX *c)
 {
 	FILE *f = fopen(CMAKE_INSTALL_PREFIX "/share/cheax/prelude.chx", "rb");

@@ -51,33 +51,30 @@ DECL_BUILTIN(div);
 DECL_BUILTIN(eq);
 DECL_BUILTIN(lt);
 
-#define DEF_BUILTIN(name, cname) \
-	static struct chx_macro mc_##cname = { { VK_BUILTIN }, builtin_##cname }; \
-	chx_def_sym(c, name, &mc_##cname.base)
 void export_builtins(CHEAX *c)
 {
-	DEF_BUILTIN("fdopen", fdopen);
-	DEF_BUILTIN("fdclose", fdclose);
-	DEF_BUILTIN("read-from", read_from);
-	DEF_BUILTIN("print-to", print_to);
-	DEF_BUILTIN("var", var);
-	DEF_BUILTIN("const", const);
-	DEF_BUILTIN("set", set);
-	DEF_BUILTIN(":", prepend);
-	DEF_BUILTIN("is-id", is_id);
-	DEF_BUILTIN("is-int", is_int);
-	DEF_BUILTIN("is-double", is_double);
-	DEF_BUILTIN("is-list", is_list);
-	DEF_BUILTIN("\\", lambda);
-	DEF_BUILTIN("\\\\", macro_lambda);
-	DEF_BUILTIN("eval", eval);
-	DEF_BUILTIN("case", case);
-	DEF_BUILTIN("+", add);
-	DEF_BUILTIN("-", sub);
-	DEF_BUILTIN("*", mul);
-	DEF_BUILTIN("/", div);
-	DEF_BUILTIN("=", eq);
-	DEF_BUILTIN("<", lt);
+	cheax_defmacro(c, "fdopen", builtin_fdopen);
+	cheax_defmacro(c, "fdclose", builtin_fdclose);
+	cheax_defmacro(c, "read-from", builtin_read_from);
+	cheax_defmacro(c, "print-to", builtin_print_to);
+	cheax_defmacro(c, "var", builtin_var);
+	cheax_defmacro(c, "const", builtin_const);
+	cheax_defmacro(c, "set", builtin_set);
+	cheax_defmacro(c, ":", builtin_prepend);
+	cheax_defmacro(c, "is-id", builtin_is_id);
+	cheax_defmacro(c, "is-int", builtin_is_int);
+	cheax_defmacro(c, "is-double", builtin_is_double);
+	cheax_defmacro(c, "is-list", builtin_is_list);
+	cheax_defmacro(c, "\\", builtin_lambda);
+	cheax_defmacro(c, "\\\\", builtin_macro_lambda);
+	cheax_defmacro(c, "eval", builtin_eval);
+	cheax_defmacro(c, "case", builtin_case);
+	cheax_defmacro(c, "+", builtin_add);
+	cheax_defmacro(c, "-", builtin_sub);
+	cheax_defmacro(c, "*", builtin_mul);
+	cheax_defmacro(c, "/", builtin_div);
+	cheax_defmacro(c, "=", builtin_eq);
+	cheax_defmacro(c, "<", builtin_lt);
 }
 
 static bool expect_args(CHEAX *c, const char *fname, int num, struct chx_cons *args)

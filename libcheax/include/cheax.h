@@ -96,6 +96,8 @@ void cheax_syncro(CHEAX *c, const char *name, enum cheax_type ty, const void *va
  */
 void cheax_syncnd(CHEAX *c, const char *name, enum cheax_type ty, void *var);
 
+void cheax_defmacro(CHEAX *c, const char *name, macro fun);
+
 struct chx_value *cheax_eval(CHEAX *c, struct chx_value *expr);
 struct chx_value *cheax_read(FILE *f);
 struct chx_value *cheax_readstr(const char *str);
