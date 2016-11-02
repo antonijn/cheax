@@ -212,6 +212,7 @@ struct chx_value *cheax_eval(CHEAX *c, struct chx_value *input)
 	case VK_DOUBLE:
 	case VK_LAMBDA:
 	case VK_BUILTIN:
+	case VK_PTR:
 		return input;
 	case VK_ID:
 		; struct variable *sym = chx_find_sym(c, ((struct chx_id *)input)->id);
@@ -238,6 +239,10 @@ struct chx_value *cheax_eval(CHEAX *c, struct chx_value *input)
 			; struct chx_int *bool_res = malloc(sizeof(struct chx_int));
 			*bool_res = (struct chx_int){ { VK_INT }, *(bool *)sym->sync_var.var };
 			return &bool_res->base;
+		case CHEAX_PTR:
+			; struct chx_ptr *ptr_res = malloc(sizeof(struct chx_ptr));
+			*ptr_res = (struct chx_ptr){ { VK_PTR }, *(void **)sym->sync_var.var };
+			return &ptr_res->base;
 		}
 	case VK_CONS:
 		return cheax_eval_sexpr(c, (struct chx_cons *)input);
@@ -382,5 +387,7 @@ void cheax_print(FILE *c, struct chx_value *first)
 			cheax_print(c, body->value);
 		}
 		fprintf(c, ")");
+	} else if (first->kind == VK_PTR) {
+		fprintf(c, "%p", ((struct chx_ptr *)first)->ptr);
 	}
 }

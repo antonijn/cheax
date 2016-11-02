@@ -101,5 +101,5 @@
     (_ (: from (.. (+ 1 from) to)))
   ))
 
-(defun print (arg) (print-to 1 arg))
-(defun read () (read-from 0))
+(defun print (arg) (print-to stdout arg))
+(defun read () (read-from stdin))

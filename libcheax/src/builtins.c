@@ -26,8 +26,8 @@
 static struct chx_value *builtin_##cname(CHEAX *c, struct chx_cons *args)
 
 DECL_BUILTIN(defmacro);
-DECL_BUILTIN(fdopen);
-DECL_BUILTIN(fdclose);
+DECL_BUILTIN(fopen);
+DECL_BUILTIN(fclose);
 DECL_BUILTIN(read_from);
 DECL_BUILTIN(print_to);
 DECL_BUILTIN(getc);
@@ -53,8 +53,8 @@ DECL_BUILTIN(lt);
 
 void export_builtins(CHEAX *c)
 {
-	cheax_defmacro(c, "fdopen", builtin_fdopen);
-	cheax_defmacro(c, "fdclose", builtin_fdclose);
+	cheax_defmacro(c, "fopen", builtin_fopen);
+	cheax_defmacro(c, "fclose", builtin_fclose);
 	cheax_defmacro(c, "read-from", builtin_read_from);
 	cheax_defmacro(c, "print-to", builtin_print_to);
 	cheax_defmacro(c, "var", builtin_var);
@@ -75,6 +75,10 @@ void export_builtins(CHEAX *c)
 	cheax_defmacro(c, "/", builtin_div);
 	cheax_defmacro(c, "=", builtin_eq);
 	cheax_defmacro(c, "<", builtin_lt);
+
+	cheax_syncro(c, "stdin", CHEAX_PTR, &stdin);
+	cheax_syncro(c, "stdout", CHEAX_PTR, &stdout);
+	cheax_syncro(c, "stderr", CHEAX_PTR, &stderr);
 }
 
 static bool expect_args(CHEAX *c, const char *fname, int num, struct chx_cons *args)
@@ -104,30 +108,46 @@ static int to_int(struct chx_value *x)
 	return ((struct chx_double *)x)->value;
 }
 
-static struct chx_value *builtin_fdopen(CHEAX *c, struct chx_cons *args)
+static struct chx_value *builtin_fopen(CHEAX *c, struct chx_cons *args)
 {
-	EXPECT_ARGS(c, "fdopen", 1, args);
+	EXPECT_ARGS(c, "fopen", 1, args);
 	return NULL;
 }
-static struct chx_value *builtin_fdclose(CHEAX *c, struct chx_cons *args)
+static struct chx_value *builtin_fclose(CHEAX *c, struct chx_cons *args)
 {
-	EXPECT_ARGS(c, "fdclose", 1, args);
+	EXPECT_ARGS(c, "fclose", 1, args);
 	return NULL;
 }
 static struct chx_value *builtin_read_from(CHEAX *c, struct chx_cons *args)
 {
-	EXPECT_ARGS(c, "read-from", 1, args);
-	int fd = to_int(cheax_eval(c, args->value));
-	FILE *fp = fdopen(fd, "rb");
+	EXPECT_ARGS(c, "read-from", 2, args);
+	struct chx_value *fptr = cheax_eval(c, args->value);
+	if (!fptr) {
+		cry(c, "read-from", "Cannot read from nil");
+		return NULL;
+	}
+	if (fptr->kind != VK_PTR) {
+		cry(c, "read-from", "Can only read from pointers");
+		return NULL;
+	}
+	FILE *fp = ((struct chx_ptr *)fptr)->ptr;
 	return cheax_read(fp);
 }
 static struct chx_value *builtin_print_to(CHEAX *c, struct chx_cons *args)
 {
 	EXPECT_ARGS(c, "print-to", 2, args);
-	int fd = to_int(cheax_eval(c, args->value));
-	FILE *fp = fdopen(fd, "wb");
+	struct chx_value *fptr = cheax_eval(c, args->value);
+	if (!fptr) {
+		cry(c, "print-to", "Cannot write to nil");
+		return NULL;
+	}
+	if (fptr->kind != VK_PTR) {
+		cry(c, "print-to", "Can only write to pointers");
+		return NULL;
+	}
+	FILE *fp = ((struct chx_ptr *)fptr)->ptr;
 	cheax_print(fp, cheax_eval(c, args->next->value));
-	fprintf(fp, "\n");
+	fputc('\n', fp);
 	return NULL;
 }
 
@@ -181,23 +201,34 @@ static struct chx_value *builtin_set(CHEAX *c, struct chx_cons *args)
 		cry(c, "set", "Cannot write to constant");
 		return NULL;
 	}
-	if (sym->flags & SF_SYNCED) {
-		switch (sym->sync_var.ty) {
-		case CHEAX_INT:
-			*(int *)sym->sync_var.var = to_int(setto);
-			break;
-		case CHEAX_BOOL:
-			*(bool *)sym->sync_var.var = to_int(setto);
-			break;
-		case CHEAX_FLOAT:
-			*(float *)sym->sync_var.var = to_double(setto);
-			break;
-		case CHEAX_DOUBLE:
-			*(double *)sym->sync_var.var = to_double(setto);
+	if ((sym->flags & SF_SYNCED) == 0) {
+		sym->value = setto;
+		return NULL;
+	}
+	switch (sym->sync_var.ty) {
+	case CHEAX_INT:
+		*(int *)sym->sync_var.var = to_int(setto);
+		break;
+	case CHEAX_BOOL:
+		*(bool *)sym->sync_var.var = to_int(setto);
+		break;
+	case CHEAX_FLOAT:
+		*(float *)sym->sync_var.var = to_double(setto);
+		break;
+	case CHEAX_DOUBLE:
+		*(double *)sym->sync_var.var = to_double(setto);
+		break;
+	case CHEAX_PTR:
+		if (!setto) {
+			*(void **)sym->sync_var.var = NULL;
 			break;
 		}
-	} else {
-		sym->value = setto;
+		if (setto->kind != VK_PTR) {
+			cry(c, "set", "Can only set a pointer to a pointer");
+			return NULL;
+		}
+		*(void **)sym->sync_var.var = ((struct chx_ptr *)setto)->ptr;
+		break;
 	}
 	return NULL;
 }

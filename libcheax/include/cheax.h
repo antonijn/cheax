@@ -7,7 +7,7 @@
 typedef struct cheax CHEAX;
 
 enum chx_value_kind {
-	VK_INT, VK_DOUBLE, VK_ID, VK_CONS, VK_BUILTIN, VK_LAMBDA, VK_QUOTE
+	VK_INT, VK_DOUBLE, VK_ID, VK_CONS, VK_BUILTIN, VK_LAMBDA, VK_QUOTE, VK_PTR
 };
 
 struct chx_value {
@@ -26,6 +26,10 @@ struct chx_int {
 struct chx_double {
 	struct chx_value base;
 	double value;
+};
+struct chx_ptr {
+	struct chx_value base;
+	void *ptr;
 };
 
 struct chx_id {
@@ -75,7 +79,8 @@ enum cheax_type {
 	CHEAX_INT,
 	CHEAX_FLOAT,
 	CHEAX_DOUBLE,
-	CHEAX_BOOL
+	CHEAX_BOOL,
+	CHEAX_PTR
 };
 /*
  * A value from CHEAX. You don't need to know what it does if you're not
