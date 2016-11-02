@@ -174,6 +174,10 @@ struct chx_value *read_cons(struct lexer *lx, struct tok *tk)
 	struct chx_cons **last = &res;
 	lxadv(lx, tk);
 	while (tk->kind != TK_RPAR) {
+		if (tk->kind == TK_EOF) {
+			fprintf(stderr, "Unexpected end-of-file\n");
+			return NULL;
+		}
 		*last = cheax_cons(ast_read(lx, tk), NULL);
 		last = &(*last)->next;
 		lxadv(lx, tk);
