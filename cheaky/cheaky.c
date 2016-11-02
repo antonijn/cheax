@@ -21,6 +21,8 @@
 #include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <readline/readline.h>
+#include <readline/history.h>
 
 int main(void)
 {
@@ -29,9 +31,18 @@ int main(void)
 		perror("failed to load prelude");
 		return EXIT_FAILURE;
 	}
+
 	while (true) {
-		printf("> ");
-		cheax_print(stdout, cheax_eval(c, cheax_read(stdin)));
+		char *input = readline("> ");
+		if (!input)
+			break;
+		add_history(input);
+
+		struct chx_value *v = cheax_readstr(input);
+
+		free(input);
+
+		cheax_print(stdout, cheax_eval(c, v));
 		printf("\n");
 	}
 	cheax_destroy(c);
