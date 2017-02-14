@@ -196,7 +196,11 @@ static struct chx_value *builtin_set(CHEAX *c, struct chx_cons *args)
 	struct chx_value *setto = cheax_eval(c, args->next->value);
 
 	struct chx_id *id = (struct chx_id *)idval;
-	struct variable *sym = chx_find_sym(c, id->id);
+	struct variable *sym = find_sym(c, id->id);
+	if (!sym) {
+		cry(c, "set", "Unknown variable \"%s\", perhaps you meant \"(var %s ...)\"", id->id, id->id);
+		return NULL;
+	}
 	if (sym->flags & SF_RO) {
 		cry(c, "set", "Cannot write to constant");
 		return NULL;

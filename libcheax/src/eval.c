@@ -23,6 +23,8 @@
 #include <string.h>
 #include <stdio.h>
 
+static struct variable *def_sym(CHEAX *c, const char *name, struct chx_value *val);
+
 struct chx_cons *cheax_cons(struct chx_value *car, struct chx_cons *cdr)
 {
 	struct chx_cons *res = GC_MALLOC(sizeof(struct chx_cons));
@@ -39,7 +41,7 @@ bool pan_match(CHEAX *c, struct chx_value *pan, struct chx_value *match)
 	if (pan == NULL)
 		return match == NULL;
 	if (pan->kind == VK_ID) {
-		chx_def_sym(c, ((struct chx_id *)pan)->id, match);
+		def_sym(c, ((struct chx_id *)pan)->id, match);
 		return true;
 	}
 	if (match == NULL)
@@ -105,7 +107,7 @@ static unsigned djb2(const char *str)
 	return hash;
 }
 
-struct variable *chx_find_sym(CHEAX *c, const char *name)
+struct variable *find_sym(CHEAX *c, const char *name)
 {
 	unsigned hash = djb2(name);
 	for (struct variable *ht = c->locals_top; ht; ht = ht->below)
@@ -114,7 +116,7 @@ struct variable *chx_find_sym(CHEAX *c, const char *name)
 	return NULL;
 }
 
-struct variable *chx_def_sym(CHEAX *c, const char *name, struct chx_value *val)
+static struct variable *def_sym(CHEAX *c, const char *name, struct chx_value *val)
 {
 	struct variable *new = GC_MALLOC(sizeof(struct variable));
 	new->flags = SF_DEFAULT;
@@ -145,7 +147,7 @@ void cheax_destroy(CHEAX *c)
 
 static void sync(CHEAX *c, const char *name, enum cheax_type ty, void *var, enum varflags flags)
 {
-	struct variable *new = chx_def_sym(c, name, NULL);
+	struct variable *new = def_sym(c, name, NULL);
 	new->flags |= SF_SYNCED | flags;
 	new->sync_var.var = var;
 	new->sync_var.ty = ty;
@@ -166,12 +168,12 @@ void cheax_syncnd(CHEAX *c, const char *name, enum cheax_type ty, void *var)
 
 void cheax_defmacro(CHEAX *c, const char *name, macro fun)
 {
-	struct chx_macro *mc = malloc(sizeof(struct chx_macro));
+	struct chx_macro *mc = GC_MALLOC(sizeof(struct chx_macro));
 	*mc = (struct chx_macro){
 		.base = { VK_BUILTIN },
 		.perform = fun
 	};
-	chx_def_sym(c, name, &mc->base);
+	def_sym(c, name, &mc->base);
 }
 
 int cheax_load_prelude(CHEAX *c)
@@ -215,7 +217,7 @@ struct chx_value *cheax_eval(CHEAX *c, struct chx_value *input)
 	case VK_PTR:
 		return input;
 	case VK_ID:
-		; struct variable *sym = chx_find_sym(c, ((struct chx_id *)input)->id);
+		; struct variable *sym = find_sym(c, ((struct chx_id *)input)->id);
 		if (!sym) {
 			cry(c, "eval", "No such symbol '%s'", ((struct chx_id *)input)->id);
 			return NULL;
@@ -224,23 +226,23 @@ struct chx_value *cheax_eval(CHEAX *c, struct chx_value *input)
 			return sym->value;
 		switch (sym->sync_var.ty) {
 		case CHEAX_INT:
-			; struct chx_int *int_res = malloc(sizeof(struct chx_int));
+			; struct chx_int *int_res = GC_MALLOC(sizeof(struct chx_int));
 			*int_res = (struct chx_int){ { VK_INT }, *(int *)sym->sync_var.var };
 			return &int_res->base;
 		case CHEAX_DOUBLE:
-			; struct chx_double *double_res = malloc(sizeof(struct chx_double));
+			; struct chx_double *double_res = GC_MALLOC(sizeof(struct chx_double));
 			*double_res = (struct chx_double){ { VK_DOUBLE }, *(double *)sym->sync_var.var };
 			return &double_res->base;
 		case CHEAX_FLOAT:
-			; struct chx_double *float_res = malloc(sizeof(struct chx_double));
+			; struct chx_double *float_res = GC_MALLOC(sizeof(struct chx_double));
 			*float_res = (struct chx_double){ { VK_DOUBLE }, *(float *)sym->sync_var.var };
 			return &float_res->base;
 		case CHEAX_BOOL:
-			; struct chx_int *bool_res = malloc(sizeof(struct chx_int));
+			; struct chx_int *bool_res = GC_MALLOC(sizeof(struct chx_int));
 			*bool_res = (struct chx_int){ { VK_INT }, *(bool *)sym->sync_var.var };
 			return &bool_res->base;
 		case CHEAX_PTR:
-			; struct chx_ptr *ptr_res = malloc(sizeof(struct chx_ptr));
+			; struct chx_ptr *ptr_res = GC_MALLOC(sizeof(struct chx_ptr));
 			*ptr_res = (struct chx_ptr){ { VK_PTR }, *(void **)sym->sync_var.var };
 			return &ptr_res->base;
 		}

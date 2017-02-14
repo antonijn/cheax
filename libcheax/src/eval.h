@@ -44,16 +44,21 @@ struct cheax {
 
 struct chx_cons *cheax_cons(struct chx_value *car, struct chx_cons *cdr);
 bool pan_match(CHEAX *c, struct chx_value *pan, struct chx_value *match);
-struct variable *chx_def_sym(CHEAX *c, const char *name, struct chx_value *val);
-struct variable *chx_find_sym(CHEAX *c, const char *name);
+struct variable *find_sym(CHEAX *c, const char *name);
 
 static inline void cry(CHEAX *c, const char *name, const char *frmt, ...)
 {
 	va_list ap;
 	va_start(ap, frmt);
-	fprintf(stderr, "\033[31m(%s): ", name);
+#ifndef WIN32
+	fprintf(stderr, "\033[31m", name);
+#endif
+	fprintf(stderr, "(%s): ", name);
 	vfprintf(stderr, frmt, ap);
-	fprintf(stderr, "\033[0m\n");
+#ifndef WIN32
+	fprintf(stderr, "\033[0m", name);
+#endif
+	fputc('\n', stderr);
 }
 
 #endif
