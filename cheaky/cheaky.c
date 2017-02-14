@@ -17,12 +17,18 @@
  * 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
  */
 
+#include "config.h"
+
 #include <cheax.h>
 #include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <readline/readline.h>
 #include <readline/history.h>
+
+#ifdef HAVE_ISATTY
+#include <unistd.h>
+#endif
 
 static void show_file(const char *path)
 {
@@ -63,10 +69,6 @@ int main(void)
 {
 	CHEAX *c = cheax_init();
 
-	puts("Cheaky, Copyright (C) 2016 Antonie Blom");
-	puts("Cheaky comes with ABSOLUTELY NO WARRANTY; for details type '(show-w)'.");
-	puts("This is free software, and you are welcome to redistribute it");
-	puts("under certain conditions; type '(show-c)' for details.");
 	cheax_defmacro(c, "show-w", show_w);
 	cheax_defmacro(c, "show-c", show_c);
 
@@ -76,6 +78,23 @@ int main(void)
 		perror("failed to load prelude");
 		return EXIT_FAILURE;
 	}
+
+#ifdef HAVE_ISATTY
+	if (!isatty(1)) {
+		struct chx_value *v;
+		while (v = cheax_read(stdin)) {
+			cheax_print(stdout, cheax_eval(c, v));
+			printf("\n");
+		}
+		cheax_destroy(c);
+		return 0;
+	}
+#endif
+
+	fputs("Cheaky, Copyright (C) 2017 Antonie Blom\n", stderr);
+	fputs("Cheaky comes with ABSOLUTELY NO WARRANTY; for details type '(show-w)'.\n", stderr);
+	fputs("This is free software, and you are welcome to redistribute it\n", stderr);
+	fputs("under certain conditions; type '(show-c)' for details.\n", stderr);
 
 	while (!quit) {
 		char *input = readline("> ");
@@ -90,6 +109,7 @@ int main(void)
 		cheax_print(stdout, cheax_eval(c, v));
 		printf("\n");
 	}
+
 	cheax_destroy(c);
 	return 0;
 }

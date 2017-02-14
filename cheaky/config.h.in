@@ -1,0 +1,3 @@
+#ifndef CONFIG_H
+#cmakedefine HAVE_ISATTY
+#endif
