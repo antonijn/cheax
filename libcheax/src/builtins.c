@@ -40,6 +40,8 @@ DECL_BUILTIN(is_id);
 DECL_BUILTIN(is_int);
 DECL_BUILTIN(is_double);
 DECL_BUILTIN(is_list);
+DECL_BUILTIN(get_max_stack_depth);
+DECL_BUILTIN(set_max_stack_depth);
 DECL_BUILTIN(lambda);
 DECL_BUILTIN(macro_lambda);
 DECL_BUILTIN(eval);
@@ -65,6 +67,8 @@ void export_builtins(CHEAX *c)
 	cheax_defmacro(c, "is-int", builtin_is_int);
 	cheax_defmacro(c, "is-double", builtin_is_double);
 	cheax_defmacro(c, "is-list", builtin_is_list);
+	cheax_defmacro(c, "get-max-stack-depth", builtin_get_max_stack_depth);
+	cheax_defmacro(c, "set-max-stack-depth", builtin_set_max_stack_depth);
 	cheax_defmacro(c, "\\", builtin_lambda);
 	cheax_defmacro(c, "\\\\", builtin_macro_lambda);
 	cheax_defmacro(c, "eval", builtin_eval);
@@ -281,6 +285,36 @@ static struct chx_value *builtin_is_list(CHEAX *c, struct chx_cons *args)
 	EXPECT_ARGS(c, "is-list", 1, args);
 	struct chx_value *val = cheax_eval(c, args->value);
 	return val && val->kind == VK_CONS ? &yes.base : &no.base;
+}
+
+static struct chx_value *builtin_get_max_stack_depth(CHEAX *c, struct chx_cons *args)
+{
+	EXPECT_ARGS(c, "get-max-stack-depth", 0, args);
+	struct chx_int *res = GC_MALLOC(sizeof(struct chx_int));
+	res->base.kind = VK_INT;
+	res->value = c->max_stack_depth;
+	return &res->base;
+}
+
+static struct chx_value *builtin_set_max_stack_depth(CHEAX *c, struct chx_cons *args)
+{
+	EXPECT_ARGS(c, "set-max-stack-depth", 1, args);
+	struct chx_value *value = cheax_eval(c, args->value);
+	if (value->kind != VK_INT) {
+		cry(c, "set-max-stack-depth", "Expected integer argument");
+		return NULL;
+	}
+
+	struct chx_int *int_arg = (struct chx_int *)value;
+	int ivalue = int_arg->value;
+
+	if (ivalue <= 0) {
+		cry(c, "set-max-stack-depth", "Maximum stack depth must be positive");
+		return NULL;
+	}
+
+	cheax_set_max_stack_depth(c, ivalue);
+	return NULL;
 }
 
 static struct chx_value *create_lambda(CHEAX *c, struct chx_cons *args, bool eval_args)
