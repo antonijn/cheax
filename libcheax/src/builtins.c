@@ -300,7 +300,7 @@ static struct chx_value *builtin_set_max_stack_depth(CHEAX *c, struct chx_cons *
 {
 	EXPECT_ARGS(c, "set-max-stack-depth", 1, args);
 	struct chx_value *value = cheax_eval(c, args->value);
-	if (value->kind != VK_INT) {
+	if (value == NULL || value->kind != VK_INT) {
 		cry(c, "set-max-stack-depth", "Expected integer argument");
 		return NULL;
 	}
