@@ -267,6 +267,11 @@ static struct chx_value *cheax_safe_eval(CHEAX *c, struct chx_value *input, int 
 			return &ptr_res->base;
 		}
 	case VK_CONS:
+		if (stack_depth >= c->max_stack_depth) {
+			cry(c, "eval", "Stack overflow! (maximum stack depth = %d)", c->max_stack_depth);
+			return NULL;
+		}
+
 		return cheax_eval_sexpr(c, (struct chx_cons *)input, stack_depth + 1);
 	case VK_QUOTE:
 		return ((struct chx_quote *)input)->value;
@@ -339,11 +344,6 @@ static struct chx_value *call_func(CHEAX *c,
 
 static struct chx_value *cheax_eval_sexpr(CHEAX *c, struct chx_cons *input, int stack_depth)
 {
-	if (stack_depth > c->max_stack_depth) {
-		cry(c, "eval", "Stack overflow! (maximum stack depth = %d)", c->max_stack_depth);
-		return NULL;
-	}
-
 	struct chx_value *func = cheax_safe_eval(c, input->value, stack_depth);
 	if (func == NULL)
 		return NULL;
