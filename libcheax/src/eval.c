@@ -315,7 +315,10 @@ static struct chx_value *expand_macro(struct variable *args_top,
 static struct chx_value *call_macro(CHEAX *c, struct chx_lambda *lda, struct chx_cons *args)
 {
 	struct variable *prev_top = c->locals_top;
-	pan_match(c, lda->args, &args->base);
+	if (!pan_match(c, lda->args, &args->base)) {
+		cry(c, "eval", "Invalid (number of) arguments");
+		return NULL;
+	}
 	struct variable *new_top = c->locals_top;
 	c->locals_top = prev_top;
 
@@ -327,7 +330,11 @@ static struct chx_value *call_macro(CHEAX *c, struct chx_lambda *lda, struct chx
 }
 static struct chx_value *call_func(CHEAX *c, struct chx_lambda *lda, struct chx_cons *args)
 {
-	pan_match(c, lda->args, &args->base);
+	if (!pan_match(c, lda->args, &args->base)) {
+		cry(c, "eval", "Invalid (number of) arguments");
+		return NULL;
+	}
+
 	struct chx_value *retval = NULL;
 	for (struct chx_cons *cons = lda->body; cons; cons = cons->next)
 		retval = cheax_eval(c, cons->value);
