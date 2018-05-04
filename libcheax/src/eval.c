@@ -423,5 +423,7 @@ void cheax_print(FILE *c, struct chx_value *first)
 		fprintf(c, ")");
 	} else if (first->kind == VK_PTR) {
 		fprintf(c, "%p", ((struct chx_ptr *)first)->ptr);
+	} else if (first->kind == VK_BUILTIN) {
+		fprintf(c, "built-in function");
 	}
 }
