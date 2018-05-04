@@ -250,7 +250,7 @@ static struct chx_value *builtin_prepend(CHEAX *c, struct chx_cons *args)
 	struct chx_value *carv = cheax_eval(c, car->value);
 	struct chx_value *cdrv = cheax_eval(c, cdr->value);
 	if (cdrv != NULL && cdrv->kind != VK_CONS) {
-		cry(c, ":", "Improper list no.baset allowed");
+		cry(c, ":", "Improper list not allowed");
 		return NULL;
 	}
 
