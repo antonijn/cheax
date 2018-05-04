@@ -137,12 +137,25 @@ CHEAX *cheax_init(void)
 {
 	CHEAX *res = malloc(sizeof(struct cheax));
 	res->locals_top = NULL;
+	res->max_stack_depth = 0x1000;
 	export_builtins(res);
 	return res;
 }
 void cheax_destroy(CHEAX *c)
 {
 	free(c);
+}
+
+int cheax_get_max_stack_depth(CHEAX *c)
+{
+	return c->max_stack_depth;
+}
+void cheax_set_max_stack_depth(CHEAX *c, int max_stack_depth)
+{
+	if (max_stack_depth > 0)
+		c->max_stack_depth = max_stack_depth;
+	else
+		cry(c, "cheax_set_max_stack_depth", "Maximum stack depth must be positive");
 }
 
 static void sync(CHEAX *c, const char *name, enum cheax_type ty, void *var, enum varflags flags)
@@ -203,8 +216,15 @@ void cheax_exec(CHEAX *c, FILE *f)
 		cheax_eval(c, v);
 }
 
-static struct chx_value *cheax_eval_sexpr(CHEAX *c, struct chx_cons *input);
+static struct chx_value *cheax_safe_eval(CHEAX *c, struct chx_value *input, int stack_depth);
+static struct chx_value *cheax_eval_sexpr(CHEAX *c, struct chx_cons *input, int stack_depth);
+
 struct chx_value *cheax_eval(CHEAX *c, struct chx_value *input)
+{
+	cheax_safe_eval(c, input, 0);
+}
+
+static struct chx_value *cheax_safe_eval(CHEAX *c, struct chx_value *input, int stack_depth)
 {
 	if (!input)
 		return NULL;
@@ -247,7 +267,7 @@ struct chx_value *cheax_eval(CHEAX *c, struct chx_value *input)
 			return &ptr_res->base;
 		}
 	case VK_CONS:
-		return cheax_eval_sexpr(c, (struct chx_cons *)input);
+		return cheax_eval_sexpr(c, (struct chx_cons *)input, stack_depth + 1);
 	case VK_QUOTE:
 		return ((struct chx_quote *)input)->value;
 	}
@@ -256,10 +276,12 @@ struct chx_value *cheax_eval(CHEAX *c, struct chx_value *input)
 
 static struct chx_value *expand_macro(struct variable *args_top,
                                       struct variable *locals_top,
-				      struct chx_value *val)
+                                      struct chx_value *val,
+                                      int stack_depth)
 {
 	if (!val)
 		return NULL;
+
 	struct chx_id *as_id = (struct chx_id *)val;
 	struct chx_cons *as_cons = (struct chx_cons *)val;
 	struct chx_quote *as_quote = (struct chx_quote *)val;
@@ -274,20 +296,23 @@ static struct chx_value *expand_macro(struct variable *args_top,
 		; struct chx_cons *cons_res = NULL;
 		struct chx_cons **cons_last = &cons_res;
 		for (; as_cons; as_cons = as_cons->next) {
-			*cons_last = cheax_cons(expand_macro(args_top, locals_top, as_cons->value), NULL);
+			*cons_last = cheax_cons(expand_macro(args_top, locals_top, as_cons->value, stack_depth), NULL);
 			cons_last = &(*cons_last)->next;
 		}
 		return &cons_res->base;
 	case VK_QUOTE:
 		; struct chx_quote *quotres = GC_MALLOC(sizeof(struct chx_quote));
 		quotres->base.kind = VK_QUOTE;
-		quotres->value = expand_macro(args_top, locals_top, as_quote->value);
+		quotres->value = expand_macro(args_top, locals_top, as_quote->value, stack_depth);
 		return &quotres->base;
 	default:
 		return val;
 	}
 }
-static struct chx_value *call_macro(CHEAX *c, struct chx_lambda *lda, struct chx_cons *args)
+static struct chx_value *call_macro(CHEAX *c,
+                                    struct chx_lambda *lda,
+                                    struct chx_cons *args,
+                                    int stack_depth)
 {
 	struct variable *prev_top = c->locals_top;
 	pan_match(c, lda->args, &args->base);
@@ -296,22 +321,30 @@ static struct chx_value *call_macro(CHEAX *c, struct chx_lambda *lda, struct chx
 
 	struct chx_value *retval = NULL;
 	for (struct chx_cons *cons = lda->body; cons; cons = cons->next)
-		retval = cheax_eval(c, expand_macro(new_top, prev_top, cons->value));
+		retval = cheax_safe_eval(c, expand_macro(new_top, prev_top, cons->value, stack_depth), stack_depth);
 
 	return retval;
 }
-static struct chx_value *call_func(CHEAX *c, struct chx_lambda *lda, struct chx_cons *args)
+static struct chx_value *call_func(CHEAX *c,
+                                   struct chx_lambda *lda,
+                                   struct chx_cons *args,
+                                   int stack_depth)
 {
 	pan_match(c, lda->args, &args->base);
 	struct chx_value *retval = NULL;
 	for (struct chx_cons *cons = lda->body; cons; cons = cons->next)
-		retval = cheax_eval(c, cons->value);
+		retval = cheax_safe_eval(c, cons->value, stack_depth);
 	return retval;
 }
 
-static struct chx_value *cheax_eval_sexpr(CHEAX *c, struct chx_cons *input)
+static struct chx_value *cheax_eval_sexpr(CHEAX *c, struct chx_cons *input, int stack_depth)
 {
-	struct chx_value *func = cheax_eval(c, input->value);
+	if (stack_depth > c->max_stack_depth) {
+		cry(c, "eval", "Stack overflow! (maximum stack depth = %d)", c->max_stack_depth);
+		return NULL;
+	}
+
+	struct chx_value *func = cheax_safe_eval(c, input->value, stack_depth);
 	if (func == NULL)
 		return NULL;
 	if (func->kind == VK_BUILTIN) {
@@ -323,7 +356,7 @@ static struct chx_value *cheax_eval_sexpr(CHEAX *c, struct chx_cons *input)
 		if (!lda->eval_args) {
 			/* macro call */
 			struct chx_cons *args = input->next;
-			return call_macro(c, lda, args);
+			return call_macro(c, lda, args, stack_depth);
 		}
 
 		/* function call */
@@ -332,7 +365,7 @@ static struct chx_value *cheax_eval_sexpr(CHEAX *c, struct chx_cons *input)
 		struct chx_cons *args = NULL;
 		struct chx_cons **args_last = &args;
 		for (struct chx_cons *arg = input->next; arg; arg = arg->next) {
-			*args_last = cheax_cons(cheax_eval(c, arg->value), NULL);
+			*args_last = cheax_cons(cheax_safe_eval(c, arg->value, stack_depth), NULL);
 			args_last = &(*args_last)->next;
 		}
 
@@ -340,7 +373,7 @@ static struct chx_value *cheax_eval_sexpr(CHEAX *c, struct chx_cons *input)
 		struct variable *prev_locals_top = c->locals_top;
 		c->locals_top = lda->locals_top;
 
-		struct chx_value *retval = call_func(c, lda, args);
+		struct chx_value *retval = call_func(c, lda, args, stack_depth);
 		/* restore previous context */
 		c->locals_top = prev_locals_top;
 		return retval;

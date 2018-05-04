@@ -103,6 +103,9 @@ void cheax_syncnd(CHEAX *c, const char *name, enum cheax_type ty, void *var);
 
 void cheax_defmacro(CHEAX *c, const char *name, macro fun);
 
+int cheax_get_max_stack_depth(CHEAX *c);
+void cheax_set_max_stack_depth(CHEAX *c, int max_stack_depth);
+
 struct chx_value *cheax_eval(CHEAX *c, struct chx_value *expr);
 struct chx_value *cheax_read(FILE *f);
 struct chx_value *cheax_readstr(const char *str);
