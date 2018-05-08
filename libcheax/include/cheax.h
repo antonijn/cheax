@@ -71,6 +71,15 @@ CHEAX *cheax_init(void);
  */
 void cheax_destroy(CHEAX *c);
 
+enum cheax_builtin {
+	CHEAX_FILE_IO = 1 << 0,
+	CHEAX_SET_MAX_STACK_DEPTH = 1 << 1,
+
+	CHEAX_ALL_BUILTINS = 0xFFFFFFFF,
+};
+
+void cheax_load_extra_builtins(CHEAX *c, enum cheax_builtin builtins);
+
 /*
  * Indicates the type of a synchronized variable.
  * See also: cheax_sync()
