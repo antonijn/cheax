@@ -105,6 +105,8 @@ int main(int argc, char **argv)
 		return EXIT_FAILURE;
 	}
 
+	cheax_load_extra_builtins(c, CHEAX_ALL_BUILTINS);
+
 	if (read_stdin)
 		cheax_exec(c, stdin);
 

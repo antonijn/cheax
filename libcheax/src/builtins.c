@@ -55,8 +55,6 @@ DECL_BUILTIN(lt);
 
 void export_builtins(CHEAX *c)
 {
-	cheax_defmacro(c, "fopen", builtin_fopen);
-	cheax_defmacro(c, "fclose", builtin_fclose);
 	cheax_defmacro(c, "read-from", builtin_read_from);
 	cheax_defmacro(c, "print-to", builtin_print_to);
 	cheax_defmacro(c, "var", builtin_var);
@@ -68,7 +66,6 @@ void export_builtins(CHEAX *c)
 	cheax_defmacro(c, "is-double", builtin_is_double);
 	cheax_defmacro(c, "is-list", builtin_is_list);
 	cheax_defmacro(c, "get-max-stack-depth", builtin_get_max_stack_depth);
-	cheax_defmacro(c, "set-max-stack-depth", builtin_set_max_stack_depth);
 	cheax_defmacro(c, "\\", builtin_lambda);
 	cheax_defmacro(c, "\\\\", builtin_macro_lambda);
 	cheax_defmacro(c, "eval", builtin_eval);
@@ -83,6 +80,17 @@ void export_builtins(CHEAX *c)
 	cheax_syncro(c, "stdin", CHEAX_PTR, &stdin);
 	cheax_syncro(c, "stdout", CHEAX_PTR, &stdout);
 	cheax_syncro(c, "stderr", CHEAX_PTR, &stderr);
+}
+
+void cheax_load_extra_builtins(CHEAX *c, enum cheax_builtin builtins)
+{
+	if (builtins & CHEAX_FILE_IO) {
+		cheax_defmacro(c, "fopen", builtin_fopen);
+		cheax_defmacro(c, "fclose", builtin_fclose);
+	}
+
+	if (builtins & CHEAX_SET_MAX_STACK_DEPTH)
+		cheax_defmacro(c, "set-max-stack-depth", builtin_set_max_stack_depth);
 }
 
 static bool expect_args(CHEAX *c, const char *fname, int num, struct chx_cons *args)
