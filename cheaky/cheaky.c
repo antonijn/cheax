@@ -81,9 +81,8 @@ static struct chx_value *read_with_readline(CHEAX *c)
 		int size_fullstr = (fullstr != NULL) ? strlen(fullstr) : 0;
 		int size_input = strlen(input);
 		fullstr = realloc(fullstr, size_fullstr + size_input + 1 + 1);
-		fullstr[size_fullstr] = '\0';
-		strcat(fullstr, input);
-		strcat(fullstr, "\n");
+		strcpy(fullstr + size_fullstr, input);
+		strcpy(fullstr + size_fullstr + size_input, "\n");
 
 		free(input);
 
@@ -132,9 +131,9 @@ int main(void)
 #endif
 
 	fputs("Cheaky, Copyright (C) 2020 Antonie Blom\n", stderr);
-	fputs("Cheaky comes with ABSOLUTELY NO WARRANTY; for details type '(show-w)'.\n", stderr);
+	fputs("Cheaky comes with ABSOLUTELY NO WARRANTY; for details type `(show-w)'.\n", stderr);
 	fputs("This is free software, and you are welcome to redistribute it\n", stderr);
-	fputs("under certain conditions; type '(show-c)' for details.\n", stderr);
+	fputs("under certain conditions; type `(show-c)' for details.\n", stderr);
 
 	while (!quit) {
 		struct chx_value *v = read_with_readline(c);
