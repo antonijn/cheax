@@ -230,6 +230,7 @@ struct chx_value *cheax_eval(CHEAX *c, struct chx_value *input)
 	case VK_LAMBDA:
 	case VK_BUILTIN:
 	case VK_PTR:
+	case VK_STRING:
 		return input;
 	case VK_ID:
 		; struct variable *sym = find_sym(c, ((struct chx_id *)input)->id);
@@ -423,6 +424,19 @@ void cheax_print(FILE *c, struct chx_value *first)
 		fprintf(c, ")");
 	} else if (first->kind == VK_PTR) {
 		fprintf(c, "%p", ((struct chx_ptr *)first)->ptr);
+	} else if (first->kind == VK_STRING) {
+		struct chx_string *string = (struct chx_string *)first;
+		fputc('"', c);
+		for (int i = 0; i < string->len; ++i) {
+			char ch = string->value[i];
+			if (ch == '"')
+				fputs("\\\"", c);
+			else if (isprint(ch))
+				fputc(ch, c);
+			else
+				fprintf(c, "\\x%02x", (int)ch);
+		}
+		fputc('"', c);
 	} else if (first->kind == VK_BUILTIN) {
 		fprintf(c, "built-in function");
 	}

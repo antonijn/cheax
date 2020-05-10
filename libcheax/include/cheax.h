@@ -7,7 +7,7 @@
 typedef struct cheax CHEAX;
 
 enum chx_value_kind {
-	VK_INT, VK_DOUBLE, VK_ID, VK_CONS, VK_BUILTIN, VK_LAMBDA, VK_QUOTE, VK_PTR
+	VK_INT, VK_DOUBLE, VK_ID, VK_CONS, VK_BUILTIN, VK_LAMBDA, VK_QUOTE, VK_PTR, VK_STRING
 };
 
 struct chx_value {
@@ -56,6 +56,12 @@ struct chx_lambda {
 	bool eval_args; /* true for (\), false for (\\) */
 	/* the context in which the lambda was declared */
 	struct variable *locals_top;
+};
+
+struct chx_string {
+	struct chx_value base;
+	char *value;
+	size_t len;
 };
 
 struct chx_cons *cheax_cons(struct chx_value *car, struct chx_cons *cdr);
