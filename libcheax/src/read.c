@@ -21,6 +21,8 @@
 #include <ctype.h>
 #include <gc.h>
 
+#include "eval.h"
+
 enum tok_kind {
 	TK_ID, TK_INT, TK_DOUBLE, TK_LPAR, TK_RPAR, TK_QUOTE, TK_STRING, TK_EOF
 };
@@ -31,6 +33,7 @@ struct tok {
 };
 
 struct lexer {
+	CHEAX *c;
 	int cur;
 	void *info;
 	int (*get)(void *info);
@@ -53,8 +56,9 @@ static int get_sgetc(void *s)
 	++ss->idx;
 	return ch;
 }
-static void lxinits(struct lexer *lx, struct tok *tk, struct sstream *s)
+static void lxinits(struct lexer *lx, CHEAX *c, struct tok *tk, struct sstream *s)
 {
+	lx->c = c;
 	lx->info = s;
 	lx->get = get_sgetc;
 	lx->cur = get_sgetc(s);
@@ -65,8 +69,9 @@ static int get_fgetc(void *f)
 {
 	return fgetc(f);
 }
-static inline void lxinitf(struct lexer *lx, struct tok *tk, FILE *f)
+static inline void lxinitf(struct lexer *lx, CHEAX *c, struct tok *tk, FILE *f)
 {
+	lx->c = c;
 	lx->info = f;
 	lx->get = get_fgetc;
 	lx->cur = fgetc(f);
@@ -109,7 +114,7 @@ static bool get_string_char(struct lexer *lx, char **dest)
 		return false;
 
 	if (ch == '\n' || ch == EOF) {
-		fprintf(stderr, "Unexpected newline or end-of-file\n");
+		lx->c->error = CHEAX_EEOF;
 		return false;
 	}
 
@@ -254,7 +259,7 @@ struct chx_value *read_cons(struct lexer *lx, struct tok *tk)
 	lxadv(lx, tk);
 	while (tk->kind != TK_RPAR) {
 		if (tk->kind == TK_EOF) {
-			fprintf(stderr, "Unexpected end-of-file\n");
+			lx->c->error = CHEAX_EEOF;
 			return NULL;
 		}
 		*last = cheax_cons(ast_read(lx, tk), NULL);
@@ -283,23 +288,23 @@ static struct chx_value *ast_read(struct lexer *lx, struct tok *tk)
 	case TK_EOF:
 		return NULL;
 	default:
-		fprintf(stderr, "Unexpected token: '%s\n'", tk->lexeme);
+		lx->c->error = CHEAX_EREAD;
 		return NULL;
 	}
 }
 
-struct chx_value *cheax_read(FILE *infile)
+struct chx_value *cheax_read(CHEAX *c, FILE *infile)
 {
 	struct lexer lx;
 	struct tok tk;
-	lxinitf(&lx, &tk, infile);
+	lxinitf(&lx, c, &tk, infile);
 	return ast_read(&lx, &tk);
 }
-struct chx_value *cheax_readstr(const char *str)
+struct chx_value *cheax_readstr(CHEAX *c, const char *str)
 {
 	struct sstream ss = { .str = str, .idx = 0 };
 	struct lexer lx;
 	struct tok tk;
-	lxinits(&lx, &tk, &ss);
+	lxinits(&lx, c, &tk, &ss);
 	return ast_read(&lx, &tk);
 }

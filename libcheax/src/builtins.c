@@ -143,7 +143,7 @@ static struct chx_value *builtin_read_from(CHEAX *c, struct chx_cons *args)
 		return NULL;
 	}
 	FILE *fp = ((struct chx_ptr *)fptr)->ptr;
-	return cheax_read(fp);
+	return cheax_read(c, fp);
 }
 static struct chx_value *builtin_print_to(CHEAX *c, struct chx_cons *args)
 {

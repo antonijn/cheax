@@ -41,6 +41,7 @@ struct variable {
 struct cheax {
 	struct variable *locals_top;
 	int max_stack_depth, stack_depth;
+	enum chx_error error;
 };
 
 struct chx_cons *cheax_cons(struct chx_value *car, struct chx_cons *cdr);

@@ -34,6 +34,13 @@ struct chx_cons *cheax_cons(struct chx_value *car, struct chx_cons *cdr)
 	return res;
 }
 
+enum chx_error cheax_errno(CHEAX *c)
+{
+	enum chx_error res = c->error;
+	c->error = 0;
+	return res;
+}
+
 static bool pan_match_cheax_cons(CHEAX *c, struct chx_cons *pan, struct chx_cons *match);
 
 bool pan_match(CHEAX *c, struct chx_value *pan, struct chx_value *match)
@@ -213,7 +220,7 @@ void cheax_exec(CHEAX *c, FILE *f)
 	}
 
 	struct chx_value *v;
-	while (v = cheax_read(f))
+	while (v = cheax_read(c, f))
 		cheax_eval(c, v);
 }
 
@@ -236,6 +243,7 @@ struct chx_value *cheax_eval(CHEAX *c, struct chx_value *input)
 		; struct variable *sym = find_sym(c, ((struct chx_id *)input)->id);
 		if (!sym) {
 			cry(c, "eval", "No such symbol '%s'", ((struct chx_id *)input)->id);
+			c->error = CHEAX_ENOSYM;
 			return NULL;
 		}
 		if ((sym->flags & SF_SYNCED) == 0)
@@ -265,6 +273,7 @@ struct chx_value *cheax_eval(CHEAX *c, struct chx_value *input)
 	case VK_CONS:
 		if (c->stack_depth >= c->max_stack_depth) {
 			cry(c, "eval", "Stack overflow! (maximum stack depth = %d)", c->max_stack_depth);
+			c->error = CHEAX_ESTACK;
 			return NULL;
 		}
 
