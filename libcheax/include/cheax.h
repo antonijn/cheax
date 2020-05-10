@@ -47,6 +47,7 @@ typedef struct chx_value *(*macro)(CHEAX *c, struct chx_cons *args);
 struct chx_macro {
 	struct chx_value base;
 	macro perform;
+	const char *name;
 };
 
 struct chx_lambda {

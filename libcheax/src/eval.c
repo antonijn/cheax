@@ -192,7 +192,8 @@ void cheax_defmacro(CHEAX *c, const char *name, macro fun)
 	struct chx_macro *mc = GC_MALLOC(sizeof(struct chx_macro));
 	*mc = (struct chx_macro){
 		.base = { VK_BUILTIN },
-		.perform = fun
+		.perform = fun,
+		.name = name
 	};
 	def_sym(c, name, &mc->base);
 }
@@ -447,6 +448,10 @@ void cheax_print(FILE *c, struct chx_value *first)
 		}
 		fputc('"', c);
 	} else if (first->kind == VK_BUILTIN) {
-		fprintf(c, "built-in function");
+		struct chx_macro *macro = (struct chx_macro *)first;
+		if (macro->name == NULL)
+			fputs("[built-in function]", c);
+		else
+			fputs(macro->name, c);
 	}
 }
