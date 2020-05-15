@@ -195,7 +195,8 @@ void cheax_defmacro(CHEAX *c, const char *name, macro fun)
 		.perform = fun,
 		.name = name
 	};
-	def_sym(c, name, &mc->base);
+	struct variable *v = def_sym(c, name, &mc->base);
+	v->flags |= SF_RO;
 }
 
 int cheax_load_prelude(CHEAX *c)
