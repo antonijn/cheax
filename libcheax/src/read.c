@@ -1,4 +1,4 @@
-/* Copyright (c) 2016, Antonie Blom
+/* Copyright (c) 2020, Antonie Blom
  * 
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -14,14 +14,17 @@
  */
 
 #include <cheax.h>
+#include <assert.h>
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
 #include <ctype.h>
 #include <gc.h>
 
+#include "eval.h"
+
 enum tok_kind {
-	TK_ID, TK_INT, TK_DOUBLE, TK_LPAR, TK_RPAR, TK_QUOTE, TK_EOF
+	TK_ID, TK_INT, TK_DOUBLE, TK_LPAR, TK_RPAR, TK_QUOTE, TK_STRING, TK_EOF
 };
 
 struct tok {
@@ -30,6 +33,7 @@ struct tok {
 };
 
 struct lexer {
+	CHEAX *c;
 	int cur;
 	void *info;
 	int (*get)(void *info);
@@ -45,10 +49,16 @@ struct sstream {
 static int get_sgetc(void *s)
 {
 	struct sstream *ss = s;
-	return ss->str[++ss->idx];
+	char ch = ss->str[ss->idx];
+	if (ch == '\0')
+		return EOF;
+
+	++ss->idx;
+	return ch;
 }
-static void lxinits(struct lexer *lx, struct tok *tk, struct sstream *s)
+static void lxinits(struct lexer *lx, CHEAX *c, struct tok *tk, struct sstream *s)
 {
+	lx->c = c;
 	lx->info = s;
 	lx->get = get_sgetc;
 	lx->cur = get_sgetc(s);
@@ -59,8 +69,9 @@ static int get_fgetc(void *f)
 {
 	return fgetc(f);
 }
-static inline void lxinitf(struct lexer *lx, struct tok *tk, FILE *f)
+static inline void lxinitf(struct lexer *lx, CHEAX *c, struct tok *tk, FILE *f)
 {
+	lx->c = c;
 	lx->info = f;
 	lx->get = get_fgetc;
 	lx->cur = fgetc(f);
@@ -92,6 +103,40 @@ static void trim_space(struct lexer *lx)
 	}
 }
 
+/* Returns false if string needs to terminate */
+static bool get_string_char(struct lexer *lx, char **dest)
+{
+	int ch = lx->cur;
+	*(*dest)++ = ch;
+	lxadvch(lx);
+
+	if (ch == '"')
+		return false;
+
+	if (ch == '\n' || ch == EOF) {
+		lx->c->error = CHEAX_EEOF;
+		return false;
+	}
+
+	if (ch == '\\') {
+		*(*dest)++ = lx->cur;
+		lxadvch(lx);
+	}
+
+	return true;
+}
+
+static void get_string(struct lexer *lx, struct tok *tk)
+{
+	char *dest = tk->lexeme;
+	*dest++ = lx->cur; /* copy '"' */
+	lxadvch(lx);
+	while (get_string_char(lx, &dest))
+		;
+	*dest = '\0';
+	tk->kind = TK_STRING;
+}
+
 static void get_num(struct lexer *lx, struct tok *tk)
 {
 	char *dest = tk->lexeme;
@@ -118,6 +163,8 @@ void lxadv(struct lexer *lx, struct tok *tk)
 		strcpy(tk->lexeme, "'");
 		tk->kind = TK_QUOTE;
 		lxadvch(lx);
+	} else if (lx->cur == '"') {
+		get_string(lx, tk);
 	} else if (isid(lx->cur)) {
 		if (isdigit(lx->cur))
 			get_num(lx, tk);
@@ -167,6 +214,43 @@ struct chx_value *read_id(struct lexer *lx, struct tok *tk)
 	strcpy((char *)res->id, tk->lexeme);
 	return &res->base;
 }
+struct chx_value *read_string(struct lexer *lx, struct tok *tk)
+{
+	struct chx_string *res = GC_MALLOC(sizeof(struct chx_string));
+	res->base.kind = VK_STRING;
+
+	/* Enough to hold all characters */
+	size_t crude_len = strlen(tk->lexeme); /* we realloc later */
+	char *value = GC_MALLOC(crude_len);
+	res->value = value;
+
+	for (int i = 1; i + 1 < crude_len; ++i) {
+		char ch = tk->lexeme[i];
+
+		if (ch != '\\') {
+			*value++ = ch;
+			continue;
+		}
+
+		ch = tk->lexeme[++i];
+		assert(i + 1 < crude_len);
+
+		switch (ch) {
+		case 'n':
+			*value++ = '\n';
+			break;
+		default:
+			*value++ = ch;
+			break;
+		}
+	}
+
+	size_t act_len = (value - res->value);
+	res->value = GC_REALLOC(res->value, act_len);
+	res->len = act_len;
+
+	return &res->base;
+}
 
 struct chx_value *read_cons(struct lexer *lx, struct tok *tk)
 {
@@ -175,7 +259,7 @@ struct chx_value *read_cons(struct lexer *lx, struct tok *tk)
 	lxadv(lx, tk);
 	while (tk->kind != TK_RPAR) {
 		if (tk->kind == TK_EOF) {
-			fprintf(stderr, "Unexpected end-of-file\n");
+			lx->c->error = CHEAX_EEOF;
 			return NULL;
 		}
 		*last = cheax_cons(ast_read(lx, tk), NULL);
@@ -199,26 +283,28 @@ static struct chx_value *ast_read(struct lexer *lx, struct tok *tk)
 	case TK_QUOTE:
 		lxadv(lx, tk);
 		return quote_value(ast_read(lx, tk));
+	case TK_STRING:
+		return read_string(lx, tk);
 	case TK_EOF:
 		return NULL;
 	default:
-		fprintf(stderr, "Unexpected token: '%s\n'", tk->lexeme);
+		lx->c->error = CHEAX_EREAD;
 		return NULL;
 	}
 }
 
-struct chx_value *cheax_read(FILE *infile)
+struct chx_value *cheax_read(CHEAX *c, FILE *infile)
 {
 	struct lexer lx;
 	struct tok tk;
-	lxinitf(&lx, &tk, infile);
+	lxinitf(&lx, c, &tk, infile);
 	return ast_read(&lx, &tk);
 }
-struct chx_value *cheax_readstr(const char *str)
+struct chx_value *cheax_readstr(CHEAX *c, const char *str)
 {
-	struct sstream ss = { .str = str, .idx = -1 };
+	struct sstream ss = { .str = str, .idx = 0 };
 	struct lexer lx;
 	struct tok tk;
-	lxinits(&lx, &tk, &ss);
+	lxinits(&lx, c, &tk, &ss);
 	return ast_read(&lx, &tk);
 }

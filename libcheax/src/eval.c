@@ -1,4 +1,4 @@
-/* Copyright (c) 2016, Antonie Blom
+/* Copyright (c) 2020, Antonie Blom
  * 
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -31,6 +31,13 @@ struct chx_cons *cheax_cons(struct chx_value *car, struct chx_cons *cdr)
 	res->base.kind = VK_CONS;
 	res->value = car;
 	res->next = cdr;
+	return res;
+}
+
+enum chx_error cheax_errno(CHEAX *c)
+{
+	enum chx_error res = c->error;
+	c->error = 0;
 	return res;
 }
 
@@ -185,7 +192,8 @@ void cheax_defmacro(CHEAX *c, const char *name, macro fun)
 	struct chx_macro *mc = GC_MALLOC(sizeof(struct chx_macro));
 	*mc = (struct chx_macro){
 		.base = { VK_BUILTIN },
-		.perform = fun
+		.perform = fun,
+		.name = name
 	};
 	def_sym(c, name, &mc->base);
 }
@@ -213,7 +221,7 @@ void cheax_exec(CHEAX *c, FILE *f)
 	}
 
 	struct chx_value *v;
-	while (v = cheax_read(f))
+	while (v = cheax_read(c, f))
 		cheax_eval(c, v);
 }
 
@@ -230,11 +238,13 @@ struct chx_value *cheax_eval(CHEAX *c, struct chx_value *input)
 	case VK_LAMBDA:
 	case VK_BUILTIN:
 	case VK_PTR:
+	case VK_STRING:
 		return input;
 	case VK_ID:
 		; struct variable *sym = find_sym(c, ((struct chx_id *)input)->id);
 		if (!sym) {
 			cry(c, "eval", "No such symbol '%s'", ((struct chx_id *)input)->id);
+			c->error = CHEAX_ENOSYM;
 			return NULL;
 		}
 		if ((sym->flags & SF_SYNCED) == 0)
@@ -264,6 +274,7 @@ struct chx_value *cheax_eval(CHEAX *c, struct chx_value *input)
 	case VK_CONS:
 		if (c->stack_depth >= c->max_stack_depth) {
 			cry(c, "eval", "Stack overflow! (maximum stack depth = %d)", c->max_stack_depth);
+			c->error = CHEAX_ESTACK;
 			return NULL;
 		}
 
@@ -315,7 +326,10 @@ static struct chx_value *expand_macro(struct variable *args_top,
 static struct chx_value *call_macro(CHEAX *c, struct chx_lambda *lda, struct chx_cons *args)
 {
 	struct variable *prev_top = c->locals_top;
-	pan_match(c, lda->args, &args->base);
+	if (!pan_match(c, lda->args, &args->base)) {
+		cry(c, "eval", "Invalid (number of) arguments");
+		return NULL;
+	}
 	struct variable *new_top = c->locals_top;
 	c->locals_top = prev_top;
 
@@ -327,7 +341,11 @@ static struct chx_value *call_macro(CHEAX *c, struct chx_lambda *lda, struct chx
 }
 static struct chx_value *call_func(CHEAX *c, struct chx_lambda *lda, struct chx_cons *args)
 {
-	pan_match(c, lda->args, &args->base);
+	if (!pan_match(c, lda->args, &args->base)) {
+		cry(c, "eval", "Invalid (number of) arguments");
+		return NULL;
+	}
+
 	struct chx_value *retval = NULL;
 	for (struct chx_cons *cons = lda->body; cons; cons = cons->next)
 		retval = cheax_eval(c, cons->value);
@@ -416,5 +434,24 @@ void cheax_print(FILE *c, struct chx_value *first)
 		fprintf(c, ")");
 	} else if (first->kind == VK_PTR) {
 		fprintf(c, "%p", ((struct chx_ptr *)first)->ptr);
+	} else if (first->kind == VK_STRING) {
+		struct chx_string *string = (struct chx_string *)first;
+		fputc('"', c);
+		for (int i = 0; i < string->len; ++i) {
+			char ch = string->value[i];
+			if (ch == '"')
+				fputs("\\\"", c);
+			else if (isprint(ch))
+				fputc(ch, c);
+			else
+				fprintf(c, "\\x%02x", (int)ch);
+		}
+		fputc('"', c);
+	} else if (first->kind == VK_BUILTIN) {
+		struct chx_macro *macro = (struct chx_macro *)first;
+		if (macro->name == NULL)
+			fputs("[built-in function]", c);
+		else
+			fputs(macro->name, c);
 	}
 }

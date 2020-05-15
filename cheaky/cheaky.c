@@ -1,6 +1,6 @@
 /*
  * Interactive cheax prompt
- * Copyright (C) 2016  Antonie Blom
+ * Copyright (C) 2020  Antonie Blom
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -59,6 +59,43 @@ static struct chx_value *show_c(CHEAX *c, struct chx_cons *args)
 
 static bool quit = false;
 
+static struct chx_value *read_with_readline(CHEAX *c)
+{
+	char *prompt = "> ";
+	char *fullstr = NULL;
+	struct chx_value *res = NULL;
+
+	do {
+		char *input = readline(prompt);
+		if (!input) {
+			quit = true;
+			free(input);
+			goto stop;
+		}
+		if (input[0] == '\0') {
+			free(input);
+			goto stop;
+		}
+		add_history(input);
+
+		int size_fullstr = (fullstr != NULL) ? strlen(fullstr) : 0;
+		int size_input = strlen(input);
+		fullstr = realloc(fullstr, size_fullstr + size_input + 1 + 1);
+		strcpy(fullstr + size_fullstr, input);
+		strcpy(fullstr + size_fullstr + size_input, "\n");
+
+		free(input);
+
+		res = cheax_readstr(c, fullstr);
+
+		prompt = "… ";
+	} while (res == NULL && cheax_errno(c) == CHEAX_EEOF);
+
+stop:
+	free(fullstr);
+	return res;
+}
+
 static struct chx_value *quit_fun(CHEAX *c, struct chx_cons *args)
 {
 	quit = true;
@@ -84,7 +121,7 @@ int main(void)
 #ifdef HAVE_ISATTY
 	if (!isatty(1)) {
 		struct chx_value *v;
-		while (v = cheax_read(stdin)) {
+		while (v = cheax_read(c, stdin)) {
 			cheax_print(stdout, cheax_eval(c, v));
 			printf("\n");
 		}
@@ -93,21 +130,13 @@ int main(void)
 	}
 #endif
 
-	fputs("Cheaky, Copyright (C) 2017 Antonie Blom\n", stderr);
-	fputs("Cheaky comes with ABSOLUTELY NO WARRANTY; for details type '(show-w)'.\n", stderr);
+	fputs("Cheaky, Copyright (C) 2020 Antonie Blom\n", stderr);
+	fputs("Cheaky comes with ABSOLUTELY NO WARRANTY; for details type `(show-w)'.\n", stderr);
 	fputs("This is free software, and you are welcome to redistribute it\n", stderr);
-	fputs("under certain conditions; type '(show-c)' for details.\n", stderr);
+	fputs("under certain conditions; type `(show-c)' for details.\n", stderr);
 
 	while (!quit) {
-		char *input = readline("> ");
-		if (!input)
-			break;
-		add_history(input);
-
-		struct chx_value *v = cheax_readstr(input);
-
-		free(input);
-
+		struct chx_value *v = read_with_readline(c);
 		cheax_print(stdout, cheax_eval(c, v));
 		printf("\n");
 	}

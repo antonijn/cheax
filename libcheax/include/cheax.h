@@ -7,7 +7,7 @@
 typedef struct cheax CHEAX;
 
 enum chx_value_kind {
-	VK_INT, VK_DOUBLE, VK_ID, VK_CONS, VK_BUILTIN, VK_LAMBDA, VK_QUOTE, VK_PTR
+	VK_INT, VK_DOUBLE, VK_ID, VK_CONS, VK_BUILTIN, VK_LAMBDA, VK_QUOTE, VK_PTR, VK_STRING
 };
 
 struct chx_value {
@@ -47,6 +47,7 @@ typedef struct chx_value *(*macro)(CHEAX *c, struct chx_cons *args);
 struct chx_macro {
 	struct chx_value base;
 	macro perform;
+	const char *name;
 };
 
 struct chx_lambda {
@@ -58,7 +59,24 @@ struct chx_lambda {
 	struct variable *locals_top;
 };
 
+struct chx_string {
+	struct chx_value base;
+	char *value;
+	size_t len;
+};
+
 struct chx_cons *cheax_cons(struct chx_value *car, struct chx_cons *cdr);
+
+enum chx_error {
+	/* Read errors */
+	CHEAX_EREAD     = 0x0001,
+	CHEAX_EEOF      = 0x0002,
+	CHEAX_ELEX      = 0x0003,
+	/* Eval errors */
+	CHEAX_EEVAL     = 0x0101,
+	CHEAX_ENOSYM    = 0x0102,
+	CHEAX_ESTACK    = 0x0103,
+};
 
 /*
  * Initializes a CHEAX environment.
@@ -70,6 +88,8 @@ CHEAX *cheax_init(void);
  * undefined behavior.
  */
 void cheax_destroy(CHEAX *c);
+
+enum chx_error cheax_errno(CHEAX *c);
 
 enum cheax_builtin {
 	CHEAX_FILE_IO = 1 << 0,
@@ -116,8 +136,8 @@ int cheax_get_max_stack_depth(CHEAX *c);
 void cheax_set_max_stack_depth(CHEAX *c, int max_stack_depth);
 
 struct chx_value *cheax_eval(CHEAX *c, struct chx_value *expr);
-struct chx_value *cheax_read(FILE *f);
-struct chx_value *cheax_readstr(const char *str);
+struct chx_value *cheax_read(CHEAX *c, FILE *f);
+struct chx_value *cheax_readstr(CHEAX *c, const char *str);
 int cheax_load_prelude(CHEAX *c);
 void cheax_print(FILE *output, struct chx_value *expr);
 

@@ -1,4 +1,4 @@
-/* Copyright (c) 2016, Antonie Blom
+/* Copyright (c) 2020, Antonie Blom
  * 
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -143,7 +143,7 @@ static struct chx_value *builtin_read_from(CHEAX *c, struct chx_cons *args)
 		return NULL;
 	}
 	FILE *fp = ((struct chx_ptr *)fptr)->ptr;
-	return cheax_read(fp);
+	return cheax_read(c, fp);
 }
 static struct chx_value *builtin_print_to(CHEAX *c, struct chx_cons *args)
 {
@@ -258,7 +258,7 @@ static struct chx_value *builtin_prepend(CHEAX *c, struct chx_cons *args)
 	struct chx_value *carv = cheax_eval(c, car->value);
 	struct chx_value *cdrv = cheax_eval(c, cdr->value);
 	if (cdrv != NULL && cdrv->kind != VK_CONS) {
-		cry(c, ":", "Improper list no.baset allowed");
+		cry(c, ":", "Improper list not allowed");
 		return NULL;
 	}
 
@@ -308,7 +308,7 @@ static struct chx_value *builtin_set_max_stack_depth(CHEAX *c, struct chx_cons *
 {
 	EXPECT_ARGS(c, "set-max-stack-depth", 1, args);
 	struct chx_value *value = cheax_eval(c, args->value);
-	if (value->kind != VK_INT) {
+	if (value == NULL || value->kind != VK_INT) {
 		cry(c, "set-max-stack-depth", "Expected integer argument");
 		return NULL;
 	}

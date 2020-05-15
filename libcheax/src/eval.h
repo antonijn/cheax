@@ -1,4 +1,4 @@
-/* Copyright (c) 2016, Antonie Blom
+/* Copyright (c) 2020, Antonie Blom
  * 
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -41,6 +41,7 @@ struct variable {
 struct cheax {
 	struct variable *locals_top;
 	int max_stack_depth, stack_depth;
+	enum chx_error error;
 };
 
 struct chx_cons *cheax_cons(struct chx_value *car, struct chx_cons *cdr);

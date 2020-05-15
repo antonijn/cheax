@@ -1,4 +1,4 @@
-; Copyright (c) 2016, Antonie Blom
+; Copyright (c) 2020, Antonie Blom
 ;  
 ;  Permission to use, copy, modify, and/or distribute this software for any
 ;  purpose with or without fee is hereby granted, provided that the above
@@ -45,6 +45,18 @@
     (() ())
     ((: z zs) (: (f z) (map f zs)))
   ))
+
+(defun zip (xs ys)
+  (case xs
+    (() ())
+    ((: a as)
+      (case ys
+        (() ())
+	((: b bs) (: (list a b) (zip as bs)))
+      ))
+  ))
+(defun zip-with (op xs ys)
+  (map (\ ((a b)) (op a b)) (zip xs ys)))
 
 (defun ++ args
   (case args
