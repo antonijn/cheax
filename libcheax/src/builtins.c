@@ -107,13 +107,13 @@ static bool expect_args(CHEAX *c, const char *fname, int num, struct chx_cons *a
 	if (!expect_args(c, fname, num, args)) \
 		return NULL
 
-static double to_double(struct chx_value *x)
+static double force_to_double(struct chx_value *x)
 {
 	if (x->kind == VK_INT)
 		return ((struct chx_int *)x)->value;
 	return ((struct chx_double *)x)->value;
 }
-static int to_int(struct chx_value *x)
+static int force_to_int(struct chx_value *x)
 {
 	if (x->kind == VK_INT)
 		return ((struct chx_int *)x)->value;
@@ -223,16 +223,16 @@ static struct chx_value *builtin_set(CHEAX *c, struct chx_cons *args)
 	}
 	switch (sym->sync_var.ty) {
 	case CHEAX_INT:
-		*(int *)sym->sync_var.var = to_int(setto);
+		*(int *)sym->sync_var.var = force_to_int(setto);
 		break;
 	case CHEAX_BOOL:
-		*(bool *)sym->sync_var.var = to_int(setto);
+		*(bool *)sym->sync_var.var = force_to_int(setto);
 		break;
 	case CHEAX_FLOAT:
-		*(float *)sym->sync_var.var = to_double(setto);
+		*(float *)sym->sync_var.var = force_to_double(setto);
 		break;
 	case CHEAX_DOUBLE:
-		*(double *)sym->sync_var.var = to_double(setto);
+		*(double *)sym->sync_var.var = force_to_double(setto);
 		break;
 	case CHEAX_PTR:
 		if (!setto) {
@@ -392,7 +392,7 @@ static bool aop_use_double(struct chx_value *l, struct chx_value *r)
 }
 #define DO_AOP(c, l, r, op) \
 	if (aop_use_double(l, r)) { \
-		double res = to_double(l) op to_double(r); \
+		double res = force_to_double(l) op force_to_double(r); \
 		struct chx_double *full_res = GC_MALLOC(sizeof(struct chx_double)); \
 		*full_res = (struct chx_double){ { VK_DOUBLE }, res }; \
 		return &full_res->base; \
@@ -447,12 +447,12 @@ static struct chx_value *builtin_lt(CHEAX *c, struct chx_cons *args)
 	struct chx_value *l = cheax_eval(c, args->value);
 	struct chx_value *r = cheax_eval(c, args->next->value);
 	if (aop_use_double(l, r)) {
-		double ld = to_double(l);
-		double rd = to_double(r);
+		double ld = force_to_double(l);
+		double rd = force_to_double(r);
 		return ld < rd ? &yes.base : &no.base;
 	} else {
-		int li = to_int(l);
-		int ri = to_int(r);
+		int li = force_to_int(l);
+		int ri = force_to_int(r);
 		return li < ri ? &yes.base : &no.base;
 	}
 }
