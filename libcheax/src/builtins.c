@@ -320,7 +320,7 @@ static struct chx_value *builtin_set(CHEAX *c, struct chx_list *args)
 
 	struct chx_value *setto = cheax_eval(c, args->value);
 
-	if (args != NULL) {
+	if (args->next != NULL) {
 		cry(c, "set",  "Invalid set");
 		c->error = CHEAX_EMATCH;
 		return NULL;
