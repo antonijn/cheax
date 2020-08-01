@@ -38,6 +38,7 @@ DECL_BUILTIN(var);
 DECL_BUILTIN(const);
 DECL_BUILTIN(set);
 DECL_BUILTIN(prepend);
+DECL_BUILTIN(get_type);
 DECL_BUILTIN(get_max_stack_depth);
 DECL_BUILTIN(set_max_stack_depth);
 DECL_BUILTIN(lambda);
@@ -60,6 +61,7 @@ void export_builtins(CHEAX *c)
 	cheax_defmacro(c, "const", builtin_const);
 	cheax_defmacro(c, "set", builtin_set);
 	cheax_defmacro(c, ":", builtin_prepend);
+	cheax_defmacro(c, "get-type", builtin_get_type);
 	cheax_defmacro(c, "get-max-stack-depth", builtin_get_max_stack_depth);
 	cheax_defmacro(c, "\\", builtin_lambda);
 	cheax_defmacro(c, "\\\\", builtin_macro_lambda);
