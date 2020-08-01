@@ -46,12 +46,12 @@ static void show_file(const char *path)
 	fflush(stdout);
 	fclose(f);
 }
-static struct chx_value *show_w(CHEAX *c, struct chx_cons *args)
+static struct chx_value *show_w(CHEAX *c, struct chx_list *args)
 {
 	show_file(CMAKE_INSTALL_PREFIX "/share/licenses/cheaky/WARRANTY");
 	return NULL;
 }
-static struct chx_value *show_c(CHEAX *c, struct chx_cons *args)
+static struct chx_value *show_c(CHEAX *c, struct chx_list *args)
 {
 	show_file(CMAKE_INSTALL_PREFIX "/share/licenses/cheaky/CONDITIONS");
 	return NULL;
@@ -96,7 +96,7 @@ stop:
 	return res;
 }
 
-static struct chx_value *quit_fun(CHEAX *c, struct chx_cons *args)
+static struct chx_value *quit_fun(CHEAX *c, struct chx_list *args)
 {
 	quit = true;
 	return NULL;

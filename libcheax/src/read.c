@@ -187,7 +187,7 @@ void lxadv(struct lexer *lx, struct tok *tk)
 static struct chx_value *quote_value(struct chx_value *v)
 {
 	struct chx_quote *res = GC_MALLOC(sizeof(struct chx_quote));
-	res->base.kind = VK_QUOTE;
+	res->base.type = CHEAX_QUOTE;
 	res->value = v;
 	return &res->base;
 }
@@ -195,21 +195,21 @@ static struct chx_value *quote_value(struct chx_value *v)
 struct chx_value *read_int(struct lexer *lx, struct tok *tk)
 {
 	struct chx_int *res = GC_MALLOC(sizeof(struct chx_int));
-	res->base.kind = VK_INT;
+	res->base.type = CHEAX_INT;
 	res->value = strtol(tk->lexeme, NULL, 0);
 	return &res->base;
 }
 struct chx_value *read_double(struct lexer *lx, struct tok *tk)
 {
 	struct chx_double *res = GC_MALLOC(sizeof(struct chx_double));
-	res->base.kind = VK_DOUBLE;
+	res->base.type = CHEAX_DOUBLE;
 	res->value = strtod(tk->lexeme, NULL);
 	return &res->base;
 }
 struct chx_value *read_id(struct lexer *lx, struct tok *tk)
 {
 	struct chx_id *res = GC_MALLOC(sizeof(struct chx_id));
-	res->base.kind = VK_ID;
+	res->base.type = CHEAX_ID;
 	res->id = GC_MALLOC(sizeof(char) * (strlen(tk->lexeme) + 1));
 	strcpy((char *)res->id, tk->lexeme);
 	return &res->base;
@@ -217,7 +217,7 @@ struct chx_value *read_id(struct lexer *lx, struct tok *tk)
 struct chx_value *read_string(struct lexer *lx, struct tok *tk)
 {
 	struct chx_string *res = GC_MALLOC(sizeof(struct chx_string));
-	res->base.kind = VK_STRING;
+	res->base.type = CHEAX_STRING;
 
 	/* Enough to hold all characters */
 	size_t crude_len = strlen(tk->lexeme); /* we realloc later */
@@ -254,15 +254,15 @@ struct chx_value *read_string(struct lexer *lx, struct tok *tk)
 
 struct chx_value *read_cons(struct lexer *lx, struct tok *tk)
 {
-	struct chx_cons *res = NULL;
-	struct chx_cons **last = &res;
+	struct chx_list *res = NULL;
+	struct chx_list **last = &res;
 	lxadv(lx, tk);
 	while (tk->kind != TK_RPAR) {
 		if (tk->kind == TK_EOF) {
 			lx->c->error = CHEAX_EEOF;
 			return NULL;
 		}
-		*last = cheax_cons(ast_read(lx, tk), NULL);
+		*last = cheax_list(ast_read(lx, tk), NULL);
 		last = &(*last)->next;
 		lxadv(lx, tk);
 	}

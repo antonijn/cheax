@@ -12,8 +12,6 @@
 ;  ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF
 ;  OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
 
-(const alias const)
-
 (const defmacro (\\ (name args body) (const name (\\ args body))))
 (defmacro defun (name args body) (const name (\ args body)))
 (defmacro if (cond then else) (case cond (0 else) (_ then)))
@@ -83,11 +81,7 @@
 
 (defun length (xs) (foldr (\ (_ l) (+ 1 l)) 0 xs))
 (defun sum (args) (foldr + 0 args))
-(defun add args (sum args))
 (defun product (args) (foldr * 1 args))
-(defun mul args (product args))
-(alias sub -)
-(alias div /)
 
 (defun not (x) (eq 0 x))
 (defun to-bool (x) (not (not x)))
@@ -105,7 +99,6 @@
 (defun any (args) (foldr or 0 args))
 (defun eq (: x xs) (all (map (\ (y) (= x y)) xs)))
 (defun /= (a b) (not (= a b)))
-(alias ne /=)
 
 (defun .. (from to)
   (case (- from to)

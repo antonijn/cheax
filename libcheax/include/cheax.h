@@ -6,12 +6,23 @@
 
 typedef struct cheax CHEAX;
 
-enum chx_value_kind {
-	VK_INT, VK_DOUBLE, VK_ID, VK_CONS, VK_BUILTIN, VK_LAMBDA, VK_QUOTE, VK_PTR, VK_STRING
+enum cheax_type {
+	CHEAX_NIL,
+	CHEAX_ID,
+	CHEAX_INT,
+	CHEAX_DOUBLE,
+	CHEAX_BOOL,       /* unused */
+	CHEAX_LIST,
+	CHEAX_FUNC,
+	CHEAX_EXT_FUNC,
+	CHEAX_QUOTE,
+	CHEAX_STRING,
+
+	CHEAX_USER_TYPE = 0x100,
 };
 
 struct chx_value {
-	enum chx_value_kind kind;
+	enum cheax_type type;
 };
 
 struct chx_quote {
@@ -37,23 +48,24 @@ struct chx_id {
 	char *id;
 };
 
-struct chx_cons {
+struct chx_list {
 	struct chx_value base;
 	struct chx_value *value;
-	struct chx_cons *next;
+	struct chx_list *next;
 };
 
-typedef struct chx_value *(*macro)(CHEAX *c, struct chx_cons *args);
-struct chx_macro {
+typedef struct chx_value *(*chx_funcptr)(CHEAX *c, struct chx_list *args);
+
+struct chx_ext_func {
 	struct chx_value base;
-	macro perform;
+	chx_funcptr perform;
 	const char *name;
 };
 
-struct chx_lambda {
+struct chx_func {
 	struct chx_value base;
 	struct chx_value *args;
-	struct chx_cons *body;
+	struct chx_list *body;
 	bool eval_args; /* true for (\), false for (\\) */
 	/* the context in which the lambda was declared */
 	struct variable *locals_top;
@@ -65,7 +77,9 @@ struct chx_string {
 	size_t len;
 };
 
-struct chx_cons *cheax_cons(struct chx_value *car, struct chx_cons *cdr);
+struct chx_int *cheax_int(int value);
+struct chx_double *cheax_double(double value);
+struct chx_list *cheax_list(struct chx_value *car, struct chx_list *cdr);
 
 enum chx_error {
 	/* Read errors */
@@ -76,6 +90,12 @@ enum chx_error {
 	CHEAX_EEVAL     = 0x0101,
 	CHEAX_ENOSYM    = 0x0102,
 	CHEAX_ESTACK    = 0x0103,
+	CHEAX_ETYPE     = 0x0104,
+	CHEAX_EMATCH    = 0x0105,
+	CHEAX_ENIL      = 0x0106,
+	CHEAX_EDIVZERO  = 0x0107,
+	/* API error */
+	CHEAX_EAPI      = 0x0200,
 };
 
 /*
@@ -92,48 +112,38 @@ void cheax_destroy(CHEAX *c);
 enum chx_error cheax_errno(CHEAX *c);
 
 enum cheax_builtin {
-	CHEAX_FILE_IO = 1 << 0,
-	CHEAX_SET_MAX_STACK_DEPTH = 1 << 1,
+	CHEAX_FILE_IO             = 0x0001,
+	CHEAX_SET_MAX_STACK_DEPTH = 0x0002,
 
-	CHEAX_ALL_BUILTINS = 0xFFFFFFFF,
+	CHEAX_ALL_BUILTINS        = 0xFFFF,
 };
 
 void cheax_load_extra_builtins(CHEAX *c, enum cheax_builtin builtins);
 
-/*
- * Indicates the type of a synchronized variable.
- * See also: cheax_sync()
- */
-enum cheax_type {
-	CHEAX_INT,
-	CHEAX_FLOAT,
-	CHEAX_DOUBLE,
-	CHEAX_BOOL,
-	CHEAX_PTR
+enum cheax_varflags {
+	CHEAX_SYNCED     = 0x01, /* implied by cheax_sync_*() */
+	CHEAX_READONLY   = 0x02,
+	CHEAX_CONST      = 0x04, /* reserved */
+	CHEAX_NODUMP     = 0x08,
 };
-/*
- * A value from CHEAX. You don't need to know what it does if you're not
- * declaring your own functions.
- */
 
 /*
  * Synchronizes a variable in C with a name in the CHEAX environment.
  */
-void cheax_sync(CHEAX *c, const char *name, enum cheax_type ty, void *var);
-/*
- * Synchronize a read-only variable.
- */
-void cheax_syncro(CHEAX *c, const char *name, enum cheax_type ty, const void *var);
-/*
- * Synchronize, but no dumping: don't allow cheax_dump() to output this
- * variable.
- */
-void cheax_syncnd(CHEAX *c, const char *name, enum cheax_type ty, void *var);
+void cheax_sync_int(CHEAX *c, const char *name, int *var, enum cheax_varflags flags);
+void cheax_sync_float(CHEAX *c, const char *name, float *var, enum cheax_varflags flags);
+void cheax_sync_double(CHEAX *c, const char *name, double *var, enum cheax_varflags flags);
 
-void cheax_defmacro(CHEAX *c, const char *name, macro fun);
+void cheax_defmacro(CHEAX *c, const char *name, chx_funcptr fun);
+
+void cheax_decl_user_data(CHEAX *c, const char *name, void *ptr, int user_type);
 
 int cheax_get_max_stack_depth(CHEAX *c);
 void cheax_set_max_stack_depth(CHEAX *c, int max_stack_depth);
+
+int cheax_get_type(struct chx_value *v);
+int cheax_new_user_type(CHEAX *c);
+int cheax_is_user_type(int type);
 
 struct chx_value *cheax_eval(CHEAX *c, struct chx_value *expr);
 struct chx_value *cheax_read(CHEAX *c, FILE *f);
