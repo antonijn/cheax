@@ -159,10 +159,12 @@ int cheax_get_max_stack_depth(CHEAX *c)
 }
 void cheax_set_max_stack_depth(CHEAX *c, int max_stack_depth)
 {
-	if (max_stack_depth > 0)
+	if (max_stack_depth > 0) {
 		c->max_stack_depth = max_stack_depth;
-	else
+	} else {
 		cry(c, "cheax_set_max_stack_depth", "Maximum stack depth must be positive");
+		c->error = CHEAX_EAPI;
+	}
 }
 
 int cheax_get_type(struct chx_value *v)
