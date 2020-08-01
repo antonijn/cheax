@@ -48,6 +48,7 @@ DECL_BUILTIN(add);
 DECL_BUILTIN(sub);
 DECL_BUILTIN(mul);
 DECL_BUILTIN(div);
+DECL_BUILTIN(mod);
 DECL_BUILTIN(eq);
 DECL_BUILTIN(lt);
 
@@ -68,6 +69,7 @@ void export_builtins(CHEAX *c)
 	cheax_defmacro(c, "-", builtin_sub);
 	cheax_defmacro(c, "*", builtin_mul);
 	cheax_defmacro(c, "/", builtin_div);
+	cheax_defmacro(c, "%", builtin_mod);
 	cheax_defmacro(c, "=", builtin_eq);
 	cheax_defmacro(c, "<", builtin_lt);
 
