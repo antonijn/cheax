@@ -21,6 +21,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <limits.h>
 
 #define DECL_BUILTIN(cname) \
 static struct chx_value *builtin_##cname(CHEAX *c, struct chx_list *args)
@@ -544,11 +545,46 @@ static struct chx_value *do_aop(CHEAX *c,
 	return &cheax_double(fop(c, ld, rd))->base;
 }
 
-static int    iop_add(CHEAX *c, int    a, int    b) { return a + b; }
+static int    iop_add(CHEAX *c, int    a, int    b)
+{
+	if ((b > 0) && (a > INT_MAX - b)) {
+		cry(c, "+", CHEAX_EOVERFLOW, "Integer overflow");
+		return 0;
+	} else if ((b < 0) && (a < INT_MIN - b)) {
+		cry(c, "+", CHEAX_EOVERFLOW, "Integer underflow");
+		return 0;
+	}
+
+	return a + b;
+}
 static double fop_add(CHEAX *c, double a, double b) { return a + b; }
-static int    iop_sub(CHEAX *c, int    a, int    b) { return a - b; }
+static int    iop_sub(CHEAX *c, int    a, int    b)
+{
+	if ((b > 0) && (a < INT_MIN + b)) {
+		cry(c, "+", CHEAX_EOVERFLOW, "Integer underflow");
+		return 0;
+	} else if ((b < 0) && (a > INT_MAX + b)) {
+		cry(c, "+", CHEAX_EOVERFLOW, "Integer overflow");
+		return 0;
+	}
+
+	return a - b;
+}
 static double fop_sub(CHEAX *c, double a, double b) { return a - b; }
-static int    iop_mul(CHEAX *c, int    a, int    b) { return a * b; }
+static int    iop_mul(CHEAX *c, int    a, int    b)
+{
+	if (((a == -1) && (b == INT_MIN))
+	  || (b == -1) && (a == INT_MIN))
+		cry(c, "*", CHEAX_EOVERFLOW, "Integer overflow");
+
+	if (a > INT_MAX / b) {
+		cry(c, "*", CHEAX_EOVERFLOW, "Integer overflow");
+		return 0;
+	} if (a < INT_MIN / b) {
+		cry(c, "+", CHEAX_EOVERFLOW, "Integer underflow");
+		return 0;
+	}
+}
 static double fop_mul(CHEAX *c, double a, double b) { return a * b; }
 static int    iop_div(CHEAX *c, int    a, int    b)
 {

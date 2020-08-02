@@ -67,6 +67,7 @@ static const char *errname(int code)
 	case CHEAX_EDIVZERO:   return "EDIVZERO";
 	case CHEAX_EREADONLY:  return "EREADONLY";
 	case CHEAX_EVALUE:     return "EVALUE";
+	case CHEAX_EOVERFLOW:  return "EOVERFLOW";
 	case CHEAX_EAPI:       return "EAPI";
 	}
 
