@@ -137,8 +137,14 @@ int main(void)
 
 	while (!quit) {
 		struct chx_value *v = read_with_readline(c);
-		cheax_print(stdout, cheax_eval(c, v));
-		printf("\n");
+		struct chx_value *e = cheax_eval(c, v);
+		if (cheax_errno(c) != 0) {
+			cheax_perror(c, "cheaky");
+			cheax_clear_errno(c);
+		} else {
+			cheax_print(stdout, e);
+			printf("\n");
+		}
 	}
 
 	cheax_destroy(c);

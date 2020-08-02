@@ -19,6 +19,8 @@
 #include <cheax.h>
 #include <stdarg.h>
 
+#define cheax_evalp(c, e, p) ({ struct chx_value *_v = cheax_eval((c), (e)); if ((c)->error) goto p; _v; })
+
 enum {
 	CTYPE_NONE, /* only for non-synchronized variables */
 	CTYPE_INT,
@@ -56,7 +58,7 @@ struct chx_list *cheax_cons(struct chx_value *car, struct chx_list *cdr);
 bool pan_match(CHEAX *c, struct chx_value *pan, struct chx_value *match);
 struct variable *find_sym(CHEAX *c, const char *name);
 
-static inline void cry(CHEAX *c, const char *name, const char *frmt, ...)
+static inline void cry(CHEAX *c, const char *name, enum chx_error err, const char *frmt, ...)
 {
 	va_list ap;
 	va_start(ap, frmt);
@@ -69,6 +71,8 @@ static inline void cry(CHEAX *c, const char *name, const char *frmt, ...)
 	fprintf(stderr, "\033[0m", name);
 #endif
 	fputc('\n', stderr);
+
+	c->error = err;
 }
 
 #endif

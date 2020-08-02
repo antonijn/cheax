@@ -50,9 +50,35 @@ struct chx_list *cheax_list(struct chx_value *car, struct chx_list *cdr)
 
 enum chx_error cheax_errno(CHEAX *c)
 {
-	enum chx_error res = c->error;
+	return c->error;
+}
+static const char *errname(enum chx_error e)
+{
+	switch (e) {
+	case 0:                return "0";
+	case CHEAX_EREAD:      return "EREAD";
+	case CHEAX_EEOF:       return "EEOF";
+	case CHEAX_ELEX:       return "ELEX";
+	case CHEAX_EEVAL:      return "EEVAL";
+	case CHEAX_ENOSYM:     return "ENOSYM";
+	case CHEAX_ESTACK:     return "ESTACK";
+	case CHEAX_ETYPE:      return "ETYPE";
+	case CHEAX_EMATCH:     return "EMATCH";
+	case CHEAX_ENIL:       return "ENIL";
+	case CHEAX_EDIVZERO:   return "EDIVZERO";
+	case CHEAX_EREADONLY:  return "EREADONLY";
+	case CHEAX_EAPI:       return "EAPI";
+	}
+}
+void cheax_perror(CHEAX *c, const char *s)
+{
+	enum chx_error err = cheax_errno(c);
+	if (err != 0)
+		fprintf(stderr, "[%s: %s error]\n", s, errname(err));
+}
+void cheax_clear_errno(CHEAX *c)
+{
 	c->error = 0;
-	return res;
 }
 
 static bool pan_match_cheax_list(CHEAX *c, struct chx_list *pan, struct chx_list *match);
@@ -162,8 +188,7 @@ void cheax_set_max_stack_depth(CHEAX *c, int max_stack_depth)
 	if (max_stack_depth > 0) {
 		c->max_stack_depth = max_stack_depth;
 	} else {
-		cry(c, "cheax_set_max_stack_depth", "Maximum stack depth must be positive");
-		c->error = CHEAX_EAPI;
+		cry(c, "cheax_set_max_stack_depth", CHEAX_EAPI, "Maximum stack depth must be positive");
 	}
 }
 
@@ -214,8 +239,7 @@ void cheax_defmacro(CHEAX *c, const char *name, chx_funcptr fun)
 void cheax_decl_user_data(CHEAX *c, const char *name, void *ptr, int user_type)
 {
 	if (!cheax_is_user_type(user_type) || user_type >= CHEAX_USER_TYPE + c->user_type_count) {
-		cry(c, "cheax_decl_user_data", "Requires user type");
-		c->error = CHEAX_EAPI;
+		cry(c, "cheax_decl_user_data", CHEAX_EAPI, "Requires user type");
 		return;
 	}
 
@@ -250,7 +274,10 @@ void cheax_exec(CHEAX *c, FILE *f)
 
 	struct chx_value *v;
 	while (v = cheax_read(c, f))
-		cheax_eval(c, v);
+		cheax_evalp(c, v, pad);
+
+pad:
+	return;
 }
 
 static struct chx_value *cheax_eval_sexpr(CHEAX *c, struct chx_list *input);
@@ -261,8 +288,7 @@ struct chx_value *cheax_eval(CHEAX *c, struct chx_value *input)
 	case CHEAX_ID:
 		; struct variable *sym = find_sym(c, ((struct chx_id *)input)->id);
 		if (!sym) {
-			cry(c, "eval", "No such symbol '%s'", ((struct chx_id *)input)->id);
-			c->error = CHEAX_ENOSYM;
+			cry(c, "eval", CHEAX_ENOSYM, "No such symbol '%s'", ((struct chx_id *)input)->id);
 			return NULL;
 		}
 		if ((sym->flags & CHEAX_SYNCED) == 0)
@@ -284,8 +310,7 @@ struct chx_value *cheax_eval(CHEAX *c, struct chx_value *input)
 		}
 	case CHEAX_LIST:
 		if (c->stack_depth >= c->max_stack_depth) {
-			cry(c, "eval", "Stack overflow! (maximum stack depth = %d)", c->max_stack_depth);
-			c->error = CHEAX_ESTACK;
+			cry(c, "eval", CHEAX_ESTACK, "Stack overflow! (maximum stack depth = %d)", c->max_stack_depth);
 			return NULL;
 		}
 
@@ -336,8 +361,7 @@ static struct chx_value *call_macro(CHEAX *c, struct chx_func *lda, struct chx_l
 {
 	struct variable *prev_top = c->locals_top;
 	if (!pan_match(c, lda->args, &args->base)) {
-		cry(c, "eval", "Invalid (number of) arguments");
-		c->error = CHEAX_EMATCH;
+		cry(c, "eval", CHEAX_EMATCH, "Invalid (number of) arguments");
 		return NULL;
 	}
 	struct variable *new_top = c->locals_top;
@@ -345,31 +369,35 @@ static struct chx_value *call_macro(CHEAX *c, struct chx_func *lda, struct chx_l
 
 	struct chx_value *retval = NULL;
 	for (struct chx_list *cons = lda->body; cons; cons = cons->next)
-		retval = cheax_eval(c, expand_macro(new_top, prev_top, cons->value));
+		retval = cheax_evalp(c, expand_macro(new_top, prev_top, cons->value), pad);
 
 	return retval;
+
+pad:
+	return NULL;
 }
 static struct chx_value *call_func(CHEAX *c, struct chx_func *lda, struct chx_list *args)
 {
 	if (!pan_match(c, lda->args, &args->base)) {
-		cry(c, "eval", "Invalid (number of) arguments");
-		c->error = CHEAX_EMATCH;
+		cry(c, "eval", CHEAX_EMATCH, "Invalid (number of) arguments");
 		return NULL;
 	}
 
 	struct chx_value *retval = NULL;
 	for (struct chx_list *cons = lda->body; cons; cons = cons->next)
-		retval = cheax_eval(c, cons->value);
+		retval = cheax_evalp(c, cons->value, pad);
 	return retval;
+
+pad:
+	return NULL;
 }
 
 static struct chx_value *cheax_eval_sexpr(CHEAX *c, struct chx_list *input)
 {
-	struct chx_value *func = cheax_eval(c, input->value);
+	struct chx_value *func = cheax_evalp(c, input->value, pad);
 	switch (cheax_get_type(func)) {
 	case CHEAX_NIL:
-		cry(c, "eval", "Cannot call nil");
-		c->error = CHEAX_ENIL;
+		cry(c, "eval", CHEAX_ENIL, "Cannot call nil");
 		return NULL;
 	case CHEAX_EXT_FUNC:
 		; struct chx_ext_func *extf = (struct chx_ext_func *)func;
@@ -388,7 +416,7 @@ static struct chx_value *cheax_eval_sexpr(CHEAX *c, struct chx_list *input)
 		struct chx_list *args = NULL;
 		struct chx_list **args_last = &args;
 		for (struct chx_list *arg = input->next; arg; arg = arg->next) {
-			*args_last = cheax_list(cheax_eval(c, arg->value), NULL);
+			*args_last = cheax_list(cheax_evalp(c, arg->value, pad), NULL);
 			args_last = &(*args_last)->next;
 		}
 
@@ -402,8 +430,9 @@ static struct chx_value *cheax_eval_sexpr(CHEAX *c, struct chx_list *input)
 		return retval;
 	}
 
-	cry(c, "eval", "Invalid function call");
-	c->error = CHEAX_EEVAL;
+	cry(c, "eval", CHEAX_ETYPE, "Invalid function call");
+
+pad:
 	return NULL;
 }
 

@@ -98,23 +98,24 @@ static bool unpack_args(CHEAX *c, const char *fname, struct chx_list *args, int 
 	va_start(ap, num);
 	for (int i = 0; i < num; ++i) {
 		if (args == NULL) {
-			cry(c, fname, "Expected %d arguments (got %d)", num, i);
-			c->error = CHEAX_EMATCH;
+			cry(c, fname, CHEAX_EMATCH, "Expected %d arguments (got %d)", num, i);
 			return false;
 		}
 
 		struct chx_value **res = va_arg(ap, struct chx_value **);
-		*res = cheax_eval(c, args->value);
+		*res = cheax_evalp(c, args->value, pad);
 		args = args->next;
 	}
 
 	if (args != NULL) {
-		cry(c, fname, "Expected only %d arguments", num);
-		c->error = CHEAX_EMATCH;
+		cry(c, fname, CHEAX_EMATCH, "Expected only %d arguments", num);
 		return false;
 	}
 
 	return true;
+
+pad:
+	return false;
 }
 
 static bool try_convert_to_double(struct chx_value *value, double *res)
@@ -152,8 +153,7 @@ static struct chx_value *builtin_fopen(CHEAX *c, struct chx_list *args)
 		return NULL;
 
 	if (cheax_get_type(fname) != CHEAX_STRING || cheax_get_type(mode) != CHEAX_STRING) {
-		cry(c, "fopen", "Invalid argument type");
-		c->error = CHEAX_ETYPE;
+		cry(c, "fopen", CHEAX_ETYPE, "Invalid argument type");
 		return NULL;
 	}
 
@@ -173,8 +173,7 @@ static struct chx_value *builtin_fclose(CHEAX *c, struct chx_list *args)
 		return NULL;
 
 	if (cheax_get_type(handle) != c->fhandle_type) {
-		cry(c, "fclose", "Invalid argument type");
-		c->error = CHEAX_ETYPE;
+		cry(c, "fclose", CHEAX_ETYPE, "Invalid argument type");
 		return NULL;
 	}
 
@@ -190,8 +189,7 @@ static struct chx_value *builtin_read_from(CHEAX *c, struct chx_list *args)
 		return NULL;
 
 	if (cheax_get_type(handle) != c->fhandle_type) {
-		cry(c, "fclose", "Invalid argument type");
-		c->error = CHEAX_ETYPE;
+		cry(c, "fclose", CHEAX_ETYPE, "Invalid argument type");
 		return NULL;
 	}
 
@@ -206,8 +204,7 @@ static struct chx_value *builtin_print_to(CHEAX *c, struct chx_list *args)
 		return NULL;
 
 	if (cheax_get_type(handle) != c->fhandle_type) {
-		cry(c, "print-to", "Invalid argument type");
-		c->error = CHEAX_ETYPE;
+		cry(c, "print-to", CHEAX_ETYPE, "Invalid argument type");
 		return NULL;
 	}
 
@@ -220,8 +217,7 @@ static struct chx_value *builtin_print_to(CHEAX *c, struct chx_list *args)
 static struct chx_value *builtin_const(CHEAX *c, struct chx_list *args)
 {
 	if (args == NULL) {
-		cry(c, "const", "Invalid declaration");
-		c->error = CHEAX_EMATCH;
+		cry(c, "const", CHEAX_EMATCH, "Invalid declaration");
 		return NULL;
 	}
 
@@ -230,21 +226,19 @@ static struct chx_value *builtin_const(CHEAX *c, struct chx_list *args)
 
 	struct chx_value *setto = NULL;
 	if (args != NULL) {
-		setto = cheax_eval(c, args->value);
+		setto = cheax_evalp(c, args->value, pad);
 		args = args->next;
 	}
 
 	if (args != NULL) {
-		cry(c, "const",  "Invalid declaration");
-		c->error = CHEAX_EMATCH;
+		cry(c, "const", CHEAX_EMATCH,  "Invalid declaration");
 		return NULL;
 	}
 
 	struct variable *prev_top = c->locals_top;
 
 	if (!pan_match(c, idval, setto)) {
-		cry(c, "const", "Invalid pattern");
-		c->error = CHEAX_EMATCH;
+		cry(c, "const", CHEAX_EMATCH, "Invalid pattern");
 		return NULL;
 	}
 
@@ -260,14 +254,14 @@ static struct chx_value *builtin_const(CHEAX *c, struct chx_list *args)
 	for (struct variable *v = c->locals_top; v != prev_top; v = v->below)
 		v->flags |= CHEAX_READONLY;
 
+pad:
 	return NULL;
 }
 
 static struct chx_value *builtin_var(CHEAX *c, struct chx_list *args)
 {
 	if (args == NULL) {
-		cry(c, "var", "Invalid declaration");
-		c->error = CHEAX_EMATCH;
+		cry(c, "var", CHEAX_EMATCH, "Invalid declaration");
 		return NULL;
 	}
 
@@ -276,66 +270,59 @@ static struct chx_value *builtin_var(CHEAX *c, struct chx_list *args)
 
 	struct chx_value *setto = NULL;
 	if (args != NULL) {
-		setto = cheax_eval(c, args->value);
+		setto = cheax_evalp(c, args->value, pad);
 		args = args->next;
 	}
 
 	if (args != NULL) {
-		cry(c, "var",  "Invalid declaration");
-		c->error = CHEAX_EMATCH;
+		cry(c, "var", CHEAX_EMATCH, "Invalid declaration");
 		return NULL;
 	}
 
 	if (!pan_match(c, idval, setto)) {
-		cry(c, "var", "Invalid pattern");
-		c->error = CHEAX_EMATCH;
+		cry(c, "var", CHEAX_EMATCH, "Invalid pattern");
 		return NULL;
 	}
 
+pad:
 	return NULL;
 }
 
 static struct chx_value *builtin_set(CHEAX *c, struct chx_list *args)
 {
 	if (args == NULL) {
-		cry(c, "set", "Set expects a variable name");
-		c->error = CHEAX_EMATCH;
+		cry(c, "set", CHEAX_EMATCH, "Set expects a variable name");
 		return NULL;
 	}
 
 	struct chx_value *idval = args->value;
 	if (cheax_get_type(idval) != CHEAX_ID) {
-		cry(c, "set", "Expected an identifier");
-		c->error = CHEAX_ETYPE;
+		cry(c, "set", CHEAX_ETYPE, "Expected an identifier");
 		return NULL;
 	}
 	struct chx_id *id = (struct chx_id *)idval;
 
 	args = args->next;
 	if (args == NULL) {
-		cry(c, "set", "Set expects a value");
-		c->error = CHEAX_EMATCH;
+		cry(c, "set", CHEAX_EMATCH, "Set expects a value");
 		return NULL;
 	}
 
-	struct chx_value *setto = cheax_eval(c, args->value);
+	struct chx_value *setto = cheax_evalp(c, args->value, pad);
 
 	if (args->next != NULL) {
-		cry(c, "set",  "Invalid set");
-		c->error = CHEAX_EMATCH;
+		cry(c, "set", CHEAX_EMATCH, "Invalid set");
 		return NULL;
 	}
 
 	struct variable *sym = find_sym(c, id->id);
 	if (sym == NULL) {
-		cry(c, "set", "No such symbol \"%s\"", id->id);
-		c->error = CHEAX_ENOSYM;
+		cry(c, "set", CHEAX_ENOSYM, "No such symbol \"%s\"", id->id);
 		return NULL;
 	}
 
 	if (sym->flags & CHEAX_READONLY) {
-		cry(c, "set", "Cannot write to read-only variable");
-		c->error = CHEAX_EEVAL;
+		cry(c, "set", CHEAX_EREADONLY, "Cannot write to read-only variable");
 		return NULL;
 	}
 
@@ -347,8 +334,7 @@ static struct chx_value *builtin_set(CHEAX *c, struct chx_list *args)
 	switch (sym->ctype) {
 	case CTYPE_INT:
 		if (!try_convert_to_int(setto, sym->value.sync_int)) {
-			cry(c, "set", "Invalid type");
-			c->error = CHEAX_ETYPE;
+			cry(c, "set", CHEAX_ETYPE, "Invalid type");
 			return NULL;
 		}
 		break;
@@ -356,8 +342,7 @@ static struct chx_value *builtin_set(CHEAX *c, struct chx_list *args)
 	case CTYPE_FLOAT:
 		; double d;
 		if (!try_convert_to_double(setto, &d)) {
-			cry(c, "set", "Invalid type");
-			c->error = CHEAX_ETYPE;
+			cry(c, "set", CHEAX_ETYPE, "Invalid type");
 			return NULL;
 		}
 		*sym->value.sync_float = d;
@@ -365,17 +350,18 @@ static struct chx_value *builtin_set(CHEAX *c, struct chx_list *args)
 
 	case CTYPE_DOUBLE:
 		if (!try_convert_to_double(setto, sym->value.sync_double)) {
-			cry(c, "set", "Invalid type");
-			c->error = CHEAX_ETYPE;
+			cry(c, "set", CHEAX_ETYPE, "Invalid type");
 			return NULL;
 		}
 		break;
 
 	default:
-		cry(c, "set", "Unexpected sync-type");
-		c->error = CHEAX_EEVAL;
+		cry(c, "set", CHEAX_EEVAL, "Unexpected sync-type");
 		return NULL;
 	}
+
+pad:
+	return NULL;
 }
 
 static struct chx_value *builtin_prepend(CHEAX *c, struct chx_list *args)
@@ -386,8 +372,7 @@ static struct chx_value *builtin_prepend(CHEAX *c, struct chx_list *args)
 
 	int tailty = cheax_get_type(tail);
 	if (tailty != CHEAX_NIL && tailty != CHEAX_LIST) {
-		cry(c, ":", "Improper list not allowed");
-		c->error = CHEAX_ETYPE;
+		cry(c, ":", CHEAX_ETYPE, "Improper list not allowed");
 		return NULL;
 	}
 
@@ -418,18 +403,12 @@ static struct chx_value *builtin_set_max_stack_depth(CHEAX *c, struct chx_list *
 		return NULL;
 
 	if (cheax_get_type(value) != CHEAX_INT) {
-		cry(c, "set-max-stack-depth", "Expected integer argument");
-		c->error = CHEAX_ETYPE;
+		cry(c, "set-max-stack-depth", CHEAX_ETYPE, "Expected integer argument");
 		return NULL;
 	}
 
 	struct chx_int *int_arg = (struct chx_int *)value;
 	int ivalue = int_arg->value;
-
-	if (ivalue <= 0) {
-		cry(c, "set-max-stack-depth", "Maximum stack depth must be positive");
-		return NULL;
-	}
 
 	cheax_set_max_stack_depth(c, ivalue);
 	return NULL;
@@ -441,8 +420,7 @@ static struct chx_value *create_func(CHEAX *c,
                                      bool eval_args)
 {
 	if (args == NULL) {
-		cry(c, name, "Invalid lambda");
-		c->error = CHEAX_EMATCH;
+		cry(c, name, CHEAX_EMATCH, "Invalid lambda");
 		return NULL;
 	}
 
@@ -450,8 +428,7 @@ static struct chx_value *create_func(CHEAX *c,
 	struct chx_list *body = args->next;
 
 	if (body == NULL) {
-		cry(c, name, "Invalid lambda");
-		c->error = CHEAX_EMATCH;
+		cry(c, name, CHEAX_EMATCH, "Invalid lambda");
 		return NULL;
 	}
 
@@ -485,19 +462,17 @@ static struct chx_value *builtin_eval(CHEAX *c, struct chx_list *args)
 static struct chx_value *builtin_case(CHEAX *c, struct chx_list *args)
 {
 	if (args == NULL) {
-		cry(c, "case", "Invalid case");
-		c->error = CHEAX_EMATCH;
+		cry(c, "case", CHEAX_EMATCH, "Invalid case");
 		return NULL;
 	}
 
-	struct chx_value *what = cheax_eval(c, args->value);
+	struct chx_value *what = cheax_evalp(c, args->value, pad);
 
 	/* pattern-value-pair */
 	for (struct chx_list *pvp = args->next; pvp; pvp = pvp->next) {
 		struct chx_value *pair = pvp->value;
 		if (cheax_get_type(pair) != CHEAX_LIST) {
-			cry(c, "case", "Pattern-value pair expected");
-			c->error = CHEAX_EMATCH;
+			cry(c, "case", CHEAX_EMATCH, "Pattern-value pair expected");
 			return NULL;
 		}
 		struct chx_list *cons_pair = (struct chx_list *)pair;
@@ -511,13 +486,14 @@ static struct chx_value *builtin_case(CHEAX *c, struct chx_list *args)
 		/* pattern matches! */
 		struct chx_value *retval = NULL;
 		for (struct chx_list *val = cons_pair->next; val; val = val->next)
-			retval = cheax_eval(c, val->value);
+			retval = cheax_evalp(c, val->value, pad);
 		c->locals_top = top_before;
 		return retval;
 	}
 
-	cry(c, "case", "Non-exhaustive pattern");
-	c->error = CHEAX_EMATCH;
+	cry(c, "case", CHEAX_EMATCH, "Non-exhaustive pattern");
+
+pad:
 	return NULL;
 }
 
@@ -539,8 +515,7 @@ static struct chx_value *do_aop(CHEAX *c,
 		return NULL;
 
 	if (!is_numeric_type(l) || !is_numeric_type(r)) {
-		cry(c, name, "Invalid types for operation");
-		c->error = CHEAX_ETYPE;
+		cry(c, name, CHEAX_ETYPE, "Invalid types for operation");
 		return NULL;
 	}
 
@@ -555,8 +530,7 @@ static struct chx_value *do_aop(CHEAX *c,
 	}
 
 	if (fop == NULL) {
-		cry(c, name, "Invalid operation on floating point numbers");
-		c->error = CHEAX_ETYPE;
+		cry(c, name, CHEAX_ETYPE, "Invalid operation on floating point numbers");
 		return NULL;
 	}
 
@@ -575,8 +549,7 @@ static double fop_mul(CHEAX *c, double a, double b) { return a * b; }
 static int    iop_div(CHEAX *c, int    a, int    b)
 {
 	if (b == 0) {
-		cry(c, "/", "Division by zero");
-		c->error = CHEAX_EDIVZERO;
+		cry(c, "/", CHEAX_EDIVZERO, "Division by zero");
 		return 0;
 	}
 
@@ -586,8 +559,7 @@ static double fop_div(CHEAX *c, double a, double b) { return a / b; }
 static int    iop_mod(CHEAX *c, int    a, int    b)
 {
 	if (b == 0) {
-		cry(c, "%", "Division by zero");
-		c->error = CHEAX_EDIVZERO;
+		cry(c, "%", CHEAX_EDIVZERO, "Division by zero");
 		return 0;
 	}
 
@@ -669,8 +641,7 @@ static struct chx_value *builtin_lt(CHEAX *c, struct chx_list *args)
 		return NULL;
 
 	if (!is_numeric_type(l) || !is_numeric_type(r)) {
-		cry(c, "<", "Invalid types for operation");
-		c->error = CHEAX_ETYPE;
+		cry(c, "<", CHEAX_ETYPE, "Invalid types for operation");
 		return NULL;
 	}
 

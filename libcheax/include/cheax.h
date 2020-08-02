@@ -94,6 +94,7 @@ enum chx_error {
 	CHEAX_EMATCH    = 0x0105,
 	CHEAX_ENIL      = 0x0106,
 	CHEAX_EDIVZERO  = 0x0107,
+	CHEAX_EREADONLY = 0x0108,
 	/* API error */
 	CHEAX_EAPI      = 0x0200,
 };
@@ -110,6 +111,8 @@ CHEAX *cheax_init(void);
 void cheax_destroy(CHEAX *c);
 
 enum chx_error cheax_errno(CHEAX *c);
+void cheax_perror(CHEAX *c, const char *s);
+void cheax_clear_errno(CHEAX *c);
 
 enum cheax_builtin {
 	CHEAX_FILE_IO             = 0x0001,
