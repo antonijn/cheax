@@ -115,7 +115,7 @@ int main(void)
 	cheax_defmacro(c, "quit", quit_fun);
 
 	if (cheax_load_prelude(c)) {
-		perror("failed to load prelude");
+		cheax_perror(c, "cheaky");
 		return EXIT_FAILURE;
 	}
 

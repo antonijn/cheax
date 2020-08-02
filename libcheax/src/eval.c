@@ -294,11 +294,19 @@ void cheax_decl_user_data(CHEAX *c, const char *name, void *ptr, int user_type)
 
 int cheax_load_prelude(CHEAX *c)
 {
-	FILE *f = fopen(CMAKE_INSTALL_PREFIX "/share/cheax/prelude.chx", "rb");
-	if (!f)
+	const char *path = CMAKE_INSTALL_PREFIX "/share/cheax/prelude.chx";
+	FILE *f = fopen(path, "rb");
+	if (!f) {
+		cry(c, "cheax_load_prelude", CHEAX_EAPI, "Prelude not found at '%s'", path);
 		return -1;
+	}
+
 	cheax_exec(c, f);
 	fclose(f);
+
+	if (cheax_errno(c) != 0)
+		return -1;
+
 	return 0;
 }
 
