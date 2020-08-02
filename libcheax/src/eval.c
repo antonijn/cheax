@@ -79,16 +79,17 @@ void cheax_perror(CHEAX *c, const char *s)
 	if (err == 0)
 		return;
 
-	fprintf(stderr, "%s:", s);
+	if (s != NULL)
+		fprintf(stderr, "%s: ", s);
 
 	if (c->error.msg != NULL)
-		fprintf(stderr, " %s", c->error.msg->value);
+		fprintf(stderr, "%s ", c->error.msg->value);
 
 	const char *ename = errname(err);
 	if (ename != NULL)
-		fprintf(stderr, " (CHEAX error %s)", ename);
+		fprintf(stderr, "(CHEAX error %s)", ename);
 	else
-		fprintf(stderr, " (CHEAX error code %x)", err);
+		fprintf(stderr, "(CHEAX error code %x)", err);
 
 	fprintf(stderr, "\n");
 }
