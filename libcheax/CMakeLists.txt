@@ -1,5 +1,5 @@
 cmake_minimum_required (VERSION 2.6)
-add_library (libcheax SHARED src/read.c src/eval.c src/builtins.c)
+add_library (libcheax SHARED src/api.c src/read.c src/eval.c src/print.c src/builtins.c)
 add_definitions (-DCMAKE_INSTALL_PREFIX="${CMAKE_INSTALL_PREFIX}")
 target_link_libraries (libcheax gc)
 target_include_directories (libcheax PUBLIC include)

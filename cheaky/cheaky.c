@@ -123,7 +123,7 @@ int main(void)
 	if (!isatty(1)) {
 		struct chx_value *v;
 		while (v = cheax_read(c, stdin)) {
-			cheax_print(stdout, cheax_eval(c, v));
+			cheax_print(c, stdout, cheax_eval(c, v));
 			printf("\n");
 		}
 		cheax_destroy(c);
@@ -143,7 +143,7 @@ int main(void)
 			cheax_perror(c, "cheaky");
 			cheax_clear_errno(c);
 		} else {
-			cheax_print(stdout, e);
+			cheax_print(c, stdout, e);
 			printf("\n");
 		}
 	}

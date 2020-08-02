@@ -21,7 +21,7 @@
 #include <ctype.h>
 #include <gc.h>
 
-#include "eval.h"
+#include "api.h"
 
 enum tok_kind {
 	TK_ID, TK_INT, TK_DOUBLE, TK_LPAR, TK_RPAR, TK_QUOTE, TK_STRING, TK_EOF
@@ -183,52 +183,30 @@ void lxadv(struct lexer *lx, struct tok *tk)
 	}
 }
 
-
-static struct chx_value *quote_value(struct chx_value *v)
-{
-	struct chx_quote *res = GC_MALLOC(sizeof(struct chx_quote));
-	res->base.type = CHEAX_QUOTE;
-	res->value = v;
-	return &res->base;
-}
-
 struct chx_value *read_int(struct lexer *lx, struct tok *tk)
 {
-	struct chx_int *res = GC_MALLOC(sizeof(struct chx_int));
-	res->base.type = CHEAX_INT;
-	res->value = strtol(tk->lexeme, NULL, 0);
-	return &res->base;
+	return &cheax_int(lx->c, strtol(tk->lexeme, NULL, 0))->base;
 }
 struct chx_value *read_double(struct lexer *lx, struct tok *tk)
 {
-	struct chx_double *res = GC_MALLOC(sizeof(struct chx_double));
-	res->base.type = CHEAX_DOUBLE;
-	res->value = strtod(tk->lexeme, NULL);
-	return &res->base;
+	return &cheax_int(lx->c, strtod(tk->lexeme, NULL))->base;
 }
 struct chx_value *read_id(struct lexer *lx, struct tok *tk)
 {
-	struct chx_id *res = GC_MALLOC(sizeof(struct chx_id));
-	res->base.type = CHEAX_ID;
-	res->id = GC_MALLOC(sizeof(char) * (strlen(tk->lexeme) + 1));
-	strcpy((char *)res->id, tk->lexeme);
-	return &res->base;
+	return &cheax_id(lx->c, tk->lexeme)->base;
 }
 struct chx_value *read_string(struct lexer *lx, struct tok *tk)
 {
-	struct chx_string *res = GC_MALLOC(sizeof(struct chx_string));
-	res->base.type = CHEAX_STRING;
-
 	/* Enough to hold all characters */
-	size_t crude_len = strlen(tk->lexeme); /* we realloc later */
-	char *value = GC_MALLOC(crude_len);
-	res->value = value;
+	size_t crude_len = strlen(tk->lexeme);
+	char *value = malloc(crude_len);
 
+	char *shift = value;
 	for (int i = 1; i + 1 < crude_len; ++i) {
 		char ch = tk->lexeme[i];
 
 		if (ch != '\\') {
-			*value++ = ch;
+			*shift++ = ch;
 			continue;
 		}
 
@@ -237,17 +215,18 @@ struct chx_value *read_string(struct lexer *lx, struct tok *tk)
 
 		switch (ch) {
 		case 'n':
-			*value++ = '\n';
+			*shift++ = '\n';
 			break;
 		default:
-			*value++ = ch;
+			*shift++ = ch;
 			break;
 		}
 	}
 
-	size_t act_len = (value - res->value);
-	res->value = GC_REALLOC(res->value, act_len);
-	res->len = act_len;
+	size_t act_len = (shift - value);
+	struct chx_string *res = cheax_nstring(lx->c, value, act_len);
+
+	free(value);
 
 	return &res->base;
 }
@@ -262,7 +241,7 @@ struct chx_value *read_cons(struct lexer *lx, struct tok *tk)
 			cry(lx->c, "read", CHEAX_EEOF, "Unexpected end of file");
 			return NULL;
 		}
-		*last = cheax_list(ast_read(lx, tk), NULL);
+		*last = cheax_list(lx->c, ast_read(lx, tk), NULL);
 		last = &(*last)->next;
 		lxadv(lx, tk);
 	}
@@ -282,7 +261,7 @@ static struct chx_value *ast_read(struct lexer *lx, struct tok *tk)
 		return read_cons(lx, tk);
 	case TK_QUOTE:
 		lxadv(lx, tk);
-		return quote_value(ast_read(lx, tk));
+		return &cheax_quote(lx->c, ast_read(lx, tk))->base;
 	case TK_STRING:
 		return read_string(lx, tk);
 	case TK_EOF:

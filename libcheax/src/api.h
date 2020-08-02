@@ -13,13 +13,10 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  */
 
-#ifndef EVAL_H
-#define EVAL_H
+#ifndef API_H
+#define API_H
 
 #include <cheax.h>
-#include <stdarg.h>
-
-#define cheax_evalp(c, e, p) ({ struct chx_value *_v = cheax_eval((c), (e)); if (cheax_errno(c) != 0) goto p; _v; })
 
 enum {
 	CTYPE_NONE, /* only for non-synchronized variables */
@@ -32,7 +29,7 @@ enum {
 
 struct variable {
 	const char *name;
-	enum cheax_varflags flags;
+	enum chx_varflags flags;
 	int ctype;
 
 	union {
@@ -59,10 +56,11 @@ struct cheax {
 	} error;
 };
 
-struct chx_list *cheax_cons(struct chx_value *car, struct chx_list *cdr);
-bool pan_match(CHEAX *c, struct chx_value *pan, struct chx_value *match);
-struct variable *find_sym(CHEAX *c, const char *name);
+bool try_convert_to_int(struct chx_value *value, int *res);
+bool try_convert_to_double(struct chx_value *value, double *res);
 
+struct variable *find_sym(CHEAX *c, const char *name);
+struct variable *def_sym(CHEAX *c, const char *name, enum chx_varflags flags);
 void cry(CHEAX *c, const char *name, int err, const char *frmt, ...);
 
 #endif

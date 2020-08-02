@@ -17,7 +17,6 @@
 #define BUILTINS_H
 
 #include <cheax.h>
-#include "eval.h"
 
 void export_builtins(CHEAX *c);
 

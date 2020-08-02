@@ -29,38 +29,47 @@ struct chx_quote {
 	struct chx_value base;
 	struct chx_value *value;
 };
+struct chx_quote *cheax_quote(CHEAX *c, struct chx_value *value);
 
 struct chx_int {
 	struct chx_value base;
 	int value;
 };
+struct chx_int *cheax_int(CHEAX *c, int value);
+
 struct chx_double {
 	struct chx_value base;
 	double value;
 };
-struct chx_ptr {
+struct chx_double *cheax_double(CHEAX *c, double value);
+
+struct chx_user_ptr {
 	struct chx_value base;
-	void *ptr;
+	void *value;
 };
+struct chx_user_ptr *cheax_user_ptr(CHEAX *c, void *value, int type);
 
 struct chx_id {
 	struct chx_value base;
 	char *id;
 };
+struct chx_id *cheax_id(CHEAX *c, char *id);
 
 struct chx_list {
 	struct chx_value base;
 	struct chx_value *value;
 	struct chx_list *next;
 };
+struct chx_list *cheax_list(CHEAX *c, struct chx_value *car, struct chx_list *cdr);
 
-typedef struct chx_value *(*chx_funcptr)(CHEAX *c, struct chx_list *args);
+typedef struct chx_value *(*chx_func_ptr)(CHEAX *c, struct chx_list *args);
 
 struct chx_ext_func {
 	struct chx_value base;
-	chx_funcptr perform;
+	chx_func_ptr perform;
 	const char *name;
 };
+struct chx_ext_func *cheax_ext_func(CHEAX *c, chx_func_ptr perform, const char *name);
 
 struct chx_func {
 	struct chx_value base;
@@ -76,10 +85,8 @@ struct chx_string {
 	char *value;
 	size_t len;
 };
-
-struct chx_int *cheax_int(int value);
-struct chx_double *cheax_double(double value);
-struct chx_list *cheax_list(struct chx_value *car, struct chx_list *cdr);
+struct chx_string *cheax_string(CHEAX *c, char *value);
+struct chx_string *cheax_nstring(CHEAX *c, char *value, size_t len);
 
 enum {
 	/* Read errors */
@@ -101,6 +108,20 @@ enum {
 	CHEAX_EAPI      = 0x0200,
 };
 
+enum chx_varflags {
+	CHEAX_SYNCED     = 0x01, /* implied by cheax_sync_*() */
+	CHEAX_READONLY   = 0x02,
+	CHEAX_CONST      = 0x04, /* reserved */
+	CHEAX_NODUMP     = 0x08,
+};
+
+enum chx_builtins {
+	CHEAX_FILE_IO             = 0x0001,
+	CHEAX_SET_MAX_STACK_DEPTH = 0x0002,
+
+	CHEAX_ALL_BUILTINS        = 0xFFFF,
+};
+
 /*
  * Initializes a CHEAX environment.
  */
@@ -112,50 +133,41 @@ CHEAX *cheax_init(void);
  */
 void cheax_destroy(CHEAX *c);
 
+void cheax_defmacro(CHEAX *c, char *id, chx_func_ptr perform);
+void cheax_var(CHEAX *c, char *id, struct chx_value *value, enum chx_varflags flags);
+void cheax_set(CHEAX *c, char *id, struct chx_value *value);
+struct chx_value *cheax_get(CHEAX *c, char *id);
+bool cheax_match(CHEAX *c, struct chx_value *pan, struct chx_value *match);
+bool cheax_equals(CHEAX *c, struct chx_value *l, struct chx_value *r);
+
 int cheax_errno(CHEAX *c);
 void cheax_perror(CHEAX *c, const char *s);
 void cheax_clear_errno(CHEAX *c);
 
-enum cheax_builtin {
-	CHEAX_FILE_IO             = 0x0001,
-	CHEAX_SET_MAX_STACK_DEPTH = 0x0002,
-
-	CHEAX_ALL_BUILTINS        = 0xFFFF,
-};
-
-void cheax_load_extra_builtins(CHEAX *c, enum cheax_builtin builtins);
-
-enum cheax_varflags {
-	CHEAX_SYNCED     = 0x01, /* implied by cheax_sync_*() */
-	CHEAX_READONLY   = 0x02,
-	CHEAX_CONST      = 0x04, /* reserved */
-	CHEAX_NODUMP     = 0x08,
-};
+void cheax_load_extra_builtins(CHEAX *c, enum chx_builtins builtins);
 
 /*
  * Synchronizes a variable in C with a name in the CHEAX environment.
  */
-void cheax_sync_int(CHEAX *c, const char *name, int *var, enum cheax_varflags flags);
-void cheax_sync_float(CHEAX *c, const char *name, float *var, enum cheax_varflags flags);
-void cheax_sync_double(CHEAX *c, const char *name, double *var, enum cheax_varflags flags);
-
-void cheax_defmacro(CHEAX *c, const char *name, chx_funcptr fun);
-
-void cheax_decl_user_data(CHEAX *c, const char *name, void *ptr, int user_type);
+void cheax_sync_int(CHEAX *c, const char *name, int *var, enum chx_varflags flags);
+void cheax_sync_float(CHEAX *c, const char *name, float *var, enum chx_varflags flags);
+void cheax_sync_double(CHEAX *c, const char *name, double *var, enum chx_varflags flags);
 
 int cheax_get_max_stack_depth(CHEAX *c);
 void cheax_set_max_stack_depth(CHEAX *c, int max_stack_depth);
 
 int cheax_get_type(struct chx_value *v);
 int cheax_new_user_type(CHEAX *c);
-int cheax_is_user_type(int type);
+int cheax_is_user_type(CHEAX *c, int type);
 
 struct chx_value *cheax_eval(CHEAX *c, struct chx_value *expr);
 struct chx_value *cheax_read(CHEAX *c, FILE *f);
 struct chx_value *cheax_readstr(CHEAX *c, const char *str);
 int cheax_load_prelude(CHEAX *c);
-void cheax_print(FILE *output, struct chx_value *expr);
+void cheax_print(CHEAX *c, FILE *output, struct chx_value *expr);
 
 void cheax_exec(CHEAX *c, FILE *f);
+
+#define cheax_ft(c, pad) { if (cheax_errno(c) != 0) goto pad; }
 
 #endif
