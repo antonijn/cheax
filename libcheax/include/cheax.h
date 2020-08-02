@@ -81,7 +81,7 @@ struct chx_int *cheax_int(int value);
 struct chx_double *cheax_double(double value);
 struct chx_list *cheax_list(struct chx_value *car, struct chx_list *cdr);
 
-enum chx_error {
+enum {
 	/* Read errors */
 	CHEAX_EREAD     = 0x0001,
 	CHEAX_EEOF      = 0x0002,
@@ -95,6 +95,7 @@ enum chx_error {
 	CHEAX_ENIL      = 0x0106,
 	CHEAX_EDIVZERO  = 0x0107,
 	CHEAX_EREADONLY = 0x0108,
+	CHEAX_EVALUE    = 0x0109,
 	/* API error */
 	CHEAX_EAPI      = 0x0200,
 };
@@ -110,7 +111,7 @@ CHEAX *cheax_init(void);
  */
 void cheax_destroy(CHEAX *c);
 
-enum chx_error cheax_errno(CHEAX *c);
+int cheax_errno(CHEAX *c);
 void cheax_perror(CHEAX *c, const char *s);
 void cheax_clear_errno(CHEAX *c);
 

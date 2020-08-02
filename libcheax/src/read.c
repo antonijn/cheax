@@ -114,7 +114,7 @@ static bool get_string_char(struct lexer *lx, char **dest)
 		return false;
 
 	if (ch == '\n' || ch == EOF) {
-		lx->c->error = CHEAX_EEOF;
+		cry(lx->c, "read", CHEAX_EEOF, "Unexpected end of file");
 		return false;
 	}
 
@@ -259,7 +259,7 @@ struct chx_value *read_cons(struct lexer *lx, struct tok *tk)
 	lxadv(lx, tk);
 	while (tk->kind != TK_RPAR) {
 		if (tk->kind == TK_EOF) {
-			lx->c->error = CHEAX_EEOF;
+			cry(lx->c, "read", CHEAX_EEOF, "Unexpected end of file");
 			return NULL;
 		}
 		*last = cheax_list(ast_read(lx, tk), NULL);
@@ -288,7 +288,7 @@ static struct chx_value *ast_read(struct lexer *lx, struct tok *tk)
 	case TK_EOF:
 		return NULL;
 	default:
-		lx->c->error = CHEAX_EREAD;
+		cry(lx->c, "read", CHEAX_EREAD, "Unexpected token");
 		return NULL;
 	}
 }

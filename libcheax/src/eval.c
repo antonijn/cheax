@@ -48,14 +48,13 @@ struct chx_list *cheax_list(struct chx_value *car, struct chx_list *cdr)
 	return res;
 }
 
-enum chx_error cheax_errno(CHEAX *c)
+int cheax_errno(CHEAX *c)
 {
-	return c->error;
+	return c->error.code;
 }
-static const char *errname(enum chx_error e)
+static const char *errname(int code)
 {
-	switch (e) {
-	case 0:                return "0";
+	switch (code) {
 	case CHEAX_EREAD:      return "EREAD";
 	case CHEAX_EEOF:       return "EEOF";
 	case CHEAX_ELEX:       return "ELEX";
@@ -67,18 +66,35 @@ static const char *errname(enum chx_error e)
 	case CHEAX_ENIL:       return "ENIL";
 	case CHEAX_EDIVZERO:   return "EDIVZERO";
 	case CHEAX_EREADONLY:  return "EREADONLY";
+	case CHEAX_EVALUE:     return "EVALUE";
 	case CHEAX_EAPI:       return "EAPI";
 	}
+
+	return NULL;
 }
 void cheax_perror(CHEAX *c, const char *s)
 {
-	enum chx_error err = cheax_errno(c);
-	if (err != 0)
-		fprintf(stderr, "[%s: %s error]\n", s, errname(err));
+	int err = cheax_errno(c);
+	if (err == 0)
+		return;
+
+	fprintf(stderr, "%s:", s);
+
+	if (c->error.msg != NULL)
+		fprintf(stderr, " %s", c->error.msg->value);
+
+	const char *ename = errname(err);
+	if (ename != NULL)
+		fprintf(stderr, " (CHEAX error %s)", ename);
+	else
+		fprintf(stderr, " (CHEAX error code %x)", err);
+
+	fprintf(stderr, "\n");
 }
 void cheax_clear_errno(CHEAX *c)
 {
-	c->error = 0;
+	c->error.code = 0;
+	c->error.msg = NULL;
 }
 
 static bool pan_match_cheax_list(CHEAX *c, struct chx_list *pan, struct chx_list *match);
@@ -164,6 +180,31 @@ static struct variable *def_sym(CHEAX *c, const char *name, enum cheax_varflags 
 	return new;
 }
 
+void cry(CHEAX *c, const char *name, int err, const char *frmt, ...)
+{
+	va_list ap;
+
+	size_t preamble_len = strlen(name) + 4;
+
+	va_start(ap, frmt);
+	size_t buflen = preamble_len + vsnprintf(NULL, 0, frmt, ap) + 1;
+	va_end(ap);
+
+	struct chx_string *str = GC_MALLOC(sizeof(struct chx_string) + buflen);
+	char *strbuf = (char *)str + sizeof(struct chx_string);
+	str->base.type = CHEAX_STRING;
+	str->value = strbuf;
+	str->len = buflen - 1;
+
+	sprintf(strbuf, "(%s): ", name);
+	va_start(ap, frmt);
+	vsnprintf(strbuf + preamble_len, buflen - preamble_len, frmt, ap);
+	va_end(ap);
+
+	c->error.code = err;
+	c->error.msg = str;
+}
+
 CHEAX *cheax_init(void)
 {
 	CHEAX *res = malloc(sizeof(struct cheax));
@@ -171,6 +212,8 @@ CHEAX *cheax_init(void)
 	res->max_stack_depth = 0x1000;
 	res->stack_depth = 0;
 	res->user_type_count = 0;
+	res->error.code = 0;
+	res->error.msg = NULL;
 	export_builtins(res);
 	return res;
 }
@@ -185,11 +228,10 @@ int cheax_get_max_stack_depth(CHEAX *c)
 }
 void cheax_set_max_stack_depth(CHEAX *c, int max_stack_depth)
 {
-	if (max_stack_depth > 0) {
+	if (max_stack_depth > 0)
 		c->max_stack_depth = max_stack_depth;
-	} else {
+	else
 		cry(c, "cheax_set_max_stack_depth", CHEAX_EAPI, "Maximum stack depth must be positive");
-	}
 }
 
 int cheax_get_type(struct chx_value *v)

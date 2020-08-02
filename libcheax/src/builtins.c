@@ -410,7 +410,11 @@ static struct chx_value *builtin_set_max_stack_depth(CHEAX *c, struct chx_list *
 	struct chx_int *int_arg = (struct chx_int *)value;
 	int ivalue = int_arg->value;
 
-	cheax_set_max_stack_depth(c, ivalue);
+	if (ivalue > 0)
+		cheax_set_max_stack_depth(c, ivalue);
+	else
+		cry(c, "set-max-stack-depth", CHEAX_EVALUE, "Maximum stack depth must be positive");
+
 	return NULL;
 }
 
@@ -523,7 +527,7 @@ static struct chx_value *do_aop(CHEAX *c,
 		int li = ((struct chx_int *)l)->value;
 		int ri = ((struct chx_int *)r)->value;
 		int res = iop(c, li, ri);
-		if (c->error == CHEAX_EDIVZERO)
+		if (cheax_errno(c) == CHEAX_EDIVZERO)
 			return NULL;
 
 		return &cheax_int(iop(c, li, ri))->base;

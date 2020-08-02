@@ -86,6 +86,7 @@ static struct chx_value *read_with_readline(CHEAX *c)
 
 		free(input);
 
+		cheax_clear_errno(c);
 		res = cheax_readstr(c, fullstr);
 
 		prompt = "… ";

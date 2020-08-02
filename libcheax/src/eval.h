@@ -19,7 +19,7 @@
 #include <cheax.h>
 #include <stdarg.h>
 
-#define cheax_evalp(c, e, p) ({ struct chx_value *_v = cheax_eval((c), (e)); if ((c)->error) goto p; _v; })
+#define cheax_evalp(c, e, p) ({ struct chx_value *_v = cheax_eval((c), (e)); if (cheax_errno(c) != 0) goto p; _v; })
 
 enum {
 	CTYPE_NONE, /* only for non-synchronized variables */
@@ -48,31 +48,21 @@ struct variable {
 
 struct cheax {
 	struct variable *locals_top;
+
 	int max_stack_depth, stack_depth;
 	int user_type_count;
 	int fhandle_type;
-	enum chx_error error;
+
+	struct {
+		int code;
+		struct chx_string *msg;
+	} error;
 };
 
 struct chx_list *cheax_cons(struct chx_value *car, struct chx_list *cdr);
 bool pan_match(CHEAX *c, struct chx_value *pan, struct chx_value *match);
 struct variable *find_sym(CHEAX *c, const char *name);
 
-static inline void cry(CHEAX *c, const char *name, enum chx_error err, const char *frmt, ...)
-{
-	va_list ap;
-	va_start(ap, frmt);
-#ifndef WIN32
-	fprintf(stderr, "\033[31m", name);
-#endif
-	fprintf(stderr, "(%s): ", name);
-	vfprintf(stderr, frmt, ap);
-#ifndef WIN32
-	fprintf(stderr, "\033[0m", name);
-#endif
-	fputc('\n', stderr);
-
-	c->error = err;
-}
+void cry(CHEAX *c, const char *name, int err, const char *frmt, ...);
 
 #endif
