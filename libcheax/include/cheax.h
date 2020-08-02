@@ -17,12 +17,17 @@ enum cheax_type {
 	CHEAX_EXT_FUNC,
 	CHEAX_QUOTE,
 	CHEAX_STRING,
+	CHEAX_USER_PTR,
 
-	CHEAX_USER_TYPE = 0x100,
+	CHEAX_LAST_BASIC_TYPE = CHEAX_USER_PTR,
+	CHEAX_TYPESTORE_BIAS,
+
+	CHEAX_TYPECODE = CHEAX_TYPESTORE_BIAS + 0,
+	CHEAX_ERRORCODE,
 };
 
 struct chx_value {
-	enum cheax_type type;
+	int type;
 };
 
 struct chx_quote {
@@ -157,8 +162,13 @@ int cheax_get_max_stack_depth(CHEAX *c);
 void cheax_set_max_stack_depth(CHEAX *c, int max_stack_depth);
 
 int cheax_get_type(struct chx_value *v);
-int cheax_new_user_type(CHEAX *c);
-int cheax_is_user_type(CHEAX *c, int type);
+int cheax_new_type(CHEAX *c, const char *name, int base_type);
+int cheax_find_type(CHEAX *c, const char *name);
+bool cheax_is_valid_type(CHEAX *c, int type);
+bool cheax_is_basic_type(CHEAX *c, int type);
+int cheax_resolve_type(CHEAX *c, int type);
+void cheax_defprint(CHEAX *c, int type, chx_func_ptr print);
+void cheax_defcast(CHEAX *c, int from, int to, chx_func_ptr cast);
 
 struct chx_value *cheax_eval(CHEAX *c, struct chx_value *expr);
 struct chx_value *cheax_read(CHEAX *c, FILE *f);

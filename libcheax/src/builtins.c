@@ -54,6 +54,8 @@ DECL_BUILTIN(lt);
 
 void export_builtins(CHEAX *c)
 {
+	c->fhandle_type = cheax_new_type(c, "FileHandle", CHEAX_USER_PTR);
+
 	cheax_defmacro(c, "read-from", builtin_read_from);
 	cheax_defmacro(c, "print-to", builtin_print_to);
 	cheax_defmacro(c, "var", builtin_var);
@@ -74,7 +76,6 @@ void export_builtins(CHEAX *c)
 	cheax_defmacro(c, "=", builtin_eq);
 	cheax_defmacro(c, "<", builtin_lt);
 
-	c->fhandle_type = cheax_new_user_type(c);
 	cheax_var(c, "stdin", &cheax_user_ptr(c, stdin, c->fhandle_type)->base, CHEAX_READONLY);
 	cheax_var(c, "stdout", &cheax_user_ptr(c, stdout, c->fhandle_type)->base, CHEAX_READONLY);
 	cheax_var(c, "stderr", &cheax_user_ptr(c, stderr, c->fhandle_type)->base, CHEAX_READONLY);
@@ -311,7 +312,9 @@ static struct chx_value *builtin_get_type(CHEAX *c, struct chx_list *args)
 	if (!unpack_args(c, "get-type", args, 1, &val))
 		return NULL;
 
-	return &cheax_int(c, cheax_get_type(val))->base;
+	struct chx_int *res = cheax_int(c, cheax_get_type(val));
+	res->base.type = CHEAX_TYPECODE;
+	return &res->base;
 }
 
 static struct chx_value *builtin_get_max_stack_depth(CHEAX *c, struct chx_list *args)

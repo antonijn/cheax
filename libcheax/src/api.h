@@ -23,8 +23,6 @@ enum {
 	CTYPE_INT,
 	CTYPE_FLOAT,
 	CTYPE_DOUBLE,
-
-	CTYPE_USER_TYPE = CHEAX_USER_TYPE,
 };
 
 struct variable {
@@ -43,17 +41,37 @@ struct variable {
 	struct variable *below;
 };
 
+struct type_cast {
+	int to;
+	chx_func_ptr cast;
+
+	struct type_cast *next;
+};
+
+struct type_alias {
+	const char *name;
+	int base_type;
+
+	chx_func_ptr print;
+
+	struct type_cast *casts;
+};
+
 struct cheax {
 	struct variable *locals_top;
 
 	int max_stack_depth, stack_depth;
-	int user_type_count;
 	int fhandle_type;
 
 	struct {
 		int code;
 		struct chx_string *msg;
 	} error;
+
+	struct {
+		struct type_alias *array;
+		size_t len, cap;
+	} typestore;
 };
 
 bool try_convert_to_int(struct chx_value *value, int *res);

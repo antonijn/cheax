@@ -18,9 +18,9 @@
 
 #include "api.h"
 
-void cheax_print(CHEAX *c, FILE *f, struct chx_value *val)
+static void cheax_print_basic_type(CHEAX *c, FILE *f, struct chx_value *val)
 {
-	switch (cheax_get_type(val)) {
+	switch (cheax_resolve_type(c, cheax_get_type(val))) {
 	case CHEAX_NIL:
 		fprintf(f, "()");
 		break;
@@ -81,8 +81,20 @@ void cheax_print(CHEAX *c, FILE *f, struct chx_value *val)
 		else
 			fputs(macro->name, f);
 		break;
-	default:
+	case CHEAX_USER_PTR:
 		fprintf(f, "%p", ((struct chx_user_ptr *)val)->value);
 		break;
+	}
+}
+
+void cheax_print(CHEAX *c, FILE *f, struct chx_value *val)
+{
+	int ty = cheax_get_type(val);
+	if (cheax_is_basic_type(c, ty)) {
+		cheax_print_basic_type(c, f, val);
+	} else {
+		fprintf(f, "(%s ", c->typestore.array[ty - CHEAX_TYPESTORE_BIAS].name);
+		cheax_print_basic_type(c, f, val);
+		fprintf(f, ")");
 	}
 }

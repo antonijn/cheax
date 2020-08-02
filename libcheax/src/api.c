@@ -181,7 +181,7 @@ struct chx_double *cheax_double(CHEAX *c, double value)
 }
 struct chx_user_ptr *cheax_user_ptr(CHEAX *c, void *value, int type)
 {
-	if (!cheax_is_user_type(c, type)) {
+	if (cheax_is_basic_type(c, type) || cheax_resolve_type(c, type) != CHEAX_USER_PTR) {
 		cry(c, "cheax_user_ptr", CHEAX_EAPI, "Invalid user pointer type");
 		return NULL;
 	}
@@ -285,9 +285,9 @@ void cheax_perror(CHEAX *c, const char *s)
 
 	const char *ename = errname(err);
 	if (ename != NULL)
-		fprintf(stderr, "(CHEAX error %s)", ename);
+		fprintf(stderr, "[%s]", ename);
 	else
-		fprintf(stderr, "(CHEAX error code %x)", err);
+		fprintf(stderr, "[code %x]", err);
 
 	fprintf(stderr, "\n");
 }
@@ -365,9 +365,7 @@ bool cheax_equals(CHEAX *c, struct chx_value *l, struct chx_value *r)
 	if (cheax_get_type(l) != cheax_get_type(r))
 		return false;
 
-	int ty = cheax_get_type(l);
-	if (cheax_is_user_type(c, ty))
-		return ((struct chx_user_ptr *)l)->value == ((struct chx_user_ptr *)r)->value;
+	int ty = cheax_resolve_type(c, cheax_get_type(l));
 
 	switch (ty) {
 	case CHEAX_NIL:
@@ -393,9 +391,8 @@ bool cheax_equals(CHEAX *c, struct chx_value *l, struct chx_value *r)
 		struct chx_string *lstring = (struct chx_string *)l;
 		struct chx_string *rstring = (struct chx_string *)r;
 		return (lstring->len == rstring->len) && !strcmp(lstring->value, rstring->value);
-
-	default:
-		return l == r;
+	case CHEAX_USER_PTR:
+		return ((struct chx_user_ptr *)l)->value == ((struct chx_user_ptr *)r)->value;
 	}
 }
 
@@ -427,14 +424,35 @@ CHEAX *cheax_init(void)
 	res->locals_top = NULL;
 	res->max_stack_depth = 0x1000;
 	res->stack_depth = 0;
-	res->user_type_count = 0;
 	res->error.code = 0;
 	res->error.msg = NULL;
+
+	res->typestore.array = NULL;
+	res->typestore.len = res->typestore.cap = 0;
+
+	/* This is a bit hacky; we declare the these types as aliases
+	 * in the typestore, while at the same time we have the
+	 * CHEAX_... constants. Bacause CHEAX_TYPECODE is the same
+	 * as CHEAX_LAST_BASIC_TYPE + 1, it refers to the first element
+	 * in the type store. CHEAX_ERRORCODE the second, etc. As long
+	 * as the order is correct, it works. */
+	cheax_new_type(res, "TypeCode", CHEAX_INT);
+	cheax_new_type(res, "ErrorCode", CHEAX_INT);
+
 	export_builtins(res);
 	return res;
 }
 void cheax_destroy(CHEAX *c)
 {
+	for (int i = 0; i < c->typestore.len; ++i) {
+		struct type_cast *cnext;
+		for (struct type_cast *cast = c->typestore.array[i].casts; cast; cast = cnext) {
+			cnext = cast->next;
+			free(c);
+		}
+	}
+	free(c->typestore.array);
+
 	free(c);
 }
 
@@ -457,13 +475,90 @@ int cheax_get_type(struct chx_value *v)
 
 	return v->type;
 }
-int cheax_new_user_type(CHEAX *c)
+int cheax_new_type(CHEAX *c, const char *name, int base_type)
 {
-	return CHEAX_USER_TYPE + c->user_type_count++;
+	if (name == NULL) {
+		cry(c, "cheax_new_type", CHEAX_EAPI, "`name' cannot be NULL");
+		return -1;
+	}
+
+	if (!cheax_is_valid_type(c, base_type)) {
+		cry(c, "cheax_new_type", CHEAX_EAPI, "`base_type' is not a valid type");
+		return -1;
+	}
+
+	if (cheax_find_type(c, name) != -1) {
+		cry(c, "cheax_new_type", CHEAX_EAPI, "`%s' already exists as a type", name);
+		return -1;
+	}
+
+	int ts_idx = c->typestore.len++;
+
+	if (c->typestore.len > c->typestore.cap) {
+		c->typestore.cap = ((c->typestore.cap / 2) + 1) * 3;
+		c->typestore.array = realloc(c->typestore.array, c->typestore.cap * sizeof(struct type_alias));
+	}
+
+	struct type_alias alias = { 0 };
+	alias.name = name;
+	alias.base_type = base_type;
+	alias.print = NULL;
+	alias.casts = NULL;
+	c->typestore.array[ts_idx] = alias;
+
+	int typecode = ts_idx + CHEAX_TYPESTORE_BIAS;
+
+	struct chx_int *tci = cheax_int(c, typecode);
+	tci->base.type = CHEAX_TYPECODE;
+	cheax_var(c, name, &tci->base, CHEAX_READONLY);
+
+	return typecode;
 }
-int cheax_is_user_type(CHEAX *c, int type)
+int cheax_find_type(CHEAX *c, const char *name)
 {
-	return type >= CHEAX_USER_TYPE;
+	if (name == NULL) {
+		cry(c, "cheax_find_type", CHEAX_EAPI, "`name' cannot be NULL");
+		return -1;
+	}
+
+	for (int i = 0; i < c->typestore.len; ++i)
+		if (!strcmp(name, c->typestore.array[i].name))
+			return i + CHEAX_TYPESTORE_BIAS;
+
+	return -1;
+}
+bool cheax_is_valid_type(CHEAX *c, int type)
+{
+	if (type < 0)
+		return false;
+
+	if (cheax_is_basic_type(c, type))
+		return true;
+
+	return (type - CHEAX_TYPESTORE_BIAS) < c->typestore.len;
+}
+bool cheax_is_basic_type(CHEAX *c, int type)
+{
+	return type >= 0 && type <= CHEAX_LAST_BASIC_TYPE;
+}
+int cheax_resolve_type(CHEAX *c, int type)
+{
+	while (type > CHEAX_LAST_BASIC_TYPE) {
+		int ts_idx = type - CHEAX_TYPESTORE_BIAS;
+		if (ts_idx >= c->typestore.len)
+			goto err;
+
+		int base_type = c->typestore.array[ts_idx].base_type;
+		if (base_type == type)
+			goto err;
+		type = base_type;
+	}
+
+	return type;
+
+err:
+	cry(c, "cheax_resolve_type", CHEAX_EEVAL, "Unable to resolve type");
+	return -1;
 }
 
 void cheax_sync_int(CHEAX *c, const char *name, int *var, enum chx_varflags flags)

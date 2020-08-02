@@ -189,7 +189,7 @@ struct chx_value *read_int(struct lexer *lx, struct tok *tk)
 }
 struct chx_value *read_double(struct lexer *lx, struct tok *tk)
 {
-	return &cheax_int(lx->c, strtod(tk->lexeme, NULL))->base;
+	return &cheax_double(lx->c, strtod(tk->lexeme, NULL))->base;
 }
 struct chx_value *read_id(struct lexer *lx, struct tok *tk)
 {
