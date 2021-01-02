@@ -261,30 +261,35 @@ struct chx_string *cheax_nstring(CHEAX *c, char *value, size_t len)
 	return res;
 }
 
+static const char *errname(CHEAX *c, int code)
+{
+	if (code >= CHEAX_EUSER0) {
+		int idx = code - CHEAX_EUSER0;
+		if (idx >= c->user_error_names.len) {
+			cry(c, "errname", CHEAX_EAPI, "Invalid user error code");
+			return NULL;
+		}
+		return c->user_error_names.array[idx];
+	}
+
+	/* builtin error code */
+
+	int num_codes = sizeof(cheax_builtin_error_codes)
+	              / sizeof(cheax_builtin_error_codes[0]);
+
+	for (int i = 0; i < num_codes; ++i) {
+		const char *name = cheax_builtin_error_codes[i].name;
+		int builtin_code = cheax_builtin_error_codes[i].code;
+		if (code == builtin_code)
+			return name;
+	}
+
+	cry(c, "errname", CHEAX_EAPI, "Invalid error code");
+	return NULL;
+}
 int cheax_errno(CHEAX *c)
 {
 	return c->error.code;
-}
-static const char *errname(int code)
-{
-	switch (code) {
-	case CHEAX_EREAD:      return "EREAD";
-	case CHEAX_EEOF:       return "EEOF";
-	case CHEAX_ELEX:       return "ELEX";
-	case CHEAX_EEVAL:      return "EEVAL";
-	case CHEAX_ENOSYM:     return "ENOSYM";
-	case CHEAX_ESTACK:     return "ESTACK";
-	case CHEAX_ETYPE:      return "ETYPE";
-	case CHEAX_EMATCH:     return "EMATCH";
-	case CHEAX_ENIL:       return "ENIL";
-	case CHEAX_EDIVZERO:   return "EDIVZERO";
-	case CHEAX_EREADONLY:  return "EREADONLY";
-	case CHEAX_EVALUE:     return "EVALUE";
-	case CHEAX_EOVERFLOW:  return "EOVERFLOW";
-	case CHEAX_EAPI:       return "EAPI";
-	}
-
-	return NULL;
 }
 void cheax_perror(CHEAX *c, const char *s)
 {
@@ -298,7 +303,7 @@ void cheax_perror(CHEAX *c, const char *s)
 	if (c->error.msg != NULL)
 		fprintf(stderr, "%s ", c->error.msg->value);
 
-	const char *ename = errname(err);
+	const char *ename = errname(c, err);
 	if (ename != NULL)
 		fprintf(stderr, "[%s]", ename);
 	else
@@ -310,6 +315,51 @@ void cheax_clear_errno(CHEAX *c)
 {
 	c->error.code = 0;
 	c->error.msg = NULL;
+}
+void cheax_throw(CHEAX *c, int code, struct chx_string *msg)
+{
+	if (code == 0) {
+		cry(c, "throw", CHEAX_EVALUE, "Cannot throw error code 0");
+		return;
+	}
+
+	c->error.code = code;
+	c->error.msg = msg;
+}
+int cheax_new_error_code(CHEAX *c, const char *name)
+{
+	if (name == NULL) {
+		cry(c, "new_error_code", CHEAX_EAPI, "`name' cannot be NULL");
+		return -1;
+	}
+
+	int code = CHEAX_EUSER0 + c->user_error_names.len++;
+	if (c->user_error_names.len > c->user_error_names.cap) {
+		c->user_error_names.cap = ((c->user_error_names.cap / 2) + 1) * 3;
+		c->user_error_names.array = realloc(c->user_error_names.array, c->user_error_names.cap * sizeof(const char *));
+	}
+
+	c->user_error_names.array[code - CHEAX_EUSER0] = name;
+
+	struct chx_value *errcode = &cheax_int(c, code)->base;
+	errcode->type = CHEAX_ERRORCODE;
+	cheax_var(c, name, errcode, CHEAX_EREADONLY);
+
+	return code;
+}
+static void declare_builtin_errors(CHEAX *c)
+{
+	int num_codes = sizeof(cheax_builtin_error_codes)
+	              / sizeof(cheax_builtin_error_codes[0]);
+
+	for (int i = 0; i < num_codes; ++i) {
+		const char *name = cheax_builtin_error_codes[i].name;
+		int code = cheax_builtin_error_codes[i].code;
+
+		struct chx_value *errcode = &cheax_int(c, code)->base;
+		errcode->type = CHEAX_ERRORCODE;
+		cheax_var(c, name, errcode, CHEAX_READONLY);
+	}
 }
 
 static bool pan_match_cheax_list(CHEAX *c, struct chx_list *pan, struct chx_list *match);
@@ -427,8 +477,7 @@ void cry(CHEAX *c, const char *name, int err, const char *frmt, ...)
 	vsnprintf(buf + preamble_len, msglen - preamble_len + 1, frmt, ap);
 	va_end(ap);
 
-	c->error.code = err;
-	c->error.msg = cheax_nstring(c, buf, msglen);
+	cheax_throw(c, err, cheax_nstring(c, buf, msglen));
 
 	free(buf);
 }
@@ -445,6 +494,9 @@ CHEAX *cheax_init(void)
 	res->typestore.array = NULL;
 	res->typestore.len = res->typestore.cap = 0;
 
+	res->user_error_names.array = NULL;
+	res->user_error_names.len = res->user_error_names.cap = 0;
+
 	/* This is a bit hacky; we declare the these types as aliases
 	 * in the typestore, while at the same time we have the
 	 * CHEAX_... constants. Bacause CHEAX_TYPECODE is the same
@@ -454,6 +506,7 @@ CHEAX *cheax_init(void)
 	cheax_new_type(res, "TypeCode", CHEAX_INT);
 	cheax_new_type(res, "ErrorCode", CHEAX_INT);
 
+	declare_builtin_errors(res);
 	export_builtins(res);
 	return res;
 }
@@ -467,6 +520,8 @@ void cheax_destroy(CHEAX *c)
 		}
 	}
 	free(c->typestore.array);
+
+	free(c->user_error_names.array);
 
 	free(c);
 }

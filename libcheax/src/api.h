@@ -69,6 +69,11 @@ struct cheax {
 	} error;
 
 	struct {
+		const char **array;
+		size_t len, cap;
+	} user_error_names;
+
+	struct {
 		struct type_alias *array;
 		size_t len, cap;
 	} typestore;

@@ -111,6 +111,28 @@ enum {
 	CHEAX_EOVERFLOW = 0x010A,
 	/* API error */
 	CHEAX_EAPI      = 0x0200,
+
+	/* First user error code */
+	CHEAX_EUSER0    = 0x0400,
+};
+
+#define ERR_NAME_PAIR(NAME) {#NAME, CHEAX_##NAME}
+
+static const struct {
+	const char *name;
+	int code;
+}
+cheax_builtin_error_codes[] = {
+	ERR_NAME_PAIR(EREAD), ERR_NAME_PAIR(EEOF),
+	ERR_NAME_PAIR(ELEX),
+
+	ERR_NAME_PAIR(EEVAL), ERR_NAME_PAIR(ENOSYM),
+	ERR_NAME_PAIR(ESTACK), ERR_NAME_PAIR(ETYPE),
+	ERR_NAME_PAIR(EMATCH), ERR_NAME_PAIR(ENIL),
+	ERR_NAME_PAIR(EDIVZERO), ERR_NAME_PAIR(EREADONLY),
+	ERR_NAME_PAIR(EVALUE), ERR_NAME_PAIR(EOVERFLOW),
+
+	ERR_NAME_PAIR(EAPI)
 };
 
 enum chx_varflags {
@@ -148,6 +170,8 @@ bool cheax_equals(CHEAX *c, struct chx_value *l, struct chx_value *r);
 int cheax_errno(CHEAX *c);
 void cheax_perror(CHEAX *c, const char *s);
 void cheax_clear_errno(CHEAX *c);
+void cheax_throw(CHEAX *c, int code, struct chx_string *msg);
+int cheax_new_error_code(CHEAX *c, const char *name);
 
 void cheax_load_extra_builtins(CHEAX *c, enum chx_builtins builtins);
 

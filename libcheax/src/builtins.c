@@ -33,6 +33,8 @@ DECL_BUILTIN(fopen);
 DECL_BUILTIN(fclose);
 DECL_BUILTIN(read_from);
 DECL_BUILTIN(print_to);
+DECL_BUILTIN(throw);
+DECL_BUILTIN(new_error_code);
 DECL_BUILTIN(var);
 DECL_BUILTIN(const);
 DECL_BUILTIN(set);
@@ -58,6 +60,8 @@ void export_builtins(CHEAX *c)
 
 	cheax_defmacro(c, "read-from", builtin_read_from);
 	cheax_defmacro(c, "print-to", builtin_print_to);
+	cheax_defmacro(c, "throw", builtin_throw);
+	cheax_defmacro(c, "new-error-code", builtin_new_error_code);
 	cheax_defmacro(c, "var", builtin_var);
 	cheax_defmacro(c, "const", builtin_const);
 	cheax_defmacro(c, "set", builtin_set);
@@ -247,6 +251,42 @@ static struct chx_value *builtin_const(CHEAX *c, struct chx_list *args)
 		v->flags |= CHEAX_READONLY;
 
 pad:
+	return NULL;
+}
+
+static struct chx_value *builtin_throw(CHEAX *c, struct chx_list *args)
+{
+	struct chx_value *code, *msg;
+	if (!unpack_args(c, "throw", args, 2, &code, &msg))
+		return NULL;
+
+	if (cheax_get_type(code) != CHEAX_ERRORCODE) {
+		cry(c, "throw", CHEAX_ETYPE, "Expected error code");
+		return NULL;
+	}
+
+	if (msg != NULL && cheax_get_type(msg) != CHEAX_STRING) {
+		cry(c, "throw", CHEAX_ETYPE, "Expected string message");
+		return NULL;
+	}
+
+	cheax_throw(c, ((struct chx_int *)code)->value, (struct chx_string *)msg);
+	return NULL;
+}
+static struct chx_value *builtin_new_error_code(CHEAX *c, struct chx_list *args)
+{
+	struct chx_value *errname_id;
+	if (!unpack_args_condeval(c, "new-error-code", args, false, 1, &errname_id))
+		return NULL;
+
+	if (cheax_get_type(errname_id) != CHEAX_ID) {
+		cry(c, "new-error-code", CHEAX_ETYPE, "Expected ID");
+		return NULL;
+	}
+
+	const char *errname = ((struct chx_id *)errname_id)->id;
+	cheax_new_error_code(c, errname);
+
 	return NULL;
 }
 
