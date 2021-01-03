@@ -272,16 +272,22 @@ static const char *errname(CHEAX *c, int code)
 		return c->user_error_names.array[idx];
 	}
 
-	/* builtin error code */
+	/* builtin error code, binary search */
 
-	int num_codes = sizeof(cheax_builtin_error_codes)
-	              / sizeof(cheax_builtin_error_codes[0]);
+	int lo = 0;
+	int hi = sizeof(cheax_builtin_error_codes)
+	       / sizeof(cheax_builtin_error_codes[0]);
 
-	for (int i = 0; i < num_codes; ++i) {
-		const char *name = cheax_builtin_error_codes[i].name;
-		int builtin_code = cheax_builtin_error_codes[i].code;
-		if (code == builtin_code)
-			return name;
+	while (lo <= hi) {
+		int pivot = (lo + hi) / 2;
+		const char *pivot_name = cheax_builtin_error_codes[pivot].name;
+		int pivot_code = cheax_builtin_error_codes[pivot].code;
+		if (pivot_code == code)
+			return pivot_name;
+		else if (pivot_code < code)
+			lo = pivot + 1;
+		else
+			hi = pivot - 1;
 	}
 
 	cry(c, "errname", CHEAX_EAPI, "Invalid error code");
