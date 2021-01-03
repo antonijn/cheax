@@ -33,6 +33,8 @@ DECL_BUILTIN(fopen);
 DECL_BUILTIN(fclose);
 DECL_BUILTIN(read_from);
 DECL_BUILTIN(print_to);
+DECL_BUILTIN(error_code);
+DECL_BUILTIN(error_msg);
 DECL_BUILTIN(throw);
 DECL_BUILTIN(new_error_code);
 DECL_BUILTIN(var);
@@ -60,6 +62,8 @@ void export_builtins(CHEAX *c)
 
 	cheax_defmacro(c, "read-from", builtin_read_from);
 	cheax_defmacro(c, "print-to", builtin_print_to);
+	cheax_defmacro(c, "error-code", builtin_error_code);
+	cheax_defmacro(c, "error-msg", builtin_error_msg);
 	cheax_defmacro(c, "throw", builtin_throw);
 	cheax_defmacro(c, "new-error-code", builtin_new_error_code);
 	cheax_defmacro(c, "var", builtin_var);
@@ -254,6 +258,22 @@ pad:
 	return NULL;
 }
 
+static struct chx_value *builtin_error_code(CHEAX *c, struct chx_list *args)
+{
+	if (!unpack_args(c, "error-code", args, 0))
+		return NULL;
+
+	struct chx_value *res = &cheax_int(c, c->error.code)->base;
+	res->type = CHEAX_ERRORCODE;
+	return res;
+}
+static struct chx_value *builtin_error_msg(CHEAX *c, struct chx_list *args)
+{
+	if (!unpack_args(c, "error-msg", args, 0))
+		return NULL;
+
+	return &c->error.msg->base;
+}
 static struct chx_value *builtin_throw(CHEAX *c, struct chx_list *args)
 {
 	struct chx_value *code, *msg;
