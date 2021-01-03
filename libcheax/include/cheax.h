@@ -94,6 +94,8 @@ struct chx_string *cheax_string(CHEAX *c, char *value);
 struct chx_string *cheax_nstring(CHEAX *c, char *value, size_t len);
 
 enum {
+	CHEAX_ENOERR    = 0x0000,
+
 	/* Read errors */
 	CHEAX_EREAD     = 0x0001,
 	CHEAX_EEOF      = 0x0002,
@@ -123,6 +125,8 @@ static const struct {
 	int code;
 }
 cheax_builtin_error_codes[] = {
+	ERR_NAME_PAIR(ENOERR),
+
 	ERR_NAME_PAIR(EREAD), ERR_NAME_PAIR(EEOF),
 	ERR_NAME_PAIR(ELEX),
 
