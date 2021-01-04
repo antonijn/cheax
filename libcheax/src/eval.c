@@ -178,6 +178,28 @@ static struct chx_value *cheax_eval_sexpr(CHEAX *c, struct chx_list *input)
 		/* restore previous context */
 		c->locals_top = prev_locals_top;
 		return retval;
+	case CHEAX_TYPECODE:
+		; int type = ((struct chx_int *)func)->value;
+
+		if (!cheax_is_valid_type(c, type)) {
+			cry(c, "eval", CHEAX_ETYPE, "Invalid typecode %d", type);
+			return NULL;
+		}
+
+		struct chx_list *cast_args = input->next;
+		if (cast_args == NULL || cast_args->next != NULL) {
+			cry(c, "eval", CHEAX_EMATCH, "Expected single argument to cast");
+			return NULL;
+		}
+
+		struct chx_value *cast_arg = cast_args->value;
+
+		if (cheax_get_base_type(c, type) != cheax_get_type(cast_arg)) {
+			cry(c, "eval", CHEAX_ETYPE, "Unable to instantiate");
+			return NULL;
+		}
+
+		return cheax_cast(c, cast_arg, type);
 	}
 
 	cry(c, "eval", CHEAX_ETYPE, "Invalid function call");

@@ -532,6 +532,7 @@ void cheax_destroy(CHEAX *c)
 	free(c);
 }
 
+
 int cheax_get_max_stack_depth(CHEAX *c)
 {
 	return c->max_stack_depth;
@@ -542,6 +543,65 @@ void cheax_set_max_stack_depth(CHEAX *c, int max_stack_depth)
 		c->max_stack_depth = max_stack_depth;
 	else
 		cry(c, "cheax_set_max_stack_depth", CHEAX_EAPI, "Maximum stack depth must be positive");
+}
+
+
+struct chx_value *cheax_shallow_copy(CHEAX *c, struct chx_value *v)
+{
+	int type = cheax_resolve_type(c, cheax_get_type(v));
+
+	size_t size;
+	switch (type) {
+	case CHEAX_NIL:
+		return NULL;
+	case CHEAX_ID:
+		size = sizeof(struct chx_id);
+		break;
+	case CHEAX_INT:
+		size = sizeof(struct chx_int);
+		break;
+	case CHEAX_DOUBLE:
+		size = sizeof(struct chx_double);
+		break;
+	case CHEAX_LIST:
+		size = sizeof(struct chx_list);
+		break;
+	case CHEAX_FUNC:
+		size = sizeof(struct chx_func);
+		break;
+	case CHEAX_EXT_FUNC:
+		size = sizeof(struct chx_ext_func);
+		break;
+	case CHEAX_QUOTE:
+		size = sizeof(struct chx_quote);
+		break;
+	case CHEAX_STRING:
+		size = sizeof(struct chx_string);
+		break;
+	case CHEAX_USER_PTR:
+		size = sizeof(struct chx_user_ptr);
+		break;
+	}
+
+	void *cpy = GC_MALLOC(size);
+	memcpy(cpy, v, size);
+
+	return cpy;
+}
+
+struct chx_value *cheax_cast(CHEAX *c, struct chx_value *v, int type)
+{
+	/* TODO: improve critria */
+	if (cheax_resolve_type(c, cheax_get_type(v)) != cheax_resolve_type(c, type)) {
+		cry(c, "cast", CHEAX_ETYPE, "Invalid cast");
+		return NULL;
+	}
+
+	struct chx_value *res = cheax_shallow_copy(c, v);
+	if (res != NULL)
+		res->type = type;
+
+	return res;
 }
 
 int cheax_get_type(struct chx_value *v)
@@ -617,24 +677,36 @@ bool cheax_is_basic_type(CHEAX *c, int type)
 {
 	return type >= 0 && type <= CHEAX_LAST_BASIC_TYPE;
 }
+int cheax_get_base_type(CHEAX *c, int type)
+{
+	if (cheax_is_basic_type(c, type))
+		return type;
+
+	int ts_idx = type - CHEAX_TYPESTORE_BIAS;
+	if (ts_idx >= c->typestore.len) {
+		cry(c, "cheax_get_base_type", CHEAX_EEVAL, "Unable to resolve type");
+		return -1;
+	}
+
+	return c->typestore.array[ts_idx].base_type;
+}
 int cheax_resolve_type(CHEAX *c, int type)
 {
 	while (type > CHEAX_LAST_BASIC_TYPE) {
-		int ts_idx = type - CHEAX_TYPESTORE_BIAS;
-		if (ts_idx >= c->typestore.len)
-			goto err;
+		int base_type = cheax_get_base_type(c, type);
 
-		int base_type = c->typestore.array[ts_idx].base_type;
-		if (base_type == type)
-			goto err;
+		if (base_type == -1)
+			return -1;
+
+		if (base_type == type) {
+			cry(c, "cheax_resolve_type", CHEAX_EEVAL, "Unable to resolve type");
+			return -1;
+		}
+
 		type = base_type;
 	}
 
 	return type;
-
-err:
-	cry(c, "cheax_resolve_type", CHEAX_EEVAL, "Unable to resolve type");
-	return -1;
 }
 
 void cheax_sync_int(CHEAX *c, const char *name, int *var, enum chx_varflags flags)

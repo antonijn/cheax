@@ -189,11 +189,14 @@ void cheax_sync_double(CHEAX *c, const char *name, double *var, enum chx_varflag
 int cheax_get_max_stack_depth(CHEAX *c);
 void cheax_set_max_stack_depth(CHEAX *c, int max_stack_depth);
 
+struct chx_value *cheax_shallow_copy(CHEAX *c, struct chx_value *v);
+struct chx_value *cheax_cast(CHEAX *c, struct chx_value *v, int type);
 int cheax_get_type(struct chx_value *v);
 int cheax_new_type(CHEAX *c, const char *name, int base_type);
 int cheax_find_type(CHEAX *c, const char *name);
 bool cheax_is_valid_type(CHEAX *c, int type);
 bool cheax_is_basic_type(CHEAX *c, int type);
+int cheax_get_base_type(CHEAX *c, int type);
 int cheax_resolve_type(CHEAX *c, int type);
 void cheax_defprint(CHEAX *c, int type, chx_func_ptr print);
 void cheax_defcast(CHEAX *c, int from, int to, chx_func_ptr cast);
