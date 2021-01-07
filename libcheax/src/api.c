@@ -20,7 +20,6 @@
 #include <stdlib.h>
 
 #include "api.h"
-#include "builtins.h"
 
 struct variable *find_sym(CHEAX *c, const char *name)
 {

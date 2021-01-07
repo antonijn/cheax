@@ -13,9 +13,6 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  */
 
-#include "builtins.h"
-#include "api.h"
-
 #include <gc.h>
 #include <cheax.h>
 #include <stdarg.h>
@@ -23,6 +20,8 @@
 #include <stdlib.h>
 #include <string.h>
 #include <limits.h>
+
+#include "api.h"
 
 #define DECL_BUILTIN(cname) \
 static struct chx_value *builtin_##cname(CHEAX *c, struct chx_list *args)

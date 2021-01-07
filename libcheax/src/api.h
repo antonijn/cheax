@@ -86,4 +86,7 @@ struct variable *find_sym(CHEAX *c, const char *name);
 struct variable *def_sym(CHEAX *c, const char *name, enum chx_varflags flags);
 void cry(CHEAX *c, const char *name, int err, const char *frmt, ...);
 
+/* defined in builtins.c */
+void export_builtins(CHEAX *c);
+
 #endif

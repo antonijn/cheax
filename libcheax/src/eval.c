@@ -14,11 +14,11 @@
  */
 
 #include <cheax.h>
-#include "api.h"
-#include "builtins.h"
 
 #include <gc.h>
 #include <string.h>
+
+#include "api.h"
 
 void cheax_exec(CHEAX *c, FILE *f)
 {
