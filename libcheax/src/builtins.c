@@ -601,7 +601,7 @@ static int    iop_mod(CHEAX *c, int    a, int    b)
 		return 0;
 	}
 
-	return a / b;
+	return a % b;
 }
 
 static struct chx_value *builtin_add(CHEAX *c, struct chx_list *args)
