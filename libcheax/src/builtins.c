@@ -13,7 +13,6 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  */
 
-#include <gc.h>
 #include <cheax.h>
 #include <stdarg.h>
 #include <stdio.h>
@@ -22,6 +21,7 @@
 #include <limits.h>
 
 #include "api.h"
+#include "gc.h"
 
 #define DECL_BUILTIN(cname) \
 static struct chx_value *builtin_##cname(CHEAX *c, struct chx_list *args)
@@ -424,7 +424,7 @@ static struct chx_value *create_func(CHEAX *c,
 		return NULL;
 	}
 
-	struct chx_func *res = GC_MALLOC(sizeof(struct chx_func));
+	struct chx_func *res = cheax_alloc(c, sizeof(struct chx_func));
 	res->base.type = CHEAX_FUNC;
 	res->eval_args = eval_args;
 	res->args = arg_list;

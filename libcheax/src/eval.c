@@ -15,10 +15,10 @@
 
 #include <cheax.h>
 
-#include <gc.h>
 #include <string.h>
 
 #include "api.h"
+#include "gc.h"
 
 void cheax_exec(CHEAX *c, FILE *f)
 {
@@ -92,7 +92,7 @@ static struct chx_value *expand_macro(CHEAX *c,
 		}
 		return &cons_res->base;
 	case CHEAX_QUOTE:
-		; struct chx_quote *quotres = GC_MALLOC(sizeof(struct chx_quote));
+		; struct chx_quote *quotres = cheax_alloc(c, sizeof(struct chx_quote));
 		quotres->base.type = CHEAX_QUOTE;
 		quotres->value = expand_macro(c, args_top, locals_top, as_quote->value);
 		return &quotres->base;

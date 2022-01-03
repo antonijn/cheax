@@ -14,12 +14,12 @@
  */
 
 #include <cheax.h>
-#include <gc.h>
 #include <string.h>
 #include <stdarg.h>
 #include <stdlib.h>
 
 #include "api.h"
+#include "gc.h"
 
 struct variable *find_sym(CHEAX *c, const char *name)
 {
@@ -31,7 +31,7 @@ struct variable *find_sym(CHEAX *c, const char *name)
 
 struct variable *def_sym(CHEAX *c, const char *name, enum chx_varflags flags)
 {
-	struct variable *new = GC_MALLOC(sizeof(struct variable));
+	struct variable *new = cheax_alloc(c, sizeof(struct variable));
 	new->flags = flags;
 	new->ctype = CTYPE_NONE;
 	new->value.norm = NULL;
@@ -174,21 +174,21 @@ struct chx_value *cheax_get(CHEAX *c, char *id)
 
 struct chx_quote *cheax_quote(CHEAX *c, struct chx_value *value)
 {
-	struct chx_quote *res = GC_MALLOC(sizeof(struct chx_quote));
+	struct chx_quote *res = cheax_alloc(c, sizeof(struct chx_quote));
 	res->base.type = CHEAX_QUOTE;
 	res->value = value;
 	return res;
 }
 struct chx_int *cheax_int(CHEAX *c, int value)
 {
-	struct chx_int *res = GC_MALLOC(sizeof(struct chx_int));
+	struct chx_int *res = cheax_alloc(c, sizeof(struct chx_int));
 	res->base.type = CHEAX_INT;
 	res->value = value;
 	return res;
 }
 struct chx_double *cheax_double(CHEAX *c, double value)
 {
-	struct chx_double *res = GC_MALLOC(sizeof(struct chx_double));
+	struct chx_double *res = cheax_alloc(c, sizeof(struct chx_double));
 	res->base.type = CHEAX_DOUBLE;
 	res->value = value;
 	return res;
@@ -199,7 +199,7 @@ struct chx_user_ptr *cheax_user_ptr(CHEAX *c, void *value, int type)
 		cry(c, "cheax_user_ptr", CHEAX_EAPI, "Invalid user pointer type");
 		return NULL;
 	}
-	struct chx_user_ptr *res = GC_MALLOC(sizeof(struct chx_user_ptr));
+	struct chx_user_ptr *res = cheax_alloc(c, sizeof(struct chx_user_ptr));
 	res->base.type = type;
 	res->value = value;
 	return res;
@@ -209,7 +209,7 @@ struct chx_id *cheax_id(CHEAX *c, char *id)
 	if (id == NULL)
 		return NULL;
 
-	struct chx_id *res = GC_MALLOC(sizeof(struct chx_id) + strlen(id) + 1);
+	struct chx_id *res = cheax_alloc(c, sizeof(struct chx_id) + strlen(id) + 1);
 	char *buf = ((char *)res) + sizeof(struct chx_id);
 	strcpy(buf, id);
 
@@ -220,7 +220,7 @@ struct chx_id *cheax_id(CHEAX *c, char *id)
 }
 struct chx_list *cheax_list(CHEAX *c, struct chx_value *car, struct chx_list *cdr)
 {
-	struct chx_list *res = GC_MALLOC(sizeof(struct chx_list));
+	struct chx_list *res = cheax_alloc(c, sizeof(struct chx_list));
 	res->base.type = CHEAX_LIST;
 	res->value = car;
 	res->next = cdr;
@@ -231,7 +231,7 @@ struct chx_ext_func *cheax_ext_func(CHEAX *c, chx_func_ptr perform, const char *
 	if (perform == NULL || name == NULL)
 		return NULL;
 
-	struct chx_ext_func *res = GC_MALLOC(sizeof(struct chx_ext_func));
+	struct chx_ext_func *res = cheax_alloc(c, sizeof(struct chx_ext_func));
 	res->base.type = CHEAX_EXT_FUNC;
 	res->perform = perform;
 	res->name = name;
@@ -249,7 +249,7 @@ struct chx_string *cheax_nstring(CHEAX *c, char *value, size_t len)
 	if (value == NULL)
 		return NULL;
 
-	struct chx_string *res = GC_MALLOC(sizeof(struct chx_string) + len + 1);
+	struct chx_string *res = cheax_alloc(c, sizeof(struct chx_string) + len + 1);
 	char *buf = ((char *)res) + sizeof(struct chx_string);
 	memcpy(buf, value, len + 1);
 
@@ -582,7 +582,7 @@ struct chx_value *cheax_shallow_copy(CHEAX *c, struct chx_value *v)
 		break;
 	}
 
-	void *cpy = GC_MALLOC(size);
+	void *cpy = cheax_alloc(c, size);
 	memcpy(cpy, v, size);
 
 	return cpy;
