@@ -157,19 +157,27 @@ static struct chx_value *cheax_eval_sexpr(CHEAX *c, struct chx_list *input)
 {
 	struct chx_value *func = cheax_eval(c, input->value);
 	cheax_ft(c, pad);
+
+	cheax_ref(c, func);
+
+	struct chx_value *res;
+
 	switch (cheax_get_type(func)) {
 	case CHEAX_NIL:
 		cry(c, "eval", CHEAX_ENIL, "Cannot call nil");
-		return NULL;
+		res = NULL;
+		goto ret;
 	case CHEAX_EXT_FUNC:
 		; struct chx_ext_func *extf = (struct chx_ext_func *)func;
-		return extf->perform(c, input->next);
+		res = extf->perform(c, input->next);
+		goto ret;
 	case CHEAX_FUNC:
 		; struct chx_func *lda = (struct chx_func *)func;
 		if (!lda->eval_args) {
 			/* macro call */
 			struct chx_list *args = input->next;
-			return call_macro(c, lda, args);
+			res = call_macro(c, lda, args);
+			goto ret;
 		}
 
 		/* function call */
@@ -201,32 +209,42 @@ static struct chx_value *cheax_eval_sexpr(CHEAX *c, struct chx_list *input)
 		c->locals_top = prev_locals_top;
 		cheax_unref(c, prev_locals_top);
 		cheax_unref(c, args);
-		return retval;
+		res = retval;
+		goto ret;
 	case CHEAX_TYPECODE:
 		; int type = ((struct chx_int *)func)->value;
 
 		if (!cheax_is_valid_type(c, type)) {
 			cry(c, "eval", CHEAX_ETYPE, "Invalid typecode %d", type);
-			return NULL;
+			res = NULL;
+			goto ret;
 		}
 
 		struct chx_list *cast_args = input->next;
 		if (cast_args == NULL || cast_args->next != NULL) {
 			cry(c, "eval", CHEAX_EMATCH, "Expected single argument to cast");
-			return NULL;
+			res = NULL;
+			goto ret;
 		}
 
 		struct chx_value *cast_arg = cast_args->value;
 
 		if (cheax_get_base_type(c, type) != cheax_get_type(cast_arg)) {
 			cry(c, "eval", CHEAX_ETYPE, "Unable to instantiate");
-			return NULL;
+			res = NULL;
+			goto ret;
 		}
 
-		return cheax_cast(c, cast_arg, type);
+		res = cheax_cast(c, cast_arg, type);
+		goto ret;
 	}
 
 	cry(c, "eval", CHEAX_ETYPE, "Invalid function call");
+	res = NULL;
+
+ret:
+	cheax_unref(c, func);
+	return res;
 
 pad:
 	return NULL;

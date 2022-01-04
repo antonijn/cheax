@@ -103,22 +103,26 @@ void cheax_load_extra_builtins(CHEAX *c, enum chx_builtins builtins)
 		cheax_defmacro(c, "gc", builtin_gc);
 }
 
-static bool vunpack_args_condeval(CHEAX *c,
-                                  const char *fname,
-                                  struct chx_list *args,
-                                  bool eval_args,
-                                  int num,
-                                  va_list ap)
+/* Calls cheax_ref() on all unpacked args, doesn't unref() on failure.
+ * Returns the number of arguments unpacked. */
+static int vunpack_args(CHEAX *c,
+                        const char *fname,
+                        struct chx_list *args,
+                        bool eval_args,
+                        int num,
+                        va_list ap)
 {
-	for (int i = 0; i < num; ++i) {
+	int i;
+	for (i = 0; i < num; ++i) {
 		if (args == NULL) {
 			cry(c, fname, CHEAX_EMATCH, "Expected %d arguments (got %d)", num, i);
-			return false;
+			return i;
 		}
 
 		struct chx_value **res = va_arg(ap, struct chx_value **);
 		if (eval_args) {
 			*res = cheax_eval(c, args->value);
+			cheax_ref(c, *res);
 			cheax_ft(c, pad);
 		} else {
 			*res = args->value;
@@ -128,47 +132,43 @@ static bool vunpack_args_condeval(CHEAX *c,
 
 	if (args != NULL) {
 		cry(c, fname, CHEAX_EMATCH, "Expected only %d arguments", num);
-		return false;
+		return i;
 	}
+
+pad:
+	return i;
+}
+
+/* Does not cheax_ref() any unpacked arguments */
+static bool unpack_args(CHEAX *c,
+                        const char *fname,
+                        struct chx_list *args,
+                        bool eval_args,
+                        int num, ...)
+{
+	va_list ap;
+	va_start(ap, num);
+	int res = vunpack_args(c, fname, args, eval_args, num, ap);
+	va_end(ap);
+
+	va_start(ap, num);
+	for (int i = 0; i < res; ++i)
+		cheax_unref(c, *va_arg(ap, struct chx_value **));
+	va_end(ap);
+
+	cheax_ft(c, pad);
 
 	return true;
 
 pad:
 	return false;
 }
-static bool unpack_args_condeval(CHEAX *c,
-                                 const char *fname,
-                                 struct chx_list *args,
-                                 bool eval_args,
-                                 int num, ...)
-{
-	va_list ap;
-	va_start(ap, num);
-	bool res = vunpack_args_condeval(c, fname, args, eval_args, num, ap);
-	va_end(ap);
-
-	return res;
-}
-
-static bool vunpack_args(CHEAX *c, const char *fname, struct chx_list *args, int num, va_list ap)
-{
-	return vunpack_args_condeval(c, fname, args, true, num, ap);
-}
-static bool unpack_args(CHEAX *c, const char *fname, struct chx_list *args, int num, ...)
-{
-	va_list ap;
-	va_start(ap, num);
-	bool res = vunpack_args(c, fname, args, num, ap);
-	va_end(ap);
-
-	return res;
-}
 
 
 static struct chx_value *builtin_fopen(CHEAX *c, struct chx_list *args)
 {
 	struct chx_value *fname, *mode;
-	if (!unpack_args(c, "fopen", args, 2, &fname, &mode))
+	if (!unpack_args(c, "fopen", args, true, 2, &fname, &mode))
 		return NULL;
 
 	if (cheax_get_type(fname) != CHEAX_STRING || cheax_get_type(mode) != CHEAX_STRING) {
@@ -185,7 +185,7 @@ static struct chx_value *builtin_fopen(CHEAX *c, struct chx_list *args)
 static struct chx_value *builtin_fclose(CHEAX *c, struct chx_list *args)
 {
 	struct chx_value *handle;
-	if (!unpack_args(c, "fclose", args, 1, &handle))
+	if (!unpack_args(c, "fclose", args, true, 1, &handle))
 		return NULL;
 
 	if (cheax_get_type(handle) != c->fhandle_type) {
@@ -201,7 +201,7 @@ static struct chx_value *builtin_fclose(CHEAX *c, struct chx_list *args)
 static struct chx_value *builtin_read_from(CHEAX *c, struct chx_list *args)
 {
 	struct chx_value *handle;
-	if (!unpack_args(c, "read-from", args, 1, &handle))
+	if (!unpack_args(c, "read-from", args, true, 1, &handle))
 		return NULL;
 
 	if (cheax_get_type(handle) != c->fhandle_type) {
@@ -215,7 +215,7 @@ static struct chx_value *builtin_read_from(CHEAX *c, struct chx_list *args)
 static struct chx_value *builtin_print_to(CHEAX *c, struct chx_list *args)
 {
 	struct chx_value *handle, *value;
-	if (!unpack_args(c, "print-to", args, 2, &handle, &value))
+	if (!unpack_args(c, "print-to", args, true, 2, &handle, &value))
 		return NULL;
 
 	if (cheax_get_type(handle) != c->fhandle_type) {
@@ -232,7 +232,7 @@ static struct chx_value *builtin_print_to(CHEAX *c, struct chx_list *args)
 static struct chx_value *builtin_const(CHEAX *c, struct chx_list *args)
 {
 	struct chx_value *idval, *setto;
-	if (!unpack_args_condeval(c, "const", args, false, 2, &idval, &setto))
+	if (!unpack_args(c, "const", args, false, 2, &idval, &setto))
 		return NULL;
 
 	setto = cheax_eval(c, setto);
@@ -263,7 +263,7 @@ pad:
 
 static struct chx_value *builtin_error_code(CHEAX *c, struct chx_list *args)
 {
-	if (!unpack_args(c, "error-code", args, 0))
+	if (!unpack_args(c, "error-code", args, false, 0))
 		return NULL;
 
 	struct chx_value *res = &cheax_int(c, c->error.code)->base;
@@ -272,7 +272,7 @@ static struct chx_value *builtin_error_code(CHEAX *c, struct chx_list *args)
 }
 static struct chx_value *builtin_error_msg(CHEAX *c, struct chx_list *args)
 {
-	if (!unpack_args(c, "error-msg", args, 0))
+	if (!unpack_args(c, "error-msg", args, false, 0))
 		return NULL;
 
 	return &c->error.msg->base;
@@ -280,7 +280,7 @@ static struct chx_value *builtin_error_msg(CHEAX *c, struct chx_list *args)
 static struct chx_value *builtin_throw(CHEAX *c, struct chx_list *args)
 {
 	struct chx_value *code, *msg;
-	if (!unpack_args(c, "throw", args, 2, &code, &msg))
+	if (!unpack_args(c, "throw", args, true, 2, &code, &msg))
 		return NULL;
 
 	if (cheax_get_type(code) != CHEAX_ERRORCODE) {
@@ -299,7 +299,7 @@ static struct chx_value *builtin_throw(CHEAX *c, struct chx_list *args)
 static struct chx_value *builtin_new_error_code(CHEAX *c, struct chx_list *args)
 {
 	struct chx_value *errname_id;
-	if (!unpack_args_condeval(c, "new-error-code", args, false, 1, &errname_id))
+	if (!unpack_args(c, "new-error-code", args, false, 1, &errname_id))
 		return NULL;
 
 	if (cheax_get_type(errname_id) != CHEAX_ID) {
@@ -316,8 +316,8 @@ static struct chx_value *builtin_new_error_code(CHEAX *c, struct chx_list *args)
 static struct chx_value *builtin_var(CHEAX *c, struct chx_list *args)
 {
 	struct chx_value *idval, *setto = NULL;
-	if (!((args && args->next && unpack_args_condeval(c, "var", args, false, 2, &idval, &setto))
-	 || unpack_args_condeval(c, "var", args, false, 1, &idval)))
+	if (!((args && args->next && unpack_args(c, "var", args, false, 2, &idval, &setto))
+	 || unpack_args(c, "var", args, false, 1, &idval)))
 	{
 		return NULL;
 	}
@@ -337,7 +337,7 @@ pad:
 static struct chx_value *builtin_set(CHEAX *c, struct chx_list *args)
 {
 	struct chx_value *idval, *setto;
-	if (!unpack_args_condeval(c, "set", args, false, 2, &idval, &setto))
+	if (!unpack_args(c, "set", args, false, 2, &idval, &setto))
 		return NULL;
 
 	if (cheax_get_type(idval) != CHEAX_ID) {
@@ -357,7 +357,7 @@ pad:
 static struct chx_value *builtin_prepend(CHEAX *c, struct chx_list *args)
 {
 	struct chx_value *head, *tail;
-	if (!unpack_args(c, ":", args, 2, &head, &tail))
+	if (!unpack_args(c, ":", args, true, 2, &head, &tail))
 		return NULL;
 
 	int tailty = cheax_get_type(tail);
@@ -371,7 +371,7 @@ static struct chx_value *builtin_prepend(CHEAX *c, struct chx_list *args)
 
 static struct chx_value *builtin_gc(CHEAX *c, struct chx_list *args)
 {
-	if (unpack_args(c, "gc", args, 0))
+	if (unpack_args(c, "gc", args, false, 0))
 		cheax_force_gc(c);
 
 	return NULL;
@@ -380,7 +380,7 @@ static struct chx_value *builtin_gc(CHEAX *c, struct chx_list *args)
 static struct chx_value *builtin_get_type(CHEAX *c, struct chx_list *args)
 {
 	struct chx_value *val;
-	if (!unpack_args(c, "get-type", args, 1, &val))
+	if (!unpack_args(c, "get-type", args, true, 1, &val))
 		return NULL;
 
 	struct chx_int *res = cheax_int(c, cheax_get_type(val));
@@ -390,7 +390,7 @@ static struct chx_value *builtin_get_type(CHEAX *c, struct chx_list *args)
 
 static struct chx_value *builtin_get_max_stack_depth(CHEAX *c, struct chx_list *args)
 {
-	if (!unpack_args(c, "get-max-stack-depth", args, 0))
+	if (!unpack_args(c, "get-max-stack-depth", args, false, 0))
 		return NULL;
 
 	return &cheax_int(c, c->max_stack_depth)->base;
@@ -399,7 +399,7 @@ static struct chx_value *builtin_get_max_stack_depth(CHEAX *c, struct chx_list *
 static struct chx_value *builtin_set_max_stack_depth(CHEAX *c, struct chx_list *args)
 {
 	struct chx_value *value;
-	if (!unpack_args(c, "set-max-stack-depth", args, 1, &value))
+	if (!unpack_args(c, "set-max-stack-depth", args, true, 1, &value))
 		return NULL;
 
 	if (cheax_get_type(value) != CHEAX_INT) {
@@ -457,7 +457,7 @@ static struct chx_value *builtin_macro_lambda(CHEAX *c, struct chx_list *args)
 static struct chx_value *builtin_eval(CHEAX *c, struct chx_list *args)
 {
 	struct chx_value *arg;
-	if (!unpack_args(c, "eval", args, 1, &arg))
+	if (!unpack_args(c, "eval", args, true, 1, &arg))
 		return NULL;
 
 	return cheax_eval(c, arg);
@@ -480,6 +480,7 @@ static struct chx_value *builtin_case(CHEAX *c, struct chx_list *args)
 			cry(c, "case", CHEAX_EMATCH, "Pattern-value pair expected");
 			return NULL;
 		}
+
 		struct chx_list *cons_pair = (struct chx_list *)pair;
 		struct chx_value *pan = cons_pair->value;
 		struct variable *top_before = c->locals_top;
@@ -489,12 +490,17 @@ static struct chx_value *builtin_case(CHEAX *c, struct chx_list *args)
 		}
 
 		/* pattern matches! */
+		cheax_ref(c, what);
+
 		struct chx_value *retval = NULL;
 		for (struct chx_list *val = cons_pair->next; val; val = val->next) {
 			retval = cheax_eval(c, val->value);
-			cheax_ft(c, pad);
+			cheax_ft(c, pad2);
 		}
 		c->locals_top = top_before;
+
+pad2:
+		cheax_unref(c, what);
 		return retval;
 	}
 
@@ -518,7 +524,7 @@ static struct chx_value *do_aop(CHEAX *c,
                                 double (*fop)(CHEAX *, double, double))
 {
 	struct chx_value *l, *r;
-	if (!unpack_args(c, name, args, 2, &l, &r))
+	if (!unpack_args(c, name, args, true, 2, &l, &r))
 		return NULL;
 
 	if (!is_numeric_type(l) || !is_numeric_type(r)) {
@@ -640,7 +646,7 @@ static struct chx_value *builtin_mod(CHEAX *c, struct chx_list *args)
 static struct chx_value *builtin_eq(CHEAX *c, struct chx_list *args)
 {
 	struct chx_value *l, *r;
-	if (!unpack_args(c, "=", args, 2, &l, &r))
+	if (!unpack_args(c, "=", args, true, 2, &l, &r))
 		return NULL;
 
 	return cheax_equals(c, l, r) ? &yes.base : &no.base;
@@ -648,7 +654,7 @@ static struct chx_value *builtin_eq(CHEAX *c, struct chx_list *args)
 static struct chx_value *builtin_lt(CHEAX *c, struct chx_list *args)
 {
 	struct chx_value *l, *r;
-	if (!unpack_args(c, "<", args, 2, &l, &r))
+	if (!unpack_args(c, "<", args, true, 2, &l, &r))
 		return NULL;
 
 	if (!is_numeric_type(l) || !is_numeric_type(r)) {
