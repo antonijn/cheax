@@ -264,6 +264,9 @@ struct chx_user_ptr {
  */
 struct chx_user_ptr *cheax_user_ptr(CHEAX *c, void *value, int type);
 
+void cheax_ref(CHEAX *c, void *value);
+void cheax_unref(CHEAX *c, void *value);
+
 /*! \brief Gets the type code of the given expression.
  *
  * Preferably always use this function instead of examining
@@ -500,6 +503,8 @@ enum chx_builtins {
 	CHEAX_FILE_IO             = 0x0001,
 	/*! \brief To load \c set-max-stack-depth. */
 	CHEAX_SET_MAX_STACK_DEPTH = 0x0002,
+	/*! \brief To load \c gc. */
+	CHEAX_GC_BUILTIN          = 0x0004,
 
 	/*! \brief Loads all extra built-ins */
 	CHEAX_ALL_BUILTINS        = 0xFFFF,

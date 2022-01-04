@@ -31,7 +31,7 @@ struct variable *find_sym(CHEAX *c, const char *name)
 
 struct variable *def_sym(CHEAX *c, const char *name, enum chx_varflags flags)
 {
-	struct variable *new = cheax_alloc(c, sizeof(struct variable));
+	struct variable *new = cheax_alloc_var(c);
 	new->flags = flags;
 	new->ctype = CTYPE_NONE;
 	new->value.norm = NULL;
@@ -209,6 +209,7 @@ struct chx_id *cheax_id(CHEAX *c, char *id)
 	if (id == NULL)
 		return NULL;
 
+	/* NOTE: the GC depends on chx_id having this memory layout */
 	struct chx_id *res = cheax_alloc(c, sizeof(struct chx_id) + strlen(id) + 1);
 	char *buf = ((char *)res) + sizeof(struct chx_id);
 	strcpy(buf, id);
@@ -374,6 +375,9 @@ bool cheax_match(CHEAX *c, struct chx_value *pan, struct chx_value *match)
 	if (pan == NULL)
 		return match == NULL;
 	if (cheax_get_type(pan) == CHEAX_ID) {
+		/* don't worry that "pan" will be wrongfully flagged as
+		 * garbage, the GC detects that this string is from a
+		 * chx_id. */
 		cheax_var(c, ((struct chx_id *)pan)->id, match, 0);
 		return true;
 	}
@@ -501,6 +505,8 @@ CHEAX *cheax_init(void)
 
 	res->user_error_names.array = NULL;
 	res->user_error_names.len = res->user_error_names.cap = 0;
+
+	cheax_gc_init(res);
 
 	/* This is a bit hacky; we declare the these types as aliases
 	 * in the typestore, while at the same time we have the

@@ -18,6 +18,8 @@
 
 #include <cheax.h>
 
+#include "rbtree.h"
+
 enum {
 	CTYPE_NONE, /* only for non-synchronized variables */
 	CTYPE_INT,
@@ -77,6 +79,11 @@ struct cheax {
 		struct type_alias *array;
 		size_t len, cap;
 	} typestore;
+
+	struct {
+		struct rb_tree all_objects;
+		size_t all_mem, prev_run;
+	} gc;
 };
 
 bool try_convert_to_int(struct chx_value *value, int *res);

@@ -40,6 +40,7 @@ DECL_BUILTIN(var);
 DECL_BUILTIN(const);
 DECL_BUILTIN(set);
 DECL_BUILTIN(prepend);
+DECL_BUILTIN(gc);
 DECL_BUILTIN(get_type);
 DECL_BUILTIN(get_max_stack_depth);
 DECL_BUILTIN(set_max_stack_depth);
@@ -97,6 +98,9 @@ void cheax_load_extra_builtins(CHEAX *c, enum chx_builtins builtins)
 
 	if (builtins & CHEAX_SET_MAX_STACK_DEPTH)
 		cheax_defmacro(c, "set-max-stack-depth", builtin_set_max_stack_depth);
+
+	if (builtins & CHEAX_GC_BUILTIN)
+		cheax_defmacro(c, "gc", builtin_gc);
 }
 
 static bool vunpack_args_condeval(CHEAX *c,
@@ -363,6 +367,14 @@ static struct chx_value *builtin_prepend(CHEAX *c, struct chx_list *args)
 	}
 
 	return &cheax_list(c, head, (struct chx_list *)tail)->base;
+}
+
+static struct chx_value *builtin_gc(CHEAX *c, struct chx_list *args)
+{
+	if (unpack_args(c, "gc", args, 0))
+		cheax_force_gc(c);
+
+	return NULL;
 }
 
 static struct chx_value *builtin_get_type(CHEAX *c, struct chx_list *args)

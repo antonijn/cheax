@@ -46,26 +46,40 @@ static struct chx_value *cheax_eval_sexpr(CHEAX *c, struct chx_list *input);
 
 struct chx_value *cheax_eval(CHEAX *c, struct chx_value *input)
 {
+	struct chx_value *res = NULL;
+	cheax_ref(c, input);
+
 	switch (cheax_get_type(input)) {
 	case CHEAX_ID:
-		return cheax_get(c, ((struct chx_id *)input)->id);
+		res = cheax_get(c, ((struct chx_id *)input)->id);
+		goto success;
 	case CHEAX_LIST:
 		if (c->stack_depth >= c->max_stack_depth) {
 			cry(c, "eval", CHEAX_ESTACK, "Stack overflow! (maximum stack depth = %d)", c->max_stack_depth);
-			return NULL;
+			res = NULL;
+			goto success;
 		}
 
 		int prev_stack_depth = c->stack_depth++;
-		struct chx_value *res = cheax_eval_sexpr(c, (struct chx_list *)input);
+		res = cheax_eval_sexpr(c, (struct chx_list *)input);
 		c->stack_depth = prev_stack_depth;
 
-		return res;
+		goto success;
 	case CHEAX_QUOTE:
-		return ((struct chx_quote *)input)->value;
+		res = ((struct chx_quote *)input)->value;
+		goto success;
 
 	default:
-		return input;
+		res = input;
+		goto success;
 	}
+
+success:
+	cheax_ref(c, res);
+	cheax_gc(c);
+	cheax_unref(c, res);
+	cheax_unref(c, input);
+	return res;
 }
 
 static struct chx_value *expand_macro(CHEAX *c,
@@ -166,17 +180,27 @@ static struct chx_value *cheax_eval_sexpr(CHEAX *c, struct chx_list *input)
 		for (struct chx_list *arg = input->next; arg; arg = arg->next) {
 			struct chx_value *arge = cheax_eval(c, arg->value);
 			cheax_ft(c, pad);
+
+			/* won't set if args is NULL, so this ensures
+			 * the GC won't delete our argument list */
+			cheax_unref(c, args);
+
 			*args_last = cheax_list(c, arge, NULL);
 			args_last = &(*args_last)->next;
+
+			cheax_ref(c, args);
 		}
 
 		/* create new context for function to run in */
 		struct variable *prev_locals_top = c->locals_top;
+		cheax_ref(c, prev_locals_top);
 		c->locals_top = lda->locals_top;
 
 		struct chx_value *retval = call_func(c, lda, args);
 		/* restore previous context */
 		c->locals_top = prev_locals_top;
+		cheax_unref(c, prev_locals_top);
+		cheax_unref(c, args);
 		return retval;
 	case CHEAX_TYPECODE:
 		; int type = ((struct chx_int *)func)->value;
