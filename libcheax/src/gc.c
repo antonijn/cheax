@@ -35,18 +35,14 @@ static struct gc_header *get_header(void *obj)
 
 void cheax_ref(CHEAX *c, void *value)
 {
-	if (value != NULL) {
-		struct gc_header *header = get_header(value);
-		++header->ext_refs;
-	}
+	if (value != NULL)
+		++get_header(value)->ext_refs;
 }
 
 void cheax_unref(CHEAX *c, void *value)
 {
-	if (value != NULL) {
-		struct gc_header *header = get_header(value);
-		--header->ext_refs;
-	}
+	if (value != NULL)
+		--get_header(value)->ext_refs;
 }
 
 static int obj_cmp(struct rb_tree *tree, struct rb_node *a, struct rb_node *b)
@@ -66,7 +62,7 @@ void cheax_gc_init(CHEAX *c)
 	c->gc.all_mem = c->gc.prev_run = 0;
 }
 
-void *cheax_simple_alloc(CHEAX *c, size_t size)
+static void *cheax_simple_alloc(CHEAX *c, size_t size)
 {
 	size_t total_size = size + sizeof(struct gc_header) - sizeof(int);
 	struct gc_header *obj = malloc(total_size);
@@ -129,8 +125,7 @@ static void mark(CHEAX *c,
 	/* done */
 	rb_tree_remove(gray, obj);
 
-	struct gc_header *header = get_header(obj);
-	if (header->is_var) {
+	if (get_header(obj)->is_var) {
 		struct variable *var = obj;
 		if (var->below != NULL)
 			to_gray(var->below, white, gray);
@@ -190,6 +185,12 @@ static void mark(CHEAX *c,
 	}
 }
 
+static void white_node_dealloc(struct rb_tree *white, struct rb_node *node)
+{
+	cheax_free(white->info, node->value);
+	rb_node_dealloc(node);
+}
+
 void cheax_gc(CHEAX *c)
 {
 	size_t mem = c->gc.all_mem;
@@ -200,9 +201,9 @@ void cheax_gc(CHEAX *c)
 
 void cheax_force_gc(CHEAX *c)
 {
-	struct rb_tree white, gray;
-	rb_tree_init(&white, obj_cmp);
-	rb_tree_init(&gray, obj_cmp);
+	struct rb_tree *white, *gray;
+	white = rb_tree_create(obj_cmp);
+	gray  = rb_tree_create(obj_cmp);
 
 	struct rb_iter it;
 	rb_iter_init(&it);
@@ -210,25 +211,25 @@ void cheax_force_gc(CHEAX *c)
 	     obj != NULL;
 	     obj = rb_iter_next(&it))
 	{
-		struct gc_header *header = get_header(obj);
-		if (header->ext_refs > 0)
-			rb_tree_insert(&gray, obj);
+		if (get_header(obj)->ext_refs > 0)
+			rb_tree_insert(gray, obj);
 		else
-			rb_tree_insert(&white, obj);
+			rb_tree_insert(white, obj);
 	}
 
 	/* our root */
 	if (c->locals_top != NULL)
-		to_gray(c->locals_top, &white, &gray);
+		to_gray(c->locals_top, white, gray);
 
-	while (gray.root != NULL)
-		mark(c, &white, &gray);
+	/* mark */
+	while (gray->root != NULL)
+		mark(c, white, gray);
 
-	struct rb_node *in_white;
-	while ((in_white = white.root) != NULL) {
-		cheax_free(c, in_white->value);
-		rb_tree_remove(&white, in_white->value);
-	}
+	rb_tree_dealloc(gray, rb_tree_node_dealloc_cb);
+
+	/* sweep */
+	white->info = c;
+	rb_tree_dealloc(white, white_node_dealloc);
 
 	c->gc.prev_run = c->gc.all_mem;
 }
