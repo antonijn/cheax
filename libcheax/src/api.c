@@ -534,6 +534,10 @@ void cheax_destroy(CHEAX *c)
 
 	free(c->user_error_names.array);
 
+	struct rb_node *obj_node;
+	while ((obj_node = c->gc.all_objects.root) != NULL)
+		cheax_free(c, obj_node->value);
+
 	free(c);
 }
 
