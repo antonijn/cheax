@@ -619,13 +619,15 @@ iop_mul(CHEAX *c, int    a, int    b)
 		return 0;
 	}
 
-	if (a > INT_MAX / b) {
-		cry(c, "*", CHEAX_EOVERFLOW, "Integer overflow");
-		return 0;
-	}
-	if (a < INT_MIN / b) {
-		cry(c, "+", CHEAX_EOVERFLOW, "Integer underflow");
-		return 0;
+	if (b != 0) {
+		if (a > INT_MAX / b) {
+			cry(c, "*", CHEAX_EOVERFLOW, "Integer overflow");
+			return 0;
+		}
+		if (a < INT_MIN / b) {
+			cry(c, "+", CHEAX_EOVERFLOW, "Integer underflow");
+			return 0;
+		}
 	}
 
 	return a * b;
