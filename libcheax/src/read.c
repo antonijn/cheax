@@ -45,7 +45,8 @@ struct sstream {
 	const char *str;
 	int idx;
 };
-static int get_sgetc(void *s)
+static int
+get_sgetc(void *s)
 {
 	struct sstream *ss = s;
 	char ch = ss->str[ss->idx];
@@ -55,7 +56,8 @@ static int get_sgetc(void *s)
 	++ss->idx;
 	return ch;
 }
-static void lxinits(struct lexer *lx, CHEAX *c, struct tok *tk, struct sstream *s)
+static void
+lxinits(struct lexer *lx, CHEAX *c, struct tok *tk, struct sstream *s)
 {
 	lx->c = c;
 	lx->info = s;
@@ -64,11 +66,13 @@ static void lxinits(struct lexer *lx, CHEAX *c, struct tok *tk, struct sstream *
 	lxadv(lx, tk);
 }
 
-static int get_fgetc(void *f)
+static int
+get_fgetc(void *f)
 {
 	return fgetc(f);
 }
-static inline void lxinitf(struct lexer *lx, CHEAX *c, struct tok *tk, FILE *f)
+static inline void
+lxinitf(struct lexer *lx, CHEAX *c, struct tok *tk, FILE *f)
 {
 	lx->c = c;
 	lx->info = f;
@@ -77,19 +81,22 @@ static inline void lxinitf(struct lexer *lx, CHEAX *c, struct tok *tk, FILE *f)
 	lxadv(lx, tk);
 }
 
-static int lxadvch(struct lexer *lx)
+static int
+lxadvch(struct lexer *lx)
 {
 	int res = lx->cur;
 	lx->cur = lx->get(lx->info);
 	return res;
 }
 
-static int isid(int ch)
+static int
+isid(int ch)
 {
 	return ch != '(' && ch != ')' && !isspace(ch) && isprint(ch);
 }
 
-static void trim_space(struct lexer *lx)
+static void
+trim_space(struct lexer *lx)
 {
 	while (isspace(lx->cur))
 		lxadvch(lx);
@@ -103,7 +110,8 @@ static void trim_space(struct lexer *lx)
 }
 
 /* Returns false if string needs to terminate */
-static bool get_string_char(struct lexer *lx, char **dest)
+static bool
+get_string_char(struct lexer *lx, char **dest)
 {
 	int ch = lx->cur;
 	*(*dest)++ = ch;
@@ -125,7 +133,8 @@ static bool get_string_char(struct lexer *lx, char **dest)
 	return true;
 }
 
-static void get_string(struct lexer *lx, struct tok *tk)
+static void
+get_string(struct lexer *lx, struct tok *tk)
 {
 	char *dest = tk->lexeme;
 	*dest++ = lx->cur; /* copy '"' */
@@ -136,7 +145,8 @@ static void get_string(struct lexer *lx, struct tok *tk)
 	tk->kind = TK_STRING;
 }
 
-static void get_num(struct lexer *lx, struct tok *tk)
+static void
+get_num(struct lexer *lx, struct tok *tk)
 {
 	char *dest = tk->lexeme;
 	while (strchr("0123456789abcdefABCDEFxX.", lx->cur))
@@ -145,7 +155,8 @@ static void get_num(struct lexer *lx, struct tok *tk)
 	tk->kind = strchr(tk->lexeme, '.') ? TK_DOUBLE : TK_INT;
 }
 
-static void get_id(struct lexer *lx, struct tok *tk)
+static void
+get_id(struct lexer *lx, struct tok *tk)
 {
 	char *dest = tk->lexeme;
 	while (isid(lx->cur))
@@ -154,7 +165,8 @@ static void get_id(struct lexer *lx, struct tok *tk)
 	tk->kind = TK_ID;
 }
 
-void lxadv(struct lexer *lx, struct tok *tk)
+void
+lxadv(struct lexer *lx, struct tok *tk)
 {
 	trim_space(lx);
 
@@ -182,19 +194,23 @@ void lxadv(struct lexer *lx, struct tok *tk)
 	}
 }
 
-struct chx_value *read_int(struct lexer *lx, struct tok *tk)
+struct chx_value *
+read_int(struct lexer *lx, struct tok *tk)
 {
 	return &cheax_int(lx->c, strtol(tk->lexeme, NULL, 0))->base;
 }
-struct chx_value *read_double(struct lexer *lx, struct tok *tk)
+struct chx_value *
+read_double(struct lexer *lx, struct tok *tk)
 {
 	return &cheax_double(lx->c, strtod(tk->lexeme, NULL))->base;
 }
-struct chx_value *read_id(struct lexer *lx, struct tok *tk)
+struct chx_value *
+read_id(struct lexer *lx, struct tok *tk)
 {
 	return &cheax_id(lx->c, tk->lexeme)->base;
 }
-struct chx_value *read_string(struct lexer *lx, struct tok *tk)
+struct chx_value *
+read_string(struct lexer *lx, struct tok *tk)
 {
 	/* Enough to hold all characters */
 	size_t crude_len = strlen(tk->lexeme);
@@ -230,7 +246,8 @@ struct chx_value *read_string(struct lexer *lx, struct tok *tk)
 	return &res->base;
 }
 
-struct chx_value *read_cons(struct lexer *lx, struct tok *tk)
+struct chx_value *
+read_cons(struct lexer *lx, struct tok *tk)
 {
 	struct chx_list *res = NULL;
 	struct chx_list **last = &res;
@@ -247,7 +264,8 @@ struct chx_value *read_cons(struct lexer *lx, struct tok *tk)
 	return &res->base;
 }
 
-static struct chx_value *ast_read(struct lexer *lx, struct tok *tk)
+static struct chx_value *
+ast_read(struct lexer *lx, struct tok *tk)
 {
 	switch (tk->kind) {
 	case TK_ID:
@@ -271,14 +289,16 @@ static struct chx_value *ast_read(struct lexer *lx, struct tok *tk)
 	}
 }
 
-struct chx_value *cheax_read(CHEAX *c, FILE *infile)
+struct chx_value *
+cheax_read(CHEAX *c, FILE *infile)
 {
 	struct lexer lx;
 	struct tok tk;
 	lxinitf(&lx, c, &tk, infile);
 	return ast_read(&lx, &tk);
 }
-struct chx_value *cheax_readstr(CHEAX *c, const char *str)
+struct chx_value *
+cheax_readstr(CHEAX *c, const char *str)
 {
 	struct sstream ss = { .str = str, .idx = 0 };
 	struct lexer lx;

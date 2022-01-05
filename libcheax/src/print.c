@@ -18,7 +18,8 @@
 
 #include "api.h"
 
-static void cheax_print_basic_type(CHEAX *c, FILE *f, struct chx_value *val)
+static void
+cheax_print_basic_type(CHEAX *c, FILE *f, struct chx_value *val)
 {
 	switch (cheax_resolve_type(c, cheax_get_type(val))) {
 	case CHEAX_NIL:
@@ -87,7 +88,8 @@ static void cheax_print_basic_type(CHEAX *c, FILE *f, struct chx_value *val)
 	}
 }
 
-void cheax_print(CHEAX *c, FILE *f, struct chx_value *val)
+void
+cheax_print(CHEAX *c, FILE *f, struct chx_value *val)
 {
 	int ty = cheax_get_type(val);
 	if (cheax_is_basic_type(c, ty)) {

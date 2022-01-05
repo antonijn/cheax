@@ -30,7 +30,8 @@
 #include <unistd.h>
 #endif
 
-static void show_file(const char *path)
+static void
+show_file(const char *path)
 {
 	FILE *f = fopen(path, "rb");
 	if (!f) {
@@ -46,12 +47,14 @@ static void show_file(const char *path)
 	fflush(stdout);
 	fclose(f);
 }
-static struct chx_value *show_w(CHEAX *c, struct chx_list *args)
+static struct chx_value *
+show_w(CHEAX *c, struct chx_list *args)
 {
 	show_file(CMAKE_INSTALL_PREFIX "/share/licenses/cheaky/WARRANTY");
 	return NULL;
 }
-static struct chx_value *show_c(CHEAX *c, struct chx_list *args)
+static struct chx_value *
+show_c(CHEAX *c, struct chx_list *args)
 {
 	show_file(CMAKE_INSTALL_PREFIX "/share/licenses/cheaky/CONDITIONS");
 	return NULL;
@@ -59,7 +62,8 @@ static struct chx_value *show_c(CHEAX *c, struct chx_list *args)
 
 static bool quit = false;
 
-static struct chx_value *read_with_readline(CHEAX *c)
+static struct chx_value *
+read_with_readline(CHEAX *c)
 {
 	char *prompt = "> ";
 	char *fullstr = NULL;
@@ -97,13 +101,15 @@ stop:
 	return res;
 }
 
-static struct chx_value *quit_fun(CHEAX *c, struct chx_list *args)
+static struct chx_value *
+quit_fun(CHEAX *c, struct chx_list *args)
 {
 	quit = true;
 	return NULL;
 }
 
-int main(void)
+int
+main(void)
 {
 	CHEAX *c = cheax_init();
 
