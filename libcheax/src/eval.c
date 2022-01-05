@@ -20,7 +20,8 @@
 
 #include "api.h"
 
-void cheax_exec(CHEAX *c, FILE *f)
+void
+cheax_exec(CHEAX *c, FILE *f)
 {
 	char shebang[2] = { 0 };
 	fread(shebang, 2, 1, f);
@@ -44,7 +45,8 @@ pad:
 
 static struct chx_value *cheax_eval_sexpr(CHEAX *c, struct chx_list *input);
 
-struct chx_value *cheax_eval(CHEAX *c, struct chx_value *input)
+struct chx_value *
+cheax_eval(CHEAX *c, struct chx_value *input)
 {
 	switch (cheax_get_type(input)) {
 	case CHEAX_ID:
@@ -68,10 +70,11 @@ struct chx_value *cheax_eval(CHEAX *c, struct chx_value *input)
 	}
 }
 
-static struct chx_value *expand_macro(CHEAX *c,
-                                      struct variable *args_top,
-                                      struct variable *locals_top,
-                                      struct chx_value *val)
+static struct chx_value *
+expand_macro(CHEAX *c,
+             struct variable *args_top,
+             struct variable *locals_top,
+             struct chx_value *val)
 {
 	struct chx_id *as_id = (struct chx_id *)val;
 	struct chx_list *as_cons = (struct chx_list *)val;
@@ -100,7 +103,8 @@ static struct chx_value *expand_macro(CHEAX *c,
 		return val;
 	}
 }
-static struct chx_value *call_macro(CHEAX *c, struct chx_func *lda, struct chx_list *args)
+static struct chx_value *
+call_macro(CHEAX *c, struct chx_func *lda, struct chx_list *args)
 {
 	struct variable *prev_top = c->locals_top;
 	if (!cheax_match(c, lda->args, &args->base)) {
@@ -121,7 +125,8 @@ static struct chx_value *call_macro(CHEAX *c, struct chx_func *lda, struct chx_l
 pad:
 	return NULL;
 }
-static struct chx_value *call_func(CHEAX *c, struct chx_func *lda, struct chx_list *args)
+static struct chx_value *
+call_func(CHEAX *c, struct chx_func *lda, struct chx_list *args)
 {
 	if (!cheax_match(c, lda->args, &args->base)) {
 		cry(c, "eval", CHEAX_EMATCH, "Invalid (number of) arguments");
@@ -139,7 +144,8 @@ pad:
 	return NULL;
 }
 
-static struct chx_value *cheax_eval_sexpr(CHEAX *c, struct chx_list *input)
+static struct chx_value *
+cheax_eval_sexpr(CHEAX *c, struct chx_list *input)
 {
 	struct chx_value *func = cheax_eval(c, input->value);
 	cheax_ft(c, pad);

@@ -25,7 +25,8 @@ int num_input_files = 0;
 const char *input_files[MAX_INPUT_FILES];
 bool read_stdin = false, use_prelude = true;
 
-static void print_usage(void)
+static void
+print_usage(void)
 {
 	static const char usage[] =
 		"Usage: cheax [OPTION]... [FILE]...\n"
@@ -37,7 +38,8 @@ static void print_usage(void)
 	puts(usage);
 }
 
-static int handle_string_option(const char *arg)
+static int
+handle_string_option(const char *arg)
 {
 	if (!strcmp(arg, "--help")) {
 		print_usage();
@@ -47,11 +49,12 @@ static int handle_string_option(const char *arg)
 	fprintf(stderr, "unknown option '%s'\n", arg);
 	return -1;
 }
-static int handle_option(char opt)
+static int
+handle_option(char opt)
 {
 	switch (opt) {
 	case 'p':
-		use_prelude = true;
+		use_prelude = false;
 		break;
 	default:
 		fprintf(stderr, "unknown option '%c'\n", opt);
@@ -59,7 +62,8 @@ static int handle_option(char opt)
 	}
 	return 0;
 }
-static int handle_arg(const char *arg)
+static int
+handle_arg(const char *arg)
 {
 	if (arg[0] != '-') {
 		if (num_input_files >= MAX_INPUT_FILES) {
@@ -83,7 +87,8 @@ static int handle_arg(const char *arg)
 
 	return 0;
 }
-static int handle_args(int argc, char **argv)
+static int
+handle_args(int argc, char **argv)
 {
 	for (int i = 1; i < argc; ++i)
 		if (handle_arg(argv[i]))
@@ -92,7 +97,8 @@ static int handle_args(int argc, char **argv)
 	return 0;
 }
 
-int main(int argc, char **argv)
+int
+main(int argc, char **argv)
 {		
 	if (handle_args(argc, argv)) {
 		print_usage();
