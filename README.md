@@ -18,12 +18,13 @@ Language example
 
 ```
 > (print "Hello, world!")
-Hello, world!
+"Hello, world!"
+()
 
 > (print '(1 2 3))          ; ' allows you to create symbols without evaluation
 (1 2 3)
 
-> (print (: 4 ('5 6)))      ; (:) is the list-append operator
+> (print (: 4 '(5 6)))      ; (:) is the list-append operator
 (4 5 6)
 
 > (defun sum (lst)
@@ -59,7 +60,7 @@ int main(void)
 		return EXIT_FAILURE;
 	}
 
-	cheax_sync(c, "result", CHEAX_INT, &result);
+	cheax_sync_int(c, "result", &result, 0);
 
 	cheax_eval(c, cheax_readstr(c, "(set result (sum (.. 1 100)))"));
 
