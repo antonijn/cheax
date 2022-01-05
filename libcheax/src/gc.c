@@ -27,25 +27,29 @@ struct gc_header {
 	int obj_start;  /* Only for locating the start of the user object */
 };
 
-static struct gc_header *get_header(void *obj)
+static struct gc_header *
+get_header(void *obj)
 {
 	char *m = obj;
 	return (struct gc_header *)(m - offsetof(struct gc_header, obj_start));
 }
 
-void cheax_ref(CHEAX *c, void *value)
+void
+cheax_ref(CHEAX *c, void *value)
 {
 	if (value != NULL)
 		++get_header(value)->ext_refs;
 }
 
-void cheax_unref(CHEAX *c, void *value)
+void
+cheax_unref(CHEAX *c, void *value)
 {
 	if (value != NULL)
 		--get_header(value)->ext_refs;
 }
 
-static int obj_cmp(struct rb_tree *tree, struct rb_node *a, struct rb_node *b)
+static int
+obj_cmp(struct rb_tree *tree, struct rb_node *a, struct rb_node *b)
 {
 	ptrdiff_t d = a->value - b->value;
 	if (d < 0)
@@ -56,13 +60,15 @@ static int obj_cmp(struct rb_tree *tree, struct rb_node *a, struct rb_node *b)
 	return 0;
 }
 
-void cheax_gc_init(CHEAX *c)
+void
+cheax_gc_init(CHEAX *c)
 {
 	rb_tree_init(&c->gc.all_objects, obj_cmp);
 	c->gc.all_mem = c->gc.prev_run = 0;
 }
 
-static void *cheax_simple_alloc(CHEAX *c, size_t size)
+static void *
+cheax_simple_alloc(CHEAX *c, size_t size)
 {
 	size_t total_size = size + sizeof(struct gc_header) - sizeof(int);
 	struct gc_header *obj = malloc(total_size);
@@ -77,7 +83,8 @@ static void *cheax_simple_alloc(CHEAX *c, size_t size)
 	return res;
 }
 
-struct chx_value *cheax_alloc(CHEAX *c, size_t size)
+struct chx_value *
+cheax_alloc(CHEAX *c, size_t size)
 {
 	struct chx_value *res = cheax_simple_alloc(c, size);
 	if (res != NULL)
@@ -85,7 +92,8 @@ struct chx_value *cheax_alloc(CHEAX *c, size_t size)
 	return res;
 }
 
-struct variable *cheax_alloc_var(CHEAX *c)
+struct variable *
+cheax_alloc_var(CHEAX *c)
 {
 	struct variable *res = cheax_simple_alloc(c, sizeof(struct variable));
 	if (res != NULL)
@@ -93,7 +101,8 @@ struct variable *cheax_alloc_var(CHEAX *c)
 	return res;
 }
 
-void cheax_free(CHEAX *c, void *obj)
+void
+cheax_free(CHEAX *c, void *obj)
 {
 	struct gc_header *header = get_header(obj);
 	rb_tree_remove(&c->gc.all_objects, obj);
@@ -101,9 +110,10 @@ void cheax_free(CHEAX *c, void *obj)
 	free(header);
 }
 
-static void to_gray(void *obj,
-                    struct rb_tree *white,
-                    struct rb_tree *gray)
+static void
+to_gray(void *obj,
+        struct rb_tree *white,
+        struct rb_tree *gray)
 {
 	if (rb_tree_find(white, obj) != NULL) {
 		rb_tree_remove(white, obj);
@@ -111,9 +121,10 @@ static void to_gray(void *obj,
 	}
 }
 
-static void mark(CHEAX *c,
-                 struct rb_tree *white,
-                 struct rb_tree *gray)
+static void
+mark(CHEAX *c,
+     struct rb_tree *white,
+     struct rb_tree *gray)
 {
 	if (gray->root == NULL)
 		return;
@@ -185,13 +196,15 @@ static void mark(CHEAX *c,
 	}
 }
 
-static void white_node_dealloc(struct rb_tree *white, struct rb_node *node)
+static void
+white_node_dealloc(struct rb_tree *white, struct rb_node *node)
 {
 	cheax_free(white->info, node->value);
 	rb_node_dealloc(node);
 }
 
-void cheax_gc(CHEAX *c)
+void
+cheax_gc(CHEAX *c)
 {
 	size_t mem = c->gc.all_mem;
 	size_t prev = c->gc.prev_run;
@@ -199,7 +212,8 @@ void cheax_gc(CHEAX *c)
 		cheax_force_gc(c);
 }
 
-void cheax_force_gc(CHEAX *c)
+void
+cheax_force_gc(CHEAX *c)
 {
 	struct rb_tree *white, *gray;
 	white = rb_tree_create(obj_cmp);
