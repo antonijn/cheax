@@ -71,7 +71,7 @@ cheax_print_basic_type(CHEAX *c, FILE *f, struct chx_value *val)
 			else if (isprint(ch))
 				fputc(ch, f);
 			else
-				fprintf(f, "\\x%02x", (int)ch);
+				fprintf(f, "\\x%02x", (unsigned)ch & 0xFFu);
 		}
 		fputc('"', f);
 		break;
