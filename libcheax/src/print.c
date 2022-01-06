@@ -46,6 +46,7 @@ cheax_print_basic_type(CHEAX *c, FILE *f, struct chx_value *val)
 	case CHEAX_QUOTE:
 		fprintf(f, "'");
 		cheax_print(c, f, ((struct chx_quote *)val)->value);
+		break;
 	case CHEAX_FUNC:
 		fprintf(f, "(");
 		struct chx_func *func = (struct chx_func *)val;
