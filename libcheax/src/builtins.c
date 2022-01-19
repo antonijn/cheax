@@ -28,6 +28,7 @@ static struct chx_value *builtin_##cname(CHEAX *c, struct chx_list *args)
 
 static struct chx_int yes = { { CHEAX_INT }, 1 }, no = { { CHEAX_INT }, 0 };
 
+DECL_BUILTIN(cheax_version);
 DECL_BUILTIN(fopen);
 DECL_BUILTIN(fclose);
 DECL_BUILTIN(read_from);
@@ -62,6 +63,7 @@ export_builtins(CHEAX *c)
 {
 	c->fhandle_type = cheax_new_type(c, "FileHandle", CHEAX_USER_PTR);
 
+	cheax_defmacro(c, "cheax-version", builtin_cheax_version);
 	cheax_defmacro(c, "read-from", builtin_read_from);
 	cheax_defmacro(c, "print-to", builtin_print_to);
 	cheax_defmacro(c, "error-code", builtin_error_code);
@@ -171,6 +173,15 @@ pad:
 	return false;
 }
 
+
+static struct chx_value *
+builtin_cheax_version(CHEAX *c, struct chx_list *args)
+{
+	if (!unpack_args(c, "cheax-version", args, false, 0))
+		return NULL;
+
+	return &cheax_string(c, cheax_version())->base;
+}
 
 static struct chx_value *
 builtin_fopen(CHEAX *c, struct chx_list *args)
