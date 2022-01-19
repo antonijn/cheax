@@ -1,4 +1,4 @@
-cmake_minimum_required (VERSION 2.6)
+cmake_minimum_required (VERSION 3.10)
 add_executable(cheax cheax.c)
 target_link_libraries(cheax LINK_PUBLIC libcheax gc)
 install(TARGETS cheax DESTINATION bin)

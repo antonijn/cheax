@@ -20,6 +20,7 @@
 #include <stdlib.h>
 
 #include "api.h"
+#include "config.h"
 
 struct variable *
 find_sym(CHEAX *c, const char *name)
@@ -564,6 +565,12 @@ cheax_destroy(CHEAX *c)
 	free(c->user_error_names.array);
 
 	free(c);
+}
+const char *
+cheax_version(void)
+{
+	static const char ver[] = GIT_HASH SHARED_SUFFIX;
+	return ver;
 }
 
 

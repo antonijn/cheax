@@ -486,9 +486,15 @@ int cheax_new_error_code(CHEAX *c, const char *name);
 /*! @} */
 
 /*! \brief Initializes a new cheax virtual machine instance.
- * \sa cheax_load_extra_builtins(), cheax_load_prelude(), cheax_destroy()
+ * \sa cheax_load_extra_builtins(), cheax_load_prelude(), cheax_destroy(),
+ *     cheax_version()
  */
 CHEAX *cheax_init(void);
+
+/*! \brief Returns cheax library version as a string in the static
+ *         storage class.
+ */
+const char *cheax_version(void);
 
 /*! \brief Options to load extra built-in functions to the cheax
  *         environment.
