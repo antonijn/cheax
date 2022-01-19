@@ -11,6 +11,8 @@
 #cmakedefine USE_BOEHM_GC
 #ifdef USE_BOEHM_GC
 #define GC_SUFFIX " boehm"
+#else
+#define GC_SUFFIX ""
 #endif
 
 #define FEATURE_SUFFIX GC_SUFFIX SHARED_SUFFIX
