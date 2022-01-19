@@ -402,7 +402,11 @@ builtin_get_used_memory(CHEAX *c, struct chx_list *args)
 	if (!unpack_args(c, "get-used-memory", args, false, 0))
 		return NULL;
 
+#ifndef USE_BOEHM_GC
+	return &cheax_int(c, 0)->base;
+#else
 	return &cheax_int(c, c->gc.all_mem)->base;
+#endif
 }
 
 static struct chx_value *

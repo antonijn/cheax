@@ -16,8 +16,64 @@
 #include <stdlib.h>
 
 #include "api.h"
+#include "config.h"
 #include "gc.h"
 #include "rbtree.h"
+
+#ifdef USE_BOEHM_GC
+
+#include <gc/gc.h>
+
+void
+cheax_gc(CHEAX *c)
+{
+	/* empty */
+}
+
+void
+cheax_force_gc(CHEAX *c)
+{
+	/* empty */
+}
+
+void
+cheax_ref(CHEAX *c, void *obj)
+{
+	/* empty */
+}
+
+void
+cheax_unref(CHEAX *c, void *obj)
+{
+	/* empty */
+}
+
+void
+cheax_gc_init(CHEAX *c)
+{
+	/* empty */
+}
+
+void
+cheax_free(CHEAX *c, void *obj)
+{
+	GC_free(obj);
+}
+
+struct chx_value *
+cheax_alloc(CHEAX *c, size_t size)
+{
+	return GC_malloc(size);
+}
+
+struct variable *
+cheax_alloc_var(CHEAX *c)
+{
+	return GC_malloc(sizeof(struct variable));
+}
+
+
+#else
 
 struct gc_header {
 	size_t size;    /* Total malloc()-ed size */
@@ -247,3 +303,5 @@ cheax_force_gc(CHEAX *c)
 
 	c->gc.prev_run = c->gc.all_mem;
 }
+
+#endif

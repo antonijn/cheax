@@ -2,10 +2,17 @@
 #define CONFIG_H
 #include "version.h"
 #define CMAKE_INSTALL_PREFIX "@CMAKE_INSTALL_PREFIX@"
-#cmakedefine01 BUILD_SHARED_LIBS
-#if BUILD_SHARED_LIBS
+#cmakedefine BUILD_SHARED_LIBS
+#ifdef BUILD_SHARED_LIBS
 #define SHARED_SUFFIX " shared"
 #else
 #define SHARED_SUFFIX " static"
 #endif
+#cmakedefine USE_BOEHM_GC
+#ifdef USE_BOEHM_GC
+#define GC_SUFFIX " boehm"
+#endif
+
+#define FEATURE_SUFFIX GC_SUFFIX SHARED_SUFFIX
+#define VERSION_STRING GIT_HASH FEATURE_SUFFIX
 #endif

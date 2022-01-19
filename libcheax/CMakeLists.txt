@@ -12,6 +12,11 @@ configure_file (src/config.h.in src/config.h)
 
 add_library (libcheax src/api.c src/rbtree.c src/gc.c src/read.c src/eval.c src/print.c src/builtins.c)
 add_dependencies (libcheax generate_version_header)
+
+if (USE_BOEHM_GC)
+	target_link_libraries (libcheax gc)
+endif ()
+
 target_include_directories (libcheax PUBLIC include)
 set_target_properties (libcheax PROPERTIES OUTPUT_NAME "cheax")
 install (TARGETS libcheax DESTINATION lib)

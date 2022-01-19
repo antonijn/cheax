@@ -13,8 +13,9 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  */
 
-#ifndef GC_H
-#define GC_H
+/* not just GC_H, which conflicts with Boehm in case of USE_BOEHM_GC */
+#ifndef CHEAX_GC_H
+#define CHEAX_GC_H
 
 #define GC_RUN_THRESHOLD 16384
 

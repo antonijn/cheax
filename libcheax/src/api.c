@@ -579,7 +579,7 @@ cheax_destroy(CHEAX *c)
 const char *
 cheax_version(void)
 {
-	static const char ver[] = GIT_HASH SHARED_SUFFIX;
+	static const char ver[] = VERSION_STRING;
 	return ver;
 }
 
