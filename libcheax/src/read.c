@@ -15,6 +15,8 @@
 
 #include <cheax.h>
 #include <assert.h>
+#include <errno.h>
+#include <limits.h>
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
@@ -197,12 +199,32 @@ lxadv(struct lexer *lx, struct tok *tk)
 struct chx_value *
 read_int(struct lexer *lx, struct tok *tk)
 {
-	return &cheax_int(lx->c, strtol(tk->lexeme, NULL, 0))->base;
+	int prev_errno = errno;
+	long val = strtol(tk->lexeme, NULL, 0);
+	int new_errno = errno;
+	errno = prev_errno;
+
+	if (new_errno == ERANGE || val > INT_MAX || val < INT_MIN) {
+		cry(lx->c, "read", CHEAX_EREAD, "Invalid integer");
+		return NULL;
+	}
+
+	return &cheax_int(lx->c, val)->base;
 }
 struct chx_value *
 read_double(struct lexer *lx, struct tok *tk)
 {
-	return &cheax_double(lx->c, strtod(tk->lexeme, NULL))->base;
+	int prev_errno = errno;
+	double val = strtod(tk->lexeme, NULL);
+	int new_errno = errno;
+	errno = prev_errno;
+
+	if (new_errno == ERANGE) {
+		cry(lx->c, "read", CHEAX_EREAD, "Invalid floating point number");
+		return NULL;
+	}
+
+	return &cheax_double(lx->c, val)->base;
 }
 struct chx_value *
 read_id(struct lexer *lx, struct tok *tk)

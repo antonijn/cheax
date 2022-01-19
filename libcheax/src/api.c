@@ -19,6 +19,7 @@
 #include <stdlib.h>
 
 #include "api.h"
+#include "config.h"
 #include "gc.h"
 
 struct variable *
@@ -574,6 +575,12 @@ cheax_destroy(CHEAX *c)
 		cheax_free(c, obj_node->value);
 
 	free(c);
+}
+const char *
+cheax_version(void)
+{
+	static const char ver[] = GIT_HASH SHARED_SUFFIX;
+	return ver;
 }
 
 

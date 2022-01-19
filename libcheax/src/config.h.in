@@ -1,0 +1,11 @@
+#ifndef CONFIG_H
+#define CONFIG_H
+#include "version.h"
+#define CMAKE_INSTALL_PREFIX "@CMAKE_INSTALL_PREFIX@"
+#cmakedefine01 BUILD_SHARED_LIBS
+#if BUILD_SHARED_LIBS
+#define SHARED_SUFFIX " shared"
+#else
+#define SHARED_SUFFIX " static"
+#endif
+#endif
