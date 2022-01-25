@@ -14,6 +14,7 @@
  */
 
 #include <stdlib.h>
+#include <string.h>
 
 #include "api.h"
 #include "config.h"
@@ -163,6 +164,7 @@ cheax_free(CHEAX *c, void *obj)
 	struct gc_header *header = get_header(obj);
 	rb_tree_remove(&c->gc.all_objects, obj);
 	c->gc.all_mem -= header->size;
+	memset(header, 0, header->size);
 	free(header);
 }
 
@@ -290,6 +292,10 @@ cheax_force_gc(CHEAX *c)
 	/* our root */
 	if (c->locals_top != NULL)
 		to_gray(c->locals_top, white, gray);
+
+	/* protecc */
+	if (c->error.msg != NULL)
+		to_gray(c->error.msg, white, gray);
 
 	/* mark */
 	while (gray->root != NULL)

@@ -355,7 +355,7 @@ void
 cheax_throw(CHEAX *c, int code, struct chx_string *msg)
 {
 	if (code == 0) {
-		cry(c, "throw", CHEAX_EVALUE, "Cannot throw error code 0");
+		cry(c, "throw", CHEAX_EAPI, "Cannot throw error code 0");
 		return;
 	}
 

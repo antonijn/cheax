@@ -324,6 +324,11 @@ builtin_throw(CHEAX *c, struct chx_list *args)
 		return NULL;
 	}
 
+	if (((struct chx_int *)code)->value == 0) {
+		cry(c, "throw", CHEAX_EVALUE, "Cannot throw error code 0");
+		return NULL;
+	}
+
 	if (msg != NULL && cheax_get_type(msg) != CHEAX_STRING) {
 		cry(c, "throw", CHEAX_ETYPE, "Expected string message");
 		return NULL;
@@ -565,7 +570,7 @@ builtin_get_used_memory(CHEAX *c, struct chx_list *args)
 	if (!unpack_args(c, "get-used-memory", args, false, 0))
 		return NULL;
 
-#ifndef USE_BOEHM_GC
+#ifdef USE_BOEHM_GC
 	return &cheax_int(c, 0)->base;
 #else
 	return &cheax_int(c, c->gc.all_mem)->base;
