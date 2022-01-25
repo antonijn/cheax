@@ -36,6 +36,7 @@ DECL_BUILTIN(print_to);
 DECL_BUILTIN(error_code);
 DECL_BUILTIN(error_msg);
 DECL_BUILTIN(throw);
+DECL_BUILTIN(try);
 DECL_BUILTIN(new_error_code);
 DECL_BUILTIN(var);
 DECL_BUILTIN(const);
@@ -69,6 +70,7 @@ export_builtins(CHEAX *c)
 	cheax_defmacro(c, "error-code", builtin_error_code);
 	cheax_defmacro(c, "error-msg", builtin_error_msg);
 	cheax_defmacro(c, "throw", builtin_throw);
+	cheax_defmacro(c, "try", builtin_try);
 	cheax_defmacro(c, "new-error-code", builtin_new_error_code);
 	cheax_defmacro(c, "var", builtin_var);
 	cheax_defmacro(c, "const", builtin_const);
@@ -321,6 +323,148 @@ builtin_throw(CHEAX *c, struct chx_list *args)
 
 	cheax_throw(c, ((struct chx_int *)code)->value, (struct chx_string *)msg);
 	return NULL;
+}
+static struct chx_value *
+builtin_try(CHEAX *c, struct chx_list *args)
+{
+	if (args == NULL) {
+		cry(c, "try", CHEAX_EMATCH, "Expected at least two arguments");
+		return NULL;
+	}
+
+	struct chx_value *block = args->value;
+	struct chx_list *catch_blocks = args->next;
+	if (catch_blocks == NULL) {
+		cry(c, "try", CHEAX_EMATCH, "Expected at least one catch/finally block");
+		return NULL;
+	}
+
+	/* The item such that for the final catch block cb, we have
+	 * cb->next == finally_block */
+	struct chx_list *finally_block = NULL;
+
+	for (struct chx_list *cb = catch_blocks; cb != NULL; cb = cb->next) {
+		struct chx_value *cb_value = cb->value;
+		if (cheax_get_type(cb_value) != CHEAX_LIST) {
+			cry(c, "try", CHEAX_ETYPE, "Catch/finally blocks must be s-expressions");
+			return NULL;
+		}
+
+		struct chx_list *cb_list = (struct chx_list *)cb_value;
+		bool is_id = cheax_get_type(cb_list->value) == CHEAX_ID;
+
+		if (cheax_get_type(cb_list->value) != CHEAX_ID)
+			goto invalid_block;
+
+		struct chx_id *keyword = (struct chx_id *)cb_list->value;
+		if (0 == strcmp("catch", keyword->id)) {
+			if (cb_list->next == NULL || cb_list->next->next == NULL) {
+				cry(c, "catch", CHEAX_EMATCH, "Expected at least two arguments");
+				return NULL;
+			}
+		} else if (0 == strcmp("finally", keyword->id)) {
+			if (cb->next != NULL) {
+				cry(c, "finally", CHEAX_EVALUE, "Unexpected values after finally block");
+				return NULL;
+			}
+
+			finally_block = cb;
+		} else {
+invalid_block:
+			cry(c, "try", CHEAX_EMATCH, "Expected `catch' or `finally' keyword");
+			return NULL;
+		}
+	}
+
+	struct chx_value *retval = cheax_eval(c, block);
+	if (cheax_errstate(c) == CHEAX_RUNNING)
+		goto run_finally;
+
+	/* error caught */
+	c->error.state = CHEAX_RUNNING;
+
+	/* catch block that matches */
+	struct chx_list *match = NULL;
+
+	for (struct chx_list *cb = catch_blocks;
+	     match == NULL && cb != finally_block;
+	     cb = cb->next)
+	{
+		/* these type casts should be safe, we did these checks
+		 * beforehand */
+		struct chx_list *cb_list = (struct chx_list *)cb->value;
+
+		/* three example catch blocks:
+		 *   (catch EVALUE ...)
+		 *   (catch (list EMATCH ENIL) ...)
+		 *   (catch () ...)
+		 * the first matches only EVALUE, the second both EMATCH
+		 * and ENIL, and the third matches any error
+		 *
+		 * cb_list->value       should be the keyword `catch'
+		 * cb_list->next->value is the error code to match against
+		 * cb_list->next->next  is the list of code blocks to run
+		 *                      if we have a match.
+		 */
+		struct chx_value *errcodes = cheax_eval(c, cb_list->next->value);
+		cheax_ft(c, run_finally);
+
+		if (errcodes == NULL)
+			match = cb_list;
+		else if (cheax_get_type(errcodes) != CHEAX_LIST)
+			errcodes = &cheax_list(c, errcodes, NULL)->base;
+
+		for (struct chx_list *enode = (struct chx_list *)errcodes; enode != NULL; enode = enode->next) {
+			struct chx_value *code = enode->value;
+			if (cheax_get_type(code) != CHEAX_ERRORCODE) {
+				cry(c, "catch", CHEAX_ETYPE, "Expected error code or list thereof");
+				goto run_finally;
+			}
+
+			if (((struct chx_int *)code)->value == cheax_errno(c))
+				match = cb_list;
+		}
+	}
+
+	if (match == NULL) {
+		/* error falls through */
+		c->error.state = CHEAX_THROWN;
+	} else {
+		/* match, so run catch block code */
+		struct chx_list *run_blocks = match->next->next;
+		cheax_ref(c, run_blocks);
+
+		c->error.state = CHEAX_RUNNING;
+
+		for (struct chx_list *cons = run_blocks; cons != NULL; cons = cons->next) {
+			retval = cheax_eval(c, cons->value);
+			cheax_ft(c, pad1); /* new error thrown */
+		}
+
+		cheax_clear_errno(c); /* error taken care of */
+pad1:
+		cheax_unref(c, run_blocks);
+	}
+
+run_finally:
+	int prev_errstate = c->error.state;
+	cheax_ref(c, retval);
+
+	if (finally_block != NULL) {
+		c->error.state = CHEAX_RUNNING;
+
+		/* types checked before, so this should all be safe */
+		struct chx_list *fb = (struct chx_list *)finally_block->value;
+		for (struct chx_list *cons = fb->next; cons != NULL; cons = cons->next) {
+			cheax_eval(c, cons->value);
+			cheax_ft(c, pad2);
+		}
+	}
+
+	c->error.state = prev_errstate;
+pad2:
+	cheax_unref(c, retval);
+	return retval;
 }
 static struct chx_value *
 builtin_new_error_code(CHEAX *c, struct chx_list *args)
@@ -589,7 +733,7 @@ do_aop(CHEAX *c,
 		int li = ((struct chx_int *)l)->value;
 		int ri = ((struct chx_int *)r)->value;
 		int res = iop(c, li, ri);
-		if (cheax_errno(c) == CHEAX_EDIVZERO)
+		if (cheax_errstate(c) == CHEAX_THROWN)
 			return NULL;
 
 		return &cheax_int(c, res)->base;

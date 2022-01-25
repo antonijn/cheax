@@ -66,6 +66,7 @@ struct cheax {
 	int fhandle_type;
 
 	struct {
+		int state;
 		int code;
 		struct chx_string *msg;
 	} error;

@@ -423,11 +423,28 @@ cheax_builtin_error_codes[] = {
 	ERR_NAME_PAIR(EAPI)
 };
 
+enum {
+	CHEAX_RUNNING,
+	CHEAX_THROWN,
+};
+
+/*! \brief Indicates whether cheax is running normally or an error has
+ *         been thrown.
+ *
+ * \returns \a CHEAX_RUNNING if running normally, \a CHEAX_THROWN if
+ *          an error has been thrown, or \a CHEAX_IN_FINALLY if running
+ *          in a \c finally block.
+ *
+ * \sa cheax_ft()
+ */
+int cheax_errstate(CHEAX *c);
+
 /*! \brief Gets the value of the current cheax error code.
  *
  * \param c Virtual machine instance.
  *
- * \sa cheax_throw(), cheax_new_error_code(), cheax_ft()
+ * \sa cheax_throw(), cheax_new_error_code(), cheax_errstate(),
+ *     cheax_ft()
  */
 int cheax_errno(CHEAX *c);
 
@@ -439,7 +456,7 @@ int cheax_errno(CHEAX *c);
  * \param c   Virtual machine instance.
  * \param pad Label to jump to in case of an error.
  */
-#define cheax_ft(c, pad) { if (cheax_errno(c) != 0) goto pad; }
+#define cheax_ft(c, pad) { if (cheax_errstate(c) == CHEAX_THROWN) goto pad; }
 
 /*! \brief Prints the current cheax error code and error message.
  *

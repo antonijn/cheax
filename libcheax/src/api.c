@@ -313,6 +313,11 @@ errname(CHEAX *c, int code)
 	return NULL;
 }
 int
+cheax_errstate(CHEAX *c)
+{
+	return c->error.state;
+}
+int
 cheax_errno(CHEAX *c)
 {
 	return c->error.code;
@@ -341,6 +346,7 @@ cheax_perror(CHEAX *c, const char *s)
 void
 cheax_clear_errno(CHEAX *c)
 {
+	c->error.state = CHEAX_RUNNING;
 	c->error.code = 0;
 	c->error.msg = NULL;
 }
@@ -352,6 +358,7 @@ cheax_throw(CHEAX *c, int code, struct chx_string *msg)
 		return;
 	}
 
+	c->error.state = CHEAX_THROWN;
 	c->error.code = code;
 	c->error.msg = msg;
 }
@@ -532,6 +539,7 @@ cheax_init(void)
 	res->locals_top = NULL;
 	res->max_stack_depth = 0x1000;
 	res->stack_depth = 0;
+	res->error.state = CHEAX_RUNNING;
 	res->error.code = 0;
 	res->error.msg = NULL;
 
