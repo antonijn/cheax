@@ -270,7 +270,8 @@ cheax_nstring(CHEAX *c, char *value, size_t len)
 
 	struct chx_string *res = cheax_alloc(c, sizeof(struct chx_string) + len + 1);
 	char *buf = ((char *)res) + sizeof(struct chx_string);
-	memcpy(buf, value, len + 1);
+	memcpy(buf, value, len);
+	buf[len] = '\0';
 
 	res->base.type = CHEAX_STRING;
 	res->value = buf;
