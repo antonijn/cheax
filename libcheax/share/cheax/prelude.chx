@@ -71,8 +71,7 @@
   (case args
     ( (xs       ()) xs )
     ( (()       ys) ys )
-    ( ((: z zs) ys) (: z (++ zs ys)) )
-  ))
+    ( ((: z zs) ys) (: z (++ zs ys)) )))
 ; aka flatten
 (defun concat (xs) (foldr ++ () xs))
 (defun append args (concat args))
@@ -94,28 +93,24 @@
 (defun sum (args) (foldr + 0 args))
 (defun product (args) (foldr * 1 args))
 
-(defun not (x) (eq 0 x))
+(defun not (x) (= 0 x))
 (defun to-bool (x) (not (not x)))
 (defun and args
   (case args
     ((1 1) 1)
-    ((_ _) 0)
-  ))
+    ((_ _) 0)))
 (defun or args
   (case args
     ((0 0) 0)
-    ((_ _) 1)
-  ))
+    ((_ _) 1)))
 (defun all (args) (foldr and 1 args))
 (defun any (args) (foldr or 0 args))
 (defun eq (: x xs) (all (map (\ (y) (= x y)) xs)))
-(defun /= (a b) (not (= a b)))
 
 (defun .. (from to)
-  (case (- from to)
-    (0 (list to))
-    (_ (: from (.. (+ 1 from) to)))
-  ))
+  (if (<= from to)
+    (: from (.. (+ 1 from) to))
+    ()))
 
 (defun print (arg) (print-to stdout arg))
 (defun read () (read-from stdin))

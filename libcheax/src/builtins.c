@@ -57,7 +57,11 @@ DECL_BUILTIN(mul);
 DECL_BUILTIN(div);
 DECL_BUILTIN(mod);
 DECL_BUILTIN(eq);
+DECL_BUILTIN(ne);
 DECL_BUILTIN(lt);
+DECL_BUILTIN(le);
+DECL_BUILTIN(gt);
+DECL_BUILTIN(ge);
 
 void
 export_builtins(CHEAX *c)
@@ -88,7 +92,11 @@ export_builtins(CHEAX *c)
 	cheax_defmacro(c, "/", builtin_div);
 	cheax_defmacro(c, "%", builtin_mod);
 	cheax_defmacro(c, "=", builtin_eq);
+	cheax_defmacro(c, "!=", builtin_ne);
 	cheax_defmacro(c, "<", builtin_lt);
+	cheax_defmacro(c, "<=", builtin_le);
+	cheax_defmacro(c, ">", builtin_gt);
+	cheax_defmacro(c, ">=", builtin_ge);
 
 	cheax_var(c, "stdin", &cheax_user_ptr(c, stdin, c->fhandle_type)->base, CHEAX_READONLY);
 	cheax_var(c, "stdout", &cheax_user_ptr(c, stdout, c->fhandle_type)->base, CHEAX_READONLY);
@@ -878,25 +886,68 @@ builtin_eq(CHEAX *c, struct chx_list *args)
 	return cheax_equals(c, l, r) ? &yes.base : &no.base;
 }
 static struct chx_value *
-builtin_lt(CHEAX *c, struct chx_list *args)
+builtin_ne(CHEAX *c, struct chx_list *args)
 {
 	struct chx_value *l, *r;
-	if (!unpack_args(c, "<", args, true, 2, &l, &r))
+	if (!unpack_args(c, "!=", args, true, 2, &l, &r))
+		return NULL;
+
+	return cheax_equals(c, l, r) ? &no.base : &yes.base;
+}
+
+static struct chx_value *
+do_cmp(CHEAX *c,
+       const char *name,
+       struct chx_list *args,
+       bool lt, bool eq, bool gt)
+{
+	struct chx_value *l, *r;
+	if (!unpack_args(c, name, args, true, 2, &l, &r))
 		return NULL;
 
 	if (!is_numeric_type(l) || !is_numeric_type(r)) {
-		cry(c, "<", CHEAX_ETYPE, "Invalid types for operation");
+		cry(c, name, CHEAX_ETYPE, "Invalid types for operation");
 		return NULL;
 	}
+
+	bool is_lt, is_eq, is_gt;
 
 	if (cheax_get_type(l) == CHEAX_INT && cheax_get_type(r) == CHEAX_INT) {
 		int li = ((struct chx_int *)l)->value;
 		int ri = ((struct chx_int *)r)->value;
-		return li < ri ? &yes.base : &no.base;
+		is_lt = li < ri;
+		is_eq = li == ri;
+		is_gt = li > ri;
+	} else {
+		double ld, rd;
+		try_convert_to_double(l, &ld);
+		try_convert_to_double(r, &rd);
+		is_lt = ld < rd;
+		is_eq = ld == rd;
+		is_gt = ld > rd;
 	}
 
-	double ld, rd;
-	try_convert_to_double(l, &ld);
-	try_convert_to_double(r, &rd);
-	return ld < rd ? &yes.base : &no.base;
+	return ((lt && is_lt) || (eq && is_eq) || (gt && is_gt))
+	     ? &yes.base : &no.base;
+}
+
+static struct chx_value *
+builtin_lt(CHEAX *c, struct chx_list *args)
+{
+	return do_cmp(c, "<", args, 1, 0, 0);
+}
+static struct chx_value *
+builtin_le(CHEAX *c, struct chx_list *args)
+{
+	return do_cmp(c, "<=", args, 1, 1, 0);
+}
+static struct chx_value *
+builtin_gt(CHEAX *c, struct chx_list *args)
+{
+	return do_cmp(c, ">", args, 0, 0, 1);
+}
+static struct chx_value *
+builtin_ge(CHEAX *c, struct chx_list *args)
+{
+	return do_cmp(c, ">=", args, 0, 1, 1);
 }
