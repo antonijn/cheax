@@ -366,16 +366,13 @@ builtin_try(CHEAX *c, struct chx_list *args)
 		struct chx_list *cb_list = (struct chx_list *)cb_value;
 		bool is_id = cheax_get_type(cb_list->value) == CHEAX_ID;
 
-		if (cheax_get_type(cb_list->value) != CHEAX_ID)
-			goto invalid_block;
-
 		struct chx_id *keyword = (struct chx_id *)cb_list->value;
-		if (0 == strcmp("catch", keyword->id)) {
+		if (is_id && 0 == strcmp("catch", keyword->id)) {
 			if (cb_list->next == NULL || cb_list->next->next == NULL) {
 				cry(c, "catch", CHEAX_EMATCH, "Expected at least two arguments");
 				return NULL;
 			}
-		} else if (0 == strcmp("finally", keyword->id)) {
+		} else if (is_id && 0 == strcmp("finally", keyword->id)) {
 			if (cb->next != NULL) {
 				cry(c, "finally", CHEAX_EVALUE, "Unexpected values after finally block");
 				return NULL;
@@ -383,7 +380,6 @@ builtin_try(CHEAX *c, struct chx_list *args)
 
 			finally_block = cb;
 		} else {
-invalid_block:
 			cry(c, "try", CHEAX_EMATCH, "Expected `catch' or `finally' keyword");
 			return NULL;
 		}
@@ -407,12 +403,11 @@ invalid_block:
 		 * beforehand */
 		struct chx_list *cb_list = (struct chx_list *)cb->value;
 
-		/* three example catch blocks:
+		/* two example catch blocks:
 		 *   (catch EVALUE ...)
 		 *   (catch (list EMATCH ENIL) ...)
-		 *   (catch () ...)
-		 * the first matches only EVALUE, the second both EMATCH
-		 * and ENIL, and the third matches any error
+		 * the former matches only EVALUE, the latter both EMATCH
+		 * and ENIL.
 		 *
 		 * cb_list->value       should be the keyword `catch'
 		 * cb_list->next->value is the error code to match against
@@ -422,9 +417,7 @@ invalid_block:
 		struct chx_value *errcodes = cheax_eval(c, cb_list->next->value);
 		cheax_ft(c, run_finally);
 
-		if (errcodes == NULL)
-			match = cb_list;
-		else if (cheax_get_type(errcodes) != CHEAX_LIST)
+		if (cheax_get_type(errcodes) != CHEAX_LIST)
 			errcodes = &cheax_list(c, errcodes, NULL)->base;
 
 		for (struct chx_list *enode = (struct chx_list *)errcodes; enode != NULL; enode = enode->next) {
@@ -460,10 +453,10 @@ pad1:
 	}
 
 run_finally:
-	int prev_errstate = c->error.state;
-	cheax_ref(c, retval);
-
 	if (finally_block != NULL) {
+		cheax_ref(c, retval);
+
+		int prev_errstate = c->error.state;
 		c->error.state = CHEAX_RUNNING;
 
 		/* types checked before, so this should all be safe */
@@ -472,11 +465,12 @@ run_finally:
 			cheax_eval(c, cons->value);
 			cheax_ft(c, pad2);
 		}
+
+		c->error.state = prev_errstate;
+pad2:
+		cheax_unref(c, retval);
 	}
 
-	c->error.state = prev_errstate;
-pad2:
-	cheax_unref(c, retval);
 	return retval;
 }
 static struct chx_value *

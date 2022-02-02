@@ -160,7 +160,7 @@ cheax_get(CHEAX *c, char *id)
 
 	struct variable *sym = find_sym(c, id);
 	if (!sym) {
-		cry(c, "get", CHEAX_ENOSYM, "No such symbol '%s'", id);
+		cry(c, "get", CHEAX_ENOSYM, "No such symbol `%s'", id);
 		return NULL;
 	}
 
