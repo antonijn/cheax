@@ -166,6 +166,21 @@ cheax_print(CHEAX *c, FILE *f, struct chx_value *val)
 	ostream_show(c, &ostr, val);
 }
 
+/*
+ * Print integer `num' to ostream `ostr', padding it to length
+ * `padding_amount' using padding character `pad_char' if necessary.
+ * `misc_spec' can be:
+ * 'X':   0xdeadbeef => "DEADBEEF" (uppercase hex)
+ * 'x':   0xdeadbeef => "deadbeef" (lowercase hex)
+ * 'o':   71         => "107"      (octal)
+ * 'b':   123        => "1111011"  (binary)
+ * other: 123        => "123"      (decimal)
+ *
+ * Why not just a printf() variant, I hear you ask. The problem with
+ * printf() is that, depending on format specifier, it expects different
+ * data types (unsigned int for 'x', for instance). This one just
+ * handles int, and handles it well.
+ */
 void
 ostream_print_int(struct ostream *ostr, int num, char pad_char, int padding_amount, char misc_spec)
 {
@@ -210,9 +225,8 @@ ostream_print_int(struct ostream *ostr, int num, char pad_char, int padding_amou
 			ostream_printf(ostr, "-");
 	}
 
-	if (content_len < padding_amount)
-		for (int j = 0; j < padding_amount - content_len; ++j)
-			ostream_printf(ostr, "%c", pad_char);
+	for (int j = 0; j < padding_amount - content_len; ++j)
+		ostream_printf(ostr, "%c", pad_char);
 
 	if (num < 0 && pad_char == ' ')
 		ostream_printf(ostr, "-");
@@ -507,9 +521,8 @@ read_closing_curly:
 	/* Add padding if necessary.
 	 * TODO this should probably count graphemes rather than bytes */
 	int written = ss.idx - prev_idx;
-	if (written < padding_amount)
-		for (int i = 0; i < padding_amount - written; ++i)
-			ostream_printf(&ostr, "%c", pad_char);
+	for (int i = 0; i < padding_amount - written; ++i)
+		ostream_printf(&ostr, "%c", pad_char);
 
 	if (indexing == AUTO_IDX)
 		++cur_arg_idx;
