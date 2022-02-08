@@ -1,6 +1,6 @@
 /*
  * Interactive cheax prompt
- * Copyright (C) 2020  Antonie Blom
+ * Copyright (C) 2022  Antonie Blom
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -137,8 +137,8 @@ main(void)
 	}
 #endif
 
-	fputs("Cheaky, Copyright (C) 2020 Antonie Blom\n", stderr);
-	fputs("Cheaky comes with ABSOLUTELY NO WARRANTY; for details type `(show-w)'.\n", stderr);
+	fputs("cheaky, Copyright (C) 2022 Antonie Blom\n", stderr);
+	fputs("cheaky comes with ABSOLUTELY NO WARRANTY; for details type `(show-w)'.\n", stderr);
 	fputs("This is free software, and you are welcome to redistribute it\n", stderr);
 	fputs("under certain conditions; type `(show-c)' for details.\n", stderr);
 

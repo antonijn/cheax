@@ -1,4 +1,4 @@
-/* Copyright (c) 2020, Antonie Blom
+/* Copyright (c) 2022, Antonie Blom
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
