@@ -198,7 +198,9 @@ ostream_print_int(struct ostream *ostr, int num, char pad_char, int padding_amou
 	default:  base = 10; break;
 	}
 
-	long pos_num = (num >= 0) ? +num : -+num;
+	long pos_num = num;
+	if (pos_num < 0)
+		pos_num = -pos_num;
 
 	char buf[1 + sizeof(int) * 8 * 2];
 	int i = sizeof(buf) - 1;
