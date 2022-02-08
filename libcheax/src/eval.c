@@ -193,11 +193,12 @@ cheax_eval_sexpr(CHEAX *c, struct chx_list *input)
 		struct chx_list **args_last = &args;
 		for (struct chx_list *arg = input->next; arg; arg = arg->next) {
 			struct chx_value *arge = cheax_eval(c, arg->value);
-			cheax_ft(c, pad);
 
 			/* won't set if args is NULL, so this ensures
 			 * the GC won't delete our argument list */
 			cheax_unref(c, args);
+
+			cheax_ft(c, pad);
 
 			*args_last = cheax_list(c, arge, NULL);
 			args_last = &(*args_last)->next;

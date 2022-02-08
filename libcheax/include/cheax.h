@@ -396,8 +396,10 @@ enum {
 	CHEAX_EREADONLY = 0x0108, /*!< Attempted write to read-only variable error. */
 	CHEAX_EVALUE    = 0x0109, /*!< Invalid value error. */
 	CHEAX_EOVERFLOW = 0x010A, /*!< Integer overflow error. */
+	CHEAX_EINDEX    = 0x010B, /*!< Invalid index error. */
 
 	CHEAX_EAPI      = 0x0200, /*!< API error. \note Not to be thrown from wihtin cheax code. */
+	CHEAX_ENOMEM    = 0x0201, /*!< Out-of-memory error. \note Not to be thrown from wihtin cheax code. */
 
 	CHEAX_EUSER0    = 0x0400, /*!< First user-defineable error code. \sa cheax_new_error_code() */
 };
@@ -419,8 +421,9 @@ cheax_builtin_error_codes[] = {
 	ERR_NAME_PAIR(EMATCH), ERR_NAME_PAIR(ENIL),
 	ERR_NAME_PAIR(EDIVZERO), ERR_NAME_PAIR(EREADONLY),
 	ERR_NAME_PAIR(EVALUE), ERR_NAME_PAIR(EOVERFLOW),
+	ERR_NAME_PAIR(EINDEX),
 
-	ERR_NAME_PAIR(EAPI)
+	ERR_NAME_PAIR(EAPI), ERR_NAME_PAIR(ENOMEM)
 };
 
 enum {
@@ -559,6 +562,26 @@ int cheax_load_prelude(CHEAX *c);
  * \param c Virtual machine instance to be destroyed.
  */
 void cheax_destroy(CHEAX *c);
+
+/*! \brief Converts chx_list to array.
+ *
+ * Sets cheax_errno() to \ref CHEAX_EAPI if \a array_ptr or \a length
+ * is NULL, or to \ref CHEAX_ENOMEM if array allocation failed.
+ *
+ * \param c         Virtual machine instance.
+ * \param list      List to convert.
+ * \param array_ptr Output parameter, will point to array of cheax_value
+ *                  pointers. Make sure to free() after use.
+ * \param length    Output parameter, will point to length of output
+ *                  array.
+ *
+ * \returns 0 if everything succeeded without errors, -1 if there was an
+ *          error (most likely \ref CHEAX_ENOMEM).
+ */
+int cheax_list_to_array(CHEAX *c,
+                        struct chx_list *list,
+                        struct chx_value ***array_ptr,
+                        size_t *length);
 
 /*! \brief Options for variable declaration.
  *
@@ -769,11 +792,30 @@ struct chx_value *cheax_eval(CHEAX *c, struct chx_value *expr);
  *
  * \param c      Virtual machine instance.
  * \param output Output file handle.
- * \param expr   Cheax expression to evaluate.
+ * \param expr   Cheax expression to print.
  *
- * \sa cheax_read(), cheax_eval()
+ * \sa cheax_format(), cheax_read(), cheax_eval()
  */
 void cheax_print(CHEAX *c, FILE *output, struct chx_value *expr);
+
+/*! \brief Expresses given cheax values as a \a chx_string, using given
+ *         format string.
+ *
+ * Sets cheax_errno() to \ref CHEAX_EAPI if \a fmt is NULL, to
+ * \ref CHEAX_EVALUE if format string is otherwise invalid, or to
+ * \ref CHEAX_EINDEX if an index occurs in the format string (either
+ * implicitly or explicitly) that is out of bounds for \a args.
+ *
+ * \param c      Virtual machine instance.
+ * \param fmt    Python-esque format string.
+ * \param args   List of arguments to format into the output string.
+ *
+ * \returns A \a chx_string representing the formatted result, or NULL
+ *          if an error occurred.
+ *
+ * \sa cheax_print()
+ */
+struct chx_value *cheax_format(CHEAX *c, const char *fmt, struct chx_list *args);
 
 /*! \brief Reads a file and executes it.
  *

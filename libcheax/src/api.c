@@ -592,6 +592,47 @@ cheax_version(void)
 	return ver;
 }
 
+int
+cheax_list_to_array(CHEAX *c,
+                    struct chx_list *list,
+                    struct chx_value ***array_ptr,
+                    size_t *length)
+{
+	size_t len = 0, cap = 0;
+	struct chx_value **res = NULL;
+
+	if (length == NULL) {
+		cry(c, "list_to_array", CHEAX_EAPI, "`length' cannot be NULL");
+		return -1;
+	}
+
+	if (array_ptr == NULL) {
+		cry(c, "list_to_array", CHEAX_EAPI, "`array_ptr' cannot be NULL");
+		return -1;
+	}
+
+	for (; list != NULL; list = list->next) {
+		if (++len > cap) {
+			cap = len + len / 2;
+			struct chx_value **new_res = realloc(res, sizeof(*res) * cap);
+			if (new_res == NULL) {
+				cry(c, "list_to_array", CHEAX_ENOMEM, "realloc() failure");
+				free(res);
+				*length = 0;
+				*array_ptr = NULL;
+				return -1;
+			}
+			res = new_res;
+		}
+
+		res[len - 1] = list->value;
+	}
+
+	*array_ptr = res;
+	*length = len;
+	return 0;
+}
+
 
 int
 cheax_get_max_stack_depth(CHEAX *c)

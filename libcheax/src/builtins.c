@@ -33,6 +33,7 @@ DECL_BUILTIN(fopen);
 DECL_BUILTIN(fclose);
 DECL_BUILTIN(read_from);
 DECL_BUILTIN(print_to);
+DECL_BUILTIN(format);
 DECL_BUILTIN(error_code);
 DECL_BUILTIN(error_msg);
 DECL_BUILTIN(throw);
@@ -71,6 +72,7 @@ export_builtins(CHEAX *c)
 	cheax_defmacro(c, "cheax-version", builtin_cheax_version);
 	cheax_defmacro(c, "read-from", builtin_read_from);
 	cheax_defmacro(c, "print-to", builtin_print_to);
+	cheax_defmacro(c, "format", builtin_format);
 	cheax_defmacro(c, "error-code", builtin_error_code);
 	cheax_defmacro(c, "error-msg", builtin_error_msg);
 	cheax_defmacro(c, "throw", builtin_throw);
@@ -258,6 +260,48 @@ builtin_print_to(CHEAX *c, struct chx_list *args)
 	FILE *f = (FILE *)((struct chx_user_ptr *)handle)->value;
 	cheax_print(c, f, value);
 	fputc('\n', f);
+	return NULL;
+}
+
+static struct chx_value *
+builtin_format(CHEAX *c, struct chx_list *args)
+{
+	/* evaluate arguments */
+	struct chx_list *ev_args = NULL;
+	struct chx_list **ev_args_last = &ev_args;
+	for (struct chx_list *arg = args; arg != NULL; arg = arg->next) {
+		struct chx_value *arge = cheax_eval(c, arg->value);
+
+		/* won't set if ev_args is NULL, so this ensures
+		 * the GC won't delete our argument list */
+		cheax_unref(c, ev_args);
+
+		cheax_ft(c, pad);
+
+		*ev_args_last = cheax_list(c, arge, NULL);
+		ev_args_last = &(*ev_args_last)->next;
+
+		cheax_ref(c, ev_args);
+	}
+
+	cheax_unref(c, ev_args);
+
+	if (ev_args == NULL) {
+		cry(c, "format", CHEAX_EMATCH, "Expected at least 1 argument (got 0)");
+		return NULL;
+	}
+
+	struct chx_value *fmt_str_val = ev_args->value;
+
+	if (cheax_get_type(fmt_str_val) != CHEAX_STRING) {
+		cry(c, "format", CHEAX_ETYPE, "Expected format string");
+		return NULL;
+	}
+
+	struct chx_string *fmt_str = (struct chx_string *)fmt_str_val;
+	return cheax_format(c, fmt_str->value, ev_args->next);
+
+pad:
 	return NULL;
 }
 
