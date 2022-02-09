@@ -15,6 +15,7 @@
 
 #include <cheax.h>
 #include <ctype.h>
+#include <limits.h>
 #include <stdarg.h>
 #include <stdlib.h>
 #include <string.h>
@@ -168,7 +169,7 @@ cheax_print(CHEAX *c, FILE *f, struct chx_value *val)
 
 /*
  * Print integer `num' to ostream `ostr', padding it to length
- * `padding_amount' using padding character `pad_char' if necessary.
+ * `field_width' using padding character `pad_char' if necessary.
  * `misc_spec' can be:
  * 'X':   0xdeadbeef => "DEADBEEF" (uppercase hex)
  * 'x':   0xdeadbeef => "deadbeef" (lowercase hex)
@@ -182,10 +183,10 @@ cheax_print(CHEAX *c, FILE *f, struct chx_value *val)
  * handles int, and handles it well.
  */
 void
-ostream_print_int(struct ostream *ostr, int num, char pad_char, int padding_amount, char misc_spec)
+ostream_print_int(struct ostream *ostr, int num, char pad_char, int field_width, char misc_spec)
 {
-	if (padding_amount < 0)
-		padding_amount = 0;
+	if (field_width < 0)
+		field_width = 0;
 
 	bool upper = false;
 	int base;
@@ -227,7 +228,7 @@ ostream_print_int(struct ostream *ostr, int num, char pad_char, int padding_amou
 			ostream_printf(ostr, "-");
 	}
 
-	for (int j = 0; j < padding_amount - content_len; ++j)
+	for (int j = 0; j < field_width - content_len; ++j)
 		ostream_printf(ostr, "%c", pad_char);
 
 	if (num < 0 && pad_char == ' ')
@@ -271,7 +272,7 @@ cheax_format(CHEAX *c, const char *fmt, struct chx_list *args)
 	} sr_flag;                           /* set per specifier */
 
 	char pad_char, misc_spec;            /* ditto */
-	int padding_amount, precision;       /* --"-- */
+	int field_width, precision;       /* --"-- */
 	bool can_int, can_double, can_other; /* --"-- */
 
 	int cur_arg_idx = 0;
@@ -304,7 +305,7 @@ entered_curly:
 	/* set the per-specifier settings here */
 	sr_flag = SR_FLAG_DEFAULT;
 	pad_char = ' ';
-	padding_amount = 0;
+	field_width = 0;
 	precision = -1;
 	misc_spec = '\0';
 	can_int = can_double = can_other = true;
@@ -345,6 +346,11 @@ read_more_idx:
 	if (!isdigit(ch))
 		goto read_any_format_specs;
 
+	if (cur_arg_idx > INT_MAX / 10 || (cur_arg_idx * 10) > INT_MAX - (ch - '0')) {
+		cry(c, "format", CHEAX_EVALUE, "index too big");
+		goto error;
+	}
+
 	cur_arg_idx = (cur_arg_idx * 10) + (ch - '0');
 	++fmt;
 	goto read_more_idx;
@@ -364,20 +370,25 @@ read_format_specs:
 	if (ch == ' ' || ch == '0') {
 		pad_char = ch;
 		++fmt;
-		goto read_padding_amount;
+		goto read_field_width;
 	}
 
 	if (isdigit(ch))
-		goto read_padding_amount;
+		goto read_field_width;
 
 	goto read_any_precision_spec;
 
-read_padding_amount:
+read_field_width:
 	ch = *fmt;
 	if (isdigit(ch)) {
-		padding_amount = (padding_amount * 10) + (ch - '0');
+		if (field_width > INT_MAX / 10 || (field_width * 10) > INT_MAX - (ch - '0')) {
+			cry(c, "format", CHEAX_EVALUE, "field width too big");
+			goto error;
+		}
+
+		field_width = (field_width * 10) + (ch - '0');
 		++fmt;
-		goto read_padding_amount;
+		goto read_field_width;
 	}
 
 	goto read_any_precision_spec;
@@ -407,6 +418,11 @@ read_more_precision_spec:
 	ch = *fmt;
 	if (!isdigit(ch))
 		goto read_misc_spec;
+
+	if (precision > INT_MAX / 10 || (precision * 10) > INT_MAX - (ch - '0')) {
+		cry(c, "format", CHEAX_EVALUE, "precision too big");
+		goto error;
+	}
 
 	precision = (precision * 10) + (ch - '0');
 	++fmt;
@@ -487,7 +503,7 @@ read_closing_curly:
 
 			ostream_printf(&ostr, "%c", num);
 		} else {
-			ostream_print_int(&ostr, num, pad_char, padding_amount, misc_spec);
+			ostream_print_int(&ostr, num, pad_char, field_width, misc_spec);
 		}
 	} else if (ty == CHEAX_DOUBLE) {
 		if (!can_double) {
@@ -506,7 +522,7 @@ read_closing_curly:
 		else
 			snprintf(fmt_buf, sizeof(fmt_buf), "%%%c*.*%c", pad_char, misc_spec);
 
-		ostream_printf(&ostr, fmt_buf, padding_amount, precision, num);
+		ostream_printf(&ostr, fmt_buf, field_width, precision, num);
 	} else {
 		if (!can_other) {
 			cry(c, "format", CHEAX_EVALUE, "invalid specifiers for given value");
@@ -523,7 +539,7 @@ read_closing_curly:
 	/* Add padding if necessary.
 	 * TODO this should probably count graphemes rather than bytes */
 	int written = ss.idx - prev_idx;
-	for (int i = 0; i < padding_amount - written; ++i)
+	for (int i = 0; i < field_width - written; ++i)
 		ostream_printf(&ostr, "%c", pad_char);
 
 	if (indexing == AUTO_IDX)
