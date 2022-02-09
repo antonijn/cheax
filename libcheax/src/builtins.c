@@ -34,6 +34,7 @@ DECL_BUILTIN(fclose);
 DECL_BUILTIN(read_from);
 DECL_BUILTIN(print_to);
 DECL_BUILTIN(format);
+DECL_BUILTIN(bytes);
 DECL_BUILTIN(error_code);
 DECL_BUILTIN(error_msg);
 DECL_BUILTIN(throw);
@@ -73,6 +74,7 @@ export_builtins(CHEAX *c)
 	cheax_defmacro(c, "read-from", builtin_read_from);
 	cheax_defmacro(c, "print-to", builtin_print_to);
 	cheax_defmacro(c, "format", builtin_format);
+	cheax_defmacro(c, "bytes", builtin_bytes);
 	cheax_defmacro(c, "error-code", builtin_error_code);
 	cheax_defmacro(c, "error-msg", builtin_error_msg);
 	cheax_defmacro(c, "throw", builtin_throw);
@@ -303,6 +305,27 @@ builtin_format(CHEAX *c, struct chx_list *args)
 
 pad:
 	return NULL;
+}
+
+static struct chx_value *
+builtin_bytes(CHEAX *c, struct chx_list *args)
+{
+	struct chx_value *arg;
+	if (!unpack_args(c, "bytes", args, true, 1, &arg))
+		return NULL;
+
+	if (cheax_get_type(arg) != CHEAX_STRING) {
+		cry(c, "bytes", CHEAX_ETYPE, "Expected string");
+		return NULL;
+	}
+
+	struct chx_string *str = (struct chx_string *)arg;
+	struct chx_list *bytes = NULL;
+
+	for (int i = (int)str->len - 1; i >= 0; --i)
+		bytes = cheax_list(c, &cheax_int(c, str->value[i])->base, bytes);
+
+	return &bytes->base;
 }
 
 static struct chx_value *
