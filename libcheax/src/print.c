@@ -312,7 +312,7 @@ entered_curly:
 	if (ch == '{') {
 		ostream_printf(&ostr, "%c", ch);
 		++fmt;
-		goto entered_curly;
+		goto normal;
 	}
 
 	if (isdigit(ch)) {
