@@ -531,6 +531,8 @@ enum chx_builtins {
 	CHEAX_SET_MAX_STACK_DEPTH = 0x0002,
 	/*! \brief To load \c gc. */
 	CHEAX_GC_BUILTIN          = 0x0004,
+	/*! \brief To load \c exit. */
+	CHEAX_EXIT_BUILTIN        = 0x0008,
 
 	/*! \brief Loads all extra built-ins */
 	CHEAX_ALL_BUILTINS        = 0xFFFF,

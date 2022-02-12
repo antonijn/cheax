@@ -40,6 +40,7 @@ DECL_BUILTIN(error_msg);
 DECL_BUILTIN(throw);
 DECL_BUILTIN(try);
 DECL_BUILTIN(new_error_code);
+DECL_BUILTIN(exit);
 DECL_BUILTIN(var);
 DECL_BUILTIN(const);
 DECL_BUILTIN(set);
@@ -121,6 +122,10 @@ cheax_load_extra_builtins(CHEAX *c, enum chx_builtins builtins)
 	if (builtins & CHEAX_GC_BUILTIN) {
 		cheax_defmacro(c, "gc", builtin_gc);
 		cheax_defmacro(c, "get-used-memory", builtin_get_used_memory);
+	}
+
+	if (builtins & CHEAX_EXIT_BUILTIN) {
+		cheax_defmacro(c, "exit", builtin_exit);
 	}
 }
 
@@ -556,6 +561,27 @@ builtin_new_error_code(CHEAX *c, struct chx_list *args)
 	cheax_new_error_code(c, errname);
 
 	return NULL;
+}
+
+static struct chx_value *
+builtin_exit(CHEAX *c, struct chx_list *args)
+{
+	int code = 0;
+
+	if (args != NULL) {
+		struct chx_value *code_val;
+		if (!unpack_args(c, "exit", args, false, 1, &code_val))
+			return NULL;
+
+		if (cheax_get_type(code_val) != CHEAX_INT) {
+			cry(c, "exit", CHEAX_ETYPE, "Expected integer exit code");
+			return NULL;
+		}
+
+		code = ((struct chx_int *)code_val)->value;
+	}
+
+	exit(code);
 }
 
 static struct chx_value *
