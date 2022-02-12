@@ -397,6 +397,7 @@ enum {
 	CHEAX_EVALUE    = 0x0109, /*!< Invalid value error. */
 	CHEAX_EOVERFLOW = 0x010A, /*!< Integer overflow error. */
 	CHEAX_EINDEX    = 0x010B, /*!< Invalid index error. */
+	CHEAX_EIO       = 0x010C, /*!< IO error. */
 
 	CHEAX_EAPI      = 0x0200, /*!< API error. \note Not to be thrown from wihtin cheax code. */
 	CHEAX_ENOMEM    = 0x0201, /*!< Out-of-memory error. \note Not to be thrown from wihtin cheax code. */
@@ -421,7 +422,7 @@ cheax_builtin_error_codes[] = {
 	ERR_NAME_PAIR(EMATCH), ERR_NAME_PAIR(ENIL),
 	ERR_NAME_PAIR(EDIVZERO), ERR_NAME_PAIR(EREADONLY),
 	ERR_NAME_PAIR(EVALUE), ERR_NAME_PAIR(EOVERFLOW),
-	ERR_NAME_PAIR(EINDEX),
+	ERR_NAME_PAIR(EINDEX), ERR_NAME_PAIR(EIO),
 
 	ERR_NAME_PAIR(EAPI), ERR_NAME_PAIR(ENOMEM)
 };

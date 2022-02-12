@@ -21,121 +21,7 @@
 #include <string.h>
 
 #include "api.h"
-
-struct ostream {
-	void *info;
-	int (*vprintf)(void *info, const char *frmt, va_list ap);
-	int (*putchar)(void *info, int ch);
-};
-static int
-ostream_printf(struct ostream *stream, const char *frmt, ...)
-{
-	va_list ap;
-	va_start(ap, frmt);
-	int res = stream->vprintf(stream->info, frmt, ap);
-	va_end(ap);
-	return res;
-}
-static int
-ostream_putchar(struct ostream *stream, int ch)
-{
-	return stream->putchar(stream->info, ch);
-}
-
-struct sostream {
-	CHEAX *c;
-	char *buf;
-	size_t idx, buf_len;
-};
-
-static int
-sostream_expand(struct sostream *stream, size_t req_buf)
-{
-	if (req_buf <= stream->buf_len)
-		return 0;
-
-	stream->buf_len = req_buf + req_buf / 2;
-	size_t alloc = req_buf;
-	if (alloc <= SIZE_MAX - alloc / 2)
-		alloc += alloc / 2;
-	else
-		alloc = SIZE_MAX;
-
-	char *new_buf = realloc(stream->buf, alloc);
-	if (new_buf == NULL) {
-		free(stream->buf);
-		stream->buf = NULL;
-		stream->buf_len = stream->idx = 0;
-
-		cry(stream->c, "sostream_expand", CHEAX_ENOMEM, "out of memory");
-		return -1;
-	}
-
-	stream->buf = new_buf;
-	stream->buf_len = alloc;
-
-	return 0;
-}
-
-static int
-sostream_vprintf(void *info, const char *frmt, va_list ap)
-{
-	struct sostream *stream = info;
-	va_list len_ap;
-
-	size_t rem = stream->buf_len - stream->idx;
-
-	va_copy(len_ap, ap);
-	int msg_len = vsnprintf(stream->buf + stream->idx, rem, frmt, len_ap);
-	va_end(len_ap);
-
-	if (msg_len < 0)
-		goto msg_len_error;
-
-	size_t req_buf = stream->idx + msg_len + 1; /* +1 for null byte */
-	if (req_buf > stream->buf_len) {
-		if (sostream_expand(stream, req_buf) < 0)
-			return -1;
-
-		msg_len = vsnprintf(stream->buf + stream->idx, msg_len + 1, frmt, ap);
-		if (msg_len < 0)
-			goto msg_len_error;
-	}
-
-	stream->idx += msg_len;
-
-	return msg_len;
-
-msg_len_error:
-	cry(stream->c, "sostream_vprintf", CHEAX_EEVAL,
-	    "internal error (vsnprintf returned %d)", msg_len);
-	return -1;
-}
-
-static int
-sostream_putchar(void *info, int ch)
-{
-	struct sostream *stream = info;
-	if (sostream_expand(stream, stream->idx + 1) < 0)
-		return -1;
-
-	stream->buf[stream->idx++] = ch;
-	return ch;
-}
-
-static int
-file_vprintf(void *info, const char *frmt, va_list ap)
-{
-	FILE *f = info;
-	return vfprintf(f, frmt, ap);
-}
-
-static int
-file_putchar(void *info, int ch)
-{
-	FILE *f = info;
-	return fputc(ch, f);
-}
+#include "stream.h"
 
 static void ostream_show(CHEAX *c, struct ostream *s, struct chx_value *val);
 
@@ -226,20 +112,12 @@ ostream_show(CHEAX *c, struct ostream *s, struct chx_value *val)
 void
 cheax_print(CHEAX *c, FILE *f, struct chx_value *val)
 {
-	struct ostream ostr;
-	ostr.info = f;
-	ostr.vprintf = file_vprintf;
-	ostr.putchar = file_putchar;
-	ostream_show(c, &ostr, val);
+	struct fostream fs;
+	fostream_init(&fs, f, c);
+	ostream_show(c, &fs.ostr, val);
 }
 
-/*
- * Print integer `num' to ostream `ostr', padding it to length
- * `field_width' using padding character `pad_char' if necessary.
- * `misc_spec' can be:
- * 'X':   0xdeadbeef => "DEADBEEF" (uppercase hex)
- * 'x':   0xdeadbeef => "deadbeef" (lowercase hex)
- * 'o':   71         => "107"      (octal)
+/* Print integer `num' to ostream `ostr', padding it to length `field_width' using padding character `pad_char' if necessary. `misc_spec' can be: 'X':   0xdeadbeef => "DEADBEEF" (uppercase hex) 'x':   0xdeadbeef => "deadbeef" (lowercase hex) 'o':   71         => "107"      (octal)
  * 'b':   123        => "1111011"  (binary)
  * other: 123        => "123"      (decimal)
  *
@@ -317,14 +195,10 @@ cheax_format(CHEAX *c, const char *fmt, struct chx_list *args)
 	}
 
 	struct sostream ss;
-	ss.buf_len = strlen(fmt) + 1; /* conservative size estimate */
-	ss.idx = 0;
-	ss.buf = malloc(ss.buf_len);
+	sostream_init(&ss, c);
 
-	struct ostream ostr;
-	ostr.info = &ss;
-	ostr.vprintf = sostream_vprintf;
-	ostr.putchar = sostream_putchar;
+	ss.cap = strlen(fmt) + 1; /* conservative size estimate */
+	ss.buf = malloc(ss.cap);
 
 	enum {
 		UNSPECIFIED,
@@ -363,7 +237,7 @@ normal:
 	if (ch == '}')
 		goto single_end_curly;
 
-	ostream_putchar(&ostr, ch);
+	ostream_putchar(&ss.ostr, ch);
 	goto normal;
 
 entered_curly:
@@ -378,7 +252,7 @@ entered_curly:
 	can_int = can_double = can_other = true;
 
 	if (ch == '{') {
-		ostream_putchar(&ostr, ch);
+		ostream_putchar(&ss.ostr, ch);
 		++fmt;
 		goto normal;
 	}
@@ -575,9 +449,9 @@ read_closing_curly:
 				goto error;
 			}
 
-			ostream_putchar(&ostr, num);
+			ostream_putchar(&ss.ostr, num);
 		} else {
-			ostream_print_int(&ostr, num, pad_char, field_width, misc_spec);
+			ostream_print_int(&ss.ostr, num, pad_char, field_width, misc_spec);
 		}
 	} else if (conv == CONV_NONE && ty == CHEAX_DOUBLE) {
 		if (!can_double) {
@@ -596,7 +470,7 @@ read_closing_curly:
 		else
 			snprintf(fmt_buf, sizeof(fmt_buf), "%%%c*.*%c", pad_char, misc_spec);
 
-		ostream_printf(&ostr, fmt_buf, field_width, precision, num);
+		ostream_printf(&ss.ostr, fmt_buf, field_width, precision, num);
 	} else {
 		if (!can_other) {
 			cry(c, "format", CHEAX_EVALUE, "invalid specifiers for given value");
@@ -608,9 +482,9 @@ read_closing_curly:
 			 * contains null character */
 			struct chx_string *str = (struct chx_string *)arg;
 			for (int i = 0; i < str->len; ++i)
-				ostream_putchar(&ostr, str->value[i]);
+				ostream_putchar(&ss.ostr, str->value[i]);
 		} else {
-			ostream_show(c, &ostr, arg);
+			ostream_show(c, &ss.ostr, arg);
 		}
 	}
 
@@ -620,7 +494,7 @@ read_closing_curly:
 	int padding = field_width - written;
 
 	for (int i = 0; i < field_width - written; ++i)
-		ostream_putchar(&ostr, pad_char);
+		ostream_putchar(&ss.ostr, pad_char);
 
 	if (indexing == AUTO_IDX)
 		++cur_arg_idx;
@@ -631,7 +505,7 @@ read_closing_curly:
 single_end_curly:
 	ch = *fmt;
 	if (ch == '}') {
-		ostream_putchar(&ostr, ch);
+		ostream_putchar(&ss.ostr, ch);
 		++fmt;
 		goto normal;
 	}
