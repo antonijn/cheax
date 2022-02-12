@@ -333,10 +333,10 @@ cheax_format(CHEAX *c, const char *fmt, struct chx_list *args)
 	} indexing = UNSPECIFIED;
 
 	enum {
-		SR_FLAG_DEFAULT,
-		SR_FLAG_S,   /* for {!s} */
-		SR_FLAG_R,   /* for {!r} */
-	} sr_flag;                           /* set per specifier */
+		CONV_NONE,
+		CONV_S,   /* for {!s} */
+		CONV_R,   /* for {!r} */
+	} conv;                              /* set per specifier */
 
 	char pad_char, misc_spec;            /* ditto */
 	int field_width, precision;          /* --"-- */
@@ -370,7 +370,7 @@ entered_curly:
 	ch = *fmt;
 
 	/* set the per-specifier settings here */
-	sr_flag = SR_FLAG_DEFAULT;
+	conv = CONV_NONE;
 	pad_char = ' ';
 	field_width = 0;
 	precision = -1;
@@ -401,7 +401,7 @@ entered_curly:
 		indexing = AUTO_IDX;
 	}
 
-	goto read_any_sr_flag;
+	goto read_any_conv;
 
 read_idx:
 	cur_arg_idx = ch - '0';
@@ -411,7 +411,7 @@ read_idx:
 read_more_idx:
 	ch = *fmt;
 	if (!isdigit(ch))
-		goto read_any_sr_flag;
+		goto read_any_conv;
 
 	if (cur_arg_idx > INT_MAX / 10 || (cur_arg_idx * 10) > INT_MAX - (ch - '0')) {
 		cry(c, "format", CHEAX_EVALUE, "index too big");
@@ -422,31 +422,30 @@ read_more_idx:
 	++fmt;
 	goto read_more_idx;
 
-read_any_sr_flag:
+read_any_conv:
 	ch = *fmt;
 	if (ch == '!') {
 		++fmt;
-		goto read_sr_flag;
+		goto read_conv;
 	}
 
 	goto read_any_format_specs;
 
-read_sr_flag:
+read_conv:
 	ch = *fmt;
 	if (ch == 's') {
-		sr_flag = SR_FLAG_S;
+		conv = CONV_S;
 		++fmt;
 		goto read_any_format_specs;
 	}
 	if (ch == 'r') {
-		sr_flag = SR_FLAG_R;
+		conv = CONV_R;
 		++fmt;
 		goto read_any_format_specs;
 	}
 
 	cry(c, "format", CHEAX_EVALUE, "expected `s' or `r' after `!'");
 	goto error;
-
 
 read_any_format_specs:
 	ch = *fmt;
@@ -547,9 +546,6 @@ read_closing_curly:
 		goto error;
 	}
 
-	struct chx_value *arg = arg_array[cur_arg_idx];
-	int ty = cheax_get_type(arg);
-
 	/* this is primarily so we can catch any ENOMEM early if
 	 * field_width is too big, instead of letting the mem use slowly
 	 * creep up as we add more and more padding. */
@@ -562,7 +558,10 @@ read_closing_curly:
 	 * edge-cases (like the `:c' specifier to integers). */
 	int prev_idx = ss.idx;
 
-	if (ty == CHEAX_INT) {
+	struct chx_value *arg = arg_array[cur_arg_idx];
+	int ty = cheax_get_type(arg);
+
+	if (conv == CONV_NONE && ty == CHEAX_INT) {
 		if (!can_int) {
 			cry(c, "format", CHEAX_EVALUE, "invalid specifiers for integer");
 			goto error;
@@ -580,7 +579,7 @@ read_closing_curly:
 		} else {
 			ostream_print_int(&ostr, num, pad_char, field_width, misc_spec);
 		}
-	} else if (ty == CHEAX_DOUBLE) {
+	} else if (conv == CONV_NONE && ty == CHEAX_DOUBLE) {
 		if (!can_double) {
 			cry(c, "format", CHEAX_EVALUE, "invalid specifiers for double");
 			goto error;
@@ -604,11 +603,15 @@ read_closing_curly:
 			goto error;
 		}
 
-		if (ty == CHEAX_STRING && sr_flag != SR_FLAG_R)
-			ostream_printf(&ostr, "%s", ((struct chx_string *)arg)->value);
-		else
+		if (ty == CHEAX_STRING && conv != CONV_R) {
+			/* can't do ostream_printf() in case string
+			 * contains null character */
+			struct chx_string *str = (struct chx_string *)arg;
+			for (int i = 0; i < str->len; ++i)
+				ostream_putchar(&ostr, str->value[i]);
+		} else {
 			ostream_show(c, &ostr, arg);
-
+		}
 	}
 
 	/* Add padding if necessary.
