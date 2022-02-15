@@ -561,10 +561,10 @@ builtin_get_used_memory(CHEAX *c, struct chx_list *args)
 }
 
 static struct chx_value *
-builtin_get_type(CHEAX *c, struct chx_list *args)
+builtin_type_of(CHEAX *c, struct chx_list *args)
 {
 	struct chx_value *val;
-	if (!unpack_args(c, "get-type", args, true, 1, &val))
+	if (!unpack_args(c, "type-of", args, true, 1, &val))
 		return NULL;
 
 	struct chx_int *res = cheax_int(c, cheax_get_type(val));
@@ -959,7 +959,7 @@ export_builtins(CHEAX *c)
 	cheax_defmacro(c, "def", builtin_def);
 	cheax_defmacro(c, "set", builtin_set);
 	cheax_defmacro(c, ":", builtin_prepend);
-	cheax_defmacro(c, "get-type", builtin_get_type);
+	cheax_defmacro(c, "type-of", builtin_type_of);
 	cheax_defmacro(c, "get-max-stack-depth", builtin_get_max_stack_depth);
 	cheax_defmacro(c, "\\", builtin_lambda);
 	cheax_defmacro(c, "\\\\", builtin_macro_lambda);
