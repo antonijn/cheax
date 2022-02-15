@@ -105,7 +105,7 @@ builtin_fopen(CHEAX *c, struct chx_list *args)
 	if (!unpack_args(c, "fopen", args, true, 2, &fname, &mode))
 		return NULL;
 
-	if (cheax_get_type(fname) != CHEAX_STRING || cheax_get_type(mode) != CHEAX_STRING) {
+	if (cheax_type_of(fname) != CHEAX_STRING || cheax_type_of(mode) != CHEAX_STRING) {
 		cry(c, "fopen", CHEAX_ETYPE, "Invalid argument type");
 		return NULL;
 	}
@@ -123,7 +123,7 @@ builtin_fclose(CHEAX *c, struct chx_list *args)
 	if (!unpack_args(c, "fclose", args, true, 1, &handle))
 		return NULL;
 
-	if (cheax_get_type(handle) != c->fhandle_type) {
+	if (cheax_type_of(handle) != c->fhandle_type) {
 		cry(c, "fclose", CHEAX_ETYPE, "Invalid argument type");
 		return NULL;
 	}
@@ -140,7 +140,7 @@ builtin_read_from(CHEAX *c, struct chx_list *args)
 	if (!unpack_args(c, "read-from", args, true, 1, &handle))
 		return NULL;
 
-	if (cheax_get_type(handle) != c->fhandle_type) {
+	if (cheax_type_of(handle) != c->fhandle_type) {
 		cry(c, "fclose", CHEAX_ETYPE, "Invalid argument type");
 		return NULL;
 	}
@@ -155,7 +155,7 @@ builtin_print_to(CHEAX *c, struct chx_list *args)
 	if (!unpack_args(c, "print-to", args, true, 2, &handle, &value))
 		return NULL;
 
-	if (cheax_get_type(handle) != c->fhandle_type) {
+	if (cheax_type_of(handle) != c->fhandle_type) {
 		cry(c, "print-to", CHEAX_ETYPE, "Invalid argument type");
 		return NULL;
 	}
@@ -196,7 +196,7 @@ builtin_format(CHEAX *c, struct chx_list *args)
 
 	struct chx_value *fmt_str_val = ev_args->value;
 
-	if (cheax_get_type(fmt_str_val) != CHEAX_STRING) {
+	if (cheax_type_of(fmt_str_val) != CHEAX_STRING) {
 		cry(c, "format", CHEAX_ETYPE, "Expected format string");
 		return NULL;
 	}
@@ -215,7 +215,7 @@ builtin_bytes(CHEAX *c, struct chx_list *args)
 	if (!unpack_args(c, "bytes", args, true, 1, &arg))
 		return NULL;
 
-	if (cheax_get_type(arg) != CHEAX_STRING) {
+	if (cheax_type_of(arg) != CHEAX_STRING) {
 		cry(c, "bytes", CHEAX_ETYPE, "Expected string");
 		return NULL;
 	}
@@ -246,7 +246,7 @@ builtin_def(CHEAX *c, struct chx_list *args)
 		return NULL;
 	}
 
-	if (cheax_get_type(setto) == CHEAX_FUNC) {
+	if (cheax_type_of(setto) == CHEAX_FUNC) {
 		/* to allow for recursion:
  		 * if this wasn't here, the function symbol would not have been
  		 * available to the lambda, and thus a recursive function would
@@ -287,7 +287,7 @@ builtin_throw(CHEAX *c, struct chx_list *args)
 	if (!unpack_args(c, "throw", args, true, 2, &code, &msg))
 		return NULL;
 
-	if (cheax_get_type(code) != CHEAX_ERRORCODE) {
+	if (cheax_type_of(code) != CHEAX_ERRORCODE) {
 		cry(c, "throw", CHEAX_ETYPE, "Expected error code");
 		return NULL;
 	}
@@ -297,7 +297,7 @@ builtin_throw(CHEAX *c, struct chx_list *args)
 		return NULL;
 	}
 
-	if (msg != NULL && cheax_get_type(msg) != CHEAX_STRING) {
+	if (msg != NULL && cheax_type_of(msg) != CHEAX_STRING) {
 		cry(c, "throw", CHEAX_ETYPE, "Expected string message");
 		return NULL;
 	}
@@ -326,13 +326,13 @@ builtin_try(CHEAX *c, struct chx_list *args)
 
 	for (struct chx_list *cb = catch_blocks; cb != NULL; cb = cb->next) {
 		struct chx_value *cb_value = cb->value;
-		if (cheax_get_type(cb_value) != CHEAX_LIST) {
+		if (cheax_type_of(cb_value) != CHEAX_LIST) {
 			cry(c, "try", CHEAX_ETYPE, "Catch/finally blocks must be s-expressions");
 			return NULL;
 		}
 
 		struct chx_list *cb_list = (struct chx_list *)cb_value;
-		bool is_id = cheax_get_type(cb_list->value) == CHEAX_ID;
+		bool is_id = cheax_type_of(cb_list->value) == CHEAX_ID;
 
 		struct chx_id *keyword = (struct chx_id *)cb_list->value;
 		if (is_id && 0 == strcmp("catch", keyword->id)) {
@@ -385,12 +385,12 @@ builtin_try(CHEAX *c, struct chx_list *args)
 		struct chx_value *errcodes = cheax_eval(c, cb_list->next->value);
 		cheax_ft(c, run_finally);
 
-		if (cheax_get_type(errcodes) != CHEAX_LIST)
+		if (cheax_type_of(errcodes) != CHEAX_LIST)
 			errcodes = &cheax_list(c, errcodes, NULL)->base;
 
 		for (struct chx_list *enode = (struct chx_list *)errcodes; enode != NULL; enode = enode->next) {
 			struct chx_value *code = enode->value;
-			if (cheax_get_type(code) != CHEAX_ERRORCODE) {
+			if (cheax_type_of(code) != CHEAX_ERRORCODE) {
 				cry(c, "catch", CHEAX_ETYPE, "Expected error code or list thereof");
 				goto run_finally;
 			}
@@ -448,7 +448,7 @@ builtin_new_error_code(CHEAX *c, struct chx_list *args)
 	if (!unpack_args(c, "new-error-code", args, false, 1, &errname_id))
 		return NULL;
 
-	if (cheax_get_type(errname_id) != CHEAX_ID) {
+	if (cheax_type_of(errname_id) != CHEAX_ID) {
 		cry(c, "new-error-code", CHEAX_ETYPE, "Expected ID");
 		return NULL;
 	}
@@ -469,7 +469,7 @@ builtin_exit(CHEAX *c, struct chx_list *args)
 		if (!unpack_args(c, "exit", args, false, 1, &code_val))
 			return NULL;
 
-		if (cheax_get_type(code_val) != CHEAX_INT) {
+		if (cheax_type_of(code_val) != CHEAX_INT) {
 			cry(c, "exit", CHEAX_ETYPE, "Expected integer exit code");
 			return NULL;
 		}
@@ -509,7 +509,7 @@ builtin_set(CHEAX *c, struct chx_list *args)
 	if (!unpack_args(c, "set", args, false, 2, &idval, &setto))
 		return NULL;
 
-	if (cheax_get_type(idval) != CHEAX_ID) {
+	if (cheax_type_of(idval) != CHEAX_ID) {
 		cry(c, "set", CHEAX_ETYPE, "Expected identifier");
 		return NULL;
 	}
@@ -530,7 +530,7 @@ builtin_prepend(CHEAX *c, struct chx_list *args)
 	if (!unpack_args(c, ":", args, true, 2, &head, &tail))
 		return NULL;
 
-	int tailty = cheax_get_type(tail);
+	int tailty = cheax_type_of(tail);
 	if (tailty != CHEAX_NIL && tailty != CHEAX_LIST) {
 		cry(c, ":", CHEAX_ETYPE, "Improper list not allowed");
 		return NULL;
@@ -567,7 +567,7 @@ builtin_type_of(CHEAX *c, struct chx_list *args)
 	if (!unpack_args(c, "type-of", args, true, 1, &val))
 		return NULL;
 
-	struct chx_int *res = cheax_int(c, cheax_get_type(val));
+	struct chx_int *res = cheax_int(c, cheax_type_of(val));
 	res->base.type = CHEAX_TYPECODE;
 	return &res->base;
 }
@@ -588,7 +588,7 @@ builtin_set_max_stack_depth(CHEAX *c, struct chx_list *args)
 	if (!unpack_args(c, "set-max-stack-depth", args, true, 1, &value))
 		return NULL;
 
-	if (cheax_get_type(value) != CHEAX_INT) {
+	if (cheax_type_of(value) != CHEAX_INT) {
 		cry(c, "set-max-stack-depth", CHEAX_ETYPE, "Expected integer argument");
 		return NULL;
 	}
@@ -667,7 +667,7 @@ builtin_case(CHEAX *c, struct chx_list *args)
 	/* pattern-value-pair */
 	for (struct chx_list *pvp = args->next; pvp; pvp = pvp->next) {
 		struct chx_value *pair = pvp->value;
-		if (cheax_get_type(pair) != CHEAX_LIST) {
+		if (cheax_type_of(pair) != CHEAX_LIST) {
 			cry(c, "case", CHEAX_EMATCH, "Pattern-value pair expected");
 			return NULL;
 		}
@@ -705,7 +705,7 @@ pad:
 static bool
 is_numeric_type(struct chx_value *val)
 {
-	int ty = cheax_get_type(val);
+	int ty = cheax_type_of(val);
 	return (ty == CHEAX_INT) || (ty == CHEAX_DOUBLE);
 }
 
@@ -725,7 +725,7 @@ do_aop(CHEAX *c,
 		return NULL;
 	}
 
-	if (cheax_get_type(l) == CHEAX_INT && cheax_get_type(r) == CHEAX_INT) {
+	if (cheax_type_of(l) == CHEAX_INT && cheax_type_of(r) == CHEAX_INT) {
 		int li = ((struct chx_int *)l)->value;
 		int ri = ((struct chx_int *)r)->value;
 		int res = iop(c, li, ri);
@@ -900,7 +900,7 @@ do_cmp(CHEAX *c,
 
 	bool is_lt, is_eq, is_gt;
 
-	if (cheax_get_type(l) == CHEAX_INT && cheax_get_type(r) == CHEAX_INT) {
+	if (cheax_type_of(l) == CHEAX_INT && cheax_type_of(r) == CHEAX_INT) {
 		int li = ((struct chx_int *)l)->value;
 		int ri = ((struct chx_int *)r)->value;
 		is_lt = li < ri;

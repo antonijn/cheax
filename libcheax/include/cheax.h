@@ -32,7 +32,7 @@ typedef struct cheax CHEAX;
  */
 
 /*! \brief Types of expressions within cheax.
- * \sa cheax_new_type(), cheax_get_type()
+ * \sa cheax_new_type(), cheax_type_of()
  */
 enum {
 	CHEAX_NIL,        /*!< Type of the empty list, nil. */
@@ -67,7 +67,7 @@ enum {
 
 /*! \brief Base type of cheax expressions. */
 struct chx_value {
-	int type; /*!< The type code of the cheax expression. \sa cheax_get_type() */
+	int type; /*!< The type code of the cheax expression. \sa cheax_type_of() */
 };
 
 /*! \brief Cheax identifier expression.
@@ -292,7 +292,7 @@ void cheax_unref(CHEAX *c, void *value);
  *
  * Preferably always use this function instead of examining
  * \ref chx_value::type "v->type" directly, as the latter will segfault
- * if \a v is \a NULL, whereas cheax_get_type() will correctly return
+ * if \a v is \a NULL, whereas cheax_type_of() will correctly return
  * \ref CHEAX_NIL.
  *
  * \param v Expression to examine the type of.
@@ -301,7 +301,7 @@ void cheax_unref(CHEAX *c, void *value);
  *
  * \sa cheax_new_type()
  */
-int cheax_get_type(struct chx_value *v);
+int cheax_type_of(struct chx_value *v);
 
 /*! \brief Creates a new type code as an alias for another.
  *

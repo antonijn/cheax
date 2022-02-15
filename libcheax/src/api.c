@@ -66,7 +66,7 @@ cheax_var(CHEAX *c, char *id, struct chx_value *value, enum chx_varflags flags)
 bool
 try_convert_to_double(struct chx_value *value, double *res)
 {
-	switch (cheax_get_type(value)) {
+	switch (cheax_type_of(value)) {
 	case CHEAX_INT:
 		*res = ((struct chx_int *)value)->value;
 		return true;
@@ -80,7 +80,7 @@ try_convert_to_double(struct chx_value *value, double *res)
 bool
 try_convert_to_int(struct chx_value *value, int *res)
 {
-	switch (cheax_get_type(value)) {
+	switch (cheax_type_of(value)) {
 	case CHEAX_INT:
 		*res = ((struct chx_int *)value)->value;
 		return true;
@@ -434,7 +434,7 @@ cheax_match(CHEAX *c, struct chx_value *pan, struct chx_value *match)
 {
 	if (pan == NULL)
 		return match == NULL;
-	if (cheax_get_type(pan) == CHEAX_ID) {
+	if (cheax_type_of(pan) == CHEAX_ID) {
 		/* don't worry that "pan" will be wrongfully flagged as
 		 * garbage, the GC detects that this string is from a
 		 * chx_id. */
@@ -481,7 +481,7 @@ pan_match_colon_cheax_list(CHEAX *c,
 static bool
 pan_match_cheax_list(CHEAX *c, struct chx_list *pan, struct chx_list *match)
 {
-	if (cheax_get_type(pan->value) == CHEAX_ID
+	if (cheax_type_of(pan->value) == CHEAX_ID
 	 && !strcmp((((struct chx_id *)pan->value)->id), ":"))
 	{
 		return pan_match_colon_cheax_list(c, pan->next, match);
@@ -501,10 +501,10 @@ pan_match_cheax_list(CHEAX *c, struct chx_list *pan, struct chx_list *match)
 bool
 cheax_equals(CHEAX *c, struct chx_value *l, struct chx_value *r)
 {
-	if (cheax_get_type(l) != cheax_get_type(r))
+	if (cheax_type_of(l) != cheax_type_of(r))
 		return false;
 
-	int ty = cheax_resolve_type(c, cheax_get_type(l));
+	int ty = cheax_resolve_type(c, cheax_type_of(l));
 
 	switch (ty) {
 	case CHEAX_NIL:
@@ -678,7 +678,7 @@ cheax_set_max_stack_depth(CHEAX *c, int max_stack_depth)
 struct chx_value *
 cheax_shallow_copy(CHEAX *c, struct chx_value *v)
 {
-	int type = cheax_resolve_type(c, cheax_get_type(v));
+	int type = cheax_resolve_type(c, cheax_type_of(v));
 
 	size_t size;
 	switch (type) {
@@ -725,7 +725,7 @@ struct chx_value *
 cheax_cast(CHEAX *c, struct chx_value *v, int type)
 {
 	/* TODO: improve critria */
-	if (cheax_resolve_type(c, cheax_get_type(v)) != cheax_resolve_type(c, type)) {
+	if (cheax_resolve_type(c, cheax_type_of(v)) != cheax_resolve_type(c, type)) {
 		cry(c, "cast", CHEAX_ETYPE, "Invalid cast");
 		return NULL;
 	}
@@ -738,7 +738,7 @@ cheax_cast(CHEAX *c, struct chx_value *v, int type)
 }
 
 int
-cheax_get_type(struct chx_value *v)
+cheax_type_of(struct chx_value *v)
 {
 	if (v == NULL)
 		return CHEAX_NIL;

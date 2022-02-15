@@ -28,7 +28,7 @@ static void ostream_show(CHEAX *c, struct ostream *s, struct chx_value *val);
 static void
 ostream_show_basic_type(CHEAX *c, struct ostream *s, struct chx_value *val)
 {
-	switch (cheax_resolve_type(c, cheax_get_type(val))) {
+	switch (cheax_resolve_type(c, cheax_type_of(val))) {
 	case CHEAX_NIL:
 		ostream_printf(s, "()");
 		break;
@@ -107,7 +107,7 @@ ostream_show_basic_type(CHEAX *c, struct ostream *s, struct chx_value *val)
 static void
 ostream_show(CHEAX *c, struct ostream *s, struct chx_value *val)
 {
-	int ty = cheax_get_type(val);
+	int ty = cheax_type_of(val);
 	if (cheax_is_basic_type(c, ty)) {
 		ostream_show_basic_type(c, s, val);
 	} else {
@@ -441,7 +441,7 @@ read_closing_curly:
 	int prev_idx = ss.idx;
 
 	struct chx_value *arg = arg_array[cur_arg_idx];
-	int ty = cheax_get_type(arg);
+	int ty = cheax_type_of(arg);
 
 	if (conv == CONV_NONE && ty == CHEAX_INT) {
 		if (!can_int) {

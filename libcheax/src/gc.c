@@ -217,7 +217,7 @@ mark(CHEAX *c,
 			return; /* not relevant for us */
 
 		struct chx_id *id = id_bytes;
-		if (cheax_get_type(&id->base) != CHEAX_ID)
+		if (cheax_type_of(&id->base) != CHEAX_ID)
 			return; /* id_bytes must be something else, then */
 
 		to_gray(id, white, gray);
@@ -230,7 +230,7 @@ mark(CHEAX *c,
 	struct chx_list *list;
 	struct chx_func *func;
 	struct chx_quote *quote;
-	switch (cheax_resolve_type(c, cheax_get_type(used))) {
+	switch (cheax_resolve_type(c, cheax_type_of(used))) {
 	case CHEAX_LIST:
 		list = (struct chx_list *)used;
 		to_gray(list->value, white, gray);

@@ -53,7 +53,7 @@ expand_macro(CHEAX *c,
 	struct chx_list *as_cons = (struct chx_list *)val;
 	struct chx_quote *as_quote = (struct chx_quote *)val;
 
-	switch (cheax_get_type(val)) {
+	switch (cheax_type_of(val)) {
 	case CHEAX_ID:
 		for (struct variable *v = args_top; v != locals_top; v = v->below)
 			if (!strcmp(v->name, as_id->id))
@@ -127,7 +127,7 @@ eval_sexpr(CHEAX *c, struct chx_list *input)
 
 	struct chx_value *res;
 
-	switch (cheax_get_type(func)) {
+	switch (cheax_type_of(func)) {
 	case CHEAX_NIL:
 		cry(c, "eval", CHEAX_ENIL, "Cannot call nil");
 		res = NULL;
@@ -195,7 +195,7 @@ eval_sexpr(CHEAX *c, struct chx_list *input)
 
 		struct chx_value *cast_arg = cast_args->value;
 
-		if (cheax_get_base_type(c, type) != cheax_get_type(cast_arg)) {
+		if (cheax_get_base_type(c, type) != cheax_type_of(cast_arg)) {
 			cry(c, "eval", CHEAX_ETYPE, "Unable to instantiate");
 			res = NULL;
 			goto ret;
@@ -224,7 +224,7 @@ eval_bkquoted(CHEAX *c, struct chx_value *quoted)
 	struct chx_list *lst = NULL, *lst_quoted = NULL;
 	struct chx_quote *qt_quoted = NULL;
 
-	switch (cheax_get_type(quoted)) {
+	switch (cheax_type_of(quoted)) {
 	case CHEAX_LIST:
 		lst_quoted = (struct chx_list *)quoted;
 		struct chx_value *car = eval_bkquoted(c, lst_quoted->value);
@@ -264,7 +264,7 @@ cheax_eval(CHEAX *c, struct chx_value *input)
 	struct chx_value *res = NULL;
 	cheax_ref(c, input);
 
-	switch (cheax_get_type(input)) {
+	switch (cheax_type_of(input)) {
 	case CHEAX_ID:
 		res = cheax_get(c, ((struct chx_id *)input)->id);
 		break;
