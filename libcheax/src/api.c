@@ -273,16 +273,24 @@ cheax_ext_func(CHEAX *c, chx_func_ptr perform, const char *name)
 struct chx_string *
 cheax_string(CHEAX *c, char *value)
 {
-	if (value == NULL)
+	if (value == NULL) {
+		cry(c, "cheax_string", CHEAX_EAPI, "`value' cannot be NULL");
 		return NULL;
+	}
 
 	return cheax_nstring(c, value, strlen(value));
 }
 struct chx_string *
 cheax_nstring(CHEAX *c, char *value, size_t len)
 {
-	if (value == NULL)
-		return NULL;
+	if (value == NULL) {
+		if (len == 0) {
+			value = "";
+		} else {
+			cry(c, "cheax_nstring", CHEAX_EAPI, "`value' cannot be NULL");
+			return NULL;
+		}
+	}
 
 	struct chx_string *res = cheax_alloc(c, sizeof(struct chx_string) + len + 1);
 	char *buf = ((char *)res) + sizeof(struct chx_string);
