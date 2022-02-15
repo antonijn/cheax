@@ -19,312 +19,493 @@
 #include <limits.h>
 #include <stdlib.h>
 #include <stdio.h>
+#include <stdint.h>
 #include <string.h>
 #include <ctype.h>
 
 #include "api.h"
+#include "config.h"
+#include "loc.h"
+#include "stream.h"
 
-enum tok_kind {
-	TK_ID, TK_INT, TK_DOUBLE, TK_LPAR, TK_RPAR, TK_QUOTE, TK_STRING, TK_EOF
-};
+/*
+ * We might need two characters of lookahead for atoms
+ * beginning with `.-', which could thereafter still be either numbers
+ * or identifiers.
+ */
+#define MAX_LOOKAHEAD 2
 
-struct tok {
-	enum tok_kind kind;
-	char lexeme[101];
-};
-
-struct lexer {
+struct reader {
 	CHEAX *c;
-	int cur;
-	void *info;
-	int (*get)(void *info);
+	struct istream *istr;
+	int ch;
+	bool in_backquote;
+
+	int buf[MAX_LOOKAHEAD];
+	int lah; /* actual lookahead */
 };
 
-static void lxadv(struct lexer *lx, struct tok *tk);
-static struct chx_value *ast_read(struct lexer *lx, struct tok *tk);
-
-struct sstream {
-	const char *str;
-	int idx;
-};
 static int
-get_sgetc(void *s)
+rdr_advch(struct reader *rdr)
 {
-	struct sstream *ss = s;
-	char ch = ss->str[ss->idx];
-	if (ch == '\0')
-		return EOF;
+	int res = rdr->ch;
+	if (res != EOF) {
+		int pop = 0;
+		for (int i = rdr->lah - 1; i >= 0; --i) {
+			int next_pop = rdr->buf[i];
+			rdr->buf[i] = pop;
+			pop = next_pop;
+		}
 
-	++ss->idx;
-	return ch;
-}
-static void
-lxinits(struct lexer *lx, CHEAX *c, struct tok *tk, struct sstream *s)
-{
-	lx->c = c;
-	lx->info = s;
-	lx->get = get_sgetc;
-	lx->cur = get_sgetc(s);
-	lxadv(lx, tk);
-}
+		if (rdr->lah == 0) {
+			rdr->ch = istream_getchar(rdr->istr);
+		} else {
+			--rdr->lah;
+			rdr->ch = pop;
+		}
 
-static int
-get_fgetc(void *f)
-{
-	return fgetc(f);
-}
-static inline void
-lxinitf(struct lexer *lx, CHEAX *c, struct tok *tk, FILE *f)
-{
-	lx->c = c;
-	lx->info = f;
-	lx->get = get_fgetc;
-	lx->cur = fgetc(f);
-	lxadv(lx, tk);
-}
-
-static int
-lxadvch(struct lexer *lx)
-{
-	int res = lx->cur;
-	lx->cur = lx->get(lx->info);
+	}
 	return res;
 }
 
 static int
-isid(int ch)
+rdr_backup_to(struct reader *rdr, int c)
 {
-	return ch != '(' && ch != ')' && !isspace(ch) && isprint(ch);
+	if (rdr->lah >= MAX_LOOKAHEAD) {
+		cry(rdr->c, "read", CHEAX_EREAD, "rdr_backup_to() called too often");
+		return EOF;
+	}
+
+	++rdr->lah;
+
+	int push = rdr->ch;
+	for (int i = 0; i < rdr->lah; ++i) {
+		int next_push = rdr->buf[i];
+		rdr->buf[i] = push;
+		push = next_push;
+	}
+	rdr->ch = c;
 }
 
 static void
-trim_space(struct lexer *lx)
+rdr_init(struct reader *rdr, struct istream *istr, CHEAX *c)
 {
-	while (isspace(lx->cur))
-		lxadvch(lx);
+	rdr->c = c;
+	rdr->istr = istr;
+	rdr->ch = 0;
+	rdr->in_backquote = false;
 
-	if (lx->cur == ';') {
-		lxadvch(lx);
-		while (lx->cur != '\n' && lx->cur != EOF)
-			lxadvch(lx);
-		trim_space(lx);
-	}
+	memset(rdr->buf, 0, MAX_LOOKAHEAD);
+	rdr->lah = 0;
+
+	rdr_advch(rdr);
 }
 
-/* Returns false if string needs to terminate */
-static bool
-get_string_char(struct lexer *lx, char **dest)
+static int
+is_id(int ch)
 {
-	int ch = lx->cur;
-	*(*dest)++ = ch;
-	lxadvch(lx);
+	return ch != '(' && ch != ')'
+	    && !isspace(ch) && isprint(ch)
+	    && ch != '\'' && ch != '`' && ch != ',' && ch != '"';
+}
 
-	if (ch == '"')
-		return false;
-
-	if (ch == '\n' || ch == EOF) {
-		cry(lx->c, "read", CHEAX_EEOF, "Unexpected end of file");
-		return false;
-	}
-
-	if (ch == '\\') {
-		*(*dest)++ = lx->cur;
-		lxadvch(lx);
-	}
-
-	return true;
+static int
+is_initial_id(int ch)
+{
+	return is_id(ch) && !isdigit(ch);
 }
 
 static void
-get_string(struct lexer *lx, struct tok *tk)
+skip_space(struct reader *rdr)
 {
-	char *dest = tk->lexeme;
-	*dest++ = lx->cur; /* copy '"' */
-	lxadvch(lx);
-	while (get_string_char(lx, &dest))
-		;
-	*dest = '\0';
-	tk->kind = TK_STRING;
-}
+	while (isspace(rdr->ch))
+		rdr_advch(rdr);
 
-static void
-get_num(struct lexer *lx, struct tok *tk)
-{
-	char *dest = tk->lexeme;
-	while (strchr("0123456789abcdefABCDEFxX.", lx->cur))
-		*dest++ = lxadvch(lx);
-	*dest = '\0';
-	tk->kind = strchr(tk->lexeme, '.') ? TK_DOUBLE : TK_INT;
-}
-
-static void
-get_id(struct lexer *lx, struct tok *tk)
-{
-	char *dest = tk->lexeme;
-	while (isid(lx->cur))
-		*dest++ = lxadvch(lx);
-	*dest = '\0';
-	tk->kind = TK_ID;
-}
-
-void
-lxadv(struct lexer *lx, struct tok *tk)
-{
-	trim_space(lx);
-
-	if (lx->cur == '\'') {
-		strcpy(tk->lexeme, "'");
-		tk->kind = TK_QUOTE;
-		lxadvch(lx);
-	} else if (lx->cur == '"') {
-		get_string(lx, tk);
-	} else if (isid(lx->cur)) {
-		if (isdigit(lx->cur))
-			get_num(lx, tk);
-		else
-			get_id(lx, tk);
-	} else if (lx->cur == '(') {
-		strcpy(tk->lexeme, "(");
-		tk->kind = TK_LPAR;
-		lxadvch(lx);
-	} else if (lx->cur == ')') {
-		strcpy(tk->lexeme, ")");
-		tk->kind = TK_RPAR;
-		lxadvch(lx);
-	} else if (lx->cur == '\0' || lx->cur == EOF) {
-		tk->kind = TK_EOF;
+	if (rdr->ch == ';') {
+		rdr_advch(rdr);
+		while (rdr->ch != '\n' && rdr->ch != EOF)
+			rdr_advch(rdr);
+		skip_space(rdr);
 	}
-}
-
-struct chx_value *
-read_int(struct lexer *lx, struct tok *tk)
-{
-	int prev_errno = errno;
-	long val = strtol(tk->lexeme, NULL, 0);
-	int new_errno = errno;
-	errno = prev_errno;
-
-	if (new_errno == ERANGE || val > INT_MAX || val < INT_MIN) {
-		cry(lx->c, "read", CHEAX_EREAD, "Invalid integer");
-		return NULL;
-	}
-
-	return &cheax_int(lx->c, val)->base;
-}
-struct chx_value *
-read_double(struct lexer *lx, struct tok *tk)
-{
-	int prev_errno = errno;
-	double val = strtod(tk->lexeme, NULL);
-	int new_errno = errno;
-	errno = prev_errno;
-
-	if (new_errno == ERANGE) {
-		cry(lx->c, "read", CHEAX_EREAD, "Invalid floating point number");
-		return NULL;
-	}
-
-	return &cheax_double(lx->c, val)->base;
-}
-struct chx_value *
-read_id(struct lexer *lx, struct tok *tk)
-{
-	return &cheax_id(lx->c, tk->lexeme)->base;
-}
-struct chx_value *
-read_string(struct lexer *lx, struct tok *tk)
-{
-	/* Enough to hold all characters */
-	size_t crude_len = strlen(tk->lexeme);
-	char *value = malloc(crude_len);
-
-	char *shift = value;
-	for (int i = 1; i + 1 < crude_len; ++i) {
-		char ch = tk->lexeme[i];
-
-		if (ch != '\\') {
-			*shift++ = ch;
-			continue;
-		}
-
-		ch = tk->lexeme[++i];
-		assert(i + 1 < crude_len);
-
-		switch (ch) {
-		case 'n':
-			*shift++ = '\n';
-			break;
-		default:
-			*shift++ = ch;
-			break;
-		}
-	}
-
-	size_t act_len = (shift - value);
-	struct chx_string *res = cheax_nstring(lx->c, value, act_len);
-
-	free(value);
-
-	return &res->base;
-}
-
-struct chx_value *
-read_cons(struct lexer *lx, struct tok *tk)
-{
-	struct chx_list *res = NULL;
-	struct chx_list **last = &res;
-	lxadv(lx, tk);
-	while (tk->kind != TK_RPAR) {
-		if (tk->kind == TK_EOF) {
-			cry(lx->c, "read", CHEAX_EEOF, "Unexpected end of file");
-			return NULL;
-		}
-		*last = cheax_list(lx->c, ast_read(lx, tk), NULL);
-		last = &(*last)->next;
-		lxadv(lx, tk);
-	}
-	return &res->base;
 }
 
 static struct chx_value *
-ast_read(struct lexer *lx, struct tok *tk)
+read_id(struct reader *rdr) /* consume_final = true */
 {
-	switch (tk->kind) {
-	case TK_ID:
-		return read_id(lx, tk);
-	case TK_INT:
-		return read_int(lx, tk);
-	case TK_DOUBLE:
-		return read_double(lx, tk);
-	case TK_LPAR:
-		return read_cons(lx, tk);
-	case TK_QUOTE:
-		lxadv(lx, tk);
-		return &cheax_quote(lx->c, ast_read(lx, tk))->base;
-	case TK_STRING:
-		return read_string(lx, tk);
-	case TK_EOF:
-		return NULL;
-	default:
-		cry(lx->c, "read", CHEAX_EREAD, "Unexpected token");
-		return NULL;
+	struct sostream ss;
+	sostream_init(&ss, rdr->c);
+
+	struct chx_value *res = NULL;
+
+	while (is_id(rdr->ch))
+		ostream_putchar(&ss.ostr, rdr_advch(rdr));
+
+	if (!isspace(rdr->ch) && rdr->ch != ';' && rdr->ch != ')') {
+		cry(rdr->c, "read", CHEAX_EREAD, "only whitespace or `)' may follow identifier");
+		goto done;
 	}
+
+	ostream_putchar(&ss.ostr, '\0');
+	res = &cheax_id(rdr->c, ss.buf)->base;
+
+done:
+	free(ss.buf);
+	return res;
+}
+
+static int_least64_t
+read_digits(struct reader *rdr,
+            struct ostream *ostr,
+            int base,
+            bool *too_big)
+{
+	int_least64_t value = 0;
+	char max_digit = (base <= 10) ? '0' + base - 1 : '9';
+	bool overflow = false;
+
+	for (;;) {
+		int digit;
+		if (rdr->ch >= '0' && rdr->ch <= max_digit)
+			digit = rdr->ch - '0';
+		else if (base == 16 && rdr->ch >= 'A' && rdr->ch <= 'F')
+			digit = rdr->ch - 'A' + 10;
+		else if (base == 16 && rdr->ch >= 'a' && rdr->ch <= 'f')
+			digit = rdr->ch - 'a' + 10;
+		else
+			break;
+
+		ostream_putchar(ostr, rdr_advch(rdr));
+
+		if (overflow || value > INT_LEAST64_MAX / base) {
+			overflow = true;
+			continue;
+		}
+
+		value *= base;
+
+		if (value > INT_LEAST64_MAX - digit) {
+			overflow = true;
+			continue;
+		}
+
+		value += digit;
+	}
+
+	if (too_big != NULL)
+		*too_big = overflow;
+
+	return value;
+}
+
+static struct chx_value *
+read_num(struct reader *rdr) /* consume_final = true */
+{
+	struct sostream ss;
+	sostream_init(&ss, rdr->c);
+
+	struct chx_value *res = NULL;
+
+	/*
+	 * We optimise (slightly) for integers, whose value we parse as
+	 * we read them. For doubles, this isn't really possible, since
+	 * we must rely on strtod() after we've read the number.
+	 *
+	 * Beyond just an optimisation, this also allows us to read
+	 * integer formats that aren't standard for strtol(), such as
+	 * "0b"-prefixed binary numbers.
+	 */
+
+	int_least64_t pos_whole_value = 0; /* Value of positive whole part */
+	bool negative = false, too_big = false, is_double = false;
+	int base = 10;
+
+	if (rdr->ch == '-') {
+		negative = true;
+		ostream_putchar(&ss.ostr, rdr_advch(rdr));
+	} else if (rdr->ch == '+') {
+		ostream_putchar(&ss.ostr, rdr_advch(rdr));
+	}
+
+	if (rdr->ch == '0') {
+		ostream_putchar(&ss.ostr, rdr_advch(rdr));
+		if (rdr->ch == 'x' || rdr->ch == 'X') {
+			base = 16;
+			ostream_putchar(&ss.ostr, rdr_advch(rdr));
+		} else if (rdr->ch == 'b' || rdr->ch == 'B') {
+			base = 2;
+			ostream_putchar(&ss.ostr, rdr_advch(rdr));
+		} else if (isdigit(rdr->ch)) {
+			base = 8;
+		}
+	}
+
+	pos_whole_value = read_digits(rdr, &ss.ostr, base, &too_big);
+
+	if (rdr->ch == '.' && (base == 10 || base == 16)) {
+		is_double = true;
+		ostream_putchar(&ss.ostr, rdr_advch(rdr));
+		read_digits(rdr, &ss.ostr, base, NULL);
+	}
+
+	if ((base == 10 && (rdr->ch == 'e' || rdr->ch == 'E'))
+	 || (base == 16 && (rdr->ch == 'p' || rdr->ch == 'P')))
+	{
+		ostream_putchar(&ss.ostr, rdr_advch(rdr));
+
+		if (rdr->ch == '-' || rdr->ch == '+')
+			ostream_putchar(&ss.ostr, rdr_advch(rdr));
+
+		read_digits(rdr, &ss.ostr, base, NULL);
+	}
+
+	if (!isspace(rdr->ch) && rdr->ch != ';' && rdr->ch != ')') {
+		cry(rdr->c, "read", CHEAX_EREAD, "only whitespace or `)' may follow number");
+		goto done;
+	}
+
+	if (!is_double) {
+		if (negative)
+			pos_whole_value = -pos_whole_value;
+
+		if (too_big || pos_whole_value > INT_MAX || pos_whole_value < INT_MIN) {
+			cry(rdr->c, "read", CHEAX_EREAD, "integer too big");
+			goto done;
+		}
+
+		res = &cheax_int(rdr->c, (int)pos_whole_value)->base;
+		goto done;
+	}
+
+	ostream_putchar(&ss.ostr, '\0');
+
+	double dval;
+	char *endptr;
+
+#if defined(HAS_STRTOD_L)
+	dval = strtod_l(ss.buf, &endptr, get_c_locale());
+#elif defined(HAS_STUPID_WINDOWS_STRTOD_L)
+	dval = _strtod_l(ss.buf, &endptr, get_c_locale());
+#else
+	locale_t prev_locale = uselocale(get_c_locale());
+	dval = strtod(ss.buf, &endptr);
+	uselocale(prev_locale);
+#endif
+
+	if (*endptr != '\0') {
+		cry(rdr->c, "read", CHEAX_EREAD, "unexpected strtod() error");
+		goto done;
+	}
+
+	res = &cheax_double(rdr->c, dval)->base;
+
+done:
+	free(ss.buf);
+	return res;
+}
+
+static void
+read_bslash_expr(struct reader *rdr, struct ostream *ostr) /* consume_final = true */
+{
+	/* I expect the backslash itself to have been consumed */
+
+	int ch = -1;
+	switch (rdr->ch) {
+	case 'n':  ch = '\n'; break;
+	case 'r':  ch = '\r'; break;
+	case '\\': ch = '\\'; break;
+	case '0':  ch = '\0'; break;
+	case 't':  ch = '\t'; break;
+	case '\'': ch = '\''; break;
+	case '"':  ch = '"';  break;
+	}
+
+	if (ch != -1) {
+		ostream_putchar(ostr, ch);
+		rdr_advch(rdr);
+		return;
+	}
+
+	if (rdr->ch == 'x' || rdr->ch == 'X') {
+		rdr_advch(rdr);
+		int digits[2];
+		for (int i = 0; i < 2; ++i) {
+			if (rdr->ch >= '0' && rdr->ch <= '9') {
+				digits[i] = rdr->ch - '0';
+			} else if (rdr->ch >= 'A' && rdr->ch <= 'F') {
+				digits[i] = rdr->ch - 'A' + 10;
+			} else if (rdr->ch >= 'a' && rdr->ch <= 'f') {
+				digits[i] = rdr->ch - 'a' + 10;
+			} else {
+				cry(rdr->c, "read", CHEAX_EREAD, "expected two hex digits after `\\x'");
+				return;
+			}
+
+			rdr_advch(rdr);
+		}
+
+		ostream_putchar(ostr, (digits[0] << 4) + digits[1]);
+		return;
+	}
+
+	/* TODO maybe uXXXX expressions */
+
+	cry(rdr->c, "read", CHEAX_EREAD, "unexpected character after `\\'");
+}
+
+static struct chx_value *
+read_string(struct reader *rdr, int consume_final)
+{
+	struct sostream ss;
+	sostream_init(&ss, rdr->c);
+
+	struct chx_value *res = NULL;
+
+	/* consume initial `"' */
+	rdr_advch(rdr);
+
+	while (rdr->ch != '"') {
+		int ch;
+		switch ((ch = rdr_advch(rdr))) {
+		case '\n':
+		case EOF:
+			cry(rdr->c, "read", CHEAX_EREAD, "unexpected string termination");
+			goto done;
+
+		case '\\':
+			read_bslash_expr(rdr, &ss.ostr);
+			cheax_ft(rdr->c, done);
+			break;
+		default:
+			ostream_putchar(&ss.ostr, ch);
+			break;
+		}
+	}
+
+	if (consume_final)
+		rdr_advch(rdr);
+
+	res = &cheax_nstring(rdr->c, ss.buf, ss.idx)->base;
+
+done:
+	free(ss.buf);
+	return res;
+}
+
+static struct chx_value *
+rdr_read(struct reader *rdr, bool consume_final)
+{
+	skip_space(rdr);
+
+	if (rdr->ch == '-') {
+		rdr_advch(rdr);
+		bool is_num = false;
+
+		if (isdigit(rdr->ch)) {
+			is_num = true;
+		} else if (rdr->ch == '.') {
+			rdr_advch(rdr);
+			is_num = isdigit(rdr->ch);
+			rdr_backup_to(rdr, '.');
+		}
+
+		rdr_backup_to(rdr, '-');
+
+		return is_num ? read_num(rdr) : read_id(rdr);
+	}
+
+	if (rdr->ch == '.') {
+		rdr_advch(rdr);
+		bool is_num = isdigit(rdr->ch);
+		rdr_backup_to(rdr, '.');
+
+		return is_num ? read_num(rdr) : read_id(rdr);
+	}
+
+	if (is_initial_id(rdr->ch))
+		return read_id(rdr);
+
+	if (isdigit(rdr->ch))
+		return read_num(rdr);
+
+	if (rdr->ch == '(') {
+		struct chx_list *lst = NULL;
+		struct chx_list **next = &lst;
+
+		rdr_advch(rdr);
+		while (rdr->ch != ')') {
+			if (rdr->ch == EOF) {
+				cry(rdr->c, "read", CHEAX_EEOF, "unexpected end-of-file in s-expression");
+				return NULL;
+			}
+
+			*next = cheax_list(rdr->c, rdr_read(rdr, true), NULL);
+			cheax_ft(rdr->c, pad);
+			next = &(*next)->next;
+
+			skip_space(rdr);
+		}
+
+		if (consume_final)
+			rdr_advch(rdr);
+
+		return &lst->base;
+	}
+
+	if (rdr->ch == '\'') {
+		rdr_advch(rdr);
+		struct chx_value *to_quote = rdr_read(rdr, consume_final);
+		cheax_ft(rdr->c, pad);
+		return &cheax_quote(rdr->c, to_quote)->base;
+	}
+
+	if (rdr->ch == '`') {
+		rdr_advch(rdr);
+		bool was_in_backquote = rdr->in_backquote;
+		rdr->in_backquote = true;
+		struct chx_value *to_quote = rdr_read(rdr, consume_final);
+		rdr->in_backquote = was_in_backquote;
+		cheax_ft(rdr->c, pad);
+		return &cheax_backquote(rdr->c, to_quote)->base;
+	}
+
+	if (rdr->ch == ',') {
+		if (!rdr->in_backquote) {
+			cry(rdr->c, "read", CHEAX_EREAD, "comma is illegal outside of backquotes");
+			return NULL;
+		}
+
+		rdr_advch(rdr);
+		struct chx_value *to_comma = rdr_read(rdr, consume_final);
+		cheax_ft(rdr->c, pad);
+		return &cheax_comma(rdr->c, to_comma)->base;
+	}
+
+	if (rdr->ch == '"')
+		return read_string(rdr, consume_final);
+
+pad:
+	return NULL;
 }
 
 struct chx_value *
 cheax_read(CHEAX *c, FILE *infile)
 {
-	struct lexer lx;
-	struct tok tk;
-	lxinitf(&lx, c, &tk, infile);
-	return ast_read(&lx, &tk);
+	struct fistream fs;
+	fistream_init(&fs, infile, c);
+
+	struct reader rdr;
+	rdr_init(&rdr, &fs.istr, c);
+
+	return rdr_read(&rdr, false);
 }
 struct chx_value *
 cheax_readstr(CHEAX *c, const char *str)
 {
-	struct sstream ss = { .str = str, .idx = 0 };
-	struct lexer lx;
-	struct tok tk;
-	lxinits(&lx, c, &tk, &ss);
-	return ast_read(&lx, &tk);
+	struct sistream ss;
+	sistream_init(&ss, str);
+
+	struct reader rdr;
+	rdr_init(&rdr, &ss.istr, c);
+
+	return rdr_read(&rdr, false);
 }

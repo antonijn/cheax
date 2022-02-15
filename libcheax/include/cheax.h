@@ -44,6 +44,8 @@ enum {
 	CHEAX_FUNC,       /*!< Type of cheax lambda expressions, both functions and macros. */
 	CHEAX_EXT_FUNC,   /*!< Type of functions defined from outside the cheax environment. */
 	CHEAX_QUOTE,      /*!< Type of quoted expressions. */
+	CHEAX_BACKQUOTE,  /*!< Type of backquoted expressions. */
+	CHEAX_COMMA,      /*!< Type of comma expressions. */
 	CHEAX_STRING,     /*!< String type. */
 
 	/*! \brief Type of user pointers defined from outside the cheax
@@ -195,7 +197,8 @@ struct chx_ext_func {
 struct chx_ext_func *cheax_ext_func(CHEAX *c, chx_func_ptr perform, const char *name);
 
 /*! \brief Quoted cheax expression.
- * \sa cheax_quote(), CHEAX_QUOTE
+ * \sa cheax_quote(), CHEAX_QUOTE, cheax_backquote(), CHEAX_BACKQUOTE,
+ *     cheax_comma(), CHEAX_COMMA
  */
 struct chx_quote {
 	struct chx_value base;   /*!< Base. */
@@ -210,6 +213,24 @@ struct chx_quote {
  * \sa chx_quote, CHEAX_QUOTE
  */
 struct chx_quote *cheax_quote(CHEAX *c, struct chx_value *value);
+
+/*! \brief Creates a backquoted cheax expression.
+ *
+ * \param c     Virtual machine instance.
+ * \param value Expression to be backquoted.
+ *
+ * \sa chx_quote, CHEAX_BACKQUOTE
+ */
+struct chx_quote *cheax_backquote(CHEAX *c, struct chx_value *value);
+
+/*! \brief Creates a cheax comma expression.
+ *
+ * \param c     Virtual machine instance.
+ * \param value Expression following comma.
+ *
+ * \sa chx_quote, CHEAX_COMMA
+ */
+struct chx_quote *cheax_comma(CHEAX *c, struct chx_value *value);
 
 /*! \brief Cheax string expression.
  * \sa cheax_string(), cheax_nstring(), CHEAX_STRING
@@ -383,7 +404,6 @@ enum {
 	/* Read errors */
 	CHEAX_EREAD     = 0x0001, /*!< Generic read error. */
 	CHEAX_EEOF      = 0x0002, /*!< Unexpected end-of-file. */
-	CHEAX_ELEX      = 0x0003, /*!< Lexer error. */
 
 	/* Eval/runtime errors */
 	CHEAX_EEVAL     = 0x0101, /*!< Generic eval error */
@@ -415,7 +435,6 @@ cheax_builtin_error_codes[] = {
 	ERR_NAME_PAIR(ENOERR),
 
 	ERR_NAME_PAIR(EREAD), ERR_NAME_PAIR(EEOF),
-	ERR_NAME_PAIR(ELEX),
 
 	ERR_NAME_PAIR(EEVAL), ERR_NAME_PAIR(ENOSYM),
 	ERR_NAME_PAIR(ESTACK), ERR_NAME_PAIR(ETYPE),

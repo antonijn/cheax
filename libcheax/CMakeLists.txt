@@ -8,12 +8,25 @@ add_custom_target (
 		${CMAKE_SOURCE_DIR}
 )
 
+include(CheckFunctionExists)
+check_function_exists(strtod_l       HAVE_STRTOD_L)
+check_function_exists(newlocale      HAVE_NEWLOCALE)
+check_function_exists(_strtod_l      HAVE_STUPID_WINDOWS_STRTOD_L)
+check_function_exists(_create_locale HAVE_STUPID_WINDOWS_CREATE_LOCALE)
+if (NOT (HAVE_NEWLOCALE OR HAVE_STUPID_WINDOWS_CREATE_LOCALE))
+	message(SEND_ERROR "Target platform must support newlocale() or _create_locale().")
+endif()
+if (NOT (HAVE_STRTOD_L OR HAVE_NEWLOCALE OR (HAVE_STUPID_WINDOWS_STRTOD_L AND HAVE_STUPID_WINDOWS_CREATE_LOCALE)))
+	message(SEND_ERROR "Target platform must support strtod_l(), uselocale(), or both _strtod_l() and _create_locale().")
+endif()
+
 configure_file (src/config.h.in src/config.h)
 
 add_library (libcheax
 	src/api.c
 	src/stream.c
 	src/rbtree.c
+	src/loc.c
 	src/gc.c
 	src/read.c
 	src/eval.c

@@ -54,6 +54,14 @@ ostream_show_basic_type(CHEAX *c, struct ostream *s, struct chx_value *val)
 		ostream_putchar(s, '\'');
 		ostream_show(c, s, ((struct chx_quote *)val)->value);
 		break;
+	case CHEAX_BACKQUOTE:
+		ostream_putchar(s, '`');
+		ostream_show(c, s, ((struct chx_quote *)val)->value);
+		break;
+	case CHEAX_COMMA:
+		ostream_putchar(s, ',');
+		ostream_show(c, s, ((struct chx_quote *)val)->value);
+		break;
 	case CHEAX_FUNC:
 		ostream_putchar(s, '(');
 		struct chx_func *func = (struct chx_func *)val;

@@ -189,6 +189,22 @@ cheax_quote(CHEAX *c, struct chx_value *value)
 	res->value = value;
 	return res;
 }
+struct chx_quote *
+cheax_backquote(CHEAX *c, struct chx_value *value)
+{
+	struct chx_quote *res = cheax_alloc(c, sizeof(struct chx_quote));
+	res->base.type = CHEAX_BACKQUOTE;
+	res->value = value;
+	return res;
+}
+struct chx_quote *
+cheax_comma(CHEAX *c, struct chx_value *value)
+{
+	struct chx_quote *res = cheax_alloc(c, sizeof(struct chx_quote));
+	res->base.type = CHEAX_COMMA;
+	res->value = value;
+	return res;
+}
 struct chx_int *
 cheax_int(CHEAX *c, int value)
 {
@@ -500,6 +516,8 @@ cheax_equals(CHEAX *c, struct chx_value *l, struct chx_value *r)
 	case CHEAX_EXT_FUNC:
 		return ((struct chx_ext_func *)l)->perform == ((struct chx_ext_func *)r)->perform;
 	case CHEAX_QUOTE:
+	case CHEAX_BACKQUOTE:
+	case CHEAX_COMMA:
 		return cheax_equals(c, ((struct chx_quote *)l)->value, ((struct chx_quote *)r)->value);
 	case CHEAX_STRING:
 		;
@@ -677,6 +695,8 @@ cheax_shallow_copy(CHEAX *c, struct chx_value *v)
 		size = sizeof(struct chx_ext_func);
 		break;
 	case CHEAX_QUOTE:
+	case CHEAX_BACKQUOTE:
+	case CHEAX_COMMA:
 		size = sizeof(struct chx_quote);
 		break;
 	case CHEAX_STRING:

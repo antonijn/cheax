@@ -43,47 +43,6 @@ pad:
 	return;
 }
 
-static struct chx_value *cheax_eval_sexpr(CHEAX *c, struct chx_list *input);
-
-struct chx_value *
-cheax_eval(CHEAX *c, struct chx_value *input)
-{
-	struct chx_value *res = NULL;
-	cheax_ref(c, input);
-
-	switch (cheax_get_type(input)) {
-	case CHEAX_ID:
-		res = cheax_get(c, ((struct chx_id *)input)->id);
-		goto success;
-	case CHEAX_LIST:
-		if (c->stack_depth >= c->max_stack_depth) {
-			cry(c, "eval", CHEAX_ESTACK, "Stack overflow! (maximum stack depth = %d)", c->max_stack_depth);
-			res = NULL;
-			goto success;
-		}
-
-		int prev_stack_depth = c->stack_depth++;
-		res = cheax_eval_sexpr(c, (struct chx_list *)input);
-		c->stack_depth = prev_stack_depth;
-
-		goto success;
-	case CHEAX_QUOTE:
-		res = ((struct chx_quote *)input)->value;
-		goto success;
-
-	default:
-		res = input;
-		goto success;
-	}
-
-success:
-	cheax_ref(c, res);
-	cheax_gc(c);
-	cheax_unref(c, res);
-	cheax_unref(c, input);
-	return res;
-}
-
 static struct chx_value *
 expand_macro(CHEAX *c,
              struct variable *args_top,
@@ -159,7 +118,7 @@ pad:
 }
 
 static struct chx_value *
-cheax_eval_sexpr(CHEAX *c, struct chx_list *input)
+eval_sexpr(CHEAX *c, struct chx_list *input)
 {
 	struct chx_value *func = cheax_eval(c, input->value);
 	cheax_ft(c, pad);
@@ -255,5 +214,93 @@ ret:
 
 pad:
 	return NULL;
+}
+
+static struct chx_value *
+eval_bkquoted(CHEAX *c, struct chx_value *quoted)
+{
+	struct chx_value *res = NULL;
+
+	struct chx_list *lst = NULL, *lst_quoted = NULL;
+	struct chx_quote *qt_quoted = NULL;
+
+	switch (cheax_get_type(quoted)) {
+	case CHEAX_LIST:
+		lst_quoted = (struct chx_list *)quoted;
+		struct chx_value *car = eval_bkquoted(c, lst_quoted->value);
+		cheax_ref(c, car);
+		struct chx_value *cdr = eval_bkquoted(c, &lst_quoted->next->base);
+		cheax_unref(c, cdr);
+		cheax_ft(c, pad);
+		res = cheax_list(c, car, (struct chx_list *)cdr);
+		break;
+
+	case CHEAX_QUOTE:
+		qt_quoted = (struct chx_quote *)quoted;
+		res = cheax_quote(c, eval_bkquoted(c, qt_quoted->value));
+		break;
+	case CHEAX_BACKQUOTE:
+		qt_quoted = (struct chx_quote *)quoted;
+		res = cheax_backquote(c, eval_bkquoted(c, qt_quoted->value));
+		break;
+
+	case CHEAX_COMMA:
+		qt_quoted = (struct chx_quote *)quoted;
+		res = cheax_eval(c, qt_quoted->value);
+		break;
+
+	default:
+		res = quoted;
+		break;
+	}
+
+pad:
+	return res;
+}
+
+struct chx_value *
+cheax_eval(CHEAX *c, struct chx_value *input)
+{
+	struct chx_value *res = NULL;
+	cheax_ref(c, input);
+
+	switch (cheax_get_type(input)) {
+	case CHEAX_ID:
+		res = cheax_get(c, ((struct chx_id *)input)->id);
+		break;
+
+	case CHEAX_LIST:
+		if (c->stack_depth >= c->max_stack_depth) {
+			cry(c, "eval", CHEAX_ESTACK, "Stack overflow! (maximum stack depth = %d)", c->max_stack_depth);
+			break;
+		}
+
+		int prev_stack_depth = c->stack_depth++;
+		res = eval_sexpr(c, (struct chx_list *)input);
+		c->stack_depth = prev_stack_depth;
+
+		break;
+
+	case CHEAX_QUOTE:
+		res = ((struct chx_quote *)input)->value;
+		break;
+	case CHEAX_BACKQUOTE:
+		res = eval_bkquoted(c, ((struct chx_quote *)input)->value);
+		break;
+
+	case CHEAX_COMMA:
+		cry(c, "eval", CHEAX_EEVAL, "rogue comma");
+		break;
+
+	default:
+		res = input;
+		break;
+	}
+
+	cheax_ref(c, res);
+	cheax_gc(c);
+	cheax_unref(c, res);
+	cheax_unref(c, input);
+	return res;
 }
 

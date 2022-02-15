@@ -76,13 +76,12 @@
 (defun concat (xs) (foldr ++ () xs))
 (defun append args (concat args))
 
-; helper function for reverse (there's no let yet)
-(defun reverse' (xs ys)
+(defun rev-helper (xs ys)
   (case xs
     (() ys)
-    ((: z zs) (reverse' zs (: z ys)))
+    ((: z zs) (rev-helper zs (: z ys)))
   ))
-(defun reverse (xs) (reverse' xs ()))
+(defun reverse (xs) (rev-helper xs ()))
 (defun filter (p xs)
   (case xs
     (() ())
