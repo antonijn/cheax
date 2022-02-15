@@ -12,8 +12,8 @@
 ;  ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF
 ;  OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
 
-(def defmacro (\\ (name args body) (def name (\\ args body))))
-(defmacro defun (name args body) (def name (\ args body)))
+(def defmacro (macro (name args body) (def name (macro args body))))
+(defmacro defun (name args body) (def name (fn args body)))
 (defmacro if (cond then else) (case cond (0 else) (_ then)))
 
 (def pi 3.1415926535897932384)
@@ -24,7 +24,7 @@
 (def Int (type-of 0))
 (def Double (type-of 0.0))
 (def List (type-of '(0)))
-(def Func (type-of (\ () ())))
+(def Func (type-of (fn () ())))
 (def ExtFunc (type-of type-of))
 (def Quote (type-of ''0))
 (def BackQuote (type-of '`0))
@@ -66,7 +66,7 @@
       ))
   ))
 (defun zip-with (op xs ys)
-  (map (\ ((a b)) (op a b)) (zip xs ys)))
+  (map (fn ((a b)) (op a b)) (zip xs ys)))
 
 (defun ++ args
   (case args
@@ -89,7 +89,7 @@
     ((: z zs) (if (p z) (: z (filter p zs)) (filter p zs)))
   ))
 
-(defun length (xs) (foldr (\ (_ l) (+ 1 l)) 0 xs))
+(defun length (xs) (foldr (fn (_ l) (+ 1 l)) 0 xs))
 (defun sum (args) (foldr + 0 args))
 (defun product (args) (foldr * 1 args))
 
@@ -105,7 +105,7 @@
     ((_ _) 1)))
 (defun all (args) (foldr and 1 args))
 (defun any (args) (foldr or 0 args))
-(defun eq (: x xs) (all (map (\ (y) (= x y)) xs)))
+(defun eq (: x xs) (all (map (fn (y) (= x y)) xs)))
 
 (defun .. (from to)
   (if (<= from to)

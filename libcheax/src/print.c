@@ -66,9 +66,9 @@ ostream_show_basic_type(CHEAX *c, struct ostream *s, struct chx_value *val)
 		ostream_putchar(s, '(');
 		struct chx_func *func = (struct chx_func *)val;
 		if (func->eval_args)
-			ostream_printf(s, "\\ ");
+			ostream_printf(s, "fn ");
 		else
-			ostream_printf(s, "\\\\ ");
+			ostream_printf(s, "macro ");
 		ostream_show(c, s, func->args);
 		struct chx_list *body = func->body;
 		for (; body; body = body->next) {

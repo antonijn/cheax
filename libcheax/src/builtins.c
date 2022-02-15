@@ -633,14 +633,14 @@ create_func(CHEAX *c,
 }
 
 static struct chx_value *
-builtin_lambda(CHEAX *c, struct chx_list *args)
+builtin_fn(CHEAX *c, struct chx_list *args)
 {
-	return create_func(c, "\\", args, true);
+	return create_func(c, "fn", args, true);
 }
 static struct chx_value *
-builtin_macro_lambda(CHEAX *c, struct chx_list *args)
+builtin_macro(CHEAX *c, struct chx_list *args)
 {
-	return create_func(c, "\\\\", args, false);
+	return create_func(c, "macro", args, false);
 }
 
 static struct chx_value *
@@ -945,37 +945,47 @@ export_builtins(CHEAX *c)
 {
 	c->fhandle_type = cheax_new_type(c, "FileHandle", CHEAX_USER_PTR);
 
-	cheax_defmacro(c, "cheax-version", builtin_cheax_version);
-	cheax_defmacro(c, "read-from", builtin_read_from);
-	cheax_defmacro(c, "print-to", builtin_print_to);
-	cheax_defmacro(c, "format", builtin_format);
-	cheax_defmacro(c, "bytes", builtin_bytes);
-	cheax_defmacro(c, "error-code", builtin_error_code);
-	cheax_defmacro(c, "error-msg", builtin_error_msg);
-	cheax_defmacro(c, "throw", builtin_throw);
-	cheax_defmacro(c, "try", builtin_try);
-	cheax_defmacro(c, "new-error-code", builtin_new_error_code);
-	cheax_defmacro(c, "var", builtin_var);
-	cheax_defmacro(c, "def", builtin_def);
-	cheax_defmacro(c, "set", builtin_set);
-	cheax_defmacro(c, ":", builtin_prepend);
-	cheax_defmacro(c, "type-of", builtin_type_of);
-	cheax_defmacro(c, "get-max-stack-depth", builtin_get_max_stack_depth);
-	cheax_defmacro(c, "\\", builtin_lambda);
-	cheax_defmacro(c, "\\\\", builtin_macro_lambda);
-	cheax_defmacro(c, "eval", builtin_eval);
-	cheax_defmacro(c, "case", builtin_case);
-	cheax_defmacro(c, "+", builtin_add);
-	cheax_defmacro(c, "-", builtin_sub);
-	cheax_defmacro(c, "*", builtin_mul);
-	cheax_defmacro(c, "/", builtin_div);
-	cheax_defmacro(c, "%", builtin_mod);
-	cheax_defmacro(c, "=", builtin_eq);
-	cheax_defmacro(c, "!=", builtin_ne);
-	cheax_defmacro(c, "<", builtin_lt);
-	cheax_defmacro(c, "<=", builtin_le);
-	cheax_defmacro(c, ">", builtin_gt);
-	cheax_defmacro(c, ">=", builtin_ge);
+	struct {
+		const char *name;
+		chx_func_ptr fn;
+	} btns[] = {
+		{ "cheax-version", builtin_cheax_version },
+		{ "read-from", builtin_read_from },
+		{ "print-to", builtin_print_to },
+		{ "format", builtin_format },
+		{ "bytes", builtin_bytes },
+		{ "error-code", builtin_error_code },
+		{ "error-msg", builtin_error_msg },
+		{ "throw", builtin_throw },
+		{ "try", builtin_try },
+		{ "new-error-code", builtin_new_error_code },
+		{ "var", builtin_var },
+		{ "def", builtin_def },
+		{ "set", builtin_set },
+		{ ":", builtin_prepend },
+		{ "type-of", builtin_type_of },
+		{ "get-max-stack-depth", builtin_get_max_stack_depth },
+		{ "fn", builtin_fn },
+		{ "macro", builtin_macro },
+		{ "eval", builtin_eval },
+		{ "case", builtin_case },
+		{ "+", builtin_add },
+		{ "-", builtin_sub },
+		{ "*", builtin_mul },
+		{ "/", builtin_div },
+		{ "%", builtin_mod },
+		{ "=", builtin_eq },
+		{ "!=", builtin_ne },
+		{ "<", builtin_lt },
+		{ "<=", builtin_le },
+		{ ">", builtin_gt },
+		{ ">=", builtin_ge },
+	};
+
+	size_t nbtns = sizeof(btns) / sizeof(btns[0]);
+
+	for (int i = 0; i < nbtns; ++i)
+		cheax_defmacro(c, btns[i].name, btns[i].fn);
 
 	cheax_var(c, "stdin", &cheax_user_ptr(c, stdin, c->fhandle_type)->base, CHEAX_READONLY);
 	cheax_var(c, "stdout", &cheax_user_ptr(c, stdout, c->fhandle_type)->base, CHEAX_READONLY);
