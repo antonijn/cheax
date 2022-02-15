@@ -23,111 +23,7 @@
 #include "api.h"
 #include "gc.h"
 
-#define DECL_BUILTIN(cname) \
-static struct chx_value *builtin_##cname(CHEAX *c, struct chx_list *args)
-
 static struct chx_int yes = { { CHEAX_INT }, 1 }, no = { { CHEAX_INT }, 0 };
-
-DECL_BUILTIN(cheax_version);
-DECL_BUILTIN(fopen);
-DECL_BUILTIN(fclose);
-DECL_BUILTIN(read_from);
-DECL_BUILTIN(print_to);
-DECL_BUILTIN(format);
-DECL_BUILTIN(bytes);
-DECL_BUILTIN(error_code);
-DECL_BUILTIN(error_msg);
-DECL_BUILTIN(throw);
-DECL_BUILTIN(try);
-DECL_BUILTIN(new_error_code);
-DECL_BUILTIN(exit);
-DECL_BUILTIN(var);
-DECL_BUILTIN(const);
-DECL_BUILTIN(set);
-DECL_BUILTIN(prepend);
-DECL_BUILTIN(gc);
-DECL_BUILTIN(get_used_memory);
-DECL_BUILTIN(get_type);
-DECL_BUILTIN(get_max_stack_depth);
-DECL_BUILTIN(set_max_stack_depth);
-DECL_BUILTIN(lambda);
-DECL_BUILTIN(macro_lambda);
-DECL_BUILTIN(eval);
-DECL_BUILTIN(case);
-DECL_BUILTIN(add);
-DECL_BUILTIN(sub);
-DECL_BUILTIN(mul);
-DECL_BUILTIN(div);
-DECL_BUILTIN(mod);
-DECL_BUILTIN(eq);
-DECL_BUILTIN(ne);
-DECL_BUILTIN(lt);
-DECL_BUILTIN(le);
-DECL_BUILTIN(gt);
-DECL_BUILTIN(ge);
-
-void
-export_builtins(CHEAX *c)
-{
-	c->fhandle_type = cheax_new_type(c, "FileHandle", CHEAX_USER_PTR);
-
-	cheax_defmacro(c, "cheax-version", builtin_cheax_version);
-	cheax_defmacro(c, "read-from", builtin_read_from);
-	cheax_defmacro(c, "print-to", builtin_print_to);
-	cheax_defmacro(c, "format", builtin_format);
-	cheax_defmacro(c, "bytes", builtin_bytes);
-	cheax_defmacro(c, "error-code", builtin_error_code);
-	cheax_defmacro(c, "error-msg", builtin_error_msg);
-	cheax_defmacro(c, "throw", builtin_throw);
-	cheax_defmacro(c, "try", builtin_try);
-	cheax_defmacro(c, "new-error-code", builtin_new_error_code);
-	cheax_defmacro(c, "var", builtin_var);
-	cheax_defmacro(c, "const", builtin_const);
-	cheax_defmacro(c, "set", builtin_set);
-	cheax_defmacro(c, ":", builtin_prepend);
-	cheax_defmacro(c, "get-type", builtin_get_type);
-	cheax_defmacro(c, "get-max-stack-depth", builtin_get_max_stack_depth);
-	cheax_defmacro(c, "\\", builtin_lambda);
-	cheax_defmacro(c, "\\\\", builtin_macro_lambda);
-	cheax_defmacro(c, "eval", builtin_eval);
-	cheax_defmacro(c, "case", builtin_case);
-	cheax_defmacro(c, "+", builtin_add);
-	cheax_defmacro(c, "-", builtin_sub);
-	cheax_defmacro(c, "*", builtin_mul);
-	cheax_defmacro(c, "/", builtin_div);
-	cheax_defmacro(c, "%", builtin_mod);
-	cheax_defmacro(c, "=", builtin_eq);
-	cheax_defmacro(c, "!=", builtin_ne);
-	cheax_defmacro(c, "<", builtin_lt);
-	cheax_defmacro(c, "<=", builtin_le);
-	cheax_defmacro(c, ">", builtin_gt);
-	cheax_defmacro(c, ">=", builtin_ge);
-
-	cheax_var(c, "stdin", &cheax_user_ptr(c, stdin, c->fhandle_type)->base, CHEAX_READONLY);
-	cheax_var(c, "stdout", &cheax_user_ptr(c, stdout, c->fhandle_type)->base, CHEAX_READONLY);
-	cheax_var(c, "stderr", &cheax_user_ptr(c, stderr, c->fhandle_type)->base, CHEAX_READONLY);
-}
-
-void
-cheax_load_extra_builtins(CHEAX *c, enum chx_builtins builtins)
-{
-	if (builtins & CHEAX_FILE_IO) {
-		cheax_defmacro(c, "fopen", builtin_fopen);
-		cheax_defmacro(c, "fclose", builtin_fclose);
-	}
-
-	if (builtins & CHEAX_SET_MAX_STACK_DEPTH)
-		cheax_defmacro(c, "set-max-stack-depth", builtin_set_max_stack_depth);
-
-	if (builtins & CHEAX_GC_BUILTIN) {
-		cheax_defmacro(c, "gc", builtin_gc);
-		cheax_defmacro(c, "get-used-memory", builtin_get_used_memory);
-	}
-
-	if (builtins & CHEAX_EXIT_BUILTIN) {
-		cheax_defmacro(c, "exit", builtin_exit);
-	}
-}
 
 /* Calls cheax_ref() on all unpacked args, doesn't unref() on failure.
  * Returns the number of arguments unpacked. */
@@ -334,10 +230,10 @@ builtin_bytes(CHEAX *c, struct chx_list *args)
 }
 
 static struct chx_value *
-builtin_const(CHEAX *c, struct chx_list *args)
+builtin_def(CHEAX *c, struct chx_list *args)
 {
 	struct chx_value *idval, *setto;
-	if (!unpack_args(c, "const", args, false, 2, &idval, &setto))
+	if (!unpack_args(c, "def", args, false, 2, &idval, &setto))
 		return NULL;
 
 	setto = cheax_eval(c, setto);
@@ -346,7 +242,7 @@ builtin_const(CHEAX *c, struct chx_list *args)
 	struct variable *prev_top = c->locals_top;
 
 	if (!cheax_match(c, idval, setto)) {
-		cry(c, "const", CHEAX_EMATCH, "Invalid pattern");
+		cry(c, "def", CHEAX_EMATCH, "Invalid pattern");
 		return NULL;
 	}
 
@@ -1042,4 +938,67 @@ static struct chx_value *
 builtin_ge(CHEAX *c, struct chx_list *args)
 {
 	return do_cmp(c, ">=", args, 0, 1, 1);
+}
+
+void
+export_builtins(CHEAX *c)
+{
+	c->fhandle_type = cheax_new_type(c, "FileHandle", CHEAX_USER_PTR);
+
+	cheax_defmacro(c, "cheax-version", builtin_cheax_version);
+	cheax_defmacro(c, "read-from", builtin_read_from);
+	cheax_defmacro(c, "print-to", builtin_print_to);
+	cheax_defmacro(c, "format", builtin_format);
+	cheax_defmacro(c, "bytes", builtin_bytes);
+	cheax_defmacro(c, "error-code", builtin_error_code);
+	cheax_defmacro(c, "error-msg", builtin_error_msg);
+	cheax_defmacro(c, "throw", builtin_throw);
+	cheax_defmacro(c, "try", builtin_try);
+	cheax_defmacro(c, "new-error-code", builtin_new_error_code);
+	cheax_defmacro(c, "var", builtin_var);
+	cheax_defmacro(c, "def", builtin_def);
+	cheax_defmacro(c, "set", builtin_set);
+	cheax_defmacro(c, ":", builtin_prepend);
+	cheax_defmacro(c, "get-type", builtin_get_type);
+	cheax_defmacro(c, "get-max-stack-depth", builtin_get_max_stack_depth);
+	cheax_defmacro(c, "\\", builtin_lambda);
+	cheax_defmacro(c, "\\\\", builtin_macro_lambda);
+	cheax_defmacro(c, "eval", builtin_eval);
+	cheax_defmacro(c, "case", builtin_case);
+	cheax_defmacro(c, "+", builtin_add);
+	cheax_defmacro(c, "-", builtin_sub);
+	cheax_defmacro(c, "*", builtin_mul);
+	cheax_defmacro(c, "/", builtin_div);
+	cheax_defmacro(c, "%", builtin_mod);
+	cheax_defmacro(c, "=", builtin_eq);
+	cheax_defmacro(c, "!=", builtin_ne);
+	cheax_defmacro(c, "<", builtin_lt);
+	cheax_defmacro(c, "<=", builtin_le);
+	cheax_defmacro(c, ">", builtin_gt);
+	cheax_defmacro(c, ">=", builtin_ge);
+
+	cheax_var(c, "stdin", &cheax_user_ptr(c, stdin, c->fhandle_type)->base, CHEAX_READONLY);
+	cheax_var(c, "stdout", &cheax_user_ptr(c, stdout, c->fhandle_type)->base, CHEAX_READONLY);
+	cheax_var(c, "stderr", &cheax_user_ptr(c, stderr, c->fhandle_type)->base, CHEAX_READONLY);
+}
+
+void
+cheax_load_extra_builtins(CHEAX *c, enum chx_builtins builtins)
+{
+	if (builtins & CHEAX_FILE_IO) {
+		cheax_defmacro(c, "fopen", builtin_fopen);
+		cheax_defmacro(c, "fclose", builtin_fclose);
+	}
+
+	if (builtins & CHEAX_SET_MAX_STACK_DEPTH)
+		cheax_defmacro(c, "set-max-stack-depth", builtin_set_max_stack_depth);
+
+	if (builtins & CHEAX_GC_BUILTIN) {
+		cheax_defmacro(c, "gc", builtin_gc);
+		cheax_defmacro(c, "get-used-memory", builtin_get_used_memory);
+	}
+
+	if (builtins & CHEAX_EXIT_BUILTIN) {
+		cheax_defmacro(c, "exit", builtin_exit);
+	}
 }

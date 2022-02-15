@@ -12,23 +12,23 @@
 ;  ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF
 ;  OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
 
-(const defmacro (\\ (name args body) (const name (\\ args body))))
-(defmacro defun (name args body) (const name (\ args body)))
+(def defmacro (\\ (name args body) (def name (\\ args body))))
+(defmacro defun (name args body) (def name (\ args body)))
 (defmacro if (cond then else) (case cond (0 else) (_ then)))
 
-(const pi 3.1415926535897932384)
-(const nil ())
+(def pi 3.1415926535897932384)
+(def nil ())
 
-(const Nil (get-type nil))
-(const ID (get-type 'a))
-(const Int (get-type 0))
-(const Double (get-type 0.0))
-(const List (get-type '(0)))
-(const Func (get-type (\ () ())))
-(const ExtFunc (get-type get-type))
-(const Quote (get-type ''0))
-(const String (get-type ""))
-(const TypeCode (get-type Nil))
+(def Nil (get-type nil))
+(def ID (get-type 'a))
+(def Int (get-type 0))
+(def Double (get-type 0.0))
+(def List (get-type '(0)))
+(def Func (get-type (\ () ())))
+(def ExtFunc (get-type get-type))
+(def Quote (get-type ''0))
+(def String (get-type ""))
+(def TypeCode (get-type Nil))
 
 ; aka car
 (defun head ((: x _)) x)
