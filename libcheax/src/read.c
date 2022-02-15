@@ -39,7 +39,7 @@ struct reader {
 	CHEAX *c;
 	struct istream *istr;
 	int ch;
-	bool in_backquote;
+	int bkquote_stack, comma_stack;
 
 	int buf[MAX_LOOKAHEAD];
 	int lah; /* actual lookahead */
@@ -93,7 +93,8 @@ rdr_init(struct reader *rdr, struct istream *istr, CHEAX *c)
 	rdr->c = c;
 	rdr->istr = istr;
 	rdr->ch = 0;
-	rdr->in_backquote = false;
+	rdr->bkquote_stack = 0;
+	rdr->comma_stack = 0;
 
 	memset(rdr->buf, 0, MAX_LOOKAHEAD);
 	rdr->lah = 0;
@@ -460,22 +461,28 @@ rdr_read(struct reader *rdr, bool consume_final)
 
 	if (rdr->ch == '`') {
 		rdr_advch(rdr);
-		bool was_in_backquote = rdr->in_backquote;
-		rdr->in_backquote = true;
+		++rdr->bkquote_stack;
 		struct chx_value *to_quote = rdr_read(rdr, consume_final);
-		rdr->in_backquote = was_in_backquote;
+		--rdr->bkquote_stack;
 		cheax_ft(rdr->c, pad);
 		return &cheax_backquote(rdr->c, to_quote)->base;
 	}
 
 	if (rdr->ch == ',') {
-		if (!rdr->in_backquote) {
+		if (rdr->bkquote_stack == 0) {
 			cry(rdr->c, "read", CHEAX_EREAD, "comma is illegal outside of backquotes");
+			return NULL;
+		}
+		/* same error, different message */
+		if (rdr->comma_stack >= rdr->bkquote_stack) {
+			cry(rdr->c, "read", CHEAX_EREAD, "more commas than backquotes");
 			return NULL;
 		}
 
 		rdr_advch(rdr);
+		++rdr->comma_stack;
 		struct chx_value *to_comma = rdr_read(rdr, consume_final);
+		--rdr->comma_stack;
 		cheax_ft(rdr->c, pad);
 		return &cheax_comma(rdr->c, to_comma)->base;
 	}

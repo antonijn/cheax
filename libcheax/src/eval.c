@@ -217,7 +217,7 @@ pad:
 }
 
 static struct chx_value *
-eval_bkquoted(CHEAX *c, struct chx_value *quoted)
+eval_bkquoted(CHEAX *c, struct chx_value *quoted, int nest)
 {
 	struct chx_value *res = NULL;
 
@@ -227,9 +227,9 @@ eval_bkquoted(CHEAX *c, struct chx_value *quoted)
 	switch (cheax_type_of(quoted)) {
 	case CHEAX_LIST:
 		lst_quoted = (struct chx_list *)quoted;
-		struct chx_value *car = eval_bkquoted(c, lst_quoted->value);
+		struct chx_value *car = eval_bkquoted(c, lst_quoted->value, nest);
 		cheax_ref(c, car);
-		struct chx_value *cdr = eval_bkquoted(c, &lst_quoted->next->base);
+		struct chx_value *cdr = eval_bkquoted(c, &lst_quoted->next->base, nest);
 		cheax_unref(c, cdr);
 		cheax_ft(c, pad);
 		res = cheax_list(c, car, (struct chx_list *)cdr);
@@ -237,16 +237,22 @@ eval_bkquoted(CHEAX *c, struct chx_value *quoted)
 
 	case CHEAX_QUOTE:
 		qt_quoted = (struct chx_quote *)quoted;
-		res = cheax_quote(c, eval_bkquoted(c, qt_quoted->value));
+		res = cheax_quote(c, eval_bkquoted(c, qt_quoted->value, nest));
 		break;
 	case CHEAX_BACKQUOTE:
 		qt_quoted = (struct chx_quote *)quoted;
-		res = cheax_backquote(c, eval_bkquoted(c, qt_quoted->value));
+		res = cheax_backquote(c, eval_bkquoted(c, qt_quoted->value, nest + 1));
 		break;
 
 	case CHEAX_COMMA:
 		qt_quoted = (struct chx_quote *)quoted;
-		res = cheax_eval(c, qt_quoted->value);
+		if (nest <= 0) {
+			res = cheax_eval(c, qt_quoted->value);
+		} else {
+			struct chx_value *to_comma = eval_bkquoted(c, qt_quoted->value, nest - 1);
+			cheax_ft(c, pad);
+			res = &cheax_comma(c, to_comma)->base;
+		}
 		break;
 
 	default:
@@ -285,7 +291,7 @@ cheax_eval(CHEAX *c, struct chx_value *input)
 		res = ((struct chx_quote *)input)->value;
 		break;
 	case CHEAX_BACKQUOTE:
-		res = eval_bkquoted(c, ((struct chx_quote *)input)->value);
+		res = eval_bkquoted(c, ((struct chx_quote *)input)->value, 0);
 		break;
 
 	case CHEAX_COMMA:
