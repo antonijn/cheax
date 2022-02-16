@@ -866,7 +866,7 @@ builtin_eq(CHEAX *c, struct chx_list *args)
 	if (!unpack_args(c, "=", args, true, 2, &l, &r))
 		return NULL;
 
-	return cheax_equals(c, l, r) ? &yes.base : &no.base;
+	return cheax_eq(c, l, r) ? &yes.base : &no.base;
 }
 static struct chx_value *
 builtin_ne(CHEAX *c, struct chx_list *args)
@@ -875,7 +875,7 @@ builtin_ne(CHEAX *c, struct chx_list *args)
 	if (!unpack_args(c, "!=", args, true, 2, &l, &r))
 		return NULL;
 
-	return cheax_equals(c, l, r) ? &no.base : &yes.base;
+	return cheax_eq(c, l, r) ? &no.base : &yes.base;
 }
 
 static struct chx_value *

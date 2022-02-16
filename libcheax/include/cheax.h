@@ -765,7 +765,7 @@ bool cheax_match(CHEAX *c, struct chx_value *pan, struct chx_value *match, int f
  *
  * \returns Whether the given cheax expressions are equal in value.
  */
-bool cheax_equals(CHEAX *c, struct chx_value *l, struct chx_value *r);
+bool cheax_eq(CHEAX *c, struct chx_value *l, struct chx_value *r);
 
 /*! \brief Creates a shallow copy of the given cheax expression.
  *

@@ -616,7 +616,7 @@ cheax_match(CHEAX *c, struct chx_value *pan, struct chx_value *match, int flags)
 }
 
 bool
-cheax_equals(CHEAX *c, struct chx_value *l, struct chx_value *r)
+cheax_eq(CHEAX *c, struct chx_value *l, struct chx_value *r)
 {
 	if (cheax_type_of(l) != cheax_type_of(r))
 		return false;
@@ -627,7 +627,7 @@ cheax_equals(CHEAX *c, struct chx_value *l, struct chx_value *r)
 	case CHEAX_NIL:
 		return true;
 	case CHEAX_ID:
-		return !strcmp(((struct chx_id *)l)->id, ((struct chx_id *)r)->id);
+		return strcmp(((struct chx_id *)l)->id, ((struct chx_id *)r)->id) == 0;
 	case CHEAX_INT:
 		return ((struct chx_int *)l)->value == ((struct chx_int *)r)->value;
 	case CHEAX_DOUBLE:
@@ -636,21 +636,24 @@ cheax_equals(CHEAX *c, struct chx_value *l, struct chx_value *r)
 		;
 		struct chx_list *llist = (struct chx_list *)l;
 		struct chx_list *rlist = (struct chx_list *)r;
-		return cheax_equals(c, llist->value, rlist->value)
-		    && cheax_equals(c, &llist->next->base, &rlist->next->base);
+		return cheax_eq(c, llist->value, rlist->value)
+		    && cheax_eq(c, &llist->next->base, &rlist->next->base);
 	case CHEAX_EXT_FUNC:
 		return ((struct chx_ext_func *)l)->perform == ((struct chx_ext_func *)r)->perform;
 	case CHEAX_QUOTE:
 	case CHEAX_BACKQUOTE:
 	case CHEAX_COMMA:
-		return cheax_equals(c, ((struct chx_quote *)l)->value, ((struct chx_quote *)r)->value);
+		return cheax_eq(c, ((struct chx_quote *)l)->value, ((struct chx_quote *)r)->value);
 	case CHEAX_STRING:
 		;
 		struct chx_string *lstring = (struct chx_string *)l;
 		struct chx_string *rstring = (struct chx_string *)r;
-		return (lstring->len == rstring->len) && !strcmp(lstring->value, rstring->value);
+		return (lstring->len == rstring->len)
+		    && memcmp(lstring->value, rstring->value, lstring->len) == 0;
 	case CHEAX_USER_PTR:
 		return ((struct chx_user_ptr *)l)->value == ((struct chx_user_ptr *)r)->value;
+	default:
+		return l == r;
 	}
 }
 
