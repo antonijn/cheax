@@ -21,6 +21,30 @@
 #include "rbtree.h"
 
 enum {
+	NO_GC_BIT   = CHEAX_TYPE_MASK + 1,
+	FIN_BIT     = NO_GC_BIT << 1,
+	BIF_ENV_BIT = NO_GC_BIT << 2,
+};
+
+static inline bool
+has_no_gc_bit(struct chx_value *val)
+{
+	return (val->type & NO_GC_BIT) != 0;
+}
+
+static inline bool
+has_fin_bit(struct chx_value *val)
+{
+	return (val->type & FIN_BIT) != 0;
+}
+
+static inline bool
+has_bif_env_bit(struct chx_value *val)
+{
+	return (val->type & BIF_ENV_BIT) != 0;
+}
+
+enum {
 	CTYPE_NONE, /* only for non-synchronized variables */
 	CTYPE_INT,
 	CTYPE_FLOAT,
@@ -29,7 +53,7 @@ enum {
 
 struct variable {
 	const char *name;
-	enum chx_varflags flags;
+	int flags;
 	int ctype;
 
 	union {
@@ -39,8 +63,6 @@ struct variable {
 		float *sync_float;
 		double *sync_double;
 	} value;
-
-	struct variable *below;
 };
 
 struct type_cast {
@@ -59,8 +81,21 @@ struct type_alias {
 	struct type_cast *casts;
 };
 
+struct chx_env {
+	struct chx_value base;
+	union {
+		struct chx_env *bif[2];
+
+		struct {
+			struct rb_tree syms;
+			struct chx_env *below;
+		} norm;
+	} value;
+};
+
 struct cheax {
-	struct variable *locals_top;
+	struct chx_env globals;
+	struct chx_env *env;
 
 	int max_stack_depth, stack_depth;
 	int fhandle_type;
@@ -89,11 +124,18 @@ struct cheax {
 #endif
 };
 
+static inline int
+set_type(struct chx_value *value, int type)
+{
+	value->type = (value->type & ~CHEAX_TYPE_MASK) | type;
+	return type;
+}
+
 bool try_convert_to_int(struct chx_value *value, int *res);
 bool try_convert_to_double(struct chx_value *value, double *res);
 
+struct variable *find_sym_in(struct chx_env *env, const char *name);
 struct variable *find_sym(CHEAX *c, const char *name);
-struct variable *def_sym(CHEAX *c, const char *name, enum chx_varflags flags);
 void cry(CHEAX *c, const char *name, int err, const char *frmt, ...);
 
 /* defined in builtins.c */

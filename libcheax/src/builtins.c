@@ -23,7 +23,8 @@
 #include "api.h"
 #include "gc.h"
 
-static struct chx_int yes = { { CHEAX_INT }, 1 }, no = { { CHEAX_INT }, 0 };
+static struct chx_int yes = { { CHEAX_INT | NO_GC_BIT }, 1 };
+static struct chx_int no  = { { CHEAX_INT | NO_GC_BIT }, 0 };
 
 /* Calls cheax_ref() on all unpacked args, doesn't unref() on failure.
  * Returns the number of arguments unpacked. */
@@ -239,24 +240,10 @@ builtin_def(CHEAX *c, struct chx_list *args)
 	setto = cheax_eval(c, setto);
 	cheax_ft(c, pad);
 
-	struct variable *prev_top = c->locals_top;
-
-	if (!cheax_match(c, idval, setto)) {
+	if (!cheax_match(c, idval, setto, CHEAX_READONLY)) {
 		cry(c, "def", CHEAX_EMATCH, "Invalid pattern");
 		return NULL;
 	}
-
-	if (cheax_type_of(setto) == CHEAX_FUNC) {
-		/* to allow for recursion:
- 		 * if this wasn't here, the function symbol would not have been
- 		 * available to the lambda, and thus a recursive function would
- 		 * give an undefined symbol error.
- 		 */
-		((struct chx_func *)setto)->locals_top = c->locals_top;
-	}
-
-	for (struct variable *v = c->locals_top; v != prev_top; v = v->below)
-		v->flags |= CHEAX_READONLY;
 
 pad:
 	return NULL;
@@ -269,7 +256,7 @@ builtin_error_code(CHEAX *c, struct chx_list *args)
 		return NULL;
 
 	struct chx_value *res = &cheax_int(c, c->error.code)->base;
-	res->type = CHEAX_ERRORCODE;
+	set_type(res, CHEAX_ERRORCODE);
 	return res;
 }
 static struct chx_value *
@@ -493,7 +480,7 @@ builtin_var(CHEAX *c, struct chx_list *args)
 	setto = cheax_eval(c, setto);
 	cheax_ft(c, pad);
 
-	if (!cheax_match(c, idval, setto)) {
+	if (!cheax_match(c, idval, setto, 0)) {
 		cry(c, "var", CHEAX_EMATCH, "Invalid pattern");
 		return NULL;
 	}
@@ -520,7 +507,15 @@ builtin_set(CHEAX *c, struct chx_list *args)
 
 pad:
 	return NULL;
+}
 
+static struct chx_value *
+builtin_env(CHEAX *c, struct chx_list *args)
+{
+	if (unpack_args(c, "env", args, false, 0))
+		return &c->env->base;
+
+	return NULL;
 }
 
 static struct chx_value *
@@ -567,9 +562,9 @@ builtin_type_of(CHEAX *c, struct chx_list *args)
 	if (!unpack_args(c, "type-of", args, true, 1, &val))
 		return NULL;
 
-	struct chx_int *res = cheax_int(c, cheax_type_of(val));
-	res->base.type = CHEAX_TYPECODE;
-	return &res->base;
+	struct chx_value *res = &cheax_int(c, cheax_type_of(val))->base;
+	set_type(res, CHEAX_TYPECODE);
+	return res;
 }
 
 static struct chx_value *
@@ -608,10 +603,10 @@ static struct chx_value *
 create_func(CHEAX *c,
             const char *name,
             struct chx_list *args,
-            bool eval_args)
+            int type)
 {
 	if (args == NULL) {
-		cry(c, name, CHEAX_EMATCH, "Invalid lambda");
+		cry(c, name, CHEAX_EMATCH, "expected arguments");
 		return NULL;
 	}
 
@@ -619,28 +614,26 @@ create_func(CHEAX *c,
 	struct chx_list *body = args->next;
 
 	if (body == NULL) {
-		cry(c, name, CHEAX_EMATCH, "Invalid lambda");
+		cry(c, name, CHEAX_EMATCH, "expected body");
 		return NULL;
 	}
 
-	struct chx_func *res = cheax_alloc(c, sizeof(struct chx_func));
-	res->base.type = CHEAX_FUNC;
-	res->eval_args = eval_args;
+	struct chx_func *res = cheax_alloc(c, sizeof(struct chx_func), type);
 	res->args = arg_list;
 	res->body = body;
-	res->locals_top = c->locals_top;
+	res->lexenv = c->env;
 	return &res->base;
 }
 
 static struct chx_value *
 builtin_fn(CHEAX *c, struct chx_list *args)
 {
-	return create_func(c, "fn", args, true);
+	return create_func(c, "fn", args, CHEAX_FUNC);
 }
 static struct chx_value *
 builtin_macro(CHEAX *c, struct chx_list *args)
 {
-	return create_func(c, "macro", args, false);
+	return create_func(c, "macro", args, CHEAX_MACRO);
 }
 
 static struct chx_value *
@@ -674,9 +667,11 @@ builtin_case(CHEAX *c, struct chx_list *args)
 
 		struct chx_list *cons_pair = (struct chx_list *)pair;
 		struct chx_value *pan = cons_pair->value;
-		struct variable *top_before = c->locals_top;
-		if (!cheax_match(c, pan, what)) {
-			c->locals_top = top_before;
+
+		cheax_push_env(c);
+
+		if (!cheax_match(c, pan, what, CHEAX_READONLY)) {
+			cheax_pop_env(c);
 			continue;
 		}
 
@@ -684,14 +679,14 @@ builtin_case(CHEAX *c, struct chx_list *args)
 		cheax_ref(c, what);
 
 		struct chx_value *retval = NULL;
-		for (struct chx_list *val = cons_pair->next; val; val = val->next) {
+		for (struct chx_list *val = cons_pair->next; val != NULL; val = val->next) {
 			retval = cheax_eval(c, val->value);
 			cheax_ft(c, pad2);
 		}
-		c->locals_top = top_before;
 
 pad2:
 		cheax_unref(c, what);
+		cheax_pop_env(c);
 		return retval;
 	}
 
@@ -962,6 +957,7 @@ export_builtins(CHEAX *c)
 		{ "var", builtin_var },
 		{ "def", builtin_def },
 		{ "set", builtin_set },
+		{ "env", builtin_env },
 		{ ":", builtin_prepend },
 		{ "type-of", builtin_type_of },
 		{ "get-max-stack-depth", builtin_get_max_stack_depth },

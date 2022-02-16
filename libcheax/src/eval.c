@@ -43,75 +43,28 @@ pad:
 	return;
 }
 
-static struct chx_value *
-expand_macro(CHEAX *c,
-             struct variable *args_top,
-             struct variable *locals_top,
-             struct chx_value *val)
+static struct chx_list *
+eval_args(CHEAX *c, struct chx_list *input)
 {
-	struct chx_id *as_id = (struct chx_id *)val;
-	struct chx_list *as_cons = (struct chx_list *)val;
-	struct chx_quote *as_quote = (struct chx_quote *)val;
+	struct chx_list *args = NULL;
+	struct chx_list **args_last = &args;
+	for (struct chx_list *arg = input; arg != NULL; arg = arg->next) {
+		struct chx_value *arge = cheax_eval(c, arg->value);
 
-	switch (cheax_type_of(val)) {
-	case CHEAX_ID:
-		for (struct variable *v = args_top; v != locals_top; v = v->below)
-			if (!strcmp(v->name, as_id->id))
-				return v->value.norm; /* args cannot be synced afaik */
-		return val;
-	case CHEAX_LIST:
-		; struct chx_list *cons_res = NULL;
-		struct chx_list **cons_last = &cons_res;
-		for (; as_cons; as_cons = as_cons->next) {
-			*cons_last = cheax_list(c, expand_macro(c, args_top, locals_top, as_cons->value), NULL);
-			cons_last = &(*cons_last)->next;
-		}
-		return &cons_res->base;
-	case CHEAX_QUOTE:
-		; struct chx_quote *quotres = cheax_alloc(c, sizeof(struct chx_quote));
-		quotres->base.type = CHEAX_QUOTE;
-		quotres->value = expand_macro(c, args_top, locals_top, as_quote->value);
-		return &quotres->base;
-	default:
-		return val;
-	}
-}
-static struct chx_value *
-call_macro(CHEAX *c, struct chx_func *lda, struct chx_list *args)
-{
-	struct variable *prev_top = c->locals_top;
-	if (!cheax_match(c, lda->args, &args->base)) {
-		cry(c, "eval", CHEAX_EMATCH, "Invalid (number of) arguments");
-		return NULL;
-	}
-	struct variable *new_top = c->locals_top;
-	c->locals_top = prev_top;
+		/* won't set if args is NULL, so this ensures
+		 * the GC won't delete our argument list */
+		cheax_unref(c, args);
 
-	struct chx_value *retval = NULL;
-	for (struct chx_list *cons = lda->body; cons; cons = cons->next) {
-		retval = cheax_eval(c, expand_macro(c, new_top, prev_top, cons->value));
 		cheax_ft(c, pad);
+
+		*args_last = cheax_list(c, arge, NULL);
+		args_last = &(*args_last)->next;
+
+		cheax_ref(c, args);
 	}
 
-	return retval;
-
-pad:
-	return NULL;
-}
-static struct chx_value *
-call_func(CHEAX *c, struct chx_func *lda, struct chx_list *args)
-{
-	if (!cheax_match(c, lda->args, &args->base)) {
-		cry(c, "eval", CHEAX_EMATCH, "Invalid (number of) arguments");
-		return NULL;
-	}
-
-	struct chx_value *retval = NULL;
-	for (struct chx_list *cons = lda->body; cons; cons = cons->next) {
-		retval = cheax_eval(c, cons->value);
-		cheax_ft(c, pad);
-	}
-	return retval;
+	cheax_unref(c, args);
+	return args;
 
 pad:
 	return NULL;
@@ -120,100 +73,114 @@ pad:
 static struct chx_value *
 eval_sexpr(CHEAX *c, struct chx_list *input)
 {
-	struct chx_value *func = cheax_eval(c, input->value);
+	struct chx_value *head = cheax_eval(c, input->value);
+	cheax_ref(c, head);
 	cheax_ft(c, pad);
 
-	cheax_ref(c, func);
+	struct chx_list *args = input->next;
 
-	struct chx_value *res;
+	struct chx_value *res = NULL;
+	struct chx_ext_func *extf;
+	struct chx_func *fn;
+	struct chx_env *env;
 
-	switch (cheax_type_of(func)) {
+	int ty = cheax_type_of(head);
+	switch (ty) {
 	case CHEAX_NIL:
-		cry(c, "eval", CHEAX_ENIL, "Cannot call nil");
-		res = NULL;
-		goto ret;
+		cry(c, "eval", CHEAX_ENIL, "cannot call nil");
+		break;
+
 	case CHEAX_EXT_FUNC:
-		; struct chx_ext_func *extf = (struct chx_ext_func *)func;
+		extf = (struct chx_ext_func *)head;
 		res = extf->perform(c, input->next);
-		goto ret;
+		break;
+
 	case CHEAX_FUNC:
-		; struct chx_func *lda = (struct chx_func *)func;
-		if (!lda->eval_args) {
-			/* macro call */
-			struct chx_list *args = input->next;
-			res = call_macro(c, lda, args);
-			goto ret;
-		}
+	case CHEAX_MACRO:
+		fn = (struct chx_func *)head;
+		bool call_ok = false;
 
-		/* function call */
+		if (ty == CHEAX_FUNC)
+			args = eval_args(c, args);
 
-		/* evaluate arguments */
-		struct chx_list *args = NULL;
-		struct chx_list **args_last = &args;
-		for (struct chx_list *arg = input->next; arg; arg = arg->next) {
-			struct chx_value *arge = cheax_eval(c, arg->value);
+		cheax_ref(c, args);
 
-			/* won't set if args is NULL, so this ensures
-			 * the GC won't delete our argument list */
-			cheax_unref(c, args);
+		struct chx_env *prev_env = c->env;
+		cheax_ref(c, prev_env);
+		c->env = fn->lexenv;
+		cheax_push_env(c);
 
-			cheax_ft(c, pad);
+		bool arg_match_ok = cheax_match(c, fn->args, &args->base, CHEAX_READONLY);
 
-			*args_last = cheax_list(c, arge, NULL);
-			args_last = &(*args_last)->next;
-
-			cheax_ref(c, args);
-		}
-
-		/* create new context for function to run in */
-		struct variable *prev_locals_top = c->locals_top;
-		cheax_ref(c, prev_locals_top);
-		c->locals_top = lda->locals_top;
-
-		struct chx_value *retval = call_func(c, lda, args);
-		/* restore previous context */
-		c->locals_top = prev_locals_top;
-		cheax_unref(c, prev_locals_top);
 		cheax_unref(c, args);
+
+		if (!arg_match_ok) {
+			cry(c, "eval", CHEAX_EMATCH, "invalid (number of) arguments");
+			goto fn_pad;
+		}
+
+		struct chx_value *retval = NULL;
+		for (struct chx_list *cons = fn->body; cons != NULL; cons = cons->next) {
+			retval = cheax_eval(c, cons->value);
+			cheax_ft(c, fn_pad);
+		}
+
+		call_ok = true;
 		res = retval;
-		goto ret;
+fn_pad:
+		cheax_unref(c, prev_env);
+		c->env = prev_env;
+		if (call_ok && ty == CHEAX_MACRO)
+			res = cheax_eval(c, res);
+		break;
+
 	case CHEAX_TYPECODE:
-		; int type = ((struct chx_int *)func)->value;
+		; int type = ((struct chx_int *)head)->value;
 
 		if (!cheax_is_valid_type(c, type)) {
-			cry(c, "eval", CHEAX_ETYPE, "Invalid typecode %d", type);
-			res = NULL;
-			goto ret;
+			cry(c, "eval", CHEAX_ETYPE, "invalid typecode %d", type);
+			break;
 		}
 
 		struct chx_list *cast_args = input->next;
 		if (cast_args == NULL || cast_args->next != NULL) {
-			cry(c, "eval", CHEAX_EMATCH, "Expected single argument to cast");
-			res = NULL;
-			goto ret;
+			cry(c, "eval", CHEAX_EMATCH, "expected single argument to cast");
+			break;
 		}
 
 		struct chx_value *cast_arg = cast_args->value;
 
 		if (cheax_get_base_type(c, type) != cheax_type_of(cast_arg)) {
-			cry(c, "eval", CHEAX_ETYPE, "Unable to instantiate");
-			res = NULL;
-			goto ret;
+			cry(c, "eval", CHEAX_ETYPE, "unable to instantiate");
+			break;
 		}
 
 		res = cheax_cast(c, cast_arg, type);
-		goto ret;
+		break;
+
+	case CHEAX_ENV:
+		env = (struct chx_env *)head;
+		cheax_enter_env(c, env);
+
+		struct chx_value *envval = NULL;
+		for (struct chx_list *cons = args; cons != NULL; cons = cons->next) {
+			envval = cheax_eval(c, cons->value);
+			cheax_ft(c, env_pad);
+		}
+
+		res = envval;
+env_pad:
+		cheax_pop_env(c);
+		break;
+
+	default:
+		cry(c, "eval", CHEAX_ETYPE, "invalid function call");
+		break;
 	}
 
-	cry(c, "eval", CHEAX_ETYPE, "Invalid function call");
-	res = NULL;
-
-ret:
-	cheax_unref(c, func);
-	return res;
-
 pad:
-	return NULL;
+	cheax_unref(c, head);
+	return res;
 }
 
 static struct chx_value *
@@ -232,16 +199,16 @@ eval_bkquoted(CHEAX *c, struct chx_value *quoted, int nest)
 		struct chx_value *cdr = eval_bkquoted(c, &lst_quoted->next->base, nest);
 		cheax_unref(c, cdr);
 		cheax_ft(c, pad);
-		res = cheax_list(c, car, (struct chx_list *)cdr);
+		res = &cheax_list(c, car, (struct chx_list *)cdr)->base;
 		break;
 
 	case CHEAX_QUOTE:
 		qt_quoted = (struct chx_quote *)quoted;
-		res = cheax_quote(c, eval_bkquoted(c, qt_quoted->value, nest));
+		res = &cheax_quote(c, eval_bkquoted(c, qt_quoted->value, nest))->base;
 		break;
 	case CHEAX_BACKQUOTE:
 		qt_quoted = (struct chx_quote *)quoted;
-		res = cheax_backquote(c, eval_bkquoted(c, qt_quoted->value, nest + 1));
+		res = &cheax_backquote(c, eval_bkquoted(c, qt_quoted->value, nest + 1))->base;
 		break;
 
 	case CHEAX_COMMA:

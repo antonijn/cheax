@@ -41,12 +41,14 @@ enum {
 	CHEAX_DOUBLE,     /*!< Floating point type. */
 	CHEAX_BOOL,       /*!< Reserved. \note Unused */
 	CHEAX_LIST,       /*!< List type. */
-	CHEAX_FUNC,       /*!< Type of cheax lambda expressions, both functions and macros. */
+	CHEAX_FUNC,       /*!< Function type. */
+	CHEAX_MACRO,      /*!< Macro type. */
 	CHEAX_EXT_FUNC,   /*!< Type of functions defined from outside the cheax environment. */
 	CHEAX_QUOTE,      /*!< Type of quoted expressions. */
 	CHEAX_BACKQUOTE,  /*!< Type of backquoted expressions. */
 	CHEAX_COMMA,      /*!< Type of comma expressions. */
 	CHEAX_STRING,     /*!< String type. */
+	CHEAX_ENV,        /*!< Environment type. */
 
 	/*! \brief Type of user pointers defined from outside the cheax
 	 * environment.
@@ -63,6 +65,8 @@ enum {
 	/*! The type of type codes themselves. A type alias of \ref CHEAX_INT. */
 	CHEAX_TYPECODE = CHEAX_TYPESTORE_BIAS + 0,
 	CHEAX_ERRORCODE, /*!< Error code type. A type alias of \ref CHEAX_INT. */
+
+	CHEAX_TYPE_MASK = 0xFFFFFF,
 };
 
 /*! \brief Base type of cheax expressions. */
@@ -150,18 +154,13 @@ struct chx_list *cheax_list(CHEAX *c, struct chx_value *car, struct chx_list *cd
  *
  * Lambdas cannot be constructed by the C API.
  *
- * \sa CHEAX_FUNC, chx_ext_func, cheax_ext_func()
+ * \sa CHEAX_FUNC, CHEAX_MACRO, chx_ext_func, cheax_ext_func()
  */
 struct chx_func {
 	struct chx_value base;        /*!< Base. */
 	struct chx_value *args;       /*!< Lambda argument list expression. */
 	struct chx_list *body;        /*!< Lambda body. */
-	bool eval_args;               /*!< Whether or not to pre-evaluate the arguments
-	                               *   when the lambda is invoked. True for functions,
-	                               *   false for macros.
-	                               */
-
-	struct variable *locals_top; /*!< Lambda creation context. \note Internal use only. */
+	struct chx_env *lexenv;       /*!< Lexical environment. \note Internal use only. */
 };
 
 /*! \brief Type for C functions to be invoked from cheax.
@@ -284,6 +283,13 @@ struct chx_user_ptr {
  * \sa chx_user_ptr, CHEAX_USER_PTR
  */
 struct chx_user_ptr *cheax_user_ptr(CHEAX *c, void *value, int type);
+
+/*! \brief Cheax environment, storing symbols and their values.
+ *
+ * \sa cheax_push_env(), cheax_enter_env(), cheax_pop_env(),
+ *     CHEAX_ENV, cheax_env()
+ */
+struct chx_env;
 
 void cheax_ref(CHEAX *c, void *value);
 void cheax_unref(CHEAX *c, void *value);
@@ -414,10 +420,11 @@ enum {
 	CHEAX_ENIL      = 0x0106, /*!< Unexpected nil value error. */
 	CHEAX_EDIVZERO  = 0x0107, /*!< Division by zero error. */
 	CHEAX_EREADONLY = 0x0108, /*!< Attempted write to read-only variable error. */
-	CHEAX_EVALUE    = 0x0109, /*!< Invalid value error. */
-	CHEAX_EOVERFLOW = 0x010A, /*!< Integer overflow error. */
-	CHEAX_EINDEX    = 0x010B, /*!< Invalid index error. */
-	CHEAX_EIO       = 0x010C, /*!< IO error. */
+	CHEAX_EEXIST    = 0x0109, /*!< Symbol already exists error. */
+	CHEAX_EVALUE    = 0x010A, /*!< Invalid value error. */
+	CHEAX_EOVERFLOW = 0x010B, /*!< Integer overflow error. */
+	CHEAX_EINDEX    = 0x010C, /*!< Invalid index error. */
+	CHEAX_EIO       = 0x010D, /*!< IO error. */
 
 	CHEAX_EAPI      = 0x0200, /*!< API error. \note Not to be thrown from wihtin cheax code. */
 	CHEAX_ENOMEM    = 0x0201, /*!< Out-of-memory error. \note Not to be thrown from wihtin cheax code. */
@@ -440,8 +447,9 @@ cheax_builtin_error_codes[] = {
 	ERR_NAME_PAIR(ESTACK), ERR_NAME_PAIR(ETYPE),
 	ERR_NAME_PAIR(EMATCH), ERR_NAME_PAIR(ENIL),
 	ERR_NAME_PAIR(EDIVZERO), ERR_NAME_PAIR(EREADONLY),
-	ERR_NAME_PAIR(EVALUE), ERR_NAME_PAIR(EOVERFLOW),
-	ERR_NAME_PAIR(EINDEX), ERR_NAME_PAIR(EIO),
+	ERR_NAME_PAIR(EEXIST), ERR_NAME_PAIR(EVALUE),
+	ERR_NAME_PAIR(EOVERFLOW), ERR_NAME_PAIR(EINDEX),
+	ERR_NAME_PAIR(EIO),
 
 	ERR_NAME_PAIR(EAPI), ERR_NAME_PAIR(ENOMEM)
 };
@@ -610,12 +618,42 @@ int cheax_list_to_array(CHEAX *c,
  * \sa cheax_var(), cheax_sync_int(), cheax_sync_float(),
  *     cheax_sync_double()
  */
-enum chx_varflags {
+enum {
 	CHEAX_SYNCED     = 0x01, /*!< Set automatically by cheax_sync_int() and the like. */
 	CHEAX_READONLY   = 0x02, /*!< Marks a variable read-only. */
 	CHEAX_CONST      = 0x04, /*!< Reserved. \note Unused */
 	CHEAX_NODUMP     = 0x08, /*!< Reserved. \note Unused */
 };
+
+/*! \brief Pushes new empty environment to environment stack.
+ *
+ * \param c  Virtual machine instance.
+ *
+ * \returns New environment.
+ */
+struct chx_env *cheax_push_env(CHEAX *c);
+
+/*! \brief Pushes new bifurcated environment to environment stack.
+ *
+ * Lookups will first look in \a main, then look further down the stack.
+ * New symbols are declared only in \a main.
+ *
+ * \param c     Virtual machine instance.
+ * \param main  Main branch of bifurcated environment.
+ *
+ * \returns New bifurcated environment.
+ */
+struct chx_env *cheax_enter_env(CHEAX *c, struct chx_env *main);
+
+/*! \brief Pops environment off environment stack.
+ *
+ * Sets cheax_errno() to \ref CHEAX_EAPI if environment stack is empty.
+ *
+ * \param c  Virtual machine instance.
+ *
+ * \returns Popped environment, or \a NULL in case of an error.
+ */
+struct chx_env *cheax_pop_env(CHEAX *c);
 
 /*! \brief Creates a new variable in the cheax environment.
  *
@@ -628,7 +666,7 @@ enum chx_varflags {
  *
  * \sa cheax_get(), cheax_set()
  */
-void cheax_var(CHEAX *c, char *id, struct chx_value *value, enum chx_varflags flags);
+void cheax_var(CHEAX *c, char *id, struct chx_value *value, int flags);
 
 /*! \brief Retrieves the value of the given symbol.
  *
@@ -685,7 +723,7 @@ void cheax_defmacro(CHEAX *c, char *id, chx_func_ptr perform);
  * \param var   Reference to the C variable to synchronize.
  * \param flags Variable flags. Use 0 if there are no special needs.
  */
-void cheax_sync_int(CHEAX *c, const char *name, int *var, enum chx_varflags flags);
+void cheax_sync_int(CHEAX *c, const char *name, int *var, int flags);
 /*! \brief Synchronizes a variable from C with a variable name in the cheax environment.
  *
  * \param c     Virtual machine instance.
@@ -693,7 +731,7 @@ void cheax_sync_int(CHEAX *c, const char *name, int *var, enum chx_varflags flag
  * \param var   Reference to the C variable to synchronize.
  * \param flags Variable flags. Use 0 if there are no special needs.
  */
-void cheax_sync_float(CHEAX *c, const char *name, float *var, enum chx_varflags flags);
+void cheax_sync_float(CHEAX *c, const char *name, float *var, int flags);
 /*! \brief Synchronizes a variable from C with a variable name in the cheax environment.
  *
  * \param c     Virtual machine instance.
@@ -701,7 +739,7 @@ void cheax_sync_float(CHEAX *c, const char *name, float *var, enum chx_varflags 
  * \param var   Reference to the C variable to synchronize.
  * \param flags Variable flags. Use 0 if there are no special needs.
  */
-void cheax_sync_double(CHEAX *c, const char *name, double *var, enum chx_varflags flags);
+void cheax_sync_double(CHEAX *c, const char *name, double *var, int flags);
 
 /*! \brief Matches a cheax expression to a given pattern.
  *
@@ -711,10 +749,13 @@ void cheax_sync_double(CHEAX *c, const char *name, double *var, enum chx_varflag
  * \param c     Virtual machine instance.
  * \param pan   Pattern to match against.
  * \param match Expression to match against \a pan.
+ * \param flags Variable flags for newly defined matched symbols. Use 0
+ *              if there are no special needs, although you should
+ *              probably use \ref CHEAX_READONLY.
  *
  * \returns Whether \a match matched the pattern \a pan.
  */
-bool cheax_match(CHEAX *c, struct chx_value *pan, struct chx_value *match);
+bool cheax_match(CHEAX *c, struct chx_value *pan, struct chx_value *match, int flags);
 
 /*! \brief Tests whether two given cheax expressions are equal.
  *

@@ -26,9 +26,27 @@
 static void ostream_show(CHEAX *c, struct ostream *s, struct chx_value *val);
 
 static void
+ostream_show_var(CHEAX *c, struct ostream *s, struct variable *v)
+{
+	if (v->flags & CHEAX_SYNCED) {
+		ostream_printf(s, ";%s", v->name);
+		return;
+	}
+
+	const char *decl = (v->flags & CHEAX_READONLY) ? "def" : "var";
+	ostream_printf(s, "(%s %s ", decl, v->name);
+	ostream_show(c, s, v->value.norm);
+	ostream_putchar(s, ')');
+}
+
+static void
 ostream_show_basic_type(CHEAX *c, struct ostream *s, struct chx_value *val)
 {
-	switch (cheax_resolve_type(c, cheax_type_of(val))) {
+	struct chx_env *env;
+	struct chx_ext_func *macro;
+
+	int ty = cheax_resolve_type(c, cheax_type_of(val));
+	switch (ty) {
 	case CHEAX_NIL:
 		ostream_printf(s, "()");
 		break;
@@ -63,9 +81,10 @@ ostream_show_basic_type(CHEAX *c, struct ostream *s, struct chx_value *val)
 		ostream_show(c, s, ((struct chx_quote *)val)->value);
 		break;
 	case CHEAX_FUNC:
+	case CHEAX_MACRO:
 		ostream_putchar(s, '(');
 		struct chx_func *func = (struct chx_func *)val;
-		if (func->eval_args)
+		if (ty == CHEAX_FUNC)
 			ostream_printf(s, "fn ");
 		else
 			ostream_printf(s, "macro ");
@@ -92,7 +111,7 @@ ostream_show_basic_type(CHEAX *c, struct ostream *s, struct chx_value *val)
 		ostream_putchar(s, '"');
 		break;
 	case CHEAX_EXT_FUNC:
-		; struct chx_ext_func *macro = (struct chx_ext_func *)val;
+		macro = (struct chx_ext_func *)val;
 		if (macro->name == NULL)
 			ostream_printf(s, "[built-in function]");
 		else
@@ -100,6 +119,36 @@ ostream_show_basic_type(CHEAX *c, struct ostream *s, struct chx_value *val)
 		break;
 	case CHEAX_USER_PTR:
 		ostream_printf(s, "%p", ((struct chx_user_ptr *)val)->value);
+		break;
+	case CHEAX_ENV:
+		env = (struct chx_env *)val;
+		bool bif;
+		while ((bif = has_bif_env_bit(&env->base))) {
+			if (env->value.bif[1] == NULL) {
+				env = env->value.bif[0];
+				continue;
+			}
+
+			ostream_putchar(s, '(');
+			ostream_show(c, s, &env->value.bif[1]->base);
+			ostream_printf(s, "\n");
+			ostream_show(c, s, &env->value.bif[0]->base);
+			ostream_putchar(s, ')');
+			return;
+		}
+
+		ostream_printf(s, "((fn ()");
+
+		struct rb_iter it;
+		rb_iter_init(&it);
+		for (struct variable *v = rb_iter_first(&it, &env->value.norm.syms);
+		     v != NULL;
+		     v = rb_iter_next(&it))
+		{
+			ostream_putchar(s, '\n');
+			ostream_show_var(c, s, v);
+		}
+		ostream_printf(s, "\n(env)))");
 		break;
 	}
 }

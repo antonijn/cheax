@@ -61,16 +61,21 @@ cheax_free(CHEAX *c, void *obj)
 	GC_free(obj);
 }
 
-struct chx_value *
-cheax_alloc(CHEAX *c, size_t size)
+void *
+cheax_alloc(CHEAX *c, size_t size, int type)
 {
-	return GC_malloc(size);
+	struct chx_value *res = GC_malloc(size);
+	res->type = type;
+	return res;
 }
 
-struct variable *
-cheax_alloc_var(CHEAX *c)
+void *
+cheax_alloc_with_fin(CHEAX *c, size_t size, int type, chx_fin fin, void *info)
 {
-	return GC_malloc(sizeof(struct variable));
+	struct chx_value *res = GC_malloc(size);
+	res->type = type;
+	GC_register_finalizer(res, fin, info, NULL, NULL);
+	return res;
 }
 
 
@@ -79,9 +84,13 @@ cheax_alloc_var(CHEAX *c)
 struct gc_header {
 	size_t size;    /* Total malloc()-ed size */
 	int ext_refs;   /* Number of cheax_ref() references */
-	bool is_var;    /* Whether object is variable or a chx_value */
 
 	int obj_start;  /* Only for locating the start of the user object */
+};
+
+struct gc_fin_footer {
+	chx_fin fin;
+	void *info;
 };
 
 static struct gc_header *
@@ -91,17 +100,26 @@ get_header(void *obj)
 	return (struct gc_header *)(m - offsetof(struct gc_header, obj_start));
 }
 
+static struct gc_fin_footer *
+get_fin_footer(void *obj)
+{
+	struct gc_header *hdr = get_header(obj);
+	char *m = (char *)hdr;
+	size_t ftr_ofs = hdr->size - sizeof(struct gc_fin_footer);
+	return (struct gc_fin_footer *)(m + ftr_ofs);
+}
+
 void
 cheax_ref(CHEAX *c, void *value)
 {
-	if (value != NULL)
+	if (value != NULL && !has_no_gc_bit(value))
 		++get_header(value)->ext_refs;
 }
 
 void
 cheax_unref(CHEAX *c, void *value)
 {
-	if (value != NULL)
+	if (value != NULL && !has_no_gc_bit(value))
 		--get_header(value)->ext_refs;
 }
 
@@ -124,8 +142,8 @@ cheax_gc_init(CHEAX *c)
 	c->gc.all_mem = c->gc.prev_run = 0;
 }
 
-static void *
-cheax_simple_alloc(CHEAX *c, size_t size)
+void *
+cheax_alloc(CHEAX *c, size_t size, int type)
 {
 	size_t total_size = size + sizeof(struct gc_header) - sizeof(int);
 	struct gc_header *obj = malloc(total_size);
@@ -135,34 +153,37 @@ cheax_simple_alloc(CHEAX *c, size_t size)
 	obj->size = total_size;
 	obj->ext_refs = 0;
 	c->gc.all_mem += total_size;
-	void *res = &obj->obj_start;
+	struct chx_value *res = (struct chx_value *)&obj->obj_start;
+	res->type = type;
 	rb_tree_insert(&c->gc.all_objects, res);
 	return res;
 }
 
-struct chx_value *
-cheax_alloc(CHEAX *c, size_t size)
+void *
+cheax_alloc_with_fin(CHEAX *c, size_t size, int type, chx_fin fin, void *info)
 {
-	struct chx_value *res = cheax_simple_alloc(c, size);
-	if (res != NULL)
-		get_header(res)->is_var = false;
-	return res;
+	struct chx_value *obj = cheax_alloc(c, size + sizeof(struct gc_fin_footer), type);
+	struct gc_fin_footer *ftr = get_fin_footer(obj);
+	ftr->fin = fin;
+	ftr->info = info;
+	obj->type |= FIN_BIT;
 }
 
-struct variable *
-cheax_alloc_var(CHEAX *c)
-{
-	struct variable *res = cheax_simple_alloc(c, sizeof(struct variable));
-	if (res != NULL)
-		get_header(res)->is_var = true;
-	return res;
-}
 
 void
 cheax_free(CHEAX *c, void *obj)
 {
 	struct gc_header *header = get_header(obj);
 	rb_tree_remove(&c->gc.all_objects, obj);
+
+	if (has_fin_bit(obj)) {
+		chx_fin fin;
+		void *info;
+
+		struct gc_fin_footer *ftr = get_fin_footer(obj);
+		ftr->fin(obj, ftr->info);
+	}
+
 	c->gc.all_mem -= header->size;
 	memset(header, 0, header->size);
 	free(header);
@@ -180,6 +201,40 @@ to_gray(void *obj,
 }
 
 static void
+mark_env(struct rb_node *root,
+         struct rb_tree *white,
+         struct rb_tree *gray)
+{
+	if (root == NULL)
+		return;
+
+	struct variable *var = root->value;
+
+	if ((var->flags & CHEAX_SYNCED) == 0) {
+		struct chx_value *val = var->value.norm;
+		to_gray(val, white, gray);
+	}
+
+	/* if it has a name (which it probably does), it's
+	 * probably from a chx_id, which we need to push to
+	 * the gray heap too */
+
+	char *str_bytes = (char *)var->name;
+	void *id_bytes = str_bytes - sizeof(struct chx_id);
+	struct chx_id *id = id_bytes;
+
+	if (str_bytes != NULL
+	 && rb_tree_find(white, id_bytes) != NULL
+	 && cheax_type_of(&id->base) == CHEAX_ID)
+	{
+		to_gray(id, white, gray);
+	}
+
+	for (int i = 0; i < 2; ++i)
+		mark_env(root->link[i], white, gray);
+}
+
+static void
 mark(CHEAX *c,
      struct rb_tree *white,
      struct rb_tree *gray)
@@ -187,49 +242,17 @@ mark(CHEAX *c,
 	if (gray->root == NULL)
 		return;
 
-	void *obj = gray->root->value;
-	if (obj == NULL)
+	struct chx_value *used = gray->root->value;
+	if (used == NULL)
 		return;
 
 	/* done */
-	rb_tree_remove(gray, obj);
-
-	if (get_header(obj)->is_var) {
-		struct variable *var = obj;
-		if (var->below != NULL)
-			to_gray(var->below, white, gray);
-
-		if ((var->flags & CHEAX_SYNCED) == 0) {
-			struct chx_value *val = var->value.norm;
-			to_gray(val, white, gray);
-		}
-
-		/* if it has a name (which it probably does), it's
-		 * probably from a chx_id, which we need to push to
-		 * the gray heap too */
-
-		char *str_bytes = (char *)var->name;
-		if (str_bytes == NULL)
-			return;
-
-		void *id_bytes = str_bytes - sizeof(struct chx_id);
-		if (rb_tree_find(white, id_bytes) == NULL)
-			return; /* not relevant for us */
-
-		struct chx_id *id = id_bytes;
-		if (cheax_type_of(&id->base) != CHEAX_ID)
-			return; /* id_bytes must be something else, then */
-
-		to_gray(id, white, gray);
-
-		return; /* rest of this function deals with chx_value */
-	}
-
-	struct chx_value *used = obj;
+	rb_tree_remove(gray, used);
 
 	struct chx_list *list;
 	struct chx_func *func;
 	struct chx_quote *quote;
+	struct chx_env *env;
 	switch (cheax_resolve_type(c, cheax_type_of(used))) {
 	case CHEAX_LIST:
 		list = (struct chx_list *)used;
@@ -238,18 +261,29 @@ mark(CHEAX *c,
 		break;
 
 	case CHEAX_FUNC:
+	case CHEAX_MACRO:
 		func = (struct chx_func *)used;
 		to_gray(func->args, white, gray);
 		to_gray(func->body, white, gray);
-
-		struct variable *var = func->locals_top;
-		if (var != NULL)
-			to_gray(var, white, gray);
+		to_gray(func->lexenv, white, gray);
 		break;
 
 	case CHEAX_QUOTE:
+	case CHEAX_BACKQUOTE:
+	case CHEAX_COMMA:
 		quote = (struct chx_quote *)used;
 		to_gray(quote->value, white, gray);
+		break;
+
+	case CHEAX_ENV:
+		env = (struct chx_env *)used;
+		if (has_bif_env_bit(env)) {
+			for (int i = 0; i < 2; ++i)
+				to_gray(env->value.bif[i], white, gray);
+		} else {
+			mark_env(env->value.norm.syms.root, white, gray);
+			to_gray(env->value.norm.below, white, gray);
+		}
 		break;
 	}
 }
@@ -257,6 +291,7 @@ mark(CHEAX *c,
 static void
 white_node_dealloc(struct rb_tree *white, struct rb_node *node)
 {
+	struct chx_value *val = node->value;
 	cheax_free(white->info, node->value);
 	rb_node_dealloc(node);
 }
@@ -273,9 +308,9 @@ cheax_gc(CHEAX *c)
 void
 cheax_force_gc(CHEAX *c)
 {
-	struct rb_tree *white, *gray;
-	white = rb_tree_create(obj_cmp);
-	gray  = rb_tree_create(obj_cmp);
+	struct rb_tree white, gray;
+	rb_tree_init(&white, obj_cmp);
+	rb_tree_init(&gray, obj_cmp);
 
 	struct rb_iter it;
 	rb_iter_init(&it);
@@ -284,28 +319,28 @@ cheax_force_gc(CHEAX *c)
 	     obj = rb_iter_next(&it))
 	{
 		if (get_header(obj)->ext_refs > 0)
-			rb_tree_insert(gray, obj);
+			rb_tree_insert(&gray, obj);
 		else
-			rb_tree_insert(white, obj);
+			rb_tree_insert(&white, obj);
 	}
 
 	/* our root */
-	if (c->locals_top != NULL)
-		to_gray(c->locals_top, white, gray);
+	to_gray(c->env, &white, &gray);
+	mark_env(c->globals.value.norm.syms.root, &white, &gray);
 
 	/* protecc */
 	if (c->error.msg != NULL)
-		to_gray(c->error.msg, white, gray);
+		to_gray(c->error.msg, &white, &gray);
 
 	/* mark */
-	while (gray->root != NULL)
-		mark(c, white, gray);
+	while (gray.root != NULL)
+		mark(c, &white, &gray);
 
-	rb_tree_dealloc(gray, rb_tree_node_dealloc_cb);
+	rb_tree_cleanup(&gray, rb_tree_node_dealloc_cb);
 
 	/* sweep */
-	white->info = c;
-	rb_tree_dealloc(white, white_node_dealloc);
+	white.info = c;
+	rb_tree_cleanup(&white, white_node_dealloc);
 
 	c->gc.prev_run = c->gc.all_mem;
 }

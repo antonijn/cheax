@@ -22,9 +22,15 @@
 #include <cheax.h>
 #include "api.h"
 
+typedef void (*chx_fin)(void *obj, void *info);
+
 void cheax_gc_init(CHEAX *c);
-struct chx_value *cheax_alloc(CHEAX *c, size_t size);
-struct variable *cheax_alloc_var(CHEAX *c);
+/*
+ * Result must be treated as chx_value. Specifically, gc decisions will
+ * be made depending on the value of chx_value::type.
+ */
+void *cheax_alloc(CHEAX *c, size_t size, int type);
+void *cheax_alloc_with_fin(CHEAX *c, size_t size, int type, chx_fin fin, void *info);
 void cheax_free(CHEAX *c, void *obj);
 void cheax_gc(CHEAX *c);
 void cheax_force_gc(CHEAX *c);

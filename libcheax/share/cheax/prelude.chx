@@ -12,9 +12,10 @@
 ;  ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF
 ;  OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
 
-(def defmacro (macro (name args body) (def name (macro args body))))
-(defmacro defun (name args body) (def name (fn args body)))
-(defmacro if (cond then else) (case cond (0 else) (_ then)))
+(def defmacro (macro (: name args body) (: def (: name (: (: macro (: args body)) ())))))
+(defmacro defun (: name args body) (: def (: name (: (: fn (: args body)) ()))))
+
+(defmacro if (cond then else) `(case ,cond (0 ,else) (_ ,then)))
 
 (def pi 3.1415926535897932384)
 (def nil ())
@@ -25,11 +26,12 @@
 (def Double (type-of 0.0))
 (def List (type-of '(0)))
 (def Func (type-of (fn () ())))
+(def Macro (type-of (macro () ())))
 (def ExtFunc (type-of type-of))
 (def Quote (type-of ''0))
 (def BackQuote (type-of '`0))
 (def String (type-of ""))
-(def TypeCode (type-of Nil))
+(def Env (type-of ((fn () (env)))))
 
 ; aka car
 (defun head ((: x _)) x)
@@ -46,7 +48,7 @@
 (defun foldl (f start lst)
   (case lst
     (() start)
-    ((: z zs) (foldl f (f start z)))
+    ((: z zs) (foldl f (f start z) zs))
   ))
 
 (defun ~ (x) (- 0 x))

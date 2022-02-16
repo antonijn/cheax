@@ -141,7 +141,7 @@ rb_tree_create(rb_tree_node_cmp_f node_cb)
 }
 
 void
-rb_tree_dealloc(struct rb_tree *self, rb_tree_node_f node_cb)
+rb_tree_cleanup(struct rb_tree *self, rb_tree_node_f node_cb)
 {
 	if (!self || !node_cb)
 		return;
@@ -165,9 +165,15 @@ rb_tree_dealloc(struct rb_tree *self, rb_tree_node_f node_cb)
 			node = NULL;
 		}
 	}
+}
 
+void
+rb_tree_dealloc(struct rb_tree *self, rb_tree_node_f node_cb)
+{
+	rb_tree_cleanup(self, node_cb);
 	free(self);
 }
+
 
 int
 rb_tree_test(struct rb_tree *self, struct rb_node *root)
