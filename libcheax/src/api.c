@@ -799,10 +799,9 @@ struct chx_value *
 cheax_shallow_copy(CHEAX *c, struct chx_value *v)
 {
 	int act_type = cheax_type_of(v);
-	int type = cheax_resolve_type(c, act_type);
 
 	size_t size;
-	switch (type) {
+	switch (cheax_resolve_type(c, act_type)) {
 	case CHEAX_NIL:
 		return NULL;
 	case CHEAX_ID:
@@ -818,6 +817,7 @@ cheax_shallow_copy(CHEAX *c, struct chx_value *v)
 		size = sizeof(struct chx_list);
 		break;
 	case CHEAX_FUNC:
+	case CHEAX_MACRO:
 		size = sizeof(struct chx_func);
 		break;
 	case CHEAX_EXT_FUNC:
@@ -834,10 +834,15 @@ cheax_shallow_copy(CHEAX *c, struct chx_value *v)
 	case CHEAX_USER_PTR:
 		size = sizeof(struct chx_user_ptr);
 		break;
+	case CHEAX_ENV:
+		size = sizeof(struct chx_env);
+		break;
 	}
 
-	void *cpy = cheax_alloc(c, size, act_type);
+	struct chx_value *cpy = cheax_alloc(c, size, act_type);
+	int was_type = cpy->type;
 	memcpy(cpy, v, size);
+	cpy->type = was_type;
 
 	return cpy;
 }
