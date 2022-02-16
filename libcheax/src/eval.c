@@ -197,7 +197,7 @@ eval_bkquoted(CHEAX *c, struct chx_value *quoted, int nest)
 		struct chx_value *car = eval_bkquoted(c, lst_quoted->value, nest);
 		cheax_ref(c, car);
 		struct chx_value *cdr = eval_bkquoted(c, &lst_quoted->next->base, nest);
-		cheax_unref(c, cdr);
+		cheax_unref(c, car);
 		cheax_ft(c, pad);
 		res = &cheax_list(c, car, (struct chx_list *)cdr)->base;
 		break;
