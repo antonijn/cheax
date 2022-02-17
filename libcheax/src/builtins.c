@@ -23,9 +23,6 @@
 #include "api.h"
 #include "gc.h"
 
-static struct chx_int yes = { { CHEAX_INT | NO_GC_BIT }, 1 };
-static struct chx_int no  = { { CHEAX_INT | NO_GC_BIT }, 0 };
-
 /* Calls cheax_ref() on all unpacked args, doesn't unref() on failure.
  * Returns the number of arguments unpacked. */
 static int
@@ -930,7 +927,7 @@ builtin_eq(CHEAX *c, struct chx_list *args)
 	if (!unpack_args(c, "=", args, true, 2, &l, &r))
 		return NULL;
 
-	return cheax_eq(c, l, r) ? &yes.base : &no.base;
+	return &cheax_bool(c, cheax_eq(c, l, r))->base;
 }
 static struct chx_value *
 builtin_ne(CHEAX *c, struct chx_list *args)
@@ -939,7 +936,7 @@ builtin_ne(CHEAX *c, struct chx_list *args)
 	if (!unpack_args(c, "!=", args, true, 2, &l, &r))
 		return NULL;
 
-	return cheax_eq(c, l, r) ? &no.base : &yes.base;
+	return &cheax_bool(c, !cheax_eq(c, l, r))->base;
 }
 
 static struct chx_value *
@@ -974,8 +971,7 @@ do_cmp(CHEAX *c,
 		is_gt = ld > rd;
 	}
 
-	return ((lt && is_lt) || (eq && is_eq) || (gt && is_gt))
-	     ? &yes.base : &no.base;
+	return &cheax_bool(c, ((lt && is_lt) || (eq && is_eq) || (gt && is_gt)))->base;
 }
 
 static struct chx_value *

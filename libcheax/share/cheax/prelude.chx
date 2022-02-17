@@ -15,9 +15,14 @@
 (def defmacro (macro (: name args body) `(def ,name ,(: macro (: args body)))))
 (defmacro defun (: name args body) `(def ,name ,(: fn (: args body))))
 
-(defmacro if (cond then else) `(case ,cond (0 ,else) (_ ,then)))
-(defmacro when (cond then) `(if ,cond ,then ()))
-(defmacro unless (cond else) `(if ,cond () ,else))
+(def bool-err '(_ (throw ETYPE "expected boolean")))
+
+(defmacro if (c t e)   `(case ,c (true    ,t) (false   ,e) ,bool-err))
+(defmacro when (c t)   `(case ,c (true    ,t) (false   ()) ,bool-err))
+(defmacro unless (c t) `(case ,c (false   ,t) (true    ()) ,bool-err))
+(defmacro not (x)      `(case ,x (false true) (true false) ,bool-err))
+(defmacro and (a b) `(if ,a   ,b false))
+(defmacro or (a b)  `(if ,a true    ,b))
 
 (defun unsafe-map (f xs)
   (case xs
@@ -26,10 +31,8 @@
 
 (defun is-any-of (value types)
   (case types
-    ((: ty tys) (if (= (type-of value) ty)
-                  1
-                  (is-any-of value tys)))
-    (()         0)))
+    ((: ty tys) (or (= (type-of value) ty) (is-any-of value tys)))
+    (()         false)))
 (defmacro type-assert (: sym types)
  `(let ((_types (unsafe-map eval ',types)))
     (unless (is-any-of ,sym _types)
@@ -42,6 +45,7 @@
 (def ID (type-of 'a))
 (def Int (type-of 0))
 (def Double (type-of 0.0))
+(def Bool (type-of true))
 (def List (type-of '(0)))
 (def Func (type-of (fn () ())))
 (def Macro (type-of (macro () ())))
@@ -138,18 +142,8 @@
 (defun sum (args) (foldr + 0 args))
 (defun product (args) (foldr * 1 args))
 
-(defun not (x) (= 0 x))
-(defmacro and (a b)
- `(if (= 0 ,a)
-    0
-    (!= 0 ,b)))
-(defmacro or (a b)
- `(if (!= 0 ,a)
-    1
-    (!= 0 ,b)))
-
-(defun all (args) (foldr and 1 args))
-(defun any (args) (foldr or 0 args))
+(defun all (args) (foldr and true args))
+(defun any (args) (foldr or false args))
 (defun eq (: x xs) (all (map (fn (y) (= x y)) xs)))
 
 (defun ..-helper (from to step fin)
@@ -163,7 +157,7 @@
     (..-helper from to  1 >)
     (..-helper from to -1 <)))
 
-(defun print (arg) (print-to stdout arg))
-(defun read () (read-from stdin))
-(defun str (arg) (format "{}" arg))
+(defun str  (arg) (format "{!s}" arg))
 (defun repr (arg) (format "{!r}" arg))
+(defun read () (read-from stdin))
+(defun print (arg) (print-to stdout arg))

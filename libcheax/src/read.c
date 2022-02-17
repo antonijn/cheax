@@ -146,8 +146,14 @@ read_id(struct reader *rdr) /* consume_final = true */
 		goto done;
 	}
 
-	ostream_putchar(&ss.ostr, '\0');
-	res = &cheax_id(rdr->c, ss.buf)->base;
+	if (ss.idx == 4 && memcmp(ss.buf, "true", 4) == 0) {
+		res = &cheax_true(rdr->c)->base;
+	} else if (ss.idx == 5 && memcmp(ss.buf, "false", 5) == 0) {
+		res = &cheax_false(rdr->c)->base;
+	} else {
+		ostream_putchar(&ss.ostr, '\0');
+		res = &cheax_id(rdr->c, ss.buf)->base;
+	}
 
 done:
 	free(ss.buf);

@@ -56,6 +56,9 @@ ostream_show_basic_type(CHEAX *c, struct ostream *s, struct chx_value *val)
 	case CHEAX_DOUBLE:
 		ostream_printf(s, "%f", ((struct chx_double *)val)->value);
 		break;
+	case CHEAX_BOOL:
+		ostream_printf(s, "%s", ((struct chx_int *)val)->value ? "true" : "false");
+		break;
 	case CHEAX_ID:
 		ostream_printf(s, "%s", ((struct chx_id *)val)->id);
 		break;

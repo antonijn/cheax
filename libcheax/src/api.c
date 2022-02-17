@@ -331,6 +331,23 @@ cheax_int(CHEAX *c, int value)
 	res->value = value;
 	return res;
 }
+struct chx_int *
+cheax_true(CHEAX *c)
+{
+	static struct chx_int yes = { { CHEAX_BOOL | NO_GC_BIT }, 1 };
+	return &yes;
+}
+struct chx_int *
+cheax_false(CHEAX *c)
+{
+	static struct chx_int no = { { CHEAX_BOOL | NO_GC_BIT }, 0 };
+	return &no;
+}
+struct chx_int *
+cheax_bool(CHEAX *c, bool value)
+{
+	return value ? cheax_true(c) : cheax_false(c);
+}
 struct chx_double *
 cheax_double(CHEAX *c, double value)
 {
@@ -543,9 +560,9 @@ match_colon(CHEAX *c,
             struct chx_list *match,
             int flags)
 {
-	if (!pan->next)
+	if (pan->next == NULL)
 		return cheax_match(c, pan->value, &match->base, flags);
-	if (!match)
+	if (match == NULL)
 		return false;
 	if (!cheax_match(c, pan->value, match->value, flags))
 		return false;
@@ -595,14 +612,10 @@ cheax_match(CHEAX *c, struct chx_value *pan, struct chx_value *match, int flags)
 
 	switch (pan_ty) {
 	case CHEAX_INT:
-		if (cheax_type_of(match) != CHEAX_INT)
-			return false;
-		return ((struct chx_int *)pan)->value == ((struct chx_int *)match)->value;
-
 	case CHEAX_DOUBLE:
-		if (cheax_type_of(match) != CHEAX_DOUBLE)
-			return false;
-		return ((struct chx_double *)pan)->value == ((struct chx_double *)match)->value;
+	case CHEAX_BOOL:
+	case CHEAX_STRING:
+		return cheax_eq(c, pan, match);
 
 	case CHEAX_LIST:
 		pan_list = (struct chx_list *)pan;
@@ -631,6 +644,7 @@ cheax_eq(CHEAX *c, struct chx_value *l, struct chx_value *r)
 	case CHEAX_ID:
 		return strcmp(((struct chx_id *)l)->id, ((struct chx_id *)r)->id) == 0;
 	case CHEAX_INT:
+	case CHEAX_BOOL:
 		return ((struct chx_int *)l)->value == ((struct chx_int *)r)->value;
 	case CHEAX_DOUBLE:
 		return ((struct chx_double *)l)->value == ((struct chx_double *)r)->value;
@@ -816,6 +830,7 @@ cheax_shallow_copy(CHEAX *c, struct chx_value *v)
 		size = sizeof(struct chx_id);
 		break;
 	case CHEAX_INT:
+	case CHEAX_BOOL:
 		size = sizeof(struct chx_int);
 		break;
 	case CHEAX_DOUBLE:

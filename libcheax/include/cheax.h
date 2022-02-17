@@ -39,7 +39,7 @@ enum {
 	CHEAX_ID,         /*!< Identifier type. */
 	CHEAX_INT,        /*!< Integral type. */
 	CHEAX_DOUBLE,     /*!< Floating point type. */
-	CHEAX_BOOL,       /*!< Reserved. \note Unused */
+	CHEAX_BOOL,       /*!< Boolean type. */
 	CHEAX_LIST,       /*!< List type. */
 	CHEAX_FUNC,       /*!< Function type. */
 	CHEAX_MACRO,      /*!< Macro type. */
@@ -91,8 +91,8 @@ struct chx_id {
  */
 struct chx_id *cheax_id(CHEAX *c, char *id);
 
-/*! \brief Cheax integer expression.
- * \sa cheax_int(), CHEAX_INT
+/*! \brief Cheax integer or boolean expression.
+ * \sa cheax_int(), CHEAX_INT, cheax_bool(), CHEAX_BOOL
  */
 struct chx_int {
 	struct chx_value base; /*!< Base. */
@@ -107,6 +107,31 @@ struct chx_int {
  * \sa chx_int, CHEAX_INT
  */
 struct chx_int *cheax_int(CHEAX *c, int value);
+
+/*! \brief Creates a cheax boolean with value true.
+ *
+ * \param c     Virtual machine instance.
+ *
+ * \sa cheax_false(), cheax_bool(), chx_int, CHEAX_BOOL
+ */
+struct chx_int *cheax_true(CHEAX *c);
+
+/*! \brief Creates a cheax boolean with value false.
+ *
+ * \param c     Virtual machine instance.
+ *
+ * \sa cheax_true(), cheax_bool(), chx_int, CHEAX_BOOL
+ */
+struct chx_int *cheax_false(CHEAX *c);
+
+/*! \brief Creates a cheax boolean expression.
+ *
+ * \param c     Virtual machine instance.
+ * \param value Boolean value for the expression.
+ *
+ * \sa cheax_true(), cheax_false(), chx_int, CHEAX_BOOL
+ */
+struct chx_int *cheax_bool(CHEAX *c, bool value);
 
 /*! \brief Cheax floating point expression.
  * \sa cheax_double(), CHEAX_DOUBLE
