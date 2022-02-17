@@ -12,10 +12,28 @@
 ;  ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF
 ;  OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
 
-(def defmacro (macro (: name args body) (: def (: name (: (: macro (: args body)) ())))))
-(defmacro defun (: name args body) (: def (: name (: (: fn (: args body)) ()))))
+(def defmacro (macro (: name args body) `(def ,name ,(: macro (: args body)))))
+(defmacro defun (: name args body) `(def ,name ,(: fn (: args body))))
 
 (defmacro if (cond then else) `(case ,cond (0 ,else) (_ ,then)))
+(defmacro when (cond then) `(if ,cond ,then ()))
+(defmacro unless (cond else) `(if ,cond () ,else))
+
+(defun unsafe-map (f xs)
+  (case xs
+    (() ())
+    ((: z zs) (: (f z) (unsafe-map f zs)))))
+
+(defun is-any-of (value types)
+  (case types
+    ((: ty tys) (if (= (type-of value) ty)
+                  1
+                  (is-any-of value tys)))
+    (()         0)))
+(defmacro type-assert (: sym types)
+ `(let ((_types (unsafe-map eval ',types)))
+    (unless (is-any-of ,sym _types)
+      (throw ETYPE (format "`{}' must have any of the following types: {}" ',sym _types)))))
 
 (def pi 3.1415926535897932384)
 (def nil ())
@@ -33,30 +51,41 @@
 (def String (type-of ""))
 (def Env (type-of ((fn () (env)))))
 
-; aka car
+(defun map (f xs)
+  (type-assert f Func ExtFunc)
+  (type-assert xs List Nil)
+  (unsafe-map f xs))
+
 (defun head ((: x _)) x)
-; aka cdr
 (defun tail ((: _ xs)) xs)
+(defun last ((: x xs))
+  (case xs
+    (() x)
+    (_  (last xs))))
 
 (defun call (f args) (eval (: f args)))
 (defun list args args)
+(defun do args (last args))
+
+(defun unsafe-foldr (f start lst)
+  (case lst
+    (() start)
+    ((: z zs) (f z (unsafe-foldr f start zs)))))
 (defun foldr (f start lst)
+  (type-assert f Func ExtFunc)
+  (type-assert lst List Nil)
+  (unsafe-foldr f start lst))
+
+(defun unsafe-foldl (f start lst)
   (case lst
     (() start)
-    ((: z zs) (f z (foldr f start zs)))
-  ))
+    ((: z zs) (unsafe-foldl f (f start z) zs))))
 (defun foldl (f start lst)
-  (case lst
-    (() start)
-    ((: z zs) (foldl f (f start z) zs))
-  ))
+  (type-assert f Func ExtFunc)
+  (type-assert lst List Nil)
+  (unsafe-foldl f start lst))
 
 (defun ~ (x) (- 0 x))
-(defun map (f xs)
-  (case xs
-    (() ())
-    ((: z zs) (: (f z) (map f zs)))
-  ))
 
 (defun zip (xs ys)
   (case xs
@@ -64,55 +93,75 @@
     ((: a as)
       (case ys
         (() ())
-	((: b bs) (: (list a b) (zip as bs)))
-      ))
-  ))
+	((: b bs) (: (list a b) (zip as bs)))))))
 (defun zip-with (op xs ys)
   (map (fn ((a b)) (op a b)) (zip xs ys)))
 
-(defun ++ args
-  (case args
-    ( (xs       ()) xs )
-    ( (()       ys) ys )
-    ( ((: z zs) ys) (: z (++ zs ys)) )))
-; aka flatten
+(defun ++helper (xs ys)
+  (case xs
+    ((: z zs) (: z (++helper zs ys)))
+    (()       ys)))
+(defun ++ (xs ys)
+  (if (= (type-of xs) String)
+    (do (type-assert ys String)
+        (format "{}{}" xs ys))
+    (do (type-assert xs List Nil)
+        (type-assert ys List Nil)
+        (case ys
+          (() xs)
+          (_  (++helper xs ys))))))
+
 (defun concat (xs) (foldr ++ () xs))
+(defun strcat (xs) (foldr ++ "" xs))
 (defun append args (concat args))
 
 (defun rev-helper (xs ys)
   (case xs
     (() ys)
-    ((: z zs) (rev-helper zs (: z ys)))
-  ))
-(defun reverse (xs) (rev-helper xs ()))
-(defun filter (p xs)
+    ((: z zs) (rev-helper zs (: z ys)))))
+(defun reverse (xs)
+  (type-assert xs List Nil)
+  (rev-helper xs ()))
+
+(defun unsafe-filter (p xs)
   (case xs
     (() ())
-    ((: z zs) (if (p z) (: z (filter p zs)) (filter p zs)))
-  ))
+    ((: z zs) (if (p z)
+                (: z (unsafe-filter p zs))
+                (unsafe-filter p zs)))))
+(defun filter (p xs)
+  (type-assert p Func ExtFunc)
+  (type-assert xs List Nil)
+  (unsafe-filter p xs))
 
 (defun length (xs) (foldr (fn (_ l) (+ 1 l)) 0 xs))
 (defun sum (args) (foldr + 0 args))
 (defun product (args) (foldr * 1 args))
 
 (defun not (x) (= 0 x))
-(defun to-bool (x) (not (not x)))
-(defun and args
-  (case args
-    ((1 1) 1)
-    ((_ _) 0)))
-(defun or args
-  (case args
-    ((0 0) 0)
-    ((_ _) 1)))
+(defmacro and (a b)
+ `(if (= 0 ,a)
+    0
+    (!= 0 ,b)))
+(defmacro or (a b)
+ `(if (!= 0 ,a)
+    1
+    (!= 0 ,b)))
+
 (defun all (args) (foldr and 1 args))
 (defun any (args) (foldr or 0 args))
 (defun eq (: x xs) (all (map (fn (y) (= x y)) xs)))
 
+(defun ..-helper (from to step fin)
+  (if (fin from to)
+    ()
+    (: from (..-helper (+ from step) to step fin))))
 (defun .. (from to)
+  (type-assert from Int)
+  (type-assert to Int)
   (if (<= from to)
-    (: from (.. (+ 1 from) to))
-    ()))
+    (..-helper from to  1 (fn (f t) (> f t)))
+    (..-helper from to -1 (fn (f t) (< f t)))))
 
 (defun print (arg) (print-to stdout arg))
 (defun read () (read-from stdin))

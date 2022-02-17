@@ -696,6 +696,70 @@ pad:
 	return NULL;
 }
 
+static struct chx_value *
+builtin_let(CHEAX *c, struct chx_list *args)
+{
+	struct chx_value *res = NULL;
+
+	if (args == NULL) {
+		cry(c, "let", CHEAX_EMATCH, "invalid let");
+		return NULL;
+	}
+
+	struct chx_value *pairsv = args->value;
+	if (cheax_type_of(pairsv) != CHEAX_LIST) {
+		cry(c, "let", CHEAX_ETYPE, "invalid let");
+		return NULL;
+	}
+
+	cheax_push_env(c);
+
+	for (struct chx_list *pairs = (struct chx_list *)pairsv;
+	     pairs != NULL;
+	     pairs = pairs->next)
+	{
+		struct chx_value *pairv = pairs->value;
+		if (cheax_type_of(pairv) != CHEAX_LIST) {
+			cry(c, "let", CHEAX_ETYPE, "expected list of lists in first arg");
+			goto pad;
+		}
+
+		struct chx_list *pair = (struct chx_list *)pairv;
+		if (pair->next == NULL || pair->next->next != NULL) {
+			cry(c, "let", CHEAX_EVALUE, "expected list of match pairs in first arg");
+			goto pad;
+		}
+
+		struct chx_value *pan = pair->value, *match = pair->next->value;
+		match = cheax_eval(c, match);
+		cheax_ft(c, pad);
+
+		if (!cheax_match(c, pan, match, CHEAX_READONLY)) {
+			cry(c, "let", CHEAX_EMATCH, "failed match in match pair list");
+			goto pad;
+		}
+	}
+
+	if (args->next == NULL) {
+		cry(c, "let", CHEAX_EMATCH, "expected body");
+		goto pad;
+	}
+
+	struct chx_value *retval;
+	for (struct chx_list *cons = args->next;
+	     cons != NULL;
+	     cons = cons->next)
+	{
+		retval = cheax_eval(c, cons->value);
+		cheax_ft(c, pad);
+	}
+
+	res = retval;
+pad:
+	cheax_pop_env(c);
+	return res;
+}
+
 
 static bool
 is_numeric_type(struct chx_value *val)
@@ -965,6 +1029,7 @@ export_builtins(CHEAX *c)
 		{ "macro", builtin_macro },
 		{ "eval", builtin_eval },
 		{ "case", builtin_case },
+		{ "let", builtin_let },
 		{ "+", builtin_add },
 		{ "-", builtin_sub },
 		{ "*", builtin_mul },

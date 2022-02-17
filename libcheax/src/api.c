@@ -30,16 +30,16 @@ var_cmp(struct rb_tree *tree, struct rb_node *a, struct rb_node *b)
 }
 
 /*
- * Returns environment e, with has_bif_env_bit(e) == false.
+ * Returns environment e, with has_bif_env_bit(e) == false or e == NULL.
  */
 static struct chx_env *
-norm_env(CHEAX *c, struct chx_env *env)
+norm_env(struct chx_env *env)
 {
 	if (env == NULL)
-		return &c->globals;
+		return NULL;
 
 	if (has_bif_env_bit(&env->base))
-		return norm_env(c, env->value.bif[0]);
+		return norm_env(env->value.bif[0]);
 
 	return env;
 }
@@ -47,21 +47,31 @@ norm_env(CHEAX *c, struct chx_env *env)
 struct variable *
 find_sym_in(struct chx_env *env, const char *name)
 {
-	if (env != NULL && has_bif_env_bit(&env->base)) {
-		for (int i = 0; i < 2; ++i) {
-			struct variable *var = find_sym_in(env->value.bif[i], name);
-			if (var != NULL)
-				return var;
-		}
-
+	env = norm_env(env);
+	if (env == NULL)
 		return NULL;
-	}
 
 	struct variable dummy;
 	dummy.name = name;
+	return rb_tree_find(&env->value.norm.syms, &dummy);
+}
 
-	for (; env != NULL; env = env->value.norm.below) {
-		struct variable *var = rb_tree_find(&env->value.norm.syms, &dummy);
+struct variable *
+find_sym_in_or_below(struct chx_env *env, const char *name)
+{
+	if (env == NULL)
+		return NULL;
+
+	if (!has_bif_env_bit(&env->base)) {
+		struct variable *var = find_sym_in(env, name);
+		if (var != NULL)
+			return var;
+
+		return find_sym_in_or_below(env->value.norm.below, name);
+	}
+
+	for (int i = 0; i < 2; ++i) {
+		struct variable *var = find_sym_in_or_below(env->value.bif[i], name);
 		if (var != NULL)
 			return var;
 	}
@@ -72,7 +82,7 @@ find_sym_in(struct chx_env *env, const char *name)
 struct variable *
 find_sym(CHEAX *c, const char *name)
 {
-	struct variable *var = find_sym_in(c->env, name);
+	struct variable *var = find_sym_in_or_below(c->env, name);
 	if (var != NULL)
 		return var;
 
@@ -82,12 +92,15 @@ find_sym(CHEAX *c, const char *name)
 static struct variable *
 def_sym_in(CHEAX *c, struct chx_env *env, const char *name, int flags)
 {
-	env = norm_env(c, env);
+	env = norm_env(env);
 
 	if (find_sym_in(env, name) != NULL) {
 		cry(c, "def", CHEAX_EEXIST, "symbol `%s' already exists", name);
 		return NULL;
 	}
+
+	if (env == NULL)
+		env = &c->globals;
 
 	struct variable *new = malloc(sizeof(struct variable));
 	new->flags = flags;
