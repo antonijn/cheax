@@ -34,7 +34,7 @@ cheax_exec(CHEAX *c, FILE *f)
 	}
 
 	struct chx_value *v;
-	while (v = cheax_read(c, f)) {
+	while ((v = cheax_read(c, f)) != NULL) {
 		cheax_eval(c, v);
 		cheax_ft(c, pad);
 	}
@@ -188,7 +188,7 @@ eval_bkquoted(CHEAX *c, struct chx_value *quoted, int nest)
 {
 	struct chx_value *res = NULL;
 
-	struct chx_list *lst = NULL, *lst_quoted = NULL;
+	struct chx_list *lst_quoted = NULL;
 	struct chx_quote *qt_quoted = NULL;
 
 	switch (cheax_type_of(quoted)) {

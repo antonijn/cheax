@@ -247,7 +247,7 @@ struct chx_string {
  *
  * \sa chx_string, cheax_nstring(), CHEAX_STRING
  */
-struct chx_string *cheax_string(CHEAX *c, char *value);
+struct chx_string *cheax_string(CHEAX *c, const char *value);
 
 /*! \brief Creates a cheax string expression of given length.
  *
@@ -257,7 +257,7 @@ struct chx_string *cheax_string(CHEAX *c, char *value);
  *
  * \sa chx_string, cheax_string(), CHEAX_STRING
  */
-struct chx_string *cheax_nstring(CHEAX *c, char *value, size_t len);
+struct chx_string *cheax_nstring(CHEAX *c, const char *value, size_t len);
 
 /*! \brief Cheax user pointer expression.
  *
@@ -666,7 +666,7 @@ struct chx_env *cheax_pop_env(CHEAX *c);
  *
  * \sa cheax_get(), cheax_set()
  */
-void cheax_var(CHEAX *c, char *id, struct chx_value *value, int flags);
+void cheax_var(CHEAX *c, const char *id, struct chx_value *value, int flags);
 
 /*! \brief Retrieves the value of the given symbol.
  *
@@ -714,7 +714,7 @@ cheax_var(c, id, &cheax_ext_func(c, perform, id)->base, CHEAX_READONLY);
  *
  * \sa chx_ext_func, cheax_ext_func(), cheax_var()
  */
-void cheax_defmacro(CHEAX *c, char *id, chx_func_ptr perform);
+void cheax_defmacro(CHEAX *c, const char *id, chx_func_ptr perform);
 
 /*! \brief Synchronizes a variable from C with a variable name in the cheax environment.
  *

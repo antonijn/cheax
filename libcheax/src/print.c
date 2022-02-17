@@ -550,7 +550,7 @@ read_closing_curly:
 	int written = ss.idx - prev_idx;
 	int padding = field_width - written;
 
-	for (int i = 0; i < field_width - written; ++i)
+	for (int i = 0; i < padding; ++i)
 		ostream_putchar(&ss.ostr, pad_char);
 
 	if (indexing == AUTO_IDX)

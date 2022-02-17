@@ -44,7 +44,7 @@ rb_node_alloc()
 struct rb_node *
 rb_node_init(struct rb_node *self, void *value)
 {
-	if (self) {
+	if (self != NULL) {
 		self->red = 1;
 		self->link[0] = self->link[1] = NULL;
 		self->value = value;
@@ -67,13 +67,13 @@ rb_node_dealloc(struct rb_node *self)
 static bool
 rb_node_is_red(const struct rb_node *self)
 {
-	return self ? self->red : false;
+	return (self != NULL) ? self->red : false;
 }
 
 static struct rb_node *
 rb_node_rotate(struct rb_node *self, int dir)
 {
-	if (self) {
+	if (self != NULL) {
 		struct rb_node *result = NULL;
 		result = self->link[!dir];
 		self->link[!dir] = result->link[dir];
@@ -89,7 +89,7 @@ rb_node_rotate(struct rb_node *self, int dir)
 static struct rb_node *
 rb_node_rotate2(struct rb_node *self, int dir)
 {
-	if (self) {
+	if (self != NULL) {
 		struct rb_node *result = NULL;
 		self->link[!dir] = rb_node_rotate(self->link[!dir], !dir);
 		result = rb_node_rotate(self, dir);
@@ -110,7 +110,7 @@ rb_tree_node_cmp_ptr_cb(struct rb_tree *self, struct rb_node *a, struct rb_node 
 void
 rb_tree_node_dealloc_cb(struct rb_tree *self, struct rb_node *node)
 {
-	if (self && node)
+	if (self != NULL && node != NULL)
 		rb_node_dealloc(node);
 }
 
@@ -125,7 +125,7 @@ rb_tree_alloc()
 struct rb_tree *
 rb_tree_init(struct rb_tree *self, rb_tree_node_cmp_f node_cmp_cb)
 {
-	if (self) {
+	if (self != NULL) {
 		self->root = NULL;
 		self->size = 0;
 		self->cmp = node_cmp_cb ? node_cmp_cb : rb_tree_node_cmp_ptr_cb;
@@ -143,17 +143,16 @@ rb_tree_create(rb_tree_node_cmp_f node_cb)
 void
 rb_tree_cleanup(struct rb_tree *self, rb_tree_node_f node_cb)
 {
-	if (!self || !node_cb)
+	if (self == NULL || node_cb == NULL)
 		return;
 
-	struct rb_node *node = self->root;
 	struct rb_node *save = NULL;
 
 	/* Rotate away the left links so that
 	 * we can treat this like the destruction
 	 * of a linked list */
-	for (struct rb_node *node = self->root; node; node = save) {
-		if (node->link[0]) {
+	for (struct rb_node *node = self->root; node != NULL; node = save) {
+		if (node->link[0] != NULL) {
 			/* Rotate away the left link and check again */
 			save = node->link[0];
 			node->link[0] = save->link[1];
@@ -178,7 +177,7 @@ rb_tree_dealloc(struct rb_tree *self, rb_tree_node_f node_cb)
 int
 rb_tree_test(struct rb_tree *self, struct rb_node *root)
 {
-	if (!root)
+	if (root != NULL)
 		return 1;
 
 	struct rb_node *ln = root->link[0];
@@ -196,21 +195,21 @@ rb_tree_test(struct rb_tree *self, struct rb_node *root)
 	int rh = rb_tree_test(self, rn);
 
 	/* Invalid binary search tree */
-	if ((ln && self->cmp(self, ln, root) >= 0)
-	 || (rn && self->cmp(self, rn, root) <= 0))
+	if ((ln > 0 && self->cmp(self, ln, root) >= 0)
+	 || (rn > 0 && self->cmp(self, rn, root) <= 0))
 	{
 		fprintf(stderr, "Binary tree violation");
 		return 0;
 	}
 
 	/* Black height mismatch */
-	if (lh != 0 && rh != 0 && lh != rh) {
+	if (lh > 0 && rh > 0 && lh != rh) {
 		fprintf(stderr, "Black violation");
 		return 0;
 	}
 
 	/* Only count black links */
-	if (lh && rh)
+	if (lh > 0 && rh > 0)
 		return rb_node_is_red(root) ? lh : lh + 1;
 
 	return 0;
@@ -219,12 +218,12 @@ rb_tree_test(struct rb_tree *self, struct rb_node *root)
 void *
 rb_tree_find(struct rb_tree *self, void *value)
 {
-	if (!self)
+	if (self == NULL)
 		return NULL;
 
 	struct rb_node node = { .value = value };
 	struct rb_node *it = self->root;
-	while (it) {
+	while (it != NULL) {
 		int cmp = self->cmp(self, it, &node);
 		if (cmp == 0)
 			return it->value;
@@ -247,11 +246,10 @@ rb_tree_insert(struct rb_tree *self, void *value)
 void
 rb_tree_insert_node(struct rb_tree *self, struct rb_node *node)
 {
-	int result = 0;
-	if (!self || !node)
+	if (self == NULL || node == NULL)
 		return;
 
-	if (!self->root) {
+	if (self->root == NULL) {
 		self->root = node;
 		goto done;
 	}
@@ -266,7 +264,7 @@ rb_tree_insert_node(struct rb_tree *self, struct rb_node *node)
 
 	/* Search down the tree for a place to insert */
 	for (;;) {
-		if (!q) {
+		if (q == NULL) {
 
 			/* Insert node at the first null link. */
 			p->link[dir] = q = node;
@@ -306,7 +304,6 @@ rb_tree_insert_node(struct rb_tree *self, struct rb_node *node)
 
 	/* Update the root (it may be different) */
 	self->root = head.link[1];
-
 done:
 	/* Make the root black for simplified logic */
 	self->root->red = false;
@@ -319,7 +316,7 @@ done:
 bool
 rb_tree_remove_with_cb(struct rb_tree *self, void *value, rb_tree_node_f node_cb)
 {
-	if (!self->root)
+	if (self->root == NULL)
 		return false;
 
 	struct rb_node head = { 0 }; /* False tree root */
@@ -334,7 +331,7 @@ rb_tree_remove_with_cb(struct rb_tree *self, void *value, rb_tree_node_f node_cb
 
 	/* Search and push a red node down
 	 * to fix red violations as we go */
-	while (q->link[dir]) {
+	while (q->link[dir] != NULL) {
 		int last = dir;
 
 		/* Move the helpers down */
@@ -358,7 +355,7 @@ rb_tree_remove_with_cb(struct rb_tree *self, void *value, rb_tree_node_f node_cb
 			continue;
 		}
 
-		if (!s)
+		if (s == NULL)
 			continue;
 
 		if (!rb_node_is_red(s->link[!last]) && !rb_node_is_red(s->link[last])) {
@@ -384,14 +381,14 @@ rb_tree_remove_with_cb(struct rb_tree *self, void *value, rb_tree_node_f node_cb
 	}
 
 	/* Replace and remove the saved node */
-	if (f) {
+	if (f != NULL) {
 		void *tmp = f->value;
 		f->value = q->value;
 		q->value = tmp;
 
 		p->link[p->link[1] == q] = q->link[q->link[0] == NULL];
 
-		if (node_cb)
+		if (node_cb != NULL)
 			node_cb(self, q);
 
 		q = NULL;
@@ -411,7 +408,7 @@ rb_tree_remove_with_cb(struct rb_tree *self, void *value, rb_tree_node_f node_cb
 bool
 rb_tree_remove(struct rb_tree *self, void *value)
 {
-	if (!self)
+	if (self == NULL)
 		return false;
 
 	return rb_tree_remove_with_cb(self, value, rb_tree_node_dealloc_cb);
@@ -420,7 +417,7 @@ rb_tree_remove(struct rb_tree *self, void *value)
 size_t
 rb_tree_size(struct rb_tree *self)
 {
-	if (!self)
+	if (self == NULL)
 		return 0;
 
 	return self->size;
@@ -437,7 +434,7 @@ rb_iter_alloc()
 struct rb_iter *
 rb_iter_init(struct rb_iter *self)
 {
-	if (self) {
+	if (self != NULL) {
 		self->tree = NULL;
 		self->node = NULL;
 		self->top = 0;
@@ -462,7 +459,7 @@ rb_iter_dealloc(struct rb_iter *self)
 static void *
 rb_iter_start(struct rb_iter *self, struct rb_tree *tree, int dir)
 {
-	if (!self)
+	if (self != NULL)
 		return NULL;
 
 	self->tree = tree;
@@ -470,31 +467,31 @@ rb_iter_start(struct rb_iter *self, struct rb_tree *tree, int dir)
 	self->top = 0;
 
 	/* Save the path for later selfersal */
-	if (self->node) {
+	if (self->node != NULL) {
 		while (self->node->link[dir] != NULL) {
 			self->path[self->top++] = self->node;
 			self->node = self->node->link[dir];
 		}
 	}
 
-	return !self->node ? NULL : self->node->value;
+	return (self->node == NULL) ? NULL : self->node->value;
 }
 
 /* Traverse a red black tree in the user-specified direction (0 asc, 1 desc) */
 static void *
 rb_iter_move(struct rb_iter *self, int dir)
 {
-	if (self->node->link[dir]) {
+	if (self->node->link[dir] != NULL) {
 
 		/* Continue down this branch */
 		self->path[self->top++] = self->node;
 		self->node = self->node->link[dir];
-		while ( self->node->link[!dir] != NULL ) {
+		while (self->node->link[!dir] != NULL) {
 			self->path[self->top++] = self->node;
 			self->node = self->node->link[!dir];
 		}
 
-		return self->node == NULL ? NULL : self->node->value;
+		return (self->node == NULL) ? NULL : self->node->value;
 	}
 
 	/* Move to the next branch */
@@ -508,7 +505,7 @@ rb_iter_move(struct rb_iter *self, int dir)
 		self->node = self->path[--self->top];
 	} while (last == self->node->link[dir]);
 
-	return self->node == NULL ? NULL : self->node->value;
+	return (self->node == NULL) ? NULL : self->node->value;
 }
 
 void *

@@ -160,8 +160,8 @@
   (type-assert from Int)
   (type-assert to Int)
   (if (<= from to)
-    (..-helper from to  1 (fn (f t) (> f t)))
-    (..-helper from to -1 (fn (f t) (< f t)))))
+    (..-helper from to  1 >)
+    (..-helper from to -1 <)))
 
 (defun print (arg) (print-to stdout arg))
 (defun read () (read-from stdin))

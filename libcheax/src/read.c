@@ -84,7 +84,7 @@ rdr_backup_to(struct reader *rdr, int c)
 		rdr->buf[i] = push;
 		push = next_push;
 	}
-	rdr->ch = c;
+	return rdr->ch = c;
 }
 
 static void
@@ -96,7 +96,7 @@ rdr_init(struct reader *rdr, struct istream *istr, CHEAX *c)
 	rdr->bkquote_stack = 0;
 	rdr->comma_stack = 0;
 
-	memset(rdr->buf, 0, MAX_LOOKAHEAD);
+	memset(rdr->buf, 0, MAX_LOOKAHEAD * sizeof(rdr->buf[0]));
 	rdr->lah = 0;
 
 	rdr_advch(rdr);

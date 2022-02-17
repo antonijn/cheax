@@ -126,13 +126,8 @@ cheax_unref(CHEAX *c, void *value)
 static int
 obj_cmp(struct rb_tree *tree, struct rb_node *a, struct rb_node *b)
 {
-	ptrdiff_t d = a->value - b->value;
-	if (d < 0)
-		return -1;
-	if (d > 0)
-		return 1;
-
-	return 0;
+	ptrdiff_t d = (char *)a->value - (char *)b->value;
+	return (d > 0) - (d < 0);
 }
 
 void
@@ -167,6 +162,7 @@ cheax_alloc_with_fin(CHEAX *c, size_t size, int type, chx_fin fin, void *info)
 	ftr->fin = fin;
 	ftr->info = info;
 	obj->type |= FIN_BIT;
+	return obj;
 }
 
 
@@ -177,9 +173,6 @@ cheax_free(CHEAX *c, void *obj)
 	rb_tree_remove(&c->gc.all_objects, obj);
 
 	if (has_fin_bit(obj)) {
-		chx_fin fin;
-		void *info;
-
 		struct gc_fin_footer *ftr = get_fin_footer(obj);
 		ftr->fin(obj, ftr->info);
 	}
@@ -277,7 +270,7 @@ mark(CHEAX *c,
 
 	case CHEAX_ENV:
 		env = (struct chx_env *)used;
-		if (has_bif_env_bit(env)) {
+		if (has_bif_env_bit(&env->base)) {
 			for (int i = 0; i < 2; ++i)
 				to_gray(env->value.bif[i], white, gray);
 		} else {
@@ -291,7 +284,6 @@ mark(CHEAX *c,
 static void
 white_node_dealloc(struct rb_tree *white, struct rb_node *node)
 {
-	struct chx_value *val = node->value;
 	cheax_free(white->info, node->value);
 	rb_node_dealloc(node);
 }

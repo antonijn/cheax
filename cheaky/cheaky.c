@@ -128,7 +128,7 @@ main(void)
 #ifdef HAVE_ISATTY
 	if (!isatty(1)) {
 		struct chx_value *v;
-		while (v = cheax_read(c, stdin)) {
+		while ((v = cheax_read(c, stdin)) != NULL) {
 			cheax_print(c, stdout, cheax_eval(c, v));
 			printf("\n");
 		}
