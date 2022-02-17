@@ -177,7 +177,7 @@ rb_tree_dealloc(struct rb_tree *self, rb_tree_node_f node_cb)
 int
 rb_tree_test(struct rb_tree *self, struct rb_node *root)
 {
-	if (root != NULL)
+	if (root == NULL)
 		return 1;
 
 	struct rb_node *ln = root->link[0];
@@ -459,7 +459,7 @@ rb_iter_dealloc(struct rb_iter *self)
 static void *
 rb_iter_start(struct rb_iter *self, struct rb_tree *tree, int dir)
 {
-	if (self != NULL)
+	if (self == NULL)
 		return NULL;
 
 	self->tree = tree;
