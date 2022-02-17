@@ -218,7 +218,7 @@ try_convert_to_int(struct chx_value *value, int *res)
 
 
 void
-cheax_set(CHEAX *c, char *id, struct chx_value *value)
+cheax_set(CHEAX *c, const char *id, struct chx_value *value)
 {
 	if (id == NULL) {
 		cry(c, "set", CHEAX_EAPI, "`id' cannot be NULL");
@@ -227,12 +227,12 @@ cheax_set(CHEAX *c, char *id, struct chx_value *value)
 
 	struct variable *sym = find_sym(c, id);
 	if (sym == NULL) {
-		cry(c, "set", CHEAX_ENOSYM, "No such symbol \"%s\"", id);
+		cry(c, "set", CHEAX_ENOSYM, "no such symbol \"%s\"", id);
 		return;
 	}
 
 	if (sym->flags & CHEAX_READONLY) {
-		cry(c, "set", CHEAX_EREADONLY, "Cannot write to read-only variable");
+		cry(c, "set", CHEAX_EREADONLY, "cannot write to read-only symbol");
 		return;
 	}
 
@@ -244,7 +244,7 @@ cheax_set(CHEAX *c, char *id, struct chx_value *value)
 	switch (sym->ctype) {
 	case CTYPE_INT:
 		if (!try_convert_to_int(value, sym->value.sync_int)) {
-			cry(c, "set", CHEAX_ETYPE, "Invalid type");
+			cry(c, "set", CHEAX_ETYPE, "invalid type");
 			return;
 		}
 		break;
@@ -252,7 +252,7 @@ cheax_set(CHEAX *c, char *id, struct chx_value *value)
 	case CTYPE_FLOAT:
 		; double d;
 		if (!try_convert_to_double(value, &d)) {
-			cry(c, "set", CHEAX_ETYPE, "Invalid type");
+			cry(c, "set", CHEAX_ETYPE, "invalid type");
 			return;
 		}
 		*sym->value.sync_float = d;
@@ -260,19 +260,19 @@ cheax_set(CHEAX *c, char *id, struct chx_value *value)
 
 	case CTYPE_DOUBLE:
 		if (!try_convert_to_double(value, sym->value.sync_double)) {
-			cry(c, "set", CHEAX_ETYPE, "Invalid type");
+			cry(c, "set", CHEAX_ETYPE, "invalid type");
 			return;
 		}
 		break;
 
 	default:
-		cry(c, "set", CHEAX_EEVAL, "Unexpected sync-type");
+		cry(c, "set", CHEAX_EEVAL, "unexpected sync-type");
 		return;
 	}
 }
 
 struct chx_value *
-cheax_get(CHEAX *c, char *id)
+cheax_get(CHEAX *c, const char *id)
 {
 	if (id == NULL) {
 		cry(c, "get", CHEAX_EAPI, "`id' cannot be NULL");
@@ -281,7 +281,7 @@ cheax_get(CHEAX *c, char *id)
 
 	struct variable *sym = find_sym(c, id);
 	if (sym == NULL) {
-		cry(c, "get", CHEAX_ENOSYM, "No such symbol `%s'", id);
+		cry(c, "get", CHEAX_ENOSYM, "no such symbol `%s'", id);
 		return NULL;
 	}
 
@@ -296,7 +296,7 @@ cheax_get(CHEAX *c, char *id)
 	case CTYPE_FLOAT:
 		return &cheax_double(c, *sym->value.sync_float)->base;
 	default:
-		cry(c, "get", CHEAX_EEVAL, "Unexpected sync-type");
+		cry(c, "get", CHEAX_EEVAL, "unexpected sync-type");
 		return NULL;
 	}
 }
@@ -359,7 +359,7 @@ struct chx_user_ptr *
 cheax_user_ptr(CHEAX *c, void *value, int type)
 {
 	if (cheax_is_basic_type(c, type) || cheax_resolve_type(c, type) != CHEAX_USER_PTR) {
-		cry(c, "cheax_user_ptr", CHEAX_EAPI, "Invalid user pointer type");
+		cry(c, "cheax_user_ptr", CHEAX_EAPI, "invalid user pointer type");
 		return NULL;
 	}
 	struct chx_user_ptr *res = cheax_alloc(c, sizeof(struct chx_user_ptr), type);
@@ -367,7 +367,7 @@ cheax_user_ptr(CHEAX *c, void *value, int type)
 	return res;
 }
 struct chx_id *
-cheax_id(CHEAX *c, char *id)
+cheax_id(CHEAX *c, const char *id)
 {
 	if (id == NULL)
 		return NULL;
@@ -439,7 +439,7 @@ errname(CHEAX *c, int code)
 	if (code >= CHEAX_EUSER0) {
 		int idx = code - CHEAX_EUSER0;
 		if (idx >= c->user_error_names.len) {
-			cry(c, "errname", CHEAX_EAPI, "Invalid user error code");
+			cry(c, "errname", CHEAX_EAPI, "invalid user error code");
 			return NULL;
 		}
 		return c->user_error_names.array[idx];
@@ -463,7 +463,7 @@ errname(CHEAX *c, int code)
 			hi = pivot - 1;
 	}
 
-	cry(c, "errname", CHEAX_EAPI, "Invalid error code");
+	cry(c, "errname", CHEAX_EAPI, "invalid error code");
 	return NULL;
 }
 int
@@ -508,7 +508,7 @@ void
 cheax_throw(CHEAX *c, int code, struct chx_string *msg)
 {
 	if (code == 0) {
-		cry(c, "throw", CHEAX_EAPI, "Cannot throw error code 0");
+		cry(c, "throw", CHEAX_EAPI, "cannot throw error code 0");
 		return;
 	}
 
@@ -813,7 +813,7 @@ cheax_set_max_stack_depth(CHEAX *c, int max_stack_depth)
 	if (max_stack_depth > 0)
 		c->max_stack_depth = max_stack_depth;
 	else
-		cry(c, "cheax_set_max_stack_depth", CHEAX_EAPI, "Maximum stack depth must be positive");
+		cry(c, "cheax_set_max_stack_depth", CHEAX_EAPI, "maximum stack depth must be positive");
 }
 
 
@@ -875,7 +875,7 @@ cheax_cast(CHEAX *c, struct chx_value *v, int type)
 {
 	/* TODO: improve critria */
 	if (cheax_resolve_type(c, cheax_type_of(v)) != cheax_resolve_type(c, type)) {
-		cry(c, "cast", CHEAX_ETYPE, "Invalid cast");
+		cry(c, "cast", CHEAX_ETYPE, "invalid cast");
 		return NULL;
 	}
 
@@ -966,7 +966,7 @@ cheax_get_base_type(CHEAX *c, int type)
 
 	int ts_idx = type - CHEAX_TYPESTORE_BIAS;
 	if (ts_idx >= c->typestore.len) {
-		cry(c, "cheax_get_base_type", CHEAX_EEVAL, "Unable to resolve type");
+		cry(c, "cheax_get_base_type", CHEAX_EEVAL, "unable to resolve type");
 		return -1;
 	}
 
@@ -982,7 +982,7 @@ cheax_resolve_type(CHEAX *c, int type)
 			return -1;
 
 		if (base_type == type) {
-			cry(c, "cheax_resolve_type", CHEAX_EEVAL, "Unable to resolve type");
+			cry(c, "cheax_resolve_type", CHEAX_EEVAL, "unable to resolve type");
 			return -1;
 		}
 
@@ -1026,7 +1026,7 @@ cheax_load_prelude(CHEAX *c)
 	const char *path = CMAKE_INSTALL_PREFIX "/share/cheax/prelude.chx";
 	FILE *f = fopen(path, "rb");
 	if (f == NULL) {
-		cry(c, "cheax_load_prelude", CHEAX_EAPI, "Prelude not found at '%s'", path);
+		cry(c, "cheax_load_prelude", CHEAX_EAPI, "prelude not found at '%s'", path);
 		return -1;
 	}
 

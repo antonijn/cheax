@@ -195,8 +195,8 @@ rb_tree_test(struct rb_tree *self, struct rb_node *root)
 	int rh = rb_tree_test(self, rn);
 
 	/* Invalid binary search tree */
-	if ((ln > 0 && self->cmp(self, ln, root) >= 0)
-	 || (rn > 0 && self->cmp(self, rn, root) <= 0))
+	if ((ln != NULL && self->cmp(self, ln, root) >= 0)
+	 || (rn != NULL && self->cmp(self, rn, root) <= 0))
 	{
 		fprintf(stderr, "Binary tree violation");
 		return 0;
