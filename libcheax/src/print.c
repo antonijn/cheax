@@ -26,16 +26,17 @@
 static void ostream_show(CHEAX *c, struct ostream *s, struct chx_value *val);
 
 static void
-ostream_show_var(CHEAX *c, struct ostream *s, struct variable *v)
+ostream_show_sym(CHEAX *c, struct ostream *s, struct full_sym *fs)
 {
-	if (v->flags & CHEAX_SYNCED) {
-		ostream_printf(s, ";%s", v->name);
+	struct chx_sym *sym = &fs->sym;
+	if (sym->get == NULL) {
+		ostream_printf(s, ";%s", fs->name);
 		return;
 	}
 
-	const char *decl = (v->flags & CHEAX_READONLY) ? "def" : "var";
-	ostream_printf(s, "(%s %s ", decl, v->name);
-	ostream_show(c, s, v->value.norm);
+	const char *decl = (sym->set == NULL) ? "def" : "var";
+	ostream_printf(s, "(%s %s ", decl, fs->name);
+	ostream_show(c, s, sym->get(c, sym));
 	ostream_putchar(s, ')');
 }
 
@@ -144,12 +145,12 @@ ostream_show_basic_type(CHEAX *c, struct ostream *s, struct chx_value *val)
 
 		struct rb_iter it;
 		rb_iter_init(&it);
-		for (struct variable *v = rb_iter_first(&it, &env->value.norm.syms);
-		     v != NULL;
-		     v = rb_iter_next(&it))
+		for (struct full_sym *fs = rb_iter_first(&it, &env->value.norm.syms);
+		     fs != NULL;
+		     fs = rb_iter_next(&it))
 		{
 			ostream_putchar(s, '\n');
-			ostream_show_var(c, s, v);
+			ostream_show_sym(c, s, fs);
 		}
 		ostream_printf(s, "\n(env)))");
 		break;

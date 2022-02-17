@@ -201,18 +201,15 @@ mark_env(struct rb_node *root,
 	if (root == NULL)
 		return;
 
-	struct variable *var = root->value;
+	struct full_sym *sym = root->value;
 
-	if ((var->flags & CHEAX_SYNCED) == 0) {
-		struct chx_value *val = var->value.norm;
-		to_gray(val, white, gray);
-	}
+	to_gray(sym->sym.protect, white, gray);
 
 	/* if it has a name (which it probably does), it's
 	 * probably from a chx_id, which we need to push to
 	 * the gray heap too */
 
-	char *str_bytes = (char *)var->name;
+	char *str_bytes = (char *)sym->name;
 	void *id_bytes = str_bytes - sizeof(struct chx_id);
 	struct chx_id *id = id_bytes;
 

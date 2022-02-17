@@ -48,13 +48,13 @@ show_file(const char *path)
 	fclose(f);
 }
 static struct chx_value *
-show_w(CHEAX *c, struct chx_list *args)
+show_w(CHEAX *c, struct chx_list *args, void *info)
 {
 	show_file(CMAKE_INSTALL_PREFIX "/share/licenses/cheaky/WARRANTY");
 	return NULL;
 }
 static struct chx_value *
-show_c(CHEAX *c, struct chx_list *args)
+show_c(CHEAX *c, struct chx_list *args, void *info)
 {
 	show_file(CMAKE_INSTALL_PREFIX "/share/licenses/cheaky/CONDITIONS");
 	return NULL;
@@ -102,7 +102,7 @@ stop:
 }
 
 static struct chx_value *
-quit_fun(CHEAX *c, struct chx_list *args)
+quit_fun(CHEAX *c, struct chx_list *args, void *info)
 {
 	quit = true;
 	return NULL;
@@ -115,10 +115,10 @@ main(void)
 
 	cheax_load_extra_builtins(c, CHEAX_ALL_BUILTINS);
 
-	cheax_defmacro(c, "show-w", show_w);
-	cheax_defmacro(c, "show-c", show_c);
+	cheax_defmacro(c, "show-w", show_w, NULL);
+	cheax_defmacro(c, "show-c", show_c, NULL);
 
-	cheax_defmacro(c, "quit", quit_fun);
+	cheax_defmacro(c, "quit", quit_fun, NULL);
 
 	if (cheax_load_prelude(c)) {
 		cheax_perror(c, "cheaky");

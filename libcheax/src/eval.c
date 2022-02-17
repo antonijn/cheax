@@ -92,7 +92,7 @@ eval_sexpr(CHEAX *c, struct chx_list *input)
 
 	case CHEAX_EXT_FUNC:
 		extf = (struct chx_ext_func *)head;
-		res = extf->perform(c, input->next);
+		res = extf->perform(c, input->next, extf->info);
 		break;
 
 	case CHEAX_FUNC:

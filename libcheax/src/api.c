@@ -23,10 +23,10 @@
 #include "gc.h"
 
 static int
-var_cmp(struct rb_tree *tree, struct rb_node *a, struct rb_node *b)
+full_sym_cmp(struct rb_tree *tree, struct rb_node *a, struct rb_node *b)
 {
-	struct variable *var_a = a->value, *var_b = b->value;
-	return strcmp(var_a->name, var_b->name);
+	struct full_sym *fs_a = a->value, *fs_b = b->value;
+	return strcmp(fs_a->name, fs_b->name);
 }
 
 /*
@@ -41,85 +41,68 @@ norm_env(struct chx_env *env)
 	return has_bif_env_bit(&env->base) ? norm_env(env->value.bif[0]) : env;
 }
 
-struct variable *
+struct chx_sym *
 find_sym_in(struct chx_env *env, const char *name)
 {
-	struct variable dummy;
+	struct full_sym dummy;
 	dummy.name = name;
 	env = norm_env(env);
 
-	return (env == NULL) ? NULL : rb_tree_find(&env->value.norm.syms, &dummy);
+	if (env == NULL)
+		return NULL;
+
+	struct full_sym *fs = rb_tree_find(&env->value.norm.syms, &dummy);
+	return (fs == NULL) ? NULL : &fs->sym;
 }
 
-struct variable *
+struct chx_sym *
 find_sym_in_or_below(struct chx_env *env, const char *name)
 {
 	if (env == NULL)
 		return NULL;
 
 	if (!has_bif_env_bit(&env->base)) {
-		struct variable *var = find_sym_in(env, name);
-		if (var != NULL)
-			return var;
+		struct chx_sym *sym = find_sym_in(env, name);
+		if (sym != NULL)
+			return sym;
 
 		return find_sym_in_or_below(env->value.norm.below, name);
 	}
 
 	for (int i = 0; i < 2; ++i) {
-		struct variable *var = find_sym_in_or_below(env->value.bif[i], name);
-		if (var != NULL)
-			return var;
+		struct chx_sym *sym = find_sym_in_or_below(env->value.bif[i], name);
+		if (sym != NULL)
+			return sym;
 	}
 
 	return NULL;
 }
 
-struct variable *
+struct chx_sym *
 find_sym(CHEAX *c, const char *name)
 {
-	struct variable *var = find_sym_in_or_below(c->env, name);
-	return (var != NULL) ? var : find_sym_in(&c->globals, name);
+	struct chx_sym *sym = find_sym_in_or_below(c->env, name);
+	return (sym != NULL) ? sym : find_sym_in(&c->globals, name);
 }
 
-static struct variable *
-def_sym_in(CHEAX *c, struct chx_env *env, const char *name, int flags)
-{
-	env = norm_env(env);
-	if (env == NULL)
-		env = &c->globals;
-
-	if (find_sym_in(env, name) != NULL) {
-		cry(c, "def", CHEAX_EEXIST, "symbol `%s' already exists", name);
-		return NULL;
-	}
-
-	struct variable *new = malloc(sizeof(struct variable));
-	new->flags = flags;
-	new->ctype = CTYPE_NONE;
-	new->value.norm = NULL;
-	new->name = name;
-	rb_tree_insert(&env->value.norm.syms, new);
-	return new;
-}
-
-static struct variable *
-def_sym(CHEAX *c, const char *name, int flags)
-{
-	return def_sym_in(c, c->env, name, flags);
-}
 
 static struct chx_env *
-env_init(struct chx_env *env, struct chx_env *below)
+env_init(CHEAX *c, struct chx_env *env, struct chx_env *below)
 {
-	rb_tree_init(&env->value.norm.syms, var_cmp);
+	rb_tree_init(&env->value.norm.syms, full_sym_cmp);
+	env->value.norm.syms.info = c;
 	env->value.norm.below = below;
 	return env;
 }
 
 static void
-var_node_dealloc(struct rb_tree *syms, struct rb_node *node)
+full_sym_node_dealloc(struct rb_tree *syms, struct rb_node *node)
 {
-	free(node->value);
+	struct full_sym *fs = node->value;
+	struct chx_sym *sym = &fs->sym;
+	if (sym->fin != NULL)
+		sym->fin(syms->info, sym);
+	free(fs);
 	rb_node_dealloc(node);
 }
 
@@ -127,7 +110,7 @@ static void
 env_cleanup(void *env_bytes, void *info)
 {
 	struct chx_env *env = env_bytes;
-	rb_tree_cleanup(&env->value.norm.syms, var_node_dealloc);
+	rb_tree_cleanup(&env->value.norm.syms, full_sym_node_dealloc);
 }
 
 struct chx_env *
@@ -135,7 +118,7 @@ cheax_push_env(CHEAX *c)
 {
 	struct chx_env *env = cheax_alloc_with_fin(c, sizeof(struct chx_env), CHEAX_ENV,
 	                                           env_cleanup, NULL);
-	return c->env = env_init(env, c->env);
+	return c->env = env_init(c, env, c->env);
 }
 
 struct chx_env *
@@ -166,55 +149,66 @@ cheax_pop_env(CHEAX *c)
 }
 
 void
-cheax_defmacro(CHEAX *c, const char *id, chx_func_ptr perform)
+cheax_defmacro(CHEAX *c, const char *id, chx_func_ptr perform, void *info)
 {
-	cheax_var(c, id, &cheax_ext_func(c, perform, id)->base, CHEAX_READONLY);
+	cheax_var(c, id, &cheax_ext_func(c, id, perform, info)->base, CHEAX_READONLY);
+}
+
+struct chx_sym *
+cheax_defsym(CHEAX *c, const char *id,
+             chx_getter get, chx_setter set,
+             chx_finalizer fin, void *user_info)
+{
+	if (id == NULL) {
+		cry(c, "cheax_defsym", CHEAX_EAPI, "`id' cannot be NULL");
+		return NULL;
+	}
+
+	if (get == NULL && set == NULL) {
+		cry(c, "cheax_defsym", CHEAX_EAPI, "`get' and `set' cannot both be NULL");
+		return NULL;
+	}
+
+	struct chx_env *env = norm_env(c->env);
+	if (env == NULL)
+		env = &c->globals;
+
+	if (find_sym_in(env, id) != NULL) {
+		cry(c, "defsym", CHEAX_EEXIST, "symbol `%s' already exists", id);
+		return NULL;
+	}
+
+	struct full_sym *fs = malloc(sizeof(struct full_sym));
+	fs->name = id;
+	fs->sym.get = get;
+	fs->sym.set = set;
+	fs->sym.fin = fin;
+	fs->sym.user_info = user_info;
+	fs->sym.protect = NULL;
+	rb_tree_insert(&env->value.norm.syms, fs);
+	return &fs->sym;
+}
+
+static struct chx_value *
+var_get(CHEAX *c, struct chx_sym *sym)
+{
+	return sym->protect;
+}
+static void
+var_set(CHEAX *c, struct chx_sym *sym, struct chx_value *value)
+{
+	sym->protect = value;
 }
 
 void
 cheax_var(CHEAX *c, const char *id, struct chx_value *value, int flags)
 {
-	if (id == NULL) {
-		cry(c, "var", CHEAX_EAPI, "`id' cannot be NULL");
-		return;
-	}
-
-	struct variable *sym = def_sym(c, id, flags & ~CHEAX_SYNCED);
-	if (sym == NULL)
-		return;
-	sym->value.norm = value;
+	chx_getter get = ((flags & CHEAX_WRITEONLY) == 0) ? var_get : NULL;
+	chx_setter set = ((flags & CHEAX_READONLY)  == 0) ? var_set : NULL;
+	struct chx_sym *sym = cheax_defsym(c, id, get, set, NULL, NULL);
+	if (sym != NULL)
+		sym->protect = value;
 }
-
-
-bool
-try_convert_to_double(struct chx_value *value, double *res)
-{
-	switch (cheax_type_of(value)) {
-	case CHEAX_INT:
-		*res = ((struct chx_int *)value)->value;
-		return true;
-	case CHEAX_DOUBLE:
-		*res = ((struct chx_double *)value)->value;
-		return true;
-	default:
-		return false;
-	}
-}
-bool
-try_convert_to_int(struct chx_value *value, int *res)
-{
-	switch (cheax_type_of(value)) {
-	case CHEAX_INT:
-		*res = ((struct chx_int *)value)->value;
-		return true;
-	case CHEAX_DOUBLE:
-		*res = ((struct chx_double *)value)->value;
-		return true;
-	default:
-		return false;
-	}
-}
-
 
 void
 cheax_set(CHEAX *c, const char *id, struct chx_value *value)
@@ -224,50 +218,16 @@ cheax_set(CHEAX *c, const char *id, struct chx_value *value)
 		return;
 	}
 
-	struct variable *sym = find_sym(c, id);
+	struct chx_sym *sym = find_sym(c, id);
 	if (sym == NULL) {
 		cry(c, "set", CHEAX_ENOSYM, "no such symbol \"%s\"", id);
 		return;
 	}
 
-	if (sym->flags & CHEAX_READONLY) {
+	if (sym->set == NULL)
 		cry(c, "set", CHEAX_EREADONLY, "cannot write to read-only symbol");
-		return;
-	}
-
-	if ((sym->flags & CHEAX_SYNCED) == 0) {
-		sym->value.norm = value;
-		return;
-	}
-
-	switch (sym->ctype) {
-	case CTYPE_INT:
-		if (!try_convert_to_int(value, sym->value.sync_int)) {
-			cry(c, "set", CHEAX_ETYPE, "invalid type");
-			return;
-		}
-		break;
-
-	case CTYPE_FLOAT:
-		; double d;
-		if (!try_convert_to_double(value, &d)) {
-			cry(c, "set", CHEAX_ETYPE, "invalid type");
-			return;
-		}
-		*sym->value.sync_float = d;
-		break;
-
-	case CTYPE_DOUBLE:
-		if (!try_convert_to_double(value, sym->value.sync_double)) {
-			cry(c, "set", CHEAX_ETYPE, "invalid type");
-			return;
-		}
-		break;
-
-	default:
-		cry(c, "set", CHEAX_EEVAL, "unexpected sync-type");
-		return;
-	}
+	else
+		sym->set(c, sym, value);
 }
 
 struct chx_value *
@@ -278,26 +238,18 @@ cheax_get(CHEAX *c, const char *id)
 		return NULL;
 	}
 
-	struct variable *sym = find_sym(c, id);
+	struct chx_sym *sym = find_sym(c, id);
 	if (sym == NULL) {
 		cry(c, "get", CHEAX_ENOSYM, "no such symbol `%s'", id);
 		return NULL;
 	}
 
-	if ((sym->flags & CHEAX_SYNCED) == 0)
-		return sym->value.norm;
-
-	switch (sym->ctype) {
-	case CTYPE_INT:
-		return &cheax_int(c, *sym->value.sync_int)->base;
-	case CTYPE_DOUBLE:
-		return &cheax_double(c, *sym->value.sync_double)->base;
-	case CTYPE_FLOAT:
-		return &cheax_double(c, *sym->value.sync_float)->base;
-	default:
-		cry(c, "get", CHEAX_EEVAL, "unexpected sync-type");
+	if (sym->get == NULL) {
+		cry(c, "set", CHEAX_EWRITEONLY, "cannot read from write-only symbol");
 		return NULL;
 	}
+
+	return sym->get(c, sym);
 }
 
 
@@ -389,14 +341,15 @@ cheax_list(CHEAX *c, struct chx_value *car, struct chx_list *cdr)
 	return res;
 }
 struct chx_ext_func *
-cheax_ext_func(CHEAX *c, chx_func_ptr perform, const char *name)
+cheax_ext_func(CHEAX *c, const char *name, chx_func_ptr perform, void *info)
 {
 	if (perform == NULL || name == NULL)
 		return NULL;
 
 	struct chx_ext_func *res = cheax_alloc(c, sizeof(struct chx_ext_func), CHEAX_EXT_FUNC);
-	res->perform = perform;
 	res->name = name;
+	res->perform = perform;
+	res->info = info;
 	return res;
 }
 struct chx_string *
@@ -654,7 +607,10 @@ cheax_eq(CHEAX *c, struct chx_value *l, struct chx_value *r)
 		return cheax_eq(c, llist->value, rlist->value)
 		    && cheax_eq(c, &llist->next->base, &rlist->next->base);
 	case CHEAX_EXT_FUNC:
-		return ((struct chx_ext_func *)l)->perform == ((struct chx_ext_func *)r)->perform;
+		;
+		struct chx_ext_func *extfl = (struct chx_ext_func *)l;
+		struct chx_ext_func *extfr = (struct chx_ext_func *)r;
+		return extfl->perform == extfr->perform && extfl->info == extfr->info;
 	case CHEAX_QUOTE:
 	case CHEAX_BACKQUOTE:
 	case CHEAX_COMMA:
@@ -699,7 +655,7 @@ cheax_init(void)
 {
 	CHEAX *res = malloc(sizeof(struct cheax));
 	res->globals.base.type = CHEAX_ENV | NO_GC_BIT;
-	env_init(&res->globals, NULL);
+	env_init(res, &res->globals, NULL);
 	res->env = NULL;
 
 	res->max_stack_depth = 0x1000;
@@ -991,32 +947,98 @@ cheax_resolve_type(CHEAX *c, int type)
 	return type;
 }
 
+
+bool
+try_vtod(struct chx_value *value, double *res)
+{
+	switch (cheax_type_of(value)) {
+	case CHEAX_INT:
+		*res = ((struct chx_int *)value)->value;
+		return true;
+	case CHEAX_DOUBLE:
+		*res = ((struct chx_double *)value)->value;
+		return true;
+	default:
+		return false;
+	}
+}
+bool
+try_vtoi(struct chx_value *value, int *res)
+{
+	switch (cheax_type_of(value)) {
+	case CHEAX_INT:
+		*res = ((struct chx_int *)value)->value;
+		return true;
+	case CHEAX_DOUBLE:
+		*res = ((struct chx_double *)value)->value;
+		return true;
+	default:
+		return false;
+	}
+}
+
+
+static struct chx_value *
+sync_int_get(CHEAX *c, struct chx_sym *sym)
+{
+	return &cheax_int(c, *(int *)sym->user_info)->base;
+}
+static void
+sync_int_set(CHEAX *c, struct chx_sym *sym, struct chx_value *value)
+{
+	if (!try_vtoi(value, sym->user_info))
+		cry(c, "set", CHEAX_ETYPE, "invalid type");
+}
+
 void
 cheax_sync_int(CHEAX *c, const char *name, int *var, int flags)
 {
-	struct variable *newsym = def_sym(c, name, flags | CHEAX_SYNCED);
-	if (newsym != NULL) {
-		newsym->ctype = CTYPE_INT;
-		newsym->value.sync_int = var;
-	}
+	chx_getter get = ((flags & CHEAX_WRITEONLY) == 0) ? sync_int_get : NULL;
+	chx_setter set = ((flags & CHEAX_READONLY)  == 0) ? sync_int_set : NULL;
+	cheax_defsym(c, name, get, set, NULL, var);
 }
+
+static struct chx_value *
+sync_float_get(CHEAX *c, struct chx_sym *sym)
+{
+	return &cheax_double(c, *(float *)sym->user_info)->base;
+}
+static void
+sync_float_set(CHEAX *c, struct chx_sym *sym, struct chx_value *value)
+{
+	double d;
+	if (!try_vtod(value, &d))
+		cry(c, "set", CHEAX_ETYPE, "invalid type");
+	else
+		*(float *)sym->user_info = d;
+}
+
 void
 cheax_sync_float(CHEAX *c, const char *name, float *var, int flags)
 {
-	struct variable *newsym = def_sym(c, name, flags | CHEAX_SYNCED);
-	if (newsym != NULL) {
-		newsym->ctype = CTYPE_FLOAT;
-		newsym->value.sync_float = var;
-	}
+	chx_getter get = ((flags & CHEAX_WRITEONLY) == 0) ? sync_float_get : NULL;
+	chx_setter set = ((flags & CHEAX_READONLY)  == 0) ? sync_float_set : NULL;
+	cheax_defsym(c, name, get, set, NULL, var);
 }
+
+static struct chx_value *
+sync_double_get(CHEAX *c, struct chx_sym *sym)
+{
+	return &cheax_double(c, *(double *)sym->user_info)->base;
+}
+static void
+sync_double_set(CHEAX *c, struct chx_sym *sym, struct chx_value *value)
+{
+	if (!try_vtod(value, sym->user_info))
+		cry(c, "set", CHEAX_ETYPE, "invalid type");
+}
+
 void
 cheax_sync_double(CHEAX *c, const char *name, double *var, int flags)
 {
-	struct variable *newsym = def_sym(c, name, flags | CHEAX_SYNCED);
-	if (newsym != NULL) {
-		newsym->ctype = CTYPE_DOUBLE;
-		newsym->value.sync_double = var;
-	}
+	chx_getter get = ((flags & CHEAX_WRITEONLY) == 0) ? sync_double_get : NULL;
+	chx_setter set = ((flags & CHEAX_READONLY)  == 0) ? sync_double_set : NULL;
+	cheax_defsym(c, name, get, set, NULL, var);
 }
 
 int

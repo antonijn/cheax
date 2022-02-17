@@ -51,18 +51,9 @@ enum {
 	CTYPE_DOUBLE,
 };
 
-struct variable {
+struct full_sym {
 	const char *name;
-	int flags;
-	int ctype;
-
-	union {
-		struct chx_value *norm;
-
-		int *sync_int;
-		float *sync_float;
-		double *sync_double;
-	} value;
+	struct chx_sym sym;
 };
 
 struct type_cast {
@@ -131,11 +122,13 @@ set_type(struct chx_value *value, int type)
 	return type;
 }
 
-bool try_convert_to_int(struct chx_value *value, int *res);
-bool try_convert_to_double(struct chx_value *value, double *res);
+/* v-to-i: value to int */
+bool try_vtoi(struct chx_value *value, int *res);
+/* v-to-d: value to double */
+bool try_vtod(struct chx_value *value, double *res);
 
-struct variable *find_sym_in(struct chx_env *env, const char *name);
-struct variable *find_sym(CHEAX *c, const char *name);
+struct chx_sym *find_sym_in(struct chx_env *env, const char *name);
+struct chx_sym *find_sym(CHEAX *c, const char *name);
 void cry(CHEAX *c, const char *name, int err, const char *frmt, ...);
 
 /* defined in builtins.c */

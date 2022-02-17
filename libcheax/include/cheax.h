@@ -201,20 +201,22 @@ struct chx_func {
  *             cheax passes an identifier to the function as an
  *             argument, it will apear as an identifier in the argument
  *             list, not as the value of the symbol it may represent.
+ * \param info User info.
  *
- * \returns The function's return value to be delived back to cheax.
+ * \returns The function's return value to be delivered back to cheax.
  *
  * \sa chx_ext_func, cheax_ext_func(), cheax_defmacro()
  */
-typedef struct chx_value *(*chx_func_ptr)(CHEAX *c, struct chx_list *args);
+typedef struct chx_value *(*chx_func_ptr)(CHEAX *c, struct chx_list *args, void *info);
 
 /*! \brief Cheax external/user function expression.
  * \sa cheax_ext_func(), CHEAX_EXT_FUNC, cheax_defmacro(), chx_func_ptr
  */
 struct chx_ext_func {
 	struct chx_value base; /*!< Base. */
-	chx_func_ptr perform;  /*!< The function pointer to be invoked. */
 	const char *name;      /*!< The function's name, used by cheax_print(). */
+	chx_func_ptr perform;  /*!< The function pointer to be invoked. */
+	void *info;            /*!< Callback info to be passed upon invocation. */
 };
 
 /*! \brief Creates a cheax external/user function expression.
@@ -222,8 +224,9 @@ struct chx_ext_func {
  * \param c       Virtual machine instance.
  * \param perform Function pointer to be invoked.
  * \param name    Function name as will be used by cheax_print().
+ * \param info    Callback info to be passed upon invocation.
  */
-struct chx_ext_func *cheax_ext_func(CHEAX *c, chx_func_ptr perform, const char *name);
+struct chx_ext_func *cheax_ext_func(CHEAX *c, const char *name, chx_func_ptr perform, void *info);
 
 /*! \brief Quoted cheax expression.
  * \sa cheax_quote(), CHEAX_QUOTE, cheax_backquote(), CHEAX_BACKQUOTE,
@@ -320,6 +323,20 @@ struct chx_user_ptr *cheax_user_ptr(CHEAX *c, void *value, int type);
  *     CHEAX_ENV, cheax_env()
  */
 struct chx_env;
+
+struct chx_sym;
+
+typedef struct chx_value *(*chx_getter)(CHEAX *c, struct chx_sym *sym);
+typedef void (*chx_setter)(CHEAX *c, struct chx_sym *sym, struct chx_value *value);
+typedef void (*chx_finalizer)(CHEAX *c, struct chx_sym *sym);
+
+struct chx_sym {
+	void *user_info;
+	chx_getter get;
+	chx_setter set;
+	chx_finalizer fin;
+	struct chx_value *protect;
+};
 
 /*! \brief Increase reference count on cheax value, preventing it from
  *         gc deletion when cheax_eval() is called.
@@ -439,31 +456,32 @@ int cheax_resolve_type(CHEAX *c, int type);
  * \sa cheax_errno(), cheax_throw(), cheax_new_error_code()
  */
 enum {
-	CHEAX_ENOERR    = 0x0000, /*!< No error. Equal to 0. \sa cheax_clear_errno() */
+	CHEAX_ENOERR     = 0x0000, /*!< No error. Equal to 0. \sa cheax_clear_errno() */
 
 	/* Read errors */
-	CHEAX_EREAD     = 0x0001, /*!< Generic read error. */
-	CHEAX_EEOF      = 0x0002, /*!< Unexpected end-of-file. */
+	CHEAX_EREAD      = 0x0001, /*!< Generic read error. */
+	CHEAX_EEOF       = 0x0002, /*!< Unexpected end-of-file. */
 
 	/* Eval/runtime errors */
-	CHEAX_EEVAL     = 0x0101, /*!< Generic eval error */
-	CHEAX_ENOSYM    = 0x0102, /*!< Symbol not found error. */
-	CHEAX_ESTACK    = 0x0103, /*!< Stack overflow error. */
-	CHEAX_ETYPE     = 0x0104, /*!< Invalid type error. */
-	CHEAX_EMATCH    = 0x0105, /*!< Unable to match expression error. */
-	CHEAX_ENIL      = 0x0106, /*!< Unexpected nil value error. */
-	CHEAX_EDIVZERO  = 0x0107, /*!< Division by zero error. */
-	CHEAX_EREADONLY = 0x0108, /*!< Attempted write to read-only symbol error. */
-	CHEAX_EEXIST    = 0x0109, /*!< Symbol already exists error. */
-	CHEAX_EVALUE    = 0x010A, /*!< Invalid value error. */
-	CHEAX_EOVERFLOW = 0x010B, /*!< Integer overflow error. */
-	CHEAX_EINDEX    = 0x010C, /*!< Invalid index error. */
-	CHEAX_EIO       = 0x010D, /*!< IO error. */
+	CHEAX_EEVAL      = 0x0101, /*!< Generic eval error */
+	CHEAX_ENOSYM     = 0x0102, /*!< Symbol not found error. */
+	CHEAX_ESTACK     = 0x0103, /*!< Stack overflow error. */
+	CHEAX_ETYPE      = 0x0104, /*!< Invalid type error. */
+	CHEAX_EMATCH     = 0x0105, /*!< Unable to match expression error. */
+	CHEAX_ENIL       = 0x0106, /*!< Unexpected nil value error. */
+	CHEAX_EDIVZERO   = 0x0107, /*!< Division by zero error. */
+	CHEAX_EREADONLY  = 0x0108, /*!< Attempted write to read-only symbol error. */
+	CHEAX_EWRITEONLY = 0x0109, /*!< Attempted read from write-only symbol error. */
+	CHEAX_EEXIST     = 0x010A, /*!< Symbol already exists error. */
+	CHEAX_EVALUE     = 0x010B, /*!< Invalid value error. */
+	CHEAX_EOVERFLOW  = 0x010C, /*!< Integer overflow error. */
+	CHEAX_EINDEX     = 0x010D, /*!< Invalid index error. */
+	CHEAX_EIO        = 0x010E, /*!< IO error. */
 
-	CHEAX_EAPI      = 0x0200, /*!< API error. \note Not to be thrown from within cheax code. */
-	CHEAX_ENOMEM    = 0x0201, /*!< Out-of-memory error. \note Not to be thrown from within cheax code. */
+	CHEAX_EAPI       = 0x0200, /*!< API error. \note Not to be thrown from within cheax code. */
+	CHEAX_ENOMEM     = 0x0201, /*!< Out-of-memory error. \note Not to be thrown from within cheax code. */
 
-	CHEAX_EUSER0    = 0x0400, /*!< First user-defineable error code. \sa cheax_new_error_code() */
+	CHEAX_EUSER0     = 0x0400, /*!< First user-defineable error code. \sa cheax_new_error_code() */
 };
 
 #define ERR_NAME_PAIR(NAME) {#NAME, CHEAX_##NAME}
@@ -481,9 +499,9 @@ cheax_builtin_error_codes[] = {
 	ERR_NAME_PAIR(ESTACK), ERR_NAME_PAIR(ETYPE),
 	ERR_NAME_PAIR(EMATCH), ERR_NAME_PAIR(ENIL),
 	ERR_NAME_PAIR(EDIVZERO), ERR_NAME_PAIR(EREADONLY),
-	ERR_NAME_PAIR(EEXIST), ERR_NAME_PAIR(EVALUE),
-	ERR_NAME_PAIR(EOVERFLOW), ERR_NAME_PAIR(EINDEX),
-	ERR_NAME_PAIR(EIO),
+	ERR_NAME_PAIR(EWRITEONLY), ERR_NAME_PAIR(EEXIST),
+	ERR_NAME_PAIR(EVALUE), ERR_NAME_PAIR(EOVERFLOW),
+	ERR_NAME_PAIR(EINDEX), ERR_NAME_PAIR(EIO),
 
 	ERR_NAME_PAIR(EAPI), ERR_NAME_PAIR(ENOMEM)
 };
@@ -654,8 +672,9 @@ int cheax_list_to_array(CHEAX *c,
  *     cheax_sync_double()
  */
 enum {
-	CHEAX_SYNCED     = 0x01, /*!< Set automatically by cheax_sync_int() and the like. */
-	CHEAX_READONLY   = 0x02, /*!< Marks a variable read-only. */
+	CHEAX_SYNCED     = 0x01, /*!< Reserved. \note Unused. */
+	CHEAX_READONLY   = 0x02, /*!< Marks a symbol read-only. */
+	CHEAX_WRITEONLY  = 0x04, /*!< Marks a symbol write-only. */
 };
 
 /*! \brief Pushes new empty environment to environment stack.
@@ -687,6 +706,10 @@ struct chx_env *cheax_enter_env(CHEAX *c, struct chx_env *main);
  * \returns Popped environment, or \a NULL in case of an error.
  */
 struct chx_env *cheax_pop_env(CHEAX *c);
+
+struct chx_sym *cheax_defsym(CHEAX *c, const char *id,
+                             chx_getter get, chx_setter set,
+                             chx_finalizer fin, void *user_info);
 
 /*! \brief Creates a new symbol in the cheax environment.
  *
@@ -742,16 +765,17 @@ void cheax_set(CHEAX *c, const char *id, struct chx_value *value);
  *
  * Shorthand for:
 \code{.c}
-cheax_var(c, id, &cheax_ext_func(c, perform, id)->base, CHEAX_READONLY);
+cheax_var(c, id, &cheax_ext_func(c, id, perform, info)->base, CHEAX_READONLY);
 \endcode
  *
  * \param c       Virtual machine instance.
  * \param id      Identifier for the external function.
  * \param perform Callback for the new external function.
+ * \param info    Callback info for the new external function.
  *
  * \sa chx_ext_func, cheax_ext_func(), cheax_var()
  */
-void cheax_defmacro(CHEAX *c, const char *id, chx_func_ptr perform);
+void cheax_defmacro(CHEAX *c, const char *id, chx_func_ptr perform, void *info);
 
 /*! \brief Synchronizes a variable from C with a symbol in the cheax environment.
  *
