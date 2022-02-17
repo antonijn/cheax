@@ -161,3 +161,4 @@
 (defun repr (arg) (format "{!r}" arg))
 (defun read () (read-from stdin))
 (defun print (arg) (print-to stdout arg))
+(defun put (arg) (put-to stdout arg))

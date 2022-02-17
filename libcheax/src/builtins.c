@@ -122,7 +122,7 @@ builtin_fclose(CHEAX *c, struct chx_list *args)
 		return NULL;
 
 	if (cheax_type_of(handle) != c->fhandle_type) {
-		cry(c, "fclose", CHEAX_ETYPE, "Invalid argument type");
+		cry(c, "fclose", CHEAX_ETYPE, "expected file handle");
 		return NULL;
 	}
 
@@ -139,7 +139,7 @@ builtin_read_from(CHEAX *c, struct chx_list *args)
 		return NULL;
 
 	if (cheax_type_of(handle) != c->fhandle_type) {
-		cry(c, "fclose", CHEAX_ETYPE, "Invalid argument type");
+		cry(c, "fclose", CHEAX_ETYPE, "expected file handle");
 		return NULL;
 	}
 
@@ -154,13 +154,35 @@ builtin_print_to(CHEAX *c, struct chx_list *args)
 		return NULL;
 
 	if (cheax_type_of(handle) != c->fhandle_type) {
-		cry(c, "print-to", CHEAX_ETYPE, "Invalid argument type");
+		cry(c, "print-to", CHEAX_ETYPE, "expected file handle");
 		return NULL;
 	}
 
 	FILE *f = (FILE *)((struct chx_user_ptr *)handle)->value;
 	cheax_print(c, f, value);
 	fputc('\n', f);
+	return NULL;
+}
+static struct chx_value *
+builtin_put_to(CHEAX *c, struct chx_list *args)
+{
+	struct chx_value *handle, *value;
+	if (!unpack_args(c, "put-to", args, true, 2, &handle, &value))
+		return NULL;
+
+	if (cheax_type_of(handle) != c->fhandle_type) {
+		cry(c, "put-to", CHEAX_ETYPE, "expect file handle");
+		return NULL;
+	}
+
+	if (cheax_type_of(value) != CHEAX_STRING) {
+		cry(c, "put-to", CHEAX_ETYPE, "expected string");
+		return NULL;
+	}
+
+	FILE *f = (FILE *)((struct chx_user_ptr *)handle)->value;
+	struct chx_string *s = (struct chx_string *)value;
+	fwrite(s->value, 1, s->len, f);
 	return NULL;
 }
 
@@ -1007,6 +1029,7 @@ export_builtins(CHEAX *c)
 		{ "cheax-version", builtin_cheax_version },
 		{ "read-from", builtin_read_from },
 		{ "print-to", builtin_print_to },
+		{ "put-to", builtin_put_to },
 		{ "format", builtin_format },
 		{ "bytes", builtin_bytes },
 		{ "error-code", builtin_error_code },
