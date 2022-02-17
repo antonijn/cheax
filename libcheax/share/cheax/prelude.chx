@@ -15,12 +15,12 @@
 (def defmacro (macro (: name args body) `(def ,name ,(: macro (: args body)))))
 (defmacro defun (: name args body) `(def ,name ,(: fn (: args body))))
 
-(def bool-err '(_ (throw ETYPE "expected boolean")))
+(defun bool-err () (throw ETYPE "expected boolean"))
 
-(defmacro if (c t e)   `(case ,c (true    ,t) (false   ,e) ,bool-err))
-(defmacro when (c t)   `(case ,c (true    ,t) (false   ()) ,bool-err))
-(defmacro unless (c t) `(case ,c (false   ,t) (true    ()) ,bool-err))
-(defmacro not (x)      `(case ,x (false true) (true false) ,bool-err))
+(defmacro if (c t e)   `(case ,c (true    ,t) (false   ,e) (_ (bool-err))))
+(defmacro when (c t)   `(case ,c (true    ,t) (false   ()) (_ (bool-err))))
+(defmacro unless (c t) `(case ,c (false   ,t) (true    ()) (_ (bool-err))))
+(defun    not (x)       (case  x (false true) (true false) (_ (bool-err))))
 (defmacro and (a b) `(if ,a   ,b false))
 (defmacro or (a b)  `(if ,a true    ,b))
 

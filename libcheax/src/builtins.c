@@ -537,20 +537,40 @@ builtin_env(CHEAX *c, struct chx_list *args)
 	return NULL;
 }
 
-static struct chx_value *
-builtin_prepend(CHEAX *c, struct chx_list *args)
+static struct chx_list *
+prepend(CHEAX *c, struct chx_list *args)
 {
-	struct chx_value *head, *tail;
-	if (!unpack_args(c, ":", args, true, 2, &head, &tail))
-		return NULL;
+	if (args->next != NULL) {
+		struct chx_value *head = cheax_eval(c, args->value);
+		cheax_ft(c, pad);
+		cheax_ref(c, head);
+		struct chx_list *tail = prepend(c, args->next);
+		cheax_unref(c, head);
+		cheax_ft(c, pad);
+		return cheax_list(c, head, tail);
+	}
 
-	int tailty = cheax_type_of(tail);
-	if (tailty != CHEAX_NIL && tailty != CHEAX_LIST) {
-		cry(c, ":", CHEAX_ETYPE, "Improper list not allowed");
+	struct chx_value *res = cheax_eval(c, args->value);
+	cheax_ft(c, pad);
+	int ty = cheax_type_of(res);
+	if (ty != CHEAX_LIST && ty != CHEAX_NIL) {
+		cry(c, ":", CHEAX_ETYPE, "improper list not allowed");
 		return NULL;
 	}
 
-	return &cheax_list(c, head, (struct chx_list *)tail)->base;
+	return (struct chx_list *)res;
+pad:
+	return NULL;
+}
+static struct chx_value *
+builtin_prepend(CHEAX *c, struct chx_list *args)
+{
+	if (args == NULL) {
+		cry(c, ":", CHEAX_EMATCH, "expected at least one argument");
+		return NULL;
+	}
+
+	return &prepend(c, args)->base;
 }
 
 static struct chx_value *
