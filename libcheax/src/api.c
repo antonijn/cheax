@@ -85,14 +85,13 @@ static struct variable *
 def_sym_in(CHEAX *c, struct chx_env *env, const char *name, int flags)
 {
 	env = norm_env(env);
+	if (env == NULL)
+		env = &c->globals;
 
 	if (find_sym_in(env, name) != NULL) {
 		cry(c, "def", CHEAX_EEXIST, "symbol `%s' already exists", name);
 		return NULL;
 	}
-
-	if (env == NULL)
-		env = &c->globals;
 
 	struct variable *new = malloc(sizeof(struct variable));
 	new->flags = flags;
