@@ -711,8 +711,25 @@ builtin_prepend(CHEAX *c, struct chx_list *args, void *info)
 static struct chx_value *
 builtin_gc(CHEAX *c, struct chx_list *args, void *info)
 {
-	if (unpack_args(c, "gc", args, false, 0))
+	if (unpack_args(c, "gc", args, false, 0)) {
+		int before, after;
+#ifdef USE_BOEHM_GC
+		before = 0;
+#else
+		before = c->gc.all_mem;
+#endif
+
 		cheax_force_gc(c);
+
+#ifdef USE_BOEHM_GC
+		after = 0;
+#else
+		after = c->gc.all_mem;
+#endif
+
+		return &cheax_list(c, &cheax_int(c, before)->base,
+		        cheax_list(c, &cheax_int(c, after)->base, NULL))->base;
+	}
 
 	return NULL;
 }
