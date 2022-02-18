@@ -487,7 +487,6 @@ builtin_exit(CHEAX *c, struct chx_list *args, void *info)
 }
 
 struct defsym_info {
-	bool in_scope;
 	struct chx_func *get, *set;
 };
 
@@ -498,13 +497,13 @@ defgetset(CHEAX *c, const char *name,
           struct defsym_info *info,
           struct chx_func **out)
 {
-	if (args == NULL) {
-		cry(c, name, CHEAX_EMATCH, "expected body");
+	if (info == NULL) {
+		cry(c, name, CHEAX_EEVAL, "out of symbol scope");
 		return;
 	}
 
-	if (!info->in_scope) {
-		cry(c, name, CHEAX_EEVAL, "out of symbol scope");
+	if (args == NULL) {
+		cry(c, name, CHEAX_EMATCH, "expected body");
 		return;
 	}
 
@@ -576,11 +575,14 @@ builtin_defsym(CHEAX *c, struct chx_list *args, void *info)
 	cheax_push_env(c);
 
 	struct defsym_info *dinfo = malloc(sizeof(struct defsym_info));
-	dinfo->in_scope = true;
 	dinfo->get = dinfo->set = NULL;
 
-	cheax_defmacro(c, "defget", builtin_defget, dinfo);
-	cheax_defmacro(c, "defset", builtin_defset, dinfo);
+	struct chx_ext_func *defget, *defset;
+	defget = cheax_ext_func(c, "defget", builtin_defget, dinfo);
+	defset = cheax_ext_func(c, "defset", builtin_defset, dinfo);
+
+	cheax_var(c, "defget", &defget->base, CHEAX_READONLY);
+	cheax_var(c, "defset", &defset->base, CHEAX_READONLY);
 
 	for (struct chx_list *cons = args->next; cons != NULL; cons = cons->next) {
 		cheax_eval(c, cons->value);
@@ -589,7 +591,7 @@ builtin_defsym(CHEAX *c, struct chx_list *args, void *info)
 
 	body_ok = true;
 pad:
-	dinfo->in_scope = false;
+	defget->info = defset->info = NULL;
 	cheax_pop_env(c);
 
 	if (!body_ok)

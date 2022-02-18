@@ -220,7 +220,7 @@ cheax_set(CHEAX *c, const char *id, struct chx_value *value)
 
 	struct chx_sym *sym = find_sym(c, id);
 	if (sym == NULL) {
-		cry(c, "set", CHEAX_ENOSYM, "no such symbol \"%s\"", id);
+		cry(c, "set", CHEAX_ENOSYM, "no such symbol `%s'", id);
 		return;
 	}
 
