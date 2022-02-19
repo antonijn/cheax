@@ -100,8 +100,10 @@ eval_sexpr(CHEAX *c, struct chx_list *input)
 		fn = (struct chx_func *)head;
 		bool call_ok = false;
 
-		if (ty == CHEAX_FUNC)
+		if (ty == CHEAX_FUNC) {
 			args = eval_args(c, args);
+			cheax_ft(c, args_pad);
+		}
 
 		cheax_ref(c, args);
 
@@ -132,6 +134,7 @@ fn_pad:
 		c->env = prev_env;
 		if (call_ok && ty == CHEAX_MACRO)
 			res = cheax_eval(c, res);
+args_pad:
 		break;
 
 	case CHEAX_TYPECODE:
