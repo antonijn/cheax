@@ -12,17 +12,17 @@
 ;  ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF
 ;  OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
 
-(def defmacro (macro (: name args body) `(def ,name ,(: macro (: args body)))))
-(defmacro defun (: name args body) `(def ,name ,(: fn (: args body))))
+(def defmacro (macro (: name args body) `(def ,name ,(: macro args body))))
+(defmacro defun      (: name args body) `(def ,name ,(: fn    args body)))
 
 (defun bool-err () (throw ETYPE "expected boolean"))
 
-(defmacro if (c t e)   `(case ,c (true    ,t) (false   ,e) (_ (bool-err))))
-(defmacro when (c t)   `(case ,c (true    ,t) (false   ()) (_ (bool-err))))
+(defmacro if   (c t e) `(case ,c (true    ,t) (false   ,e) (_ (bool-err))))
+(defmacro when   (c t) `(case ,c (true    ,t) (false   ()) (_ (bool-err))))
 (defmacro unless (c t) `(case ,c (false   ,t) (true    ()) (_ (bool-err))))
-(defun    not (x)       (case  x (false true) (true false) (_ (bool-err))))
-(defmacro and (a b) `(if ,a   ,b false))
-(defmacro or (a b)  `(if ,a true    ,b))
+(defun    not      (x)  (case  x (false true) (true false) (_ (bool-err))))
+(defmacro and    (a b) `(if ,a   ,b false))
+(defmacro or     (a b) `(if ,a true    ,b))
 
 (defun unsafe-map (f xs)
   (case xs
@@ -104,7 +104,7 @@
 (defun ++helper (xs ys)
   (case xs
     ((: z zs) (: z (++helper zs ys)))
-    (()       ys)))
+    (() ys)))
 (defun ++ (xs ys)
   (if (= (type-of xs) String)
     (do (type-assert ys String)
@@ -142,20 +142,31 @@
 (defun sum (args) (foldr + 0 args))
 (defun product (args) (foldr * 1 args))
 
+(defun unsafe-!! (xs i orig-i)
+  (case xs
+    ((: y ys) (if (= i 0) y (unsafe-!! ys (- i 1) orig-i)))
+    (() (throw EINDEX (format "index {} out of bounds" orig-i)))))
+(defun !! (xs i)
+  (type-assert xs List Nil)
+  (type-assert i Int)
+  (when (< i 0)
+    (throw EINDEX (format "expected non-negative index (got {})" i)))
+  (unsafe-!! xs i i))
+
 (defun all (args) (foldr and true args))
 (defun any (args) (foldr or false args))
 (defun eq (: x xs) (all (map (fn (y) (= x y)) xs)))
 
-(defun ..-helper (from to step fin)
+(defun ..helper (from to step fin)
   (if (fin from to)
     ()
-    (: from (..-helper (+ from step) to step fin))))
+    (: from (..helper (+ from step) to step fin))))
 (defun .. (from to)
   (type-assert from Int)
   (type-assert to Int)
   (if (<= from to)
-    (..-helper from to  1 >)
-    (..-helper from to -1 <)))
+    (..helper from to  1 >)
+    (..helper from to -1 <)))
 
 (defun str  (arg) (format "{!s}" arg))
 (defun repr (arg) (format "{!r}" arg))
