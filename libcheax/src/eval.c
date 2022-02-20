@@ -35,6 +35,7 @@ cheax_exec(CHEAX *c, FILE *f)
 
 	struct chx_value *v;
 	while ((v = cheax_read(c, f)) != NULL) {
+		cheax_ft(c, pad);
 		cheax_eval(c, v);
 		cheax_ft(c, pad);
 	}
