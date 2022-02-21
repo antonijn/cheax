@@ -22,7 +22,7 @@
 
 #define MAX_INPUT_FILES 16
 static int num_input_files = 0;
-static const char *input_files[MAX_INPUT_FILES];
+static const char *input_files[MAX_INPUT_FILES], *cmd = NULL;
 static bool read_stdin = false, use_prelude = true;
 static CHEAX *c;
 
@@ -33,14 +33,15 @@ print_usage(void)
 		"Usage: cheax [OPTION]... [FILE]...\n"
 		"Executes cheax programs.\n\n"
 		"Options:\n"
-		"  -p\t\tDon't load prelude.\n"
-		"  --help\tShow this message.\n";
+		"  -c CMD        Read and evaluate command CMD.\n"
+		"  -p            Don't load prelude.\n"
+		"  --help        Show this message.\n";
 
 	puts(usage);
 }
 
 static int
-handle_string_option(const char *arg)
+handle_string_option(const char *arg, int *arg_idx, int argc, char **argv)
 {
 	if (!strcmp(arg, "--help")) {
 		print_usage();
@@ -51,11 +52,19 @@ handle_string_option(const char *arg)
 	return -1;
 }
 static int
-handle_option(char opt)
+handle_option(char opt, int *arg_idx, int argc, char **argv)
 {
 	switch (opt) {
 	case 'p':
 		use_prelude = false;
+		break;
+	case 'c':
+		if (*arg_idx + 1 >= argc) {
+			fprintf(stderr, "expected command after '-c'\n");
+			return -1;
+		}
+
+		cmd = argv[++*arg_idx];
 		break;
 	default:
 		fprintf(stderr, "unknown option '%c'\n", opt);
@@ -65,7 +74,7 @@ handle_option(char opt)
 	return 0;
 }
 static int
-handle_arg(const char *arg)
+handle_arg(const char *arg, int *arg_idx, int argc, char **argv)
 {
 	if (arg[0] != '-') {
 		if (num_input_files >= MAX_INPUT_FILES) {
@@ -81,10 +90,10 @@ handle_arg(const char *arg)
 		return 0;
 	}
 	if (arg[1] == '-')
-		return handle_string_option(arg);
+		return handle_string_option(arg, arg_idx, argc, argv);
 
 	for (int i = 1; arg[i]; ++i)
-		if (handle_option(arg[i]))
+		if (handle_option(arg[i], arg_idx, argc, argv))
 			return -1;
 
 	return 0;
@@ -93,11 +102,16 @@ static int
 handle_args(int argc, char **argv)
 {
 	for (int i = 1; i < argc; ++i)
-		if (handle_arg(argv[i]))
+		if (handle_arg(argv[i], &i, argc, argv))
 			return -1;
 
-	if (!read_stdin && num_input_files == 0) {
+	if (!read_stdin && num_input_files == 0 && cmd == NULL) {
 		fputs("no input files\n", stderr);
+		return -1;
+	}
+
+	if (cmd != NULL && (read_stdin || num_input_files > 0)) {
+		fputs("cannot specify both a command and input files\n", stderr);
 		return -1;
 	}
 
@@ -124,6 +138,14 @@ main(int argc, char **argv)
 	if (use_prelude && cheax_load_prelude(c)) {
 		cheax_perror(c, argv[0]);
 		return EXIT_FAILURE;
+	}
+
+	if (cmd != NULL) {
+		cheax_eval(c, cheax_readstr(c, cmd));
+		if (cheax_errno(c) != 0) {
+			cheax_perror(c, "cheax");
+			return EXIT_FAILURE;
+		}
 	}
 
 	if (read_stdin) {
