@@ -107,7 +107,7 @@ is_id(int ch)
 {
 	return ch != '(' && ch != ')'
 	    && !isspace(ch) && isprint(ch)
-	    && ch != '\'' && ch != '`' && ch != ',' && ch != '"';
+	    && ch != '\'' && ch != '`' && ch != ',' && ch != '"' && ch != ';';
 }
 
 static int
@@ -141,7 +141,7 @@ read_id(struct reader *rdr) /* consume_final = true */
 	while (is_id(rdr->ch))
 		ostream_putchar(&ss.ostr, rdr_advch(rdr));
 
-	if (!isspace(rdr->ch) && rdr->ch != ';' && rdr->ch != ')') {
+	if (rdr->ch != EOF && !isspace(rdr->ch) && rdr->ch != ')') {
 		cry(rdr->c, "read", CHEAX_EREAD, "only whitespace or `)' may follow identifier");
 		goto done;
 	}
@@ -265,7 +265,7 @@ read_num(struct reader *rdr) /* consume_final = true */
 		read_digits(rdr, &ss.ostr, base, NULL);
 	}
 
-	if (!isspace(rdr->ch) && rdr->ch != ';' && rdr->ch != ')') {
+	if (rdr->ch != EOF && !isspace(rdr->ch) && rdr->ch != ')') {
 		cry(rdr->c, "read", CHEAX_EREAD, "only whitespace or `)' may follow number");
 		goto done;
 	}
@@ -495,6 +495,9 @@ rdr_read(struct reader *rdr, bool consume_final)
 
 	if (rdr->ch == '"')
 		return read_string(rdr, consume_final);
+
+	if (rdr->ch != EOF)
+		cry(rdr->c, "read", CHEAX_EREAD, "unexpected character `%c'", rdr->ch);
 
 pad:
 	return NULL;
