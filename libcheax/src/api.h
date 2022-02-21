@@ -21,12 +21,12 @@
 #include "rbtree.h"
 
 enum {
-	FIN_BIT       = CHEAX_TYPE_MASK + 1,
-	BIF_ENV_BIT   = FIN_BIT << 1,
-	NO_GC_BIT     = FIN_BIT << 2,
-	GC_NOT_IN_USE = FIN_BIT << 3,
-	GC_IN_USE     = 0,
-	GC_BITS       = NO_GC_BIT | GC_NOT_IN_USE,
+	FIN_BIT     = CHEAX_TYPE_MASK + 1,
+	BIF_ENV_BIT = FIN_BIT << 1,
+	NO_GC_BIT   = FIN_BIT << 2,
+	GC_MARKED   = FIN_BIT << 3,
+	GC_UNMARKED = 0,
+	GC_BITS     = NO_GC_BIT | GC_MARKED,
 };
 
 static inline int

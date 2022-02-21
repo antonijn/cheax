@@ -221,10 +221,10 @@ mark_env(struct gc_cycle *cycle, struct rb_node *root)
 static void
 mark(struct gc_cycle *cycle, struct chx_value *used)
 {
-	if (used == NULL || gc_bits(used) != GC_NOT_IN_USE)
+	if (used == NULL || gc_bits(used) != GC_UNMARKED)
 		return;
 
-	set_gc_bits(used, GC_IN_USE);
+	set_gc_bits(used, GC_MARKED);
 	++cycle->num_in_use;
 
 	CHEAX *c = cycle->c;
@@ -289,13 +289,6 @@ cheax_force_gc(CHEAX *c)
 	     obj = rb_iter_next(&it))
 	{
 		++cycle.num_objs;
-		set_gc_bits(obj, GC_NOT_IN_USE);
-	}
-
-	for (void *obj = rb_iter_first(&it, &c->gc.all_objects);
-	     obj != NULL;
-	     obj = rb_iter_next(&it))
-	{
 		if (get_header(obj)->ext_refs > 0)
 			mark(&cycle, obj);
 	}
@@ -312,8 +305,10 @@ cheax_force_gc(CHEAX *c)
 	     obj != NULL;
 	     obj = rb_iter_next(&it))
 	{
-		if (gc_bits(obj) == GC_NOT_IN_USE)
+		if (gc_bits(obj) == GC_UNMARKED)
 			sweep[i++] = obj;
+		else
+			set_gc_bits(obj, GC_UNMARKED);
 	}
 
 	for (i = 0; i < num_sweep; ++i)
