@@ -21,15 +21,24 @@
 #include "rbtree.h"
 
 enum {
-	NO_GC_BIT   = CHEAX_TYPE_MASK + 1,
-	FIN_BIT     = NO_GC_BIT << 1,
-	BIF_ENV_BIT = NO_GC_BIT << 2,
+	FIN_BIT       = CHEAX_TYPE_MASK + 1,
+	BIF_ENV_BIT   = FIN_BIT << 1,
+	NO_GC_BIT     = FIN_BIT << 2,
+	GC_NOT_IN_USE = FIN_BIT << 3,
+	GC_IN_USE     = 0,
+	GC_BITS       = NO_GC_BIT | GC_NOT_IN_USE,
 };
 
-static inline bool
-has_no_gc_bit(struct chx_value *val)
+static inline int
+gc_bits(struct chx_value *val)
 {
-	return (val->type & NO_GC_BIT) != 0;
+	return val->type & GC_BITS;
+}
+
+static inline void
+set_gc_bits(struct chx_value *val, int bits)
+{
+	val->type = (val->type & ~GC_BITS) | (bits & GC_BITS);
 }
 
 static inline bool
@@ -118,7 +127,7 @@ struct cheax {
 static inline int
 set_type(struct chx_value *value, int type)
 {
-	value->type = (value->type & ~CHEAX_TYPE_MASK) | type;
+	value->type = (value->type & ~CHEAX_TYPE_MASK) | (type & CHEAX_TYPE_MASK);
 	return type;
 }
 

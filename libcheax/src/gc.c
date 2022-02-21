@@ -112,14 +112,14 @@ get_fin_footer(void *obj)
 void
 cheax_ref(CHEAX *c, void *value)
 {
-	if (value != NULL && !has_no_gc_bit(value))
+	if (value != NULL && gc_bits(value) != NO_GC_BIT)
 		++get_header(value)->ext_refs;
 }
 
 void
 cheax_unref(CHEAX *c, void *value)
 {
-	if (value != NULL && !has_no_gc_bit(value))
+	if (value != NULL && gc_bits(value) != NO_GC_BIT)
 		--get_header(value)->ext_refs;
 }
 
@@ -182,28 +182,22 @@ cheax_free(CHEAX *c, void *obj)
 	free(header);
 }
 
-static void
-to_gray(void *obj,
-        struct rb_tree *white,
-        struct rb_tree *gray)
-{
-	if (rb_tree_find(white, obj) != NULL) {
-		rb_tree_remove(white, obj);
-		rb_tree_insert(gray, obj);
-	}
-}
+struct gc_cycle {
+	CHEAX *c;
+	size_t num_objs, num_in_use;
+};
+
+static void mark(struct gc_cycle *cycle, struct chx_value *used);
 
 static void
-mark_env(struct rb_node *root,
-         struct rb_tree *white,
-         struct rb_tree *gray)
+mark_env(struct gc_cycle *cycle, struct rb_node *root)
 {
 	if (root == NULL)
 		return;
 
 	struct full_sym *sym = root->value;
 
-	to_gray(sym->sym.protect, white, gray);
+	mark(cycle, sym->sym.protect);
 
 	/* if it has a name (which it probably does), it's
 	 * probably from a chx_id, which we need to push to
@@ -214,30 +208,26 @@ mark_env(struct rb_node *root,
 	struct chx_id *id = id_bytes;
 
 	if (str_bytes != NULL
-	 && rb_tree_find(white, id_bytes) != NULL
+	 && rb_tree_find(&cycle->c->gc.all_objects, id_bytes) != NULL
 	 && cheax_type_of(&id->base) == CHEAX_ID)
 	{
-		to_gray(id, white, gray);
+		mark(cycle, &id->base);
 	}
 
 	for (int i = 0; i < 2; ++i)
-		mark_env(root->link[i], white, gray);
+		mark_env(cycle, root->link[i]);
 }
 
 static void
-mark(CHEAX *c,
-     struct rb_tree *white,
-     struct rb_tree *gray)
+mark(struct gc_cycle *cycle, struct chx_value *used)
 {
-	if (gray->root == NULL)
+	if (used == NULL || gc_bits(used) != GC_NOT_IN_USE)
 		return;
 
-	struct chx_value *used = gray->root->value;
-	if (used == NULL)
-		return;
+	set_gc_bits(used, GC_IN_USE);
+	++cycle->num_in_use;
 
-	/* done */
-	rb_tree_remove(gray, used);
+	CHEAX *c = cycle->c;
 
 	struct chx_list *list;
 	struct chx_func *func;
@@ -246,43 +236,36 @@ mark(CHEAX *c,
 	switch (cheax_resolve_type(c, cheax_type_of(used))) {
 	case CHEAX_LIST:
 		list = (struct chx_list *)used;
-		to_gray(list->value, white, gray);
-		to_gray(list->next, white, gray);
+		mark(cycle, list->value);
+		mark(cycle, &list->next->base);
 		break;
 
 	case CHEAX_FUNC:
 	case CHEAX_MACRO:
 		func = (struct chx_func *)used;
-		to_gray(func->args, white, gray);
-		to_gray(func->body, white, gray);
-		to_gray(func->lexenv, white, gray);
+		mark(cycle, func->args);
+		mark(cycle, &func->body->base);
+		mark(cycle, &func->lexenv->base);
 		break;
 
 	case CHEAX_QUOTE:
 	case CHEAX_BACKQUOTE:
 	case CHEAX_COMMA:
 		quote = (struct chx_quote *)used;
-		to_gray(quote->value, white, gray);
+		mark(cycle, quote->value);
 		break;
 
 	case CHEAX_ENV:
 		env = (struct chx_env *)used;
 		if (has_bif_env_bit(&env->base)) {
 			for (int i = 0; i < 2; ++i)
-				to_gray(env->value.bif[i], white, gray);
+				mark(cycle, &env->value.bif[i]->base);
 		} else {
-			mark_env(env->value.norm.syms.root, white, gray);
-			to_gray(env->value.norm.below, white, gray);
+			mark_env(cycle, env->value.norm.syms.root);
+			mark(cycle, &env->value.norm.below->base);
 		}
 		break;
 	}
-}
-
-static void
-white_node_dealloc(struct rb_tree *white, struct rb_node *node)
-{
-	cheax_free(white->info, node->value);
-	rb_node_dealloc(node);
 }
 
 void
@@ -297,9 +280,7 @@ cheax_gc(CHEAX *c)
 void
 cheax_force_gc(CHEAX *c)
 {
-	struct rb_tree white, gray;
-	rb_tree_init(&white, obj_cmp);
-	rb_tree_init(&gray, obj_cmp);
+	struct gc_cycle cycle = { .c = c, 0 };
 
 	struct rb_iter it;
 	rb_iter_init(&it);
@@ -307,29 +288,38 @@ cheax_force_gc(CHEAX *c)
 	     obj != NULL;
 	     obj = rb_iter_next(&it))
 	{
-		if (get_header(obj)->ext_refs > 0)
-			rb_tree_insert(&gray, obj);
-		else
-			rb_tree_insert(&white, obj);
+		++cycle.num_objs;
+		set_gc_bits(obj, GC_NOT_IN_USE);
 	}
 
-	/* our root */
-	to_gray(c->env, &white, &gray);
-	mark_env(c->globals.value.norm.syms.root, &white, &gray);
+	for (void *obj = rb_iter_first(&it, &c->gc.all_objects);
+	     obj != NULL;
+	     obj = rb_iter_next(&it))
+	{
+		if (get_header(obj)->ext_refs > 0)
+			mark(&cycle, obj);
+	}
 
-	/* protecc */
-	if (c->error.msg != NULL)
-		to_gray(c->error.msg, &white, &gray);
+	mark(&cycle, &c->env->base);
+	mark_env(&cycle, c->globals.value.norm.syms.root);
+	mark(&cycle, &c->error.msg->base);
 
-	/* mark */
-	while (gray.root != NULL)
-		mark(c, &white, &gray);
+	size_t num_sweep = cycle.num_objs - cycle.num_in_use;
+	struct chx_value **sweep = calloc(num_sweep, sizeof(struct chx_value *));
 
-	rb_tree_cleanup(&gray, rb_tree_node_dealloc_cb);
+	size_t i = 0;
+	for (void *obj = rb_iter_first(&it, &c->gc.all_objects);
+	     obj != NULL;
+	     obj = rb_iter_next(&it))
+	{
+		if (gc_bits(obj) == GC_NOT_IN_USE)
+			sweep[i++] = obj;
+	}
 
-	/* sweep */
-	white.info = c;
-	rb_tree_cleanup(&white, white_node_dealloc);
+	for (i = 0; i < num_sweep; ++i)
+		cheax_free(c, sweep[i]);
+
+	free(sweep);
 
 	c->gc.prev_run = c->gc.all_mem;
 }
