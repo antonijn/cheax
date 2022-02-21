@@ -698,9 +698,11 @@ cheax_destroy(CHEAX *c)
 			free(c);
 		}
 	}
-	free(c->typestore.array);
 
+	free(c->typestore.array);
 	free(c->user_error_names.array);
+
+	env_cleanup(&c->globals, NULL);
 
 	struct rb_node *obj_node;
 	while ((obj_node = c->gc.all_objects.root) != NULL)
