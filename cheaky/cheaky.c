@@ -143,15 +143,18 @@ main(void)
 	fputs("under certain conditions; type `(show-c)' for details.\n", stderr);
 
 	while (!quit) {
-		struct chx_value *v = read_with_readline(c);
-		struct chx_value *e = cheax_eval(c, v);
-		if (cheax_errno(c) != 0) {
-			cheax_perror(c, "cheaky");
-			cheax_clear_errno(c);
-		} else {
-			cheax_print(c, stdout, e);
-			printf("\n");
-		}
+		struct chx_value *v;
+		v = read_with_readline(c);
+		cheax_ft(c, pad);
+		v = cheax_eval(c, v);
+		cheax_ft(c, pad);
+
+		cheax_print(c, stdout, v);
+		printf("\n");
+		continue;
+pad:
+		cheax_perror(c, "cheaky");
+		cheax_clear_errno(c);
 	}
 
 	cheax_destroy(c);
