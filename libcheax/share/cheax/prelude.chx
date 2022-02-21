@@ -1,16 +1,16 @@
 ; Copyright (c) 2020, Antonie Blom
-;  
-;  Permission to use, copy, modify, and/or distribute this software for any
-;  purpose with or without fee is hereby granted, provided that the above
-;  copyright notice and this permission notice appear in all copies.
-;  
-;  THE SOFTWARE IS PROVIDED "AS IS" AND THE AUTHOR DISCLAIMS ALL WARRANTIES
-;  WITH REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED WARRANTIES OF
-;  MERCHANTABILITY AND FITNESS. IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR
-;  ANY SPECIAL, DIRECT, INDIRECT, OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES
-;  WHATSOEVER RESULTING FROM LOSS OF USE, DATA OR PROFITS, WHETHER IN AN
-;  ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF
-;  OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
+;
+; Permission to use, copy, modify, and/or distribute this software for any
+; purpose with or without fee is hereby granted, provided that the above
+; copyright notice and this permission notice appear in all copies.
+;
+; THE SOFTWARE IS PROVIDED "AS IS" AND THE AUTHOR DISCLAIMS ALL WARRANTIES
+; WITH REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED WARRANTIES OF
+; MERCHANTABILITY AND FITNESS. IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR
+; ANY SPECIAL, DIRECT, INDIRECT, OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES
+; WHATSOEVER RESULTING FROM LOSS OF USE, DATA OR PROFITS, WHETHER IN AN
+; ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF
+; OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
 
 (def defmacro (macro (: name args body) `(def ,name ,(: macro args body))))
 (defmacro defun      (: name args body) `(def ,name ,(: fn    args body)))
@@ -41,19 +41,19 @@
 (def pi 3.1415926535897932384)
 (def nil ())
 
-(def Nil (type-of nil))
-(def ID (type-of 'a))
-(def Int (type-of 0))
-(def Double (type-of 0.0))
-(def Bool (type-of true))
-(def List (type-of '(0)))
-(def Func (type-of (fn () ())))
-(def Macro (type-of (macro () ())))
-(def ExtFunc (type-of type-of))
-(def Quote (type-of ''0))
+(def Nil       (type-of nil))
+(def ID        (type-of 'a))
+(def Int       (type-of 0))
+(def Double    (type-of 0.0))
+(def Bool      (type-of true))
+(def List      (type-of '(0)))
+(def Func      (type-of (fn () ())))
+(def Macro     (type-of (macro () ())))
+(def ExtFunc   (type-of type-of))
+(def Quote     (type-of ''0))
 (def BackQuote (type-of '`0))
-(def String (type-of ""))
-(def Env (type-of ((fn () (env)))))
+(def String    (type-of ""))
+(def Env       (type-of ((fn () (env)))))
 
 (defun map (f xs)
   (type-assert f Func ExtFunc)
@@ -70,6 +70,35 @@
 (defun call (f args) (eval (: f args)))
 (defun list args args)
 (defun do args (last args))
+
+(defun unsafe-filter (p xs)
+  (case xs
+    (() ())
+    ((: z zs) (if (p z)
+                (: z (unsafe-filter p zs))
+                (unsafe-filter p zs)))))
+(defun filter (p xs)
+  (type-assert p Func ExtFunc)
+  (type-assert xs List Nil)
+  (unsafe-filter p xs))
+
+(defun unsafe-any (p xs)
+  (case xs
+    (() false)
+    ((: y ys) (if (p y) true (unsafe-any p ys)))))
+(defun any (p xs)
+  (type-assert p Func ExtFunc)
+  (type-assert xs List Nil)
+  (unsafe-any p xs))
+
+(defun unsafe-all (p xs)
+  (case xs
+    (() true)
+    ((: y ys) (and (p y) (unsafe-all p ys)))))
+(defun all (p xs)
+  (type-assert p Func ExtFunc)
+  (type-assert xs List Nil)
+  (unsafe-all p xs))
 
 (defun unsafe-foldr (f start lst)
   (case lst
@@ -89,17 +118,26 @@
   (type-assert lst List Nil)
   (unsafe-foldl f start lst))
 
-(defun ~ (x) (- 0 x))
+(defun contains (e xs)
+  (any (fn (x) (= e x)) xs))
 
-(defun zip (xs ys)
+(defun unsafe-pos (e xs)
   (case xs
-    (() ())
-    ((: a as)
-      (case ys
-        (() ())
-	((: b bs) (: (list a b) (zip as bs)))))))
-(defun zip-with (op xs ys)
-  (map (fn ((a b)) (op a b)) (zip xs ys)))
+    ((: y ys) (if (= e y)
+                0
+                (+ (unsafe-pos e ys) 1)))
+    (() (throw EINDEX "element not found"))))
+(defun position (e xs)
+  (type-assert xs List Nil)
+  (unsafe-pos e xs))
+
+(defun zip-with (: op args)
+  (case args
+    ((as ()) ())
+    ((() bs) ())
+    (((: a as) (: b bs)) (: (op a b) (zip-with op as bs)))))
+(defun zip (xs ys)
+  (zip-with list xs ys))
 
 (defun ++helper (xs ys)
   (case xs
@@ -127,17 +165,6 @@
   (type-assert xs List Nil)
   (rev-helper xs ()))
 
-(defun unsafe-filter (p xs)
-  (case xs
-    (() ())
-    ((: z zs) (if (p z)
-                (: z (unsafe-filter p zs))
-                (unsafe-filter p zs)))))
-(defun filter (p xs)
-  (type-assert p Func ExtFunc)
-  (type-assert xs List Nil)
-  (unsafe-filter p xs))
-
 (defun length (xs) (foldr (fn (_ l) (+ 1 l)) 0 xs))
 (defun sum (args) (foldr + 0 args))
 (defun product (args) (foldr * 1 args))
@@ -153,9 +180,7 @@
     (throw EINDEX (format "expected non-negative index (got {})" i)))
   (unsafe-!! xs i i))
 
-(defun all (args) (foldr and true args))
-(defun any (args) (foldr or false args))
-(defun eq (: x xs) (all (map (fn (y) (= x y)) xs)))
+(defun ~ (x) (- 0 x))
 
 (defun ..helper (from to step fin)
   (if (fin from to)
