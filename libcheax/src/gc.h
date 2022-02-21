@@ -17,7 +17,7 @@
 #ifndef CHEAX_GC_H
 #define CHEAX_GC_H
 
-#define GC_RUN_THRESHOLD 16384
+#define GC_RUN_THRESHOLD 0x20000
 
 #include <cheax.h>
 #include "api.h"

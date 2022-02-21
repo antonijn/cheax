@@ -21,10 +21,10 @@
 #include "rbtree.h"
 
 enum {
-	FIN_BIT     = CHEAX_TYPE_MASK + 1,
-	BIF_ENV_BIT = FIN_BIT << 1,
-	NO_GC_BIT   = FIN_BIT << 2,
-	GC_MARKED   = FIN_BIT << 3,
+	BIF_ENV_BIT = CHEAX_TYPE_MASK + 1,
+	FIN_BIT     = BIF_ENV_BIT << 1,
+	NO_GC_BIT   = BIF_ENV_BIT << 2,
+	GC_MARKED   = BIF_ENV_BIT << 3,
 	GC_UNMARKED = 0,
 	GC_BITS     = NO_GC_BIT | GC_MARKED,
 };
@@ -35,22 +35,28 @@ gc_bits(struct chx_value *val)
 	return val->type & GC_BITS;
 }
 
-static inline void
+static inline int
 set_gc_bits(struct chx_value *val, int bits)
 {
-	val->type = (val->type & ~GC_BITS) | (bits & GC_BITS);
+	return val->type = (val->type & ~GC_BITS) | (bits & GC_BITS);
 }
 
 static inline bool
 has_fin_bit(struct chx_value *val)
 {
-	return (val->type & FIN_BIT) != 0;
+	return (val->type & FIN_BIT) == FIN_BIT;
 }
 
 static inline bool
 has_bif_env_bit(struct chx_value *val)
 {
-	return (val->type & BIF_ENV_BIT) != 0;
+	return (val->type & BIF_ENV_BIT) == BIF_ENV_BIT;
+}
+
+static inline int
+set_type(struct chx_value *value, int type)
+{
+	return value->type = (value->type & ~CHEAX_TYPE_MASK) | (type & CHEAX_TYPE_MASK);
 }
 
 enum {
@@ -123,13 +129,6 @@ struct cheax {
 	} gc;
 #endif
 };
-
-static inline int
-set_type(struct chx_value *value, int type)
-{
-	value->type = (value->type & ~CHEAX_TYPE_MASK) | (type & CHEAX_TYPE_MASK);
-	return type;
-}
 
 /* v-to-i: value to int */
 bool try_vtoi(struct chx_value *value, int *res);

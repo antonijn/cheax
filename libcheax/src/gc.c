@@ -185,6 +185,10 @@ cheax_free(CHEAX *c, void *obj)
 struct gc_cycle {
 	CHEAX *c;
 	size_t num_objs, num_in_use;
+
+	size_t num_sweep;
+	struct chx_value **sweep;
+	int swept;
 };
 
 static void mark(struct gc_cycle *cycle, struct chx_value *used);
@@ -227,13 +231,11 @@ mark(struct gc_cycle *cycle, struct chx_value *used)
 	set_gc_bits(used, GC_MARKED);
 	++cycle->num_in_use;
 
-	CHEAX *c = cycle->c;
-
 	struct chx_list *list;
 	struct chx_func *func;
 	struct chx_quote *quote;
 	struct chx_env *env;
-	switch (cheax_resolve_type(c, cheax_type_of(used))) {
+	switch (cheax_resolve_type(cycle->c, cheax_type_of(used))) {
 	case CHEAX_LIST:
 		list = (struct chx_list *)used;
 		mark(cycle, list->value);
@@ -268,6 +270,18 @@ mark(struct gc_cycle *cycle, struct chx_value *used)
 	}
 }
 
+static void
+traverse_with(struct gc_cycle *cycle,
+              struct rb_node *root,
+              void (*fun)(struct gc_cycle *, struct chx_value *))
+{
+	if (root != NULL) {
+		fun(cycle, root->value);
+		for (int i = 0; i < 2; ++i)
+			traverse_with(cycle, root->link[i], fun);
+	}
+}
+
 void
 cheax_gc(CHEAX *c)
 {
@@ -277,44 +291,44 @@ cheax_gc(CHEAX *c)
 		cheax_force_gc(c);
 }
 
+static void
+mark_ext_refd(struct gc_cycle *cycle, struct chx_value *obj)
+{
+	++cycle->num_objs;
+	if (get_header(obj)->ext_refs > 0)
+		mark(cycle, obj);
+}
+
+static void
+sweep(struct gc_cycle *cycle, struct chx_value *obj)
+{
+	if (gc_bits(obj) == GC_UNMARKED)
+		cycle->sweep[cycle->swept++] = obj;
+	else
+		set_gc_bits(obj, GC_UNMARKED);
+}
+
 void
 cheax_force_gc(CHEAX *c)
 {
 	struct gc_cycle cycle = { .c = c, 0 };
 
-	struct rb_iter it;
-	rb_iter_init(&it);
-	for (void *obj = rb_iter_first(&it, &c->gc.all_objects);
-	     obj != NULL;
-	     obj = rb_iter_next(&it))
-	{
-		++cycle.num_objs;
-		if (get_header(obj)->ext_refs > 0)
-			mark(&cycle, obj);
-	}
+	traverse_with(&cycle, c->gc.all_objects.root, mark_ext_refd);
 
 	mark(&cycle, &c->env->base);
 	mark_env(&cycle, c->globals.value.norm.syms.root);
 	mark(&cycle, &c->error.msg->base);
 
-	size_t num_sweep = cycle.num_objs - cycle.num_in_use;
-	struct chx_value **sweep = calloc(num_sweep, sizeof(struct chx_value *));
+	cycle.num_sweep = cycle.num_objs - cycle.num_in_use;
+	cycle.sweep = calloc(cycle.num_sweep, sizeof(struct chx_value *));
+	cycle.swept = 0;
 
-	size_t i = 0;
-	for (void *obj = rb_iter_first(&it, &c->gc.all_objects);
-	     obj != NULL;
-	     obj = rb_iter_next(&it))
-	{
-		if (gc_bits(obj) == GC_UNMARKED)
-			sweep[i++] = obj;
-		else
-			set_gc_bits(obj, GC_UNMARKED);
-	}
+	traverse_with(&cycle, c->gc.all_objects.root, sweep);
 
-	for (i = 0; i < num_sweep; ++i)
-		cheax_free(c, sweep[i]);
+	for (size_t i = 0; i < cycle.num_sweep; ++i)
+		cheax_free(c, cycle.sweep[i]);
 
-	free(sweep);
+	free(cycle.sweep);
 
 	c->gc.prev_run = c->gc.all_mem;
 }
