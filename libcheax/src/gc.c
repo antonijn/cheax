@@ -284,7 +284,7 @@ mark(struct gc_cycle *cycle, struct chx_value *used)
 
 	case CHEAX_ENV:
 		env = (struct chx_env *)used;
-		if (has_bif_env_bit(&env->base)) {
+		if (env->is_bif) {
 			for (int i = 0; i < 2; ++i)
 				mark(cycle, &env->value.bif[i]->base);
 		} else {

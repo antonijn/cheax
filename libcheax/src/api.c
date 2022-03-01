@@ -30,15 +30,15 @@ full_sym_cmp(struct rb_tree *tree, struct rb_node *a, struct rb_node *b)
 }
 
 /*
- * Returns environment e, with has_bif_env_bit(e) == false or e == NULL.
+ * Returns environment e, with !e->is_bif or e == NULL.
  */
 static struct chx_env *
 norm_env(struct chx_env *env)
 {
-	if (env == NULL)
-		return NULL;
+	while (env != NULL && env->is_bif)
+		env = env->value.bif[0];
 
-	return has_bif_env_bit(&env->base) ? norm_env(env->value.bif[0]) : env;
+	return env;
 }
 
 struct chx_sym *
@@ -61,7 +61,7 @@ find_sym_in_or_below(struct chx_env *env, const char *name)
 	if (env == NULL)
 		return NULL;
 
-	if (!has_bif_env_bit(&env->base)) {
+	if (!env->is_bif) {
 		struct chx_sym *sym = find_sym_in(env, name);
 		if (sym != NULL)
 			return sym;
@@ -90,6 +90,7 @@ static struct chx_env *
 env_init(CHEAX *c, struct chx_env *env, struct chx_env *below)
 {
 	rb_tree_init(&env->value.norm.syms, full_sym_cmp);
+	env->is_bif = false;
 	env->value.norm.syms.info = c;
 	env->value.norm.below = below;
 	return env;
@@ -125,7 +126,7 @@ struct chx_env *
 cheax_enter_env(CHEAX *c, struct chx_env *main)
 {
 	struct chx_env *env = cheax_alloc(c, sizeof(struct chx_env), CHEAX_ENV);
-	env->base.type |= BIF_ENV_BIT;
+	env->is_bif = true;
 	env->value.bif[0] = main;
 	env->value.bif[1] = c->env;
 	return c->env = env;
@@ -140,7 +141,7 @@ cheax_pop_env(CHEAX *c)
 		return NULL;
 	}
 
-	if (has_bif_env_bit(&res->base))
+	if (res->is_bif)
 		c->env = res->value.bif[1];
 	else
 		c->env = res->value.norm.below;

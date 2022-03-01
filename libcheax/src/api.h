@@ -22,10 +22,10 @@
 #include "rbtree.h"
 
 enum {
-	BIF_ENV_BIT = CHEAX_TYPE_MASK + 1,
-	FIN_BIT     = BIF_ENV_BIT << 1,
-	NO_GC_BIT   = BIF_ENV_BIT << 2,
-	GC_MARKED   = BIF_ENV_BIT << 3,
+	USABLE_BIT  = CHEAX_TYPE_MASK + 1,
+	FIN_BIT     = USABLE_BIT,
+	NO_GC_BIT   = USABLE_BIT << 1,
+	GC_MARKED   = USABLE_BIT << 2,
 	GC_UNMARKED = 0,
 	GC_BITS     = NO_GC_BIT | GC_MARKED,
 };
@@ -46,12 +46,6 @@ static inline bool
 has_fin_bit(struct chx_value *val)
 {
 	return (val->type & FIN_BIT) == FIN_BIT;
-}
-
-static inline bool
-has_bif_env_bit(struct chx_value *val)
-{
-	return (val->type & BIF_ENV_BIT) == BIF_ENV_BIT;
 }
 
 static inline int
@@ -90,6 +84,7 @@ struct type_alias {
 
 struct chx_env {
 	struct chx_value base;
+	bool is_bif;
 	union {
 		struct chx_env *bif[2];
 

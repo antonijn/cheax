@@ -126,8 +126,7 @@ ostream_show_basic_type(CHEAX *c, struct ostream *s, struct chx_value *val)
 		break;
 	case CHEAX_ENV:
 		env = (struct chx_env *)val;
-		bool bif;
-		while ((bif = has_bif_env_bit(&env->base))) {
+		while (env->is_bif) {
 			if (env->value.bif[1] == NULL) {
 				env = env->value.bif[0];
 				continue;
