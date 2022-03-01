@@ -21,6 +21,7 @@
 #include <limits.h>
 
 #include "api.h"
+#include "config.h"
 #include "gc.h"
 
 /* Calls cheax_ref() on all unpacked args, doesn't unref() on failure.
@@ -530,13 +531,17 @@ static struct chx_value *
 defsym_get(CHEAX *c, struct chx_sym *sym)
 {
 	struct defsym_info *info = sym->user_info;
-	return cheax_eval(c, &cheax_list(c, &info->get->base, NULL)->base);
+	struct chx_list sexpr = { { CHEAX_LIST | NO_GC_BIT }, &info->get->base, NULL };
+	return cheax_eval(c, &sexpr.base);
 }
 static void
 defsym_set(CHEAX *c, struct chx_sym *sym, struct chx_value *value)
 {
 	struct defsym_info *info = sym->user_info;
-	cheax_eval(c, &cheax_list(c, &info->set->base, cheax_list(c, value, NULL))->base);
+	struct chx_quote arg  = { { CHEAX_QUOTE | NO_GC_BIT }, value };
+	struct chx_list args  = { { CHEAX_LIST | NO_GC_BIT }, &arg.base,        NULL  };
+	struct chx_list sexpr = { { CHEAX_LIST | NO_GC_BIT }, &info->set->base, &args };
+	cheax_eval(c, &sexpr.base);
 }
 static void
 defsym_finalizer(CHEAX *c, struct chx_sym *sym)
@@ -1176,7 +1181,10 @@ builtin_ge(CHEAX *c, struct chx_list *args, void *info)
 static struct chx_value *
 get_cheax_version(CHEAX *c, struct chx_sym *sym)
 {
-	return &cheax_string(c, cheax_version())->base;
+	static struct chx_string res = {
+		{ CHEAX_STRING | NO_GC_BIT }, VERSION_STRING, sizeof(VERSION_STRING) - 1
+	};
+	return &res.base;
 }
 
 static struct chx_value *
