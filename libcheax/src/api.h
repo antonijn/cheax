@@ -104,6 +104,8 @@ struct cheax {
 	struct chx_env globals;
 	struct chx_env *env;
 
+	int features;
+
 	int max_stack_depth, stack_depth;
 	int fhandle_type;
 

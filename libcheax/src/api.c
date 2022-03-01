@@ -658,6 +658,8 @@ cheax_init(void)
 	env_init(res, &res->globals, NULL);
 	res->env = NULL;
 
+	res->features = 0;
+
 	res->max_stack_depth = 0x1000;
 	res->stack_depth = 0;
 	res->error.state = CHEAX_RUNNING;

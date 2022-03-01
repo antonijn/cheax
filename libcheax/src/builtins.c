@@ -88,15 +88,6 @@ pad:
 
 
 static struct chx_value *
-builtin_cheax_version(CHEAX *c, struct chx_list *args, void *info)
-{
-	if (!unpack_args(c, "cheax-version", args, false, 0))
-		return NULL;
-
-	return &cheax_string(c, cheax_version())->base;
-}
-
-static struct chx_value *
 builtin_fopen(CHEAX *c, struct chx_list *args, void *info)
 {
 	struct chx_value *fname, *mode;
@@ -269,24 +260,6 @@ pad:
 }
 
 static struct chx_value *
-builtin_error_code(CHEAX *c, struct chx_list *args, void *info)
-{
-	if (!unpack_args(c, "error-code", args, false, 0))
-		return NULL;
-
-	struct chx_value *res = &cheax_int(c, c->error.code)->base;
-	set_type(res, CHEAX_ERRORCODE);
-	return res;
-}
-static struct chx_value *
-builtin_error_msg(CHEAX *c, struct chx_list *args, void *info)
-{
-	if (!unpack_args(c, "error-msg", args, false, 0))
-		return NULL;
-
-	return &c->error.msg->base;
-}
-static struct chx_value *
 builtin_throw(CHEAX *c, struct chx_list *args, void *info)
 {
 	struct chx_value *code, *msg;
@@ -359,7 +332,9 @@ builtin_try(CHEAX *c, struct chx_list *args, void *info)
 		}
 	}
 
+	cheax_push_env(c);
 	struct chx_value *retval = cheax_eval(c, block);
+	cheax_pop_env(c);
 	if (cheax_errstate(c) == CHEAX_RUNNING)
 		goto run_finally;
 
@@ -368,6 +343,16 @@ builtin_try(CHEAX *c, struct chx_list *args, void *info)
 
 	/* catch block that matches */
 	struct chx_list *match = NULL;
+
+	/*
+	 * We set errno and errmsg here, to allow (catch errno ...),
+	 * which matches any error code.
+	 */
+	cheax_push_env(c);
+	struct chx_int *code = cheax_int(c, cheax_errno(c));
+	set_type(&code->base, CHEAX_ERRORCODE);
+	cheax_var(c, "errno",  &code->base,         CHEAX_READONLY);
+	cheax_var(c, "errmsg", &c->error.msg->base, CHEAX_READONLY);
 
 	for (struct chx_list *cb = catch_blocks;
 	     match == NULL && cb != finally_block;
@@ -426,9 +411,12 @@ pad1:
 		cheax_unref(c, run_blocks);
 	}
 
+	cheax_pop_env(c);
+
 run_finally:
 	if (finally_block != NULL) {
 		cheax_ref(c, retval);
+		cheax_push_env(c);
 
 		int prev_errstate = c->error.state;
 		c->error.state = CHEAX_RUNNING;
@@ -442,6 +430,7 @@ run_finally:
 
 		c->error.state = prev_errstate;
 pad2:
+		cheax_pop_env(c);
 		cheax_unref(c, retval);
 	}
 
@@ -666,10 +655,9 @@ pad:
 static struct chx_value *
 builtin_env(CHEAX *c, struct chx_list *args, void *info)
 {
-	if (unpack_args(c, "env", args, false, 0))
-		return &c->env->base;
-
-	return NULL;
+	return unpack_args(c, "env", args, false, 0)
+	     ? &c->env->base
+	     : NULL;
 }
 
 static struct chx_list *
@@ -761,10 +749,9 @@ builtin_type_of(CHEAX *c, struct chx_list *args, void *info)
 static struct chx_value *
 builtin_get_max_stack_depth(CHEAX *c, struct chx_list *args, void *info)
 {
-	if (!unpack_args(c, "get-max-stack-depth", args, false, 0))
-		return NULL;
-
-	return &cheax_int(c, c->max_stack_depth)->base;
+	return unpack_args(c, "get-max-stack-depth", args, false, 0)
+	     ? &cheax_int(c, c->max_stack_depth)->base
+	     : NULL;
 }
 
 static struct chx_value *
@@ -831,10 +818,9 @@ static struct chx_value *
 builtin_eval(CHEAX *c, struct chx_list *args, void *info)
 {
 	struct chx_value *arg;
-	if (!unpack_args(c, "eval", args, true, 1, &arg))
-		return NULL;
-
-	return cheax_eval(c, arg);
+	return unpack_args(c, "eval", args, true, 1, &arg)
+	     ? cheax_eval(c, arg)
+	     : NULL;
 }
 
 static struct chx_value *
@@ -882,7 +868,6 @@ pad2:
 	}
 
 	cry(c, "case", CHEAX_EMATCH, "non-exhaustive pattern");
-
 pad:
 	return NULL;
 }
@@ -970,11 +955,6 @@ do_aop(CHEAX *c,
 	if (!unpack_args(c, name, args, true, 2, &l, &r))
 		return NULL;
 
-	if (!is_numeric_type(l) || !is_numeric_type(r)) {
-		cry(c, name, CHEAX_ETYPE, "invalid types for operation");
-		return NULL;
-	}
-
 	if (cheax_type_of(l) == CHEAX_INT && cheax_type_of(r) == CHEAX_INT) {
 		int li = ((struct chx_int *)l)->value;
 		int ri = ((struct chx_int *)r)->value;
@@ -984,6 +964,12 @@ do_aop(CHEAX *c,
 
 		return &cheax_int(c, res)->base;
 	}
+
+	if (!is_numeric_type(l) || !is_numeric_type(r)) {
+		cry(c, name, CHEAX_ETYPE, "invalid types for operation");
+		return NULL;
+	}
+
 
 	if (fop == NULL) {
 		cry(c, name, CHEAX_ETYPE, "invalid operation on floating point numbers");
@@ -1118,19 +1104,17 @@ static struct chx_value *
 builtin_eq(CHEAX *c, struct chx_list *args, void *info)
 {
 	struct chx_value *l, *r;
-	if (!unpack_args(c, "=", args, true, 2, &l, &r))
-		return NULL;
-
-	return &cheax_bool(c, cheax_eq(c, l, r))->base;
+	return unpack_args(c, "=", args, true, 2, &l, &r)
+	     ? &cheax_bool(c, cheax_eq(c, l, r))->base
+	     : NULL;
 }
 static struct chx_value *
 builtin_ne(CHEAX *c, struct chx_list *args, void *info)
 {
 	struct chx_value *l, *r;
-	if (!unpack_args(c, "!=", args, true, 2, &l, &r))
-		return NULL;
-
-	return &cheax_bool(c, !cheax_eq(c, l, r))->base;
+	return unpack_args(c, "!=", args, true, 2, &l, &r)
+	     ? &cheax_bool(c, !cheax_eq(c, l, r))->base
+	     : NULL;
 }
 
 static struct chx_value *
@@ -1189,50 +1173,70 @@ builtin_ge(CHEAX *c, struct chx_list *args, void *info)
 	return do_cmp(c, ">=", args, 0, 1, 1);
 }
 
+static struct chx_value *
+get_cheax_version(CHEAX *c, struct chx_sym *sym)
+{
+	return &cheax_string(c, cheax_version())->base;
+}
+
+static struct chx_value *
+get_features(CHEAX *c, struct chx_sym *sym)
+{
+	struct { int feat; const char *name; } assoc[] = {
+		{ CHEAX_FILE_IO,             "io"                  },
+		{ CHEAX_SET_MAX_STACK_DEPTH, "set-max-stack-depth" },
+		{ CHEAX_GC_BUILTIN,          "gc"                  },
+		{ CHEAX_EXIT_BUILTIN,        "exit"                },
+	};
+
+	struct chx_list *list = NULL;
+
+	int len = sizeof(assoc) / sizeof(assoc[0]);
+	for (int i = len - 1; i >= 0; --i)
+		if ((c->features & assoc[i].feat) == assoc[i].feat)
+			list = cheax_list(c, &cheax_string(c, assoc[i].name)->base, list);
+
+	return &list->base;
+}
+
 void
 export_builtins(CHEAX *c)
 {
 	c->fhandle_type = cheax_new_type(c, "FileHandle", CHEAX_USER_PTR);
 
-	struct {
-		const char *name;
-		chx_func_ptr fn;
-	} btns[] = {
-		{ "cheax-version", builtin_cheax_version },
-		{ "read-from", builtin_read_from },
-		{ "print-to", builtin_print_to },
-		{ "put-to", builtin_put_to },
-		{ "format", builtin_format },
-		{ "bytes", builtin_bytes },
-		{ "error-code", builtin_error_code },
-		{ "error-msg", builtin_error_msg },
-		{ "throw", builtin_throw },
-		{ "try", builtin_try },
-		{ "new-error-code", builtin_new_error_code },
-		{ "defsym", builtin_defsym },
-		{ "var", builtin_var },
-		{ "def", builtin_def },
-		{ "set", builtin_set },
-		{ "env", builtin_env },
-		{ ":", builtin_prepend },
-		{ "type-of", builtin_type_of },
+	struct { const char *name; chx_func_ptr fn; } btns[] = {
+		{ "read-from",           builtin_read_from           },
+		{ "print-to",            builtin_print_to            },
+		{ "put-to",              builtin_put_to              },
+		{ "format",              builtin_format              },
+		{ "bytes",               builtin_bytes               },
+		{ "throw",               builtin_throw               },
+		{ "try",                 builtin_try                 },
+		{ "new-error-code",      builtin_new_error_code      },
+		{ "defsym",              builtin_defsym              },
+		{ "var",                 builtin_var                 },
+		{ "def",                 builtin_def                 },
+		{ "set",                 builtin_set                 },
+		{ "env",                 builtin_env                 },
+		{ ":",                   builtin_prepend             },
+		{ "type-of",             builtin_type_of             },
 		{ "get-max-stack-depth", builtin_get_max_stack_depth },
-		{ "fn", builtin_fn },
-		{ "macro", builtin_macro },
-		{ "eval", builtin_eval },
-		{ "case", builtin_case },
-		{ "let", builtin_let },
-		{ "+", builtin_add },
-		{ "-", builtin_sub },
-		{ "*", builtin_mul },
-		{ "/", builtin_div },
-		{ "%", builtin_mod },
-		{ "=", builtin_eq },
-		{ "!=", builtin_ne },
-		{ "<", builtin_lt },
-		{ "<=", builtin_le },
-		{ ">", builtin_gt },
-		{ ">=", builtin_ge },
+		{ "fn",                  builtin_fn                  },
+		{ "macro",               builtin_macro               },
+		{ "eval",                builtin_eval                },
+		{ "case",                builtin_case                },
+		{ "let",                 builtin_let                 },
+		{ "+",                   builtin_add                 },
+		{ "-",                   builtin_sub                 },
+		{ "*",                   builtin_mul                 },
+		{ "/",                   builtin_div                 },
+		{ "%",                   builtin_mod                 },
+		{ "=",                   builtin_eq                  },
+		{ "!=",                  builtin_ne                  },
+		{ "<",                   builtin_lt                  },
+		{ "<=",                  builtin_le                  },
+		{ ">",                   builtin_gt                  },
+		{ ">=",                  builtin_ge                  },
 	};
 
 	size_t nbtns = sizeof(btns) / sizeof(btns[0]);
@@ -1240,28 +1244,35 @@ export_builtins(CHEAX *c)
 	for (int i = 0; i < nbtns; ++i)
 		cheax_defmacro(c, btns[i].name, btns[i].fn, NULL);
 
-	cheax_var(c, "stdin", &cheax_user_ptr(c, stdin, c->fhandle_type)->base, CHEAX_READONLY);
+	cheax_var(c, "stdin",  &cheax_user_ptr(c, stdin,  c->fhandle_type)->base, CHEAX_READONLY);
 	cheax_var(c, "stdout", &cheax_user_ptr(c, stdout, c->fhandle_type)->base, CHEAX_READONLY);
 	cheax_var(c, "stderr", &cheax_user_ptr(c, stderr, c->fhandle_type)->base, CHEAX_READONLY);
+
+	cheax_defsym(c, "cheax-version", get_cheax_version, NULL, NULL, NULL);
+	cheax_defsym(c, "features",      get_features,      NULL, NULL, NULL);
 }
 
 void
 cheax_load_extra_builtins(CHEAX *c, int builtins)
 {
-	if (builtins & CHEAX_FILE_IO) {
+	/* newly set builtins */
+	int nb = builtins & ~c->features;
+
+	if ((nb & CHEAX_FILE_IO) == CHEAX_FILE_IO) {
 		cheax_defmacro(c, "fopen", builtin_fopen, NULL);
 		cheax_defmacro(c, "fclose", builtin_fclose, NULL);
 	}
 
-	if (builtins & CHEAX_SET_MAX_STACK_DEPTH)
+	if ((nb & CHEAX_SET_MAX_STACK_DEPTH) == CHEAX_SET_MAX_STACK_DEPTH)
 		cheax_defmacro(c, "set-max-stack-depth", builtin_set_max_stack_depth, NULL);
 
-	if (builtins & CHEAX_GC_BUILTIN) {
+	if ((nb & CHEAX_GC_BUILTIN) == CHEAX_GC_BUILTIN) {
 		cheax_defmacro(c, "gc", builtin_gc, NULL);
 		cheax_defmacro(c, "get-used-memory", builtin_get_used_memory, NULL);
 	}
 
-	if (builtins & CHEAX_EXIT_BUILTIN) {
+	if ((nb & CHEAX_EXIT_BUILTIN) == CHEAX_EXIT_BUILTIN)
 		cheax_defmacro(c, "exit", builtin_exit, NULL);
-	}
+
+	c->features |= builtins;
 }
