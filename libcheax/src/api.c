@@ -703,12 +703,7 @@ cheax_destroy(CHEAX *c)
 	free(c->user_error_names.array);
 
 	env_cleanup(&c->globals, NULL);
-
-#ifndef USE_BOEHM_GC
-	struct rb_node *obj_node;
-	while ((obj_node = c->gc.all_objects.root) != NULL)
-		cheax_free(c, obj_node->value);
-#endif
+	cheax_gc_destroy(c);
 
 	free(c);
 }

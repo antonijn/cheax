@@ -20,11 +20,28 @@
 #define GC_RUN_THRESHOLD 0x20000
 
 #include <cheax.h>
-#include "api.h"
+#include "rbtree.h"
+
+#ifdef USE_BOEHM_GC
+
+struct gc_info {
+	int unused;
+};
+
+#else
+
+struct gc_info {
+	struct rb_tree all_objects;
+	size_t all_mem, prev_run;
+	bool lock, free_all;
+};
+
+#endif
 
 typedef void (*chx_fin)(void *obj, void *info);
 
 void cheax_gc_init(CHEAX *c);
+void cheax_gc_destroy(CHEAX *c);
 /*
  * Result must be treated as chx_value. Specifically, gc decisions will
  * be made depending on the value of chx_value::type.

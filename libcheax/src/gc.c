@@ -56,6 +56,12 @@ cheax_gc_init(CHEAX *c)
 }
 
 void
+cheax_gc_destroy(CHEAX *c)
+{
+	/* empty */
+}
+
+void
 cheax_free(CHEAX *c, void *obj)
 {
 	GC_free(obj);
@@ -135,6 +141,23 @@ cheax_gc_init(CHEAX *c)
 {
 	rb_tree_init(&c->gc.all_objects, obj_cmp);
 	c->gc.all_mem = c->gc.prev_run = 0;
+	c->gc.free_all = c->gc.lock = false;
+}
+
+void
+cheax_gc_destroy(CHEAX *c)
+{
+	c->gc.free_all = true;
+
+	int attempts;
+	for (attempts = 0; attempts < 3 && c->gc.all_objects.size > 0; ++attempts)
+		cheax_force_gc(c);
+
+	if (c->gc.all_objects.size > 0) {
+		fprintf(stderr,
+		        "cheax_destroy() warning: %d objects left after %d destruction attempts",
+		        (int)c->gc.all_objects.size, attempts);
+	}
 }
 
 void *
@@ -142,8 +165,10 @@ cheax_alloc(CHEAX *c, size_t size, int type)
 {
 	size_t total_size = size + sizeof(struct gc_header) - sizeof(int);
 	struct gc_header *obj = malloc(total_size);
-	if (obj == NULL)
+	if (obj == NULL) {
+		cry(c, "cheax_alloc", CHEAX_ENOMEM, "out of memory");
 		return NULL;
+	}
 
 	obj->size = total_size;
 	obj->ext_refs = 0;
@@ -165,11 +190,11 @@ cheax_alloc_with_fin(CHEAX *c, size_t size, int type, chx_fin fin, void *info)
 	return obj;
 }
 
-
 void
 cheax_free(CHEAX *c, void *obj)
 {
 	struct gc_header *header = get_header(obj);
+
 	rb_tree_remove(&c->gc.all_objects, obj);
 
 	if (has_fin_bit(obj)) {
@@ -184,7 +209,7 @@ cheax_free(CHEAX *c, void *obj)
 
 struct gc_cycle {
 	CHEAX *c;
-	size_t num_objs, num_in_use;
+	size_t num_in_use;
 
 	size_t num_sweep;
 	struct chx_value **sweep;
@@ -294,7 +319,6 @@ cheax_gc(CHEAX *c)
 static void
 mark_ext_refd(struct gc_cycle *cycle, struct chx_value *obj)
 {
-	++cycle->num_objs;
 	if (get_header(obj)->ext_refs > 0)
 		mark(cycle, obj);
 }
@@ -311,15 +335,31 @@ sweep(struct gc_cycle *cycle, struct chx_value *obj)
 void
 cheax_force_gc(CHEAX *c)
 {
+	if (c->gc.lock)
+		return;
+
+	c->gc.lock = true;
+
 	struct gc_cycle cycle = { .c = c, 0 };
 
-	traverse_with(&cycle, c->gc.all_objects.root, mark_ext_refd);
+	if (!c->gc.free_all) {
+		/* mark all cheax_ref()'d values in use */
+		traverse_with(&cycle, c->gc.all_objects.root, mark_ext_refd);
 
-	mark(&cycle, &c->env->base);
-	mark_env(&cycle, c->globals.value.norm.syms.root);
-	mark(&cycle, &c->error.msg->base);
+		mark(&cycle, &c->env->base);
+		mark_env(&cycle, c->globals.value.norm.syms.root);
+		mark(&cycle, &c->error.msg->base);
+	}
 
-	cycle.num_sweep = cycle.num_objs - cycle.num_in_use;
+	/*
+	 * We cannot simply traverse all objects and free anything not
+	 * in use, since
+	 *   1. cheax_free() messes with c->gc.all_objects, messing up
+	 *      our traversal, and
+	 *   2. a finalizer may allocate and mess with c->gc.all_objects.
+	 * Thus we chuck all doomed objects into an array.
+	 */
+	cycle.num_sweep = c->gc.all_objects.size - cycle.num_in_use;
 	cycle.sweep = calloc(cycle.num_sweep, sizeof(struct chx_value *));
 	cycle.swept = 0;
 
@@ -331,6 +371,7 @@ cheax_force_gc(CHEAX *c)
 	free(cycle.sweep);
 
 	c->gc.prev_run = c->gc.all_mem;
+	c->gc.lock = false;
 }
 
 #endif

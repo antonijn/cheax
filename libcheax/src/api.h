@@ -18,6 +18,7 @@
 
 #include <cheax.h>
 
+#include "gc.h"
 #include "rbtree.h"
 
 enum {
@@ -122,12 +123,7 @@ struct cheax {
 		size_t len, cap;
 	} typestore;
 
-#ifndef USE_BOEHM_GC
-	struct {
-		struct rb_tree all_objects;
-		size_t all_mem, prev_run;
-	} gc;
-#endif
+	struct gc_info gc;
 };
 
 /* v-to-i: value to int */
