@@ -50,13 +50,13 @@ cheax_unref(CHEAX *c, void *obj)
 }
 
 void
-cheax_gc_init(CHEAX *c)
+gcol_init(CHEAX *c)
 {
 	/* empty */
 }
 
 void
-cheax_gc_destroy(CHEAX *c)
+gcol_destroy(CHEAX *c)
 {
 	/* empty */
 }
@@ -87,13 +87,6 @@ cheax_alloc_with_fin(CHEAX *c, size_t size, int type, chx_fin fin, void *info)
 
 #else
 
-struct gc_header {
-	size_t size;    /* Total malloc()-ed size */
-	int ext_refs;   /* Number of cheax_ref() references */
-
-	int obj_start;  /* Only for locating the start of the user object */
-};
-
 struct gc_fin_footer {
 	chx_fin fin;
 	void *info;
@@ -103,7 +96,7 @@ static struct gc_header *
 get_header(void *obj)
 {
 	char *m = obj;
-	return (struct gc_header *)(m - offsetof(struct gc_header, obj_start));
+	return (struct gc_header *)(m - offsetof(struct gc_header, obj));
 }
 
 static struct gc_fin_footer *
@@ -129,54 +122,71 @@ cheax_unref(CHEAX *c, void *value)
 		--get_header(value)->ext_refs;
 }
 
-static int
-obj_cmp(struct rb_tree *tree, struct rb_node *a, struct rb_node *b)
+void
+gcol_init(CHEAX *c)
 {
-	ptrdiff_t d = (char *)a->value - (char *)b->value;
-	return (d > 0) - (d < 0);
+	c->gc.objects.prev = c->gc.objects.next = &c->gc.objects;
+
+	c->gc.all_mem = c->gc.prev_run = c->gc.num_objects = 0;
+	c->gc.lock = false;
 }
 
-void
-cheax_gc_init(CHEAX *c)
-{
-	rb_tree_init(&c->gc.all_objects, obj_cmp);
-	c->gc.all_mem = c->gc.prev_run = 0;
-	c->gc.free_all = c->gc.lock = false;
-}
+/* sets GC_MARKED bit for all reachable objects */
+static void mark(CHEAX *c);
+/* locks GC and cheax_free()'s all GC_UNMARKED objects */
+static void sweep(CHEAX *c);
 
 void
-cheax_gc_destroy(CHEAX *c)
+gcol_destroy(CHEAX *c)
 {
-	c->gc.free_all = true;
+	if (c->gc.lock) {
+		/* give up*/
+		fprintf(stderr, "cheax_destroy() warning: called from finalizer\n");
+		return;
+	}
 
 	int attempts;
-	for (attempts = 0; attempts < 3 && c->gc.all_objects.size > 0; ++attempts)
-		cheax_force_gc(c);
+	for (attempts = 0; attempts < 3 && c->gc.num_objects > 0; ++attempts)
+		sweep(c);
 
-	if (c->gc.all_objects.size > 0) {
+	if (c->gc.num_objects > 0) {
 		fprintf(stderr,
-		        "cheax_destroy() warning: %d objects left after %d destruction attempts",
-		        (int)c->gc.all_objects.size, attempts);
+		        "cheax_destroy() warning: %zu objects left after %d destruction attempts",
+		        c->gc.num_objects, attempts);
 	}
 }
 
 void *
 cheax_alloc(CHEAX *c, size_t size, int type)
 {
-	size_t total_size = size + sizeof(struct gc_header) - sizeof(int);
-	struct gc_header *obj = malloc(total_size);
-	if (obj == NULL) {
+	struct gc_header *hdr;
+	size_t total_size = size + sizeof(struct gc_header) - sizeof(hdr->obj);
+	hdr = malloc(total_size);
+
+	if (hdr == NULL) {
 		cry(c, "cheax_alloc", CHEAX_ENOMEM, "out of memory");
 		return NULL;
 	}
 
-	obj->size = total_size;
-	obj->ext_refs = 0;
+	hdr->size = total_size;
+	hdr->ext_refs = 0;
+	hdr->obj.type = type & CHEAX_TYPE_MASK;
+
 	c->gc.all_mem += total_size;
-	struct chx_value *res = (struct chx_value *)&obj->obj_start;
-	res->type = type;
-	rb_tree_insert(&c->gc.all_objects, res);
-	return res;
+	++c->gc.num_objects;
+
+	/* insert new object */
+	struct gc_header_node *new, *prev, *next;
+	new = &hdr->node;
+	prev = &c->gc.objects;
+	next = c->gc.objects.next;
+
+	new->prev = prev;
+	new->next = next;
+	next->prev = new;
+	prev->next = new;
+
+	return &hdr->obj;
 }
 
 void *
@@ -193,117 +203,85 @@ cheax_alloc_with_fin(CHEAX *c, size_t size, int type, chx_fin fin, void *info)
 void
 cheax_free(CHEAX *c, void *obj)
 {
-	struct gc_header *header = get_header(obj);
+	struct gc_header *hdr = get_header(obj);
 
-	rb_tree_remove(&c->gc.all_objects, obj);
+	struct gc_header_node *prev, *next;
+	prev = hdr->node.prev;
+	next = hdr->node.next;
+	prev->next = next;
+	next->prev = prev;
+	--c->gc.num_objects;
 
 	if (has_fin_bit(obj)) {
 		struct gc_fin_footer *ftr = get_fin_footer(obj);
 		ftr->fin(obj, ftr->info);
 	}
 
-	c->gc.all_mem -= header->size;
-	memset(header, 0, header->size);
-	free(header);
+	c->gc.all_mem -= hdr->size;
+	memset(hdr, 0, hdr->size);
+	free(hdr);
 }
 
-struct gc_cycle {
-	CHEAX *c;
-	size_t num_in_use;
-
-	size_t num_sweep;
-	struct chx_value **sweep;
-	int swept;
-};
-
-static void mark(struct gc_cycle *cycle, struct chx_value *used);
+static void mark_obj(CHEAX *c, struct chx_value *used);
 
 static void
-mark_env(struct gc_cycle *cycle, struct rb_node *root)
+mark_env(CHEAX *c, struct rb_node *root)
 {
 	if (root == NULL)
 		return;
 
 	struct full_sym *sym = root->value;
 
-	mark(cycle, sym->sym.protect);
-
-	/* if it has a name (which it probably does), it's
-	 * probably from a chx_id, which we need to push to
-	 * the gray heap too */
-
-	char *str_bytes = (char *)sym->name;
-	void *id_bytes = str_bytes - sizeof(struct chx_id);
-	struct chx_id *id = id_bytes;
-
-	if (str_bytes != NULL
-	 && rb_tree_find(&cycle->c->gc.all_objects, id_bytes) != NULL
-	 && cheax_type_of(&id->base) == CHEAX_ID)
-	{
-		mark(cycle, &id->base);
-	}
+	mark_obj(c, sym->sym.protect);
 
 	for (int i = 0; i < 2; ++i)
-		mark_env(cycle, root->link[i]);
+		mark_env(c, root->link[i]);
 }
 
 static void
-mark(struct gc_cycle *cycle, struct chx_value *used)
+mark_obj(CHEAX *c, struct chx_value *used)
 {
 	if (used == NULL || gc_bits(used) != GC_UNMARKED)
 		return;
 
 	set_gc_bits(used, GC_MARKED);
-	++cycle->num_in_use;
 
 	struct chx_list *list;
 	struct chx_func *func;
 	struct chx_quote *quote;
 	struct chx_env *env;
-	switch (cheax_resolve_type(cycle->c, cheax_type_of(used))) {
+	switch (cheax_resolve_type(c, cheax_type_of(used))) {
 	case CHEAX_LIST:
 		list = (struct chx_list *)used;
-		mark(cycle, list->value);
-		mark(cycle, &list->next->base);
+		mark_obj(c, list->value);
+		mark_obj(c, &list->next->base);
 		break;
 
 	case CHEAX_FUNC:
 	case CHEAX_MACRO:
 		func = (struct chx_func *)used;
-		mark(cycle, func->args);
-		mark(cycle, &func->body->base);
-		mark(cycle, &func->lexenv->base);
+		mark_obj(c, func->args);
+		mark_obj(c, &func->body->base);
+		mark_obj(c, &func->lexenv->base);
 		break;
 
 	case CHEAX_QUOTE:
 	case CHEAX_BACKQUOTE:
 	case CHEAX_COMMA:
 		quote = (struct chx_quote *)used;
-		mark(cycle, quote->value);
+		mark_obj(c, quote->value);
 		break;
 
 	case CHEAX_ENV:
 		env = (struct chx_env *)used;
 		if (env->is_bif) {
 			for (int i = 0; i < 2; ++i)
-				mark(cycle, &env->value.bif[i]->base);
+				mark_obj(c, &env->value.bif[i]->base);
 		} else {
-			mark_env(cycle, env->value.norm.syms.root);
-			mark(cycle, &env->value.norm.below->base);
+			mark_env(c, env->value.norm.syms.root);
+			mark_obj(c, &env->value.norm.below->base);
 		}
 		break;
-	}
-}
-
-static void
-traverse_with(struct gc_cycle *cycle,
-              struct rb_node *root,
-              void (*fun)(struct gc_cycle *, struct chx_value *))
-{
-	if (root != NULL) {
-		fun(cycle, root->value);
-		for (int i = 0; i < 2; ++i)
-			traverse_with(cycle, root->link[i], fun);
 	}
 }
 
@@ -317,19 +295,38 @@ cheax_gc(CHEAX *c)
 }
 
 static void
-mark_ext_refd(struct gc_cycle *cycle, struct chx_value *obj)
+mark(CHEAX *c)
 {
-	if (get_header(obj)->ext_refs > 0)
-		mark(cycle, obj);
+	struct gc_header_node *n;
+	for (n = c->gc.objects.next; n != &c->gc.objects; n = n->next) {
+		struct gc_header *hdr = (struct gc_header *)n;
+		if (hdr->ext_refs > 0)
+			mark_obj(c, &hdr->obj);
+	}
+
+	mark_obj(c, &c->env->base);
+	mark_env(c, c->globals.value.norm.syms.root);
+	mark_obj(c, &c->error.msg->base);
 }
 
 static void
-sweep(struct gc_cycle *cycle, struct chx_value *obj)
+sweep(CHEAX *c)
 {
-	if (gc_bits(obj) == GC_UNMARKED)
-		cycle->sweep[cycle->swept++] = obj;
-	else
-		set_gc_bits(obj, GC_UNMARKED);
+	bool was_locked = c->gc.lock;
+	c->gc.lock = true;
+
+	struct gc_header_node *n, *nxt;
+	for (n = c->gc.objects.next; n != &c->gc.objects; n = nxt) {
+		nxt = n->next;
+		struct gc_header *hdr = (struct gc_header *)n;
+		struct chx_value *obj = &hdr->obj;
+		if (gc_bits(obj) == GC_UNMARKED)
+			cheax_free(c, obj);
+		else
+			set_gc_bits(obj, GC_UNMARKED);
+	}
+
+	c->gc.lock = was_locked;
 }
 
 void
@@ -340,35 +337,8 @@ cheax_force_gc(CHEAX *c)
 
 	c->gc.lock = true;
 
-	struct gc_cycle cycle = { .c = c, 0 };
-
-	if (!c->gc.free_all) {
-		/* mark all cheax_ref()'d values in use */
-		traverse_with(&cycle, c->gc.all_objects.root, mark_ext_refd);
-
-		mark(&cycle, &c->env->base);
-		mark_env(&cycle, c->globals.value.norm.syms.root);
-		mark(&cycle, &c->error.msg->base);
-	}
-
-	/*
-	 * We cannot simply traverse all objects and free anything not
-	 * in use, since
-	 *   1. cheax_free() messes with c->gc.all_objects, messing up
-	 *      our traversal, and
-	 *   2. a finalizer may allocate and mess with c->gc.all_objects.
-	 * Thus we chuck all doomed objects into an array.
-	 */
-	cycle.num_sweep = c->gc.all_objects.size - cycle.num_in_use;
-	cycle.sweep = calloc(cycle.num_sweep, sizeof(struct chx_value *));
-	cycle.swept = 0;
-
-	traverse_with(&cycle, c->gc.all_objects.root, sweep);
-
-	for (size_t i = 0; i < cycle.num_sweep; ++i)
-		cheax_free(c, cycle.sweep[i]);
-
-	free(cycle.sweep);
+	mark(c);
+	sweep(c);
 
 	c->gc.prev_run = c->gc.all_mem;
 	c->gc.lock = false;

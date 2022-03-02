@@ -30,18 +30,32 @@ struct gc_info {
 
 #else
 
+struct gc_header_node {
+	struct gc_header_node *prev, *next;
+};
+
+struct gc_header {
+	struct gc_header_node node;
+
+	size_t size;          /* Total malloc()-ed size */
+	int ext_refs;         /* Number of cheax_ref() references */
+
+	struct chx_value obj; /* Only for locating the start of the user object */
+};
+
+
 struct gc_info {
-	struct rb_tree all_objects;
-	size_t all_mem, prev_run;
-	bool lock, free_all;
+	struct gc_header_node objects;
+	size_t all_mem, prev_run, num_objects;
+	bool lock;
 };
 
 #endif
 
 typedef void (*chx_fin)(void *obj, void *info);
 
-void cheax_gc_init(CHEAX *c);
-void cheax_gc_destroy(CHEAX *c);
+void gcol_init(CHEAX *c);
+void gcol_destroy(CHEAX *c);
 /*
  * Result must be treated as chx_value. Specifically, gc decisions will
  * be made depending on the value of chx_value::type.

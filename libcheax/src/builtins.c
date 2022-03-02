@@ -705,23 +705,32 @@ static struct chx_value *
 builtin_gc(CHEAX *c, struct chx_list *args, void *info)
 {
 	if (unpack_args(c, "gc", args, false, 0)) {
-		int before, after;
+		static struct chx_id mem = { { CHEAX_ID | NO_GC_BIT }, "mem" },
+		                      to = { { CHEAX_ID | NO_GC_BIT }, "->" },
+		                     obj = { { CHEAX_ID | NO_GC_BIT }, "obj" };
+		int mem_i, mem_f, obj_i, obj_f;
 #ifdef USE_BOEHM_GC
-		before = 0;
+		mem_i = mem_f = obj_i = obj_f = 0;
 #else
-		before = c->gc.all_mem;
+		mem_i = c->gc.all_mem;
+		obj_i = c->gc.num_objects;
 #endif
 
 		cheax_force_gc(c);
 
-#ifdef USE_BOEHM_GC
-		after = 0;
-#else
-		after = c->gc.all_mem;
+#ifndef USE_BOEHM_GC
+		mem_f = c->gc.all_mem;
+		obj_f = c->gc.num_objects;
 #endif
 
-		return &cheax_list(c, &cheax_int(c, before)->base,
-		        cheax_list(c, &cheax_int(c, after)->base, NULL))->base;
+		return &cheax_list(c, &mem.base,
+		        cheax_list(c, &cheax_int(c, mem_i)->base,
+		        cheax_list(c, &to.base,
+		        cheax_list(c, &cheax_int(c, mem_f)->base,
+		        cheax_list(c, &obj.base,
+		        cheax_list(c, &cheax_int(c, obj_i)->base,
+		        cheax_list(c, &to.base,
+		        cheax_list(c, &cheax_int(c, obj_f)->base, NULL))))))))->base;
 	}
 
 	return NULL;

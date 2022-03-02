@@ -179,8 +179,14 @@ cheax_defsym(CHEAX *c, const char *id,
 		return NULL;
 	}
 
-	struct full_sym *fs = malloc(sizeof(struct full_sym));
-	fs->name = id;
+	size_t idlen = strlen(id);
+
+	char *fs_mem = malloc(sizeof(struct full_sym) + idlen + 1);
+	char *idcpy = fs_mem + sizeof(struct full_sym);
+	memcpy(idcpy, id, idlen + 1);
+
+	struct full_sym *fs = (struct full_sym *)fs_mem;
+	fs->name = idcpy;
 	fs->sym.get = get;
 	fs->sym.set = set;
 	fs->sym.fin = fin;
@@ -551,9 +557,6 @@ cheax_match(CHEAX *c, struct chx_value *pan, struct chx_value *match, int flags)
 		return match == NULL;
 
 	if (pan_ty == CHEAX_ID) {
-		/* don't worry that "pan" will be wrongfully flagged as
-		 * garbage, the GC detects that this string is from a
-		 * chx_id. */
 		cheax_var(c, ((struct chx_id *)pan)->id, match, flags);
 		return true;
 	}
@@ -673,7 +676,7 @@ cheax_init(void)
 	res->user_error_names.array = NULL;
 	res->user_error_names.len = res->user_error_names.cap = 0;
 
-	cheax_gc_init(res);
+	gcol_init(res);
 
 	/* This is a bit hacky; we declare the these types as aliases
 	 * in the typestore, while at the same time we have the
@@ -706,7 +709,7 @@ cheax_destroy(CHEAX *c)
 	free(c->user_error_names.array);
 
 	env_cleanup(&c->globals, NULL);
-	cheax_gc_destroy(c);
+	gcol_destroy(c);
 
 	free(c);
 }
