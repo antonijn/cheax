@@ -151,7 +151,7 @@ gcol_destroy(CHEAX *c)
 
 	if (c->gc.num_objects > 0) {
 		fprintf(stderr,
-		        "cheax_destroy() warning: %zu objects left after %d destruction attempts",
+		        "cheax_destroy() warning: %zu objects left after %d destruction attempts\n",
 		        c->gc.num_objects, attempts);
 	}
 }
