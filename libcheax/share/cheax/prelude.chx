@@ -198,3 +198,5 @@
 (defun read () (read-from stdin))
 (defun print (arg) (print-to stdout arg))
 (defun put (arg) (put-to stdout arg))
+(defun get-line () (get-line-from stdin))
+(defun get-byte () (get-byte-from stdin))

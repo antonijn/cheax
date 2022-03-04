@@ -23,6 +23,7 @@
 #include "api.h"
 #include "config.h"
 #include "gc.h"
+#include "stream.h"
 
 /* Calls cheax_ref() on all unpacked args, doesn't unref() on failure.
  * Returns the number of arguments unpacked. */
@@ -176,6 +177,59 @@ builtin_put_to(CHEAX *c, struct chx_list *args, void *info)
 	struct chx_string *s = (struct chx_string *)value;
 	fwrite(s->value, 1, s->len, f);
 	return NULL;
+}
+
+static struct chx_value *
+builtin_get_byte_from(CHEAX *c, struct chx_list *args, void *info)
+{
+	struct chx_value *handle;
+	if (!unpack_args(c, "get-byte-from", args, true, 1, &handle))
+		return NULL;
+
+	if (cheax_type_of(handle) != c->fhandle_type) {
+		cry(c, "get-byte-from", CHEAX_ETYPE, "expect file handle");
+		return NULL;
+	}
+
+	FILE *f = (FILE *)((struct chx_user_ptr *)handle)->value;
+	int ch = fgetc(f);
+	return (ch == EOF) ? NULL : &cheax_int(c, ch)->base;
+}
+static struct chx_value *
+builtin_get_line_from(CHEAX *c, struct chx_list *args, void *info)
+{
+	/*
+	 * This could all be implemented in the prelude, but for the
+	 * sake of performance it's done here.
+	 */
+	struct chx_value *handle;
+	if (!unpack_args(c, "get-line-from", args, true, 1, &handle))
+		return NULL;
+
+	if (cheax_type_of(handle) != c->fhandle_type) {
+		cry(c, "get-line-from", CHEAX_ETYPE, "expect file handle");
+		return NULL;
+	}
+
+	FILE *f = (FILE *)((struct chx_user_ptr *)handle)->value;
+
+	struct sostream ss;
+	sostream_init(&ss, c);
+
+	int ch;
+	while ((ch = fgetc(f)) != EOF) {
+		if (ostream_putchar(&ss.ostr, ch) == -1) {
+			free(ss.buf);
+			return NULL;
+		}
+
+		if (ch == '\n')
+			break;
+	}
+
+	struct chx_string *res = cheax_nstring(c, ss.buf, ss.idx);
+	free(ss.buf);
+	return &res->base;
 }
 
 static struct chx_value *
@@ -1200,10 +1254,14 @@ static struct chx_value *
 get_features(CHEAX *c, struct chx_sym *sym)
 {
 	struct { int feat; const char *name; } assoc[] = {
-		{ CHEAX_FILE_IO,             "io"                  },
+		{ CHEAX_FILE_IO,             "file-io"             },
 		{ CHEAX_SET_MAX_STACK_DEPTH, "set-max-stack-depth" },
 		{ CHEAX_GC_BUILTIN,          "gc"                  },
 		{ CHEAX_EXIT_BUILTIN,        "exit"                },
+		{ CHEAX_EXPOSE_STDIN,        "stdin"               },
+		{ CHEAX_EXPOSE_STDOUT,       "stdout"              },
+		{ CHEAX_EXPOSE_STDERR,       "stderr"              },
+		{ CHEAX_STDIO,               "stdio"               },
 	};
 
 	struct chx_list *list = NULL;
@@ -1225,6 +1283,8 @@ export_builtins(CHEAX *c)
 		{ "read-from",           builtin_read_from           },
 		{ "print-to",            builtin_print_to            },
 		{ "put-to",              builtin_put_to              },
+		{ "get-byte-from",       builtin_get_byte_from       },
+		{ "get-line-from",       builtin_get_line_from       },
 		{ "format",              builtin_format              },
 		{ "bytes",               builtin_bytes               },
 		{ "throw",               builtin_throw               },
@@ -1261,10 +1321,6 @@ export_builtins(CHEAX *c)
 	for (int i = 0; i < nbtns; ++i)
 		cheax_defmacro(c, btns[i].name, btns[i].fn, NULL);
 
-	cheax_var(c, "stdin",  &cheax_user_ptr(c, stdin,  c->fhandle_type)->base, CHEAX_READONLY);
-	cheax_var(c, "stdout", &cheax_user_ptr(c, stdout, c->fhandle_type)->base, CHEAX_READONLY);
-	cheax_var(c, "stderr", &cheax_user_ptr(c, stderr, c->fhandle_type)->base, CHEAX_READONLY);
-
 	cheax_defsym(c, "cheax-version", get_cheax_version, NULL, NULL, NULL);
 	cheax_defsym(c, "features",      get_features,      NULL, NULL, NULL);
 }
@@ -1290,6 +1346,15 @@ cheax_load_extra_builtins(CHEAX *c, int builtins)
 
 	if ((nb & CHEAX_EXIT_BUILTIN) == CHEAX_EXIT_BUILTIN)
 		cheax_defmacro(c, "exit", builtin_exit, NULL);
+
+	if ((nb & CHEAX_EXPOSE_STDIN) == CHEAX_EXPOSE_STDIN)
+		cheax_var(c, "stdin",  &cheax_user_ptr(c, stdin,  c->fhandle_type)->base, CHEAX_READONLY);
+
+	if ((nb & CHEAX_EXPOSE_STDOUT) == CHEAX_EXPOSE_STDOUT)
+		cheax_var(c, "stdout", &cheax_user_ptr(c, stdout, c->fhandle_type)->base, CHEAX_READONLY);
+
+	if ((nb & CHEAX_EXPOSE_STDERR) == CHEAX_EXPOSE_STDERR)
+		cheax_var(c, "stderr", &cheax_user_ptr(c, stderr, c->fhandle_type)->base, CHEAX_READONLY);
 
 	c->features |= builtins;
 }

@@ -614,6 +614,16 @@ enum {
 	CHEAX_GC_BUILTIN          = 0x0004,
 	/*! \brief To load \c exit. */
 	CHEAX_EXIT_BUILTIN        = 0x0008,
+	/*! \brief To expose \c stdin. */
+	CHEAX_EXPOSE_STDIN        = 0x0010,
+	/*! \brief To expose \c stdout. */
+	CHEAX_EXPOSE_STDOUT       = 0x0020,
+	/*! \brief To expose \c stderr. */
+	CHEAX_EXPOSE_STDERR       = 0x0040,
+	/*! \brief To expose \c stdin, \c stdout and \c stderr. */
+	CHEAX_STDIO               = CHEAX_EXPOSE_STDIN
+	                          | CHEAX_EXPOSE_STDOUT
+	                          | CHEAX_EXPOSE_STDERR,
 
 	/*! \brief Loads all extra built-ins */
 	CHEAX_ALL_BUILTINS        = 0xFFFF,
