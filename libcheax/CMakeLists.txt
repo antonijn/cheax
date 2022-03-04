@@ -1,4 +1,6 @@
-cmake_minimum_required (VERSION 3.10)
+cmake_minimum_required (VERSION 3.12)
+
+include(GenerateExportHeader)
 
 add_custom_target (
 	generate_version_header
@@ -22,6 +24,9 @@ endif()
 
 configure_file (src/config.h.in src/config.h)
 
+# hide all library functions by, unless declared with CHX_API
+set(CMAKE_C_VISIBILITY_PRESET hidden)
+
 add_library (libcheax
 	src/api.c
 	src/stream.c
@@ -34,6 +39,12 @@ add_library (libcheax
 	src/builtins.c)
 add_dependencies (libcheax generate_version_header)
 
+generate_export_header (libcheax
+	BASE_NAME          CHX
+	EXPORT_MACRO_NAME  CHX_API
+	EXPORT_FILE_NAME   ${CMAKE_CURRENT_SOURCE_DIR}/include/cheax/export.h
+	INCLUDE_GUARD_NAME CHEAX_EXPORT_H)
+
 if (USE_BOEHM_GC)
 	target_link_libraries (libcheax gc)
 endif ()
@@ -41,6 +52,8 @@ endif ()
 target_include_directories (libcheax PUBLIC include)
 set_target_properties (libcheax PROPERTIES OUTPUT_NAME "cheax")
 install (TARGETS libcheax DESTINATION lib)
+install (FILES include/cheax.h DESTINATION include)
+install (FILES include/cheax/export.h DESTINATION include/cheax/)
 install (FILES include/cheax/cheax.h DESTINATION include/cheax/)
 install (FILES share/cheax/prelude.chx DESTINATION share/cheax/)
 install (FILES COPYING DESTINATION share/licenses/libcheax/)

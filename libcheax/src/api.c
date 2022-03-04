@@ -22,6 +22,9 @@
 #include "config.h"
 #include "gc.h"
 
+/* declare associative array of builtin error codes and their names */
+CHEAX_BUILTIN_ERROR_NAMES(bltn_error_names);
+
 static int
 full_sym_cmp(struct rb_tree *tree, struct rb_node *a, struct rb_node *b)
 {
@@ -330,7 +333,6 @@ cheax_id(CHEAX *c, const char *id)
 	if (id == NULL)
 		return NULL;
 
-	/* NOTE: the GC depends on chx_id having this memory layout */
 	struct chx_id *res = cheax_alloc(c, sizeof(struct chx_id) + strlen(id) + 1, CHEAX_ID);
 	char *buf = ((char *)res) + sizeof(struct chx_id);
 	strcpy(buf, id);
@@ -373,12 +375,12 @@ struct chx_string *
 cheax_nstring(CHEAX *c, const char *value, size_t len)
 {
 	if (value == NULL) {
-		if (len == 0) {
-			value = "";
-		} else {
+		if (len != 0) {
 			cry(c, "cheax_nstring", CHEAX_EAPI, "`value' cannot be NULL");
 			return NULL;
 		}
+
+		value = "";
 	}
 
 	struct chx_string *res = cheax_alloc(c, sizeof(struct chx_string) + len + 1, CHEAX_STRING);
@@ -407,13 +409,13 @@ errname(CHEAX *c, int code)
 	/* builtin error code, binary search */
 
 	int lo = 0;
-	int hi = sizeof(cheax_builtin_error_codes)
-	       / sizeof(cheax_builtin_error_codes[0]);
+	int hi = sizeof(bltn_error_names)
+	       / sizeof(bltn_error_names[0]);
 
 	while (lo <= hi) {
 		int pivot = (lo + hi) / 2;
-		const char *pivot_name = cheax_builtin_error_codes[pivot].name;
-		int pivot_code = cheax_builtin_error_codes[pivot].code;
+		const char *pivot_name = bltn_error_names[pivot].name;
+		int pivot_code = bltn_error_names[pivot].code;
 		if (pivot_code == code)
 			return pivot_name;
 		else if (pivot_code < code)
@@ -500,12 +502,12 @@ cheax_new_error_code(CHEAX *c, const char *name)
 static void
 declare_builtin_errors(CHEAX *c)
 {
-	int num_codes = sizeof(cheax_builtin_error_codes)
-	              / sizeof(cheax_builtin_error_codes[0]);
+	int num_codes = sizeof(bltn_error_names)
+	              / sizeof(bltn_error_names[0]);
 
 	for (int i = 0; i < num_codes; ++i) {
-		const char *name = cheax_builtin_error_codes[i].name;
-		int code = cheax_builtin_error_codes[i].code;
+		const char *name = bltn_error_names[i].name;
+		int code = bltn_error_names[i].code;
 
 		struct chx_value *errcode = &cheax_int(c, code)->base;
 		set_type(errcode, CHEAX_ERRORCODE);

@@ -13,6 +13,8 @@
 #include <stdio.h>
 #include <stdbool.h>
 
+#include <cheax/export.h>
+
 /*! \brief The type of the cheax virtual machine state, a pointer to
  *         wich is needed for most cheax API functions.
  *
@@ -94,7 +96,7 @@ struct chx_id {
  *
  * \sa cheax_id(), CHEAX_ID
  */
-struct chx_id *cheax_id(CHEAX *c, const char *id);
+CHX_API struct chx_id *cheax_id(CHEAX *c, const char *id);
 
 /*! \brief Cheax integer or boolean expression.
  * \sa cheax_int(), CHEAX_INT, cheax_bool(), CHEAX_BOOL
@@ -111,7 +113,7 @@ struct chx_int {
  *
  * \sa chx_int, CHEAX_INT
  */
-struct chx_int *cheax_int(CHEAX *c, int value);
+CHX_API struct chx_int *cheax_int(CHEAX *c, int value);
 
 /*! \brief Creates a cheax boolean with value true.
  *
@@ -119,7 +121,7 @@ struct chx_int *cheax_int(CHEAX *c, int value);
  *
  * \sa cheax_false(), cheax_bool(), chx_int, CHEAX_BOOL
  */
-struct chx_int *cheax_true(CHEAX *c);
+CHX_API struct chx_int *cheax_true(CHEAX *c);
 
 /*! \brief Creates a cheax boolean with value false.
  *
@@ -127,7 +129,7 @@ struct chx_int *cheax_true(CHEAX *c);
  *
  * \sa cheax_true(), cheax_bool(), chx_int, CHEAX_BOOL
  */
-struct chx_int *cheax_false(CHEAX *c);
+CHX_API struct chx_int *cheax_false(CHEAX *c);
 
 /*! \brief Creates a cheax boolean expression.
  *
@@ -136,7 +138,7 @@ struct chx_int *cheax_false(CHEAX *c);
  *
  * \sa cheax_true(), cheax_false(), chx_int, CHEAX_BOOL
  */
-struct chx_int *cheax_bool(CHEAX *c, bool value);
+CHX_API struct chx_int *cheax_bool(CHEAX *c, bool value);
 
 /*! \brief Cheax floating point expression.
  * \sa cheax_double(), CHEAX_DOUBLE
@@ -153,7 +155,7 @@ struct chx_double {
  *
  * \sa chx_double, CHEAX_DOUBLE
  */
-struct chx_double *cheax_double(CHEAX *c, double value);
+CHX_API struct chx_double *cheax_double(CHEAX *c, double value);
 
 /*! \brief Cheax s-expression.
  * \sa cheax_list(), CHEAX_LIST
@@ -172,7 +174,7 @@ struct chx_list {
  *
  * \sa chx_list, CHEAX_LIST
  */
-struct chx_list *cheax_list(CHEAX *c, struct chx_value *car, struct chx_list *cdr);
+CHX_API struct chx_list *cheax_list(CHEAX *c, struct chx_value *car, struct chx_list *cdr);
 
 /*! \brief Cheax function or macro lambda expression.
  *
@@ -226,7 +228,10 @@ struct chx_ext_func {
  * \param name    Function name as will be used by cheax_print().
  * \param info    Callback info to be passed upon invocation.
  */
-struct chx_ext_func *cheax_ext_func(CHEAX *c, const char *name, chx_func_ptr perform, void *info);
+CHX_API struct chx_ext_func *cheax_ext_func(CHEAX *c,
+                                            const char *name,
+                                            chx_func_ptr perform,
+                                            void *info);
 
 /*! \brief Quoted cheax expression.
  * \sa cheax_quote(), CHEAX_QUOTE, cheax_backquote(), CHEAX_BACKQUOTE,
@@ -244,7 +249,7 @@ struct chx_quote {
  *
  * \sa chx_quote, CHEAX_QUOTE
  */
-struct chx_quote *cheax_quote(CHEAX *c, struct chx_value *value);
+CHX_API struct chx_quote *cheax_quote(CHEAX *c, struct chx_value *value);
 
 /*! \brief Creates a backquoted cheax expression.
  *
@@ -253,7 +258,7 @@ struct chx_quote *cheax_quote(CHEAX *c, struct chx_value *value);
  *
  * \sa chx_quote, CHEAX_BACKQUOTE
  */
-struct chx_quote *cheax_backquote(CHEAX *c, struct chx_value *value);
+CHX_API struct chx_quote *cheax_backquote(CHEAX *c, struct chx_value *value);
 
 /*! \brief Creates a cheax comma expression.
  *
@@ -262,7 +267,7 @@ struct chx_quote *cheax_backquote(CHEAX *c, struct chx_value *value);
  *
  * \sa chx_quote, CHEAX_COMMA
  */
-struct chx_quote *cheax_comma(CHEAX *c, struct chx_value *value);
+CHX_API struct chx_quote *cheax_comma(CHEAX *c, struct chx_value *value);
 
 /*! \brief Cheax string expression.
  * \sa cheax_string(), cheax_nstring(), CHEAX_STRING
@@ -280,7 +285,7 @@ struct chx_string {
  *
  * \sa chx_string, cheax_nstring(), CHEAX_STRING
  */
-struct chx_string *cheax_string(CHEAX *c, const char *value);
+CHX_API struct chx_string *cheax_string(CHEAX *c, const char *value);
 
 /*! \brief Creates a cheax string expression of given length.
  *
@@ -290,7 +295,7 @@ struct chx_string *cheax_string(CHEAX *c, const char *value);
  *
  * \sa chx_string, cheax_string(), CHEAX_STRING
  */
-struct chx_string *cheax_nstring(CHEAX *c, const char *value, size_t len);
+CHX_API struct chx_string *cheax_nstring(CHEAX *c, const char *value, size_t len);
 
 /*! \brief Cheax user pointer expression.
  *
@@ -315,7 +320,7 @@ struct chx_user_ptr {
  *
  * \sa chx_user_ptr, CHEAX_USER_PTR
  */
-struct chx_user_ptr *cheax_user_ptr(CHEAX *c, void *value, int type);
+CHX_API struct chx_user_ptr *cheax_user_ptr(CHEAX *c, void *value, int type);
 
 /*! \brief Cheax environment, storing symbols and their values.
  *
@@ -342,13 +347,13 @@ struct chx_sym {
  *         gc deletion when cheax_eval() is called.
  * \sa cheax_unref()
  */
-void cheax_ref(CHEAX *c, void *value);
+CHX_API void cheax_ref(CHEAX *c, void *value);
 
 /*! \brief Decrease reference count on cheax value, potentially allowing
  *         it to be deleted by gc when cheax_eval() is called.
  * \sa cheax_ref()
  */
-void cheax_unref(CHEAX *c, void *value);
+CHX_API void cheax_unref(CHEAX *c, void *value);
 
 /*! \brief Gets the type code of the given expression.
  *
@@ -361,7 +366,7 @@ void cheax_unref(CHEAX *c, void *value);
  *
  * \sa cheax_new_type(), cheax_resolve_type()
  */
-int cheax_type_of(struct chx_value *v);
+CHX_API int cheax_type_of(struct chx_value *v);
 
 /*! \brief Creates a new type code as an alias for another.
  *
@@ -376,7 +381,7 @@ int cheax_type_of(struct chx_value *v);
  *
  * \returns The new type code. -1 if unsuccesful.
  */
-int cheax_new_type(CHEAX *c, const char *name, int base_type);
+CHX_API int cheax_new_type(CHEAX *c, const char *name, int base_type);
 
 /*! \brief Looks up the type code of a named type.
  *
@@ -388,7 +393,7 @@ int cheax_new_type(CHEAX *c, const char *name, int base_type);
  * \returns The type code of a type with the given name, or -1 if
  *          unsuccesful.
  */
-int cheax_find_type(CHEAX *c, const char *name);
+CHX_API int cheax_find_type(CHEAX *c, const char *name);
 
 /*! \brief Checks whether a given type code is valid.
  *
@@ -397,7 +402,7 @@ int cheax_find_type(CHEAX *c, const char *name);
  *
  * \returns Whether \a type is a valid type code.
  */
-bool cheax_is_valid_type(CHEAX *c, int type);
+CHX_API bool cheax_is_valid_type(CHEAX *c, int type);
 
 /*! \brief Checks whether a given type code is a basic type.
  *
@@ -406,7 +411,7 @@ bool cheax_is_valid_type(CHEAX *c, int type);
  *
  * \returns Whether \a type is a basic type.
  */
-bool cheax_is_basic_type(CHEAX *c, int type);
+CHX_API bool cheax_is_basic_type(CHEAX *c, int type);
 
 /*! \brief Gets the base type for a given type.
  *
@@ -425,7 +430,7 @@ bool cheax_is_basic_type(CHEAX *c, int type);
  *
  * \sa cheax_resolve_type()
  */
-int cheax_get_base_type(CHEAX *c, int type);
+CHX_API int cheax_get_base_type(CHEAX *c, int type);
 
 /*! \brief Resolves the basic type to which a given type code refers.
  *
@@ -442,7 +447,7 @@ int cheax_get_base_type(CHEAX *c, int type);
  *
  * \sa cheax_get_base_type()
  */
-int cheax_resolve_type(CHEAX *c, int type);
+CHX_API int cheax_resolve_type(CHEAX *c, int type);
 
 /*! @} */
 
@@ -486,24 +491,21 @@ enum {
 
 #define ERR_NAME_PAIR(NAME) {#NAME, CHEAX_##NAME}
 
-static const struct {
-	const char *name;
-	int code;
-}
-cheax_builtin_error_codes[] = {
-	ERR_NAME_PAIR(ENOERR),
-
-	ERR_NAME_PAIR(EREAD), ERR_NAME_PAIR(EEOF),
-
-	ERR_NAME_PAIR(EEVAL), ERR_NAME_PAIR(ENOSYM),
-	ERR_NAME_PAIR(ESTACK), ERR_NAME_PAIR(ETYPE),
-	ERR_NAME_PAIR(EMATCH), ERR_NAME_PAIR(ENIL),
-	ERR_NAME_PAIR(EDIVZERO), ERR_NAME_PAIR(EREADONLY),
-	ERR_NAME_PAIR(EWRITEONLY), ERR_NAME_PAIR(EEXIST),
-	ERR_NAME_PAIR(EVALUE), ERR_NAME_PAIR(EOVERFLOW),
-	ERR_NAME_PAIR(EINDEX), ERR_NAME_PAIR(EIO),
-
-	ERR_NAME_PAIR(EAPI), ERR_NAME_PAIR(ENOMEM)
+#define CHEAX_BUILTIN_ERROR_NAMES(var)                        \
+static const struct { const char *name; int code; } var[] = { \
+	ERR_NAME_PAIR(ENOERR),                                \
+	                                                      \
+	ERR_NAME_PAIR(EREAD), ERR_NAME_PAIR(EEOF),            \
+	                                                      \
+	ERR_NAME_PAIR(EEVAL), ERR_NAME_PAIR(ENOSYM),          \
+	ERR_NAME_PAIR(ESTACK), ERR_NAME_PAIR(ETYPE),          \
+	ERR_NAME_PAIR(EMATCH), ERR_NAME_PAIR(ENIL),           \
+	ERR_NAME_PAIR(EDIVZERO), ERR_NAME_PAIR(EREADONLY),    \
+	ERR_NAME_PAIR(EWRITEONLY), ERR_NAME_PAIR(EEXIST),     \
+	ERR_NAME_PAIR(EVALUE), ERR_NAME_PAIR(EOVERFLOW),      \
+	ERR_NAME_PAIR(EINDEX), ERR_NAME_PAIR(EIO),            \
+	                                                      \
+	ERR_NAME_PAIR(EAPI), ERR_NAME_PAIR(ENOMEM)            \
 };
 
 enum {
@@ -519,7 +521,7 @@ enum {
  *
  * \sa cheax_ft()
  */
-int cheax_errstate(CHEAX *c);
+CHX_API int cheax_errstate(CHEAX *c);
 
 /*! \brief Gets the value of the current cheax error code.
  *
@@ -528,7 +530,7 @@ int cheax_errstate(CHEAX *c);
  * \sa cheax_throw(), cheax_new_error_code(), cheax_errstate(),
  *     cheax_ft()
  */
-int cheax_errno(CHEAX *c);
+CHX_API int cheax_errno(CHEAX *c);
 
 /*! \brief Macro to fall through to a pad in case of an error.
  *
@@ -546,7 +548,7 @@ int cheax_errno(CHEAX *c);
  * \param s Argument string, will be printed followed by a colon and an
  *          error description.
  */
-void cheax_perror(CHEAX *c, const char *s);
+CHX_API void cheax_perror(CHEAX *c, const char *s);
 
 /*! \brief Sets cheax_errno() to 0.
  *
@@ -554,7 +556,7 @@ void cheax_perror(CHEAX *c, const char *s);
  *
  * \sa cheax_errno()
  */
-void cheax_clear_errno(CHEAX *c);
+CHX_API void cheax_clear_errno(CHEAX *c);
 
 /*! \brief Sets cheax_errno() to the given value.
  *
@@ -566,7 +568,7 @@ void cheax_clear_errno(CHEAX *c);
  *
  * \sa cheax_errno(), cheax_clear_errno()
  */
-void cheax_throw(CHEAX *c, int code, struct chx_string *msg);
+CHX_API void cheax_throw(CHEAX *c, int code, struct chx_string *msg);
 
 /*! \brief Creates a new error code with a given name.
  *
@@ -583,7 +585,7 @@ void cheax_throw(CHEAX *c, int code, struct chx_string *msg);
  *
  * \returns The newly created error code value.
  */
-int cheax_new_error_code(CHEAX *c, const char *name);
+CHX_API int cheax_new_error_code(CHEAX *c, const char *name);
 
 /*! @} */
 
@@ -591,12 +593,12 @@ int cheax_new_error_code(CHEAX *c, const char *name);
  * \sa cheax_load_extra_builtins(), cheax_load_prelude(), cheax_destroy(),
  *     cheax_version()
  */
-CHEAX *cheax_init(void);
+CHX_API CHEAX *cheax_init(void);
 
 /*! \brief Returns cheax library version as a string in the static
  *         storage class.
  */
-const char *cheax_version(void);
+CHX_API const char *cheax_version(void);
 
 /*! \brief Options to load extra built-in functions to the cheax
  *         environment.
@@ -622,7 +624,7 @@ enum {
  * \param c        Virtual machine instance.
  * \param builtins Which built-in functions to load.
  */
-void cheax_load_extra_builtins(CHEAX *c, int builtins);
+CHX_API void cheax_load_extra_builtins(CHEAX *c, int builtins);
 
 /*! \brief Loads the cheax standard library.
  *
@@ -634,7 +636,7 @@ void cheax_load_extra_builtins(CHEAX *c, int builtins);
  * \returns 0 if everything succeeded without errors, -1 if there was an
  *          error finding or loading the standard library.
  */
-int cheax_load_prelude(CHEAX *c);
+CHX_API int cheax_load_prelude(CHEAX *c);
 
 /*! \brief Destroys a cheax virtual machine instance, freeing its
  *         resources.
@@ -644,7 +646,7 @@ int cheax_load_prelude(CHEAX *c);
  *
  * \param c Virtual machine instance to be destroyed.
  */
-void cheax_destroy(CHEAX *c);
+CHX_API void cheax_destroy(CHEAX *c);
 
 /*! \brief Converts chx_list to array.
  *
@@ -661,10 +663,10 @@ void cheax_destroy(CHEAX *c);
  * \returns 0 if everything succeeded without errors, -1 if there was an
  *          error (most likely \ref CHEAX_ENOMEM).
  */
-int cheax_list_to_array(CHEAX *c,
-                        struct chx_list *list,
-                        struct chx_value ***array_ptr,
-                        size_t *length);
+CHX_API int cheax_list_to_array(CHEAX *c,
+                                struct chx_list *list,
+                                struct chx_value ***array_ptr,
+                                size_t *length);
 
 /*! \brief Options for symbol declaration.
  *
@@ -683,7 +685,7 @@ enum {
  *
  * \returns New environment.
  */
-struct chx_env *cheax_push_env(CHEAX *c);
+CHX_API struct chx_env *cheax_push_env(CHEAX *c);
 
 /*! \brief Pushes new bifurcated environment to environment stack.
  *
@@ -695,7 +697,7 @@ struct chx_env *cheax_push_env(CHEAX *c);
  *
  * \returns New bifurcated environment.
  */
-struct chx_env *cheax_enter_env(CHEAX *c, struct chx_env *main);
+CHX_API struct chx_env *cheax_enter_env(CHEAX *c, struct chx_env *main);
 
 /*! \brief Pops environment off environment stack.
  *
@@ -705,11 +707,11 @@ struct chx_env *cheax_enter_env(CHEAX *c, struct chx_env *main);
  *
  * \returns Popped environment, or \a NULL in case of an error.
  */
-struct chx_env *cheax_pop_env(CHEAX *c);
+CHX_API struct chx_env *cheax_pop_env(CHEAX *c);
 
-struct chx_sym *cheax_defsym(CHEAX *c, const char *id,
-                             chx_getter get, chx_setter set,
-                             chx_finalizer fin, void *user_info);
+CHX_API struct chx_sym *cheax_defsym(CHEAX *c, const char *id,
+                                     chx_getter get, chx_setter set,
+                                     chx_finalizer fin, void *user_info);
 
 /*! \brief Creates a new symbol in the cheax environment.
  *
@@ -723,7 +725,7 @@ struct chx_sym *cheax_defsym(CHEAX *c, const char *id,
  *
  * \sa cheax_get(), cheax_set()
  */
-void cheax_var(CHEAX *c, const char *id, struct chx_value *value, int flags);
+CHX_API void cheax_var(CHEAX *c, const char *id, struct chx_value *value, int flags);
 
 /*! \brief Retrieves the value of the given symbol.
  *
@@ -738,7 +740,7 @@ void cheax_var(CHEAX *c, const char *id, struct chx_value *value, int flags);
  *
  * \sa cheax_set()
  */
-struct chx_value *cheax_get(CHEAX *c, const char *id);
+CHX_API struct chx_value *cheax_get(CHEAX *c, const char *id);
 
 /*! \brief Sets the value of a symbol.
  *
@@ -758,7 +760,7 @@ struct chx_value *cheax_get(CHEAX *c, const char *id);
  *
  * \sa cheax_get(), cheax_var()
  */
-void cheax_set(CHEAX *c, const char *id, struct chx_value *value);
+CHX_API void cheax_set(CHEAX *c, const char *id, struct chx_value *value);
 
 /*! \brief Shorthand function to declare an external function the cheax
  *         environment.
@@ -775,7 +777,7 @@ cheax_var(c, id, &cheax_ext_func(c, id, perform, info)->base, CHEAX_READONLY);
  *
  * \sa chx_ext_func, cheax_ext_func(), cheax_var()
  */
-void cheax_defmacro(CHEAX *c, const char *id, chx_func_ptr perform, void *info);
+CHX_API void cheax_defmacro(CHEAX *c, const char *id, chx_func_ptr perform, void *info);
 
 /*! \brief Synchronizes a variable from C with a symbol in the cheax environment.
  *
@@ -784,7 +786,7 @@ void cheax_defmacro(CHEAX *c, const char *id, chx_func_ptr perform, void *info);
  * \param var   Reference to the C variable to synchronize.
  * \param flags Symbol flags. Use 0 if there are no special needs.
  */
-void cheax_sync_int(CHEAX *c, const char *name, int *var, int flags);
+CHX_API void cheax_sync_int(CHEAX *c, const char *name, int *var, int flags);
 /*! \brief Synchronizes a variable from C with a symbol in the cheax environment.
  *
  * \param c     Virtual machine instance.
@@ -792,7 +794,7 @@ void cheax_sync_int(CHEAX *c, const char *name, int *var, int flags);
  * \param var   Reference to the C variable to synchronize.
  * \param flags Symbol flags. Use 0 if there are no special needs.
  */
-void cheax_sync_float(CHEAX *c, const char *name, float *var, int flags);
+CHX_API void cheax_sync_float(CHEAX *c, const char *name, float *var, int flags);
 /*! \brief Synchronizes a variable from C with a symbol in the cheax environment.
  *
  * \param c     Virtual machine instance.
@@ -800,7 +802,7 @@ void cheax_sync_float(CHEAX *c, const char *name, float *var, int flags);
  * \param var   Reference to the C variable to synchronize.
  * \param flags Symbol flags. Use 0 if there are no special needs.
  */
-void cheax_sync_double(CHEAX *c, const char *name, double *var, int flags);
+CHX_API void cheax_sync_double(CHEAX *c, const char *name, double *var, int flags);
 
 /*! \brief Matches a cheax expression to a given pattern.
  *
@@ -817,7 +819,7 @@ void cheax_sync_double(CHEAX *c, const char *name, double *var, int flags);
  *
  * \returns Whether \a match matched the pattern \a pan.
  */
-bool cheax_match(CHEAX *c, struct chx_value *pan, struct chx_value *match, int flags);
+CHX_API bool cheax_match(CHEAX *c, struct chx_value *pan, struct chx_value *match, int flags);
 
 /*! \brief Tests whether two given cheax expressions are equal.
  *
@@ -827,14 +829,14 @@ bool cheax_match(CHEAX *c, struct chx_value *pan, struct chx_value *match, int f
  *
  * \returns Whether the given cheax expressions are equal in value.
  */
-bool cheax_eq(CHEAX *c, struct chx_value *l, struct chx_value *r);
+CHX_API bool cheax_eq(CHEAX *c, struct chx_value *l, struct chx_value *r);
 
 /*! \brief Creates a shallow copy of the given cheax expression.
  *
  * \param c Virtual machine instance.
  * \param v Expression to copy.
  */
-struct chx_value *cheax_shallow_copy(CHEAX *c, struct chx_value *v);
+CHX_API struct chx_value *cheax_shallow_copy(CHEAX *c, struct chx_value *v);
 
 /*! \brief Attempts to cast an expression to a given type.
  *
@@ -846,7 +848,7 @@ struct chx_value *cheax_shallow_copy(CHEAX *c, struct chx_value *v);
  *
  * \returns The cast expression. Always \a NULL if unsuccesful.
  */
-struct chx_value *cheax_cast(CHEAX *c, struct chx_value *v, int type);
+CHX_API struct chx_value *cheax_cast(CHEAX *c, struct chx_value *v, int type);
 
 /*! \brief Gets the maximum cheax call stack depth.
  *
@@ -856,7 +858,7 @@ struct chx_value *cheax_cast(CHEAX *c, struct chx_value *v, int type);
  *
  * \sa cheax_set_max_stack_depth()
  */
-int cheax_get_max_stack_depth(CHEAX *c);
+CHX_API int cheax_get_max_stack_depth(CHEAX *c);
 
 /*! \brief Sets the maximum cheax call stack depth.
  *
@@ -868,7 +870,7 @@ int cheax_get_max_stack_depth(CHEAX *c);
  *
  * \sa cheax_get_max_stack_depth()
  */
-void cheax_set_max_stack_depth(CHEAX *c, int max_stack_depth);
+CHX_API void cheax_set_max_stack_depth(CHEAX *c, int max_stack_depth);
 
 /*! \brief Reads cheax expression from file.
  *
@@ -882,7 +884,7 @@ void cheax_set_max_stack_depth(CHEAX *c, int max_stack_depth);
  *
  * \sa cheax_readstr(), cheax_eval(), cheax_print()
  */
-struct chx_value *cheax_read(CHEAX *c, FILE *f);
+CHX_API struct chx_value *cheax_read(CHEAX *c, FILE *f);
 
 /*! \brief Reads cheax expression from string.
  *
@@ -896,7 +898,7 @@ struct chx_value *cheax_read(CHEAX *c, FILE *f);
  *
  * \sa cheax_read(), cheax_eval(), cheax_print()
  */
-struct chx_value *cheax_readstr(CHEAX *c, const char *str);
+CHX_API struct chx_value *cheax_readstr(CHEAX *c, const char *str);
 
 /*! \brief Evaluates given cheax expression.
  *
@@ -909,7 +911,7 @@ struct chx_value *cheax_readstr(CHEAX *c, const char *str);
  *
  * \sa cheax_read(), cheax_print()
  */
-struct chx_value *cheax_eval(CHEAX *c, struct chx_value *expr);
+CHX_API struct chx_value *cheax_eval(CHEAX *c, struct chx_value *expr);
 
 /*! \brief Prints given cheax expression to file.
  *
@@ -921,7 +923,7 @@ struct chx_value *cheax_eval(CHEAX *c, struct chx_value *expr);
  *
  * \sa cheax_format(), cheax_read(), cheax_eval()
  */
-void cheax_print(CHEAX *c, FILE *output, struct chx_value *expr);
+CHX_API void cheax_print(CHEAX *c, FILE *output, struct chx_value *expr);
 
 /*! \brief Expresses given cheax values as a \a chx_string, using given
  *         format string.
@@ -942,14 +944,14 @@ void cheax_print(CHEAX *c, FILE *output, struct chx_value *expr);
  *
  * \sa cheax_print()
  */
-struct chx_value *cheax_format(CHEAX *c, const char *fmt, struct chx_list *args);
+CHX_API struct chx_value *cheax_format(CHEAX *c, const char *fmt, struct chx_list *args);
 
 /*! \brief Reads a file and executes it.
  *
  * \param c Virtual machine instance.
  * \param f Input file handle.
  */
-void cheax_exec(CHEAX *c, FILE *f);
+CHX_API void cheax_exec(CHEAX *c, FILE *f);
 
 /*! @} */
 

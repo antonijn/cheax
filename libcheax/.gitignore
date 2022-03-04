@@ -2,3 +2,4 @@ libcheax.so
 libcheax.a
 config.h
 version.h
+include/cheax/export.h
