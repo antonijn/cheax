@@ -36,6 +36,7 @@ add_library (libcheax
 	src/read.c
 	src/eval.c
 	src/print.c
+	src/format.c
 	src/builtins.c
 	src/unpack.c)
 add_dependencies (libcheax generate_version_header)
