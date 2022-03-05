@@ -92,11 +92,211 @@ ostream_print_int(struct ostream *ostr, int num, char pad_char, int field_width,
 	ostream_printf(ostr, "%s", buf + i);
 }
 
-/*
- * Fun fact: this function contains over 40 goto statements! This is
- * because it's just a hand-written state-machine-based parser. I hope
- * you'll forgive me.
- */
+struct fspec {
+	enum {
+		CONV_NONE,
+		CONV_S,   /* for {!s} */
+		CONV_R,   /* for {!r} */
+	} conv;                              /* set per specifier */
+
+	char pad_char, misc_spec;            /* ditto */
+	int field_width, precision;          /* --"-- */
+	bool can_int, can_double, can_other; /* --"-- */
+};
+
+enum {
+	UNSPECIFIED,
+	AUTO_IDX,    /* for {} indices */
+	MAN_IDX,     /* for {idx} indices */
+};
+
+static int
+read_int(CHEAX *c, const char *desc, const char **fmt_in, int *out)
+{
+	const char *fmt = *fmt_in;
+
+	for (*out = 0; isdigit(*fmt); ++fmt) {
+		if (*out > INT_MAX / 10 || (*out * 10) > INT_MAX - (*fmt - '0')) {
+			cry(c, "format", CHEAX_EVALUE, "%s too big", desc);
+			return -1;
+		}
+		*out = (*out * 10) + (*fmt - '0');
+	}
+
+	*fmt_in = fmt;
+	return 0;
+}
+
+static int
+read_fspec(CHEAX *c, const char **fmt_in, struct fspec *sp, int *indexing, int *cur_arg_idx)
+{
+	sp->conv = CONV_NONE;
+	sp->pad_char = ' ';
+	sp->field_width = 0;
+	sp->precision = -1;
+	sp->misc_spec = '\0';
+	sp->can_int = sp->can_double = sp->can_other = true;
+
+	const char *fmt = *fmt_in;
+
+	if (isdigit(*fmt)) {
+		if (*indexing == AUTO_IDX) {
+			cry(c, "format", CHEAX_EVALUE,
+			    "cannot switch from automatic indexing to manual indexing");
+			return -1;
+		}
+
+		*indexing = MAN_IDX;
+
+		if (read_int(c, "index", &fmt, cur_arg_idx) < 0)
+			return -1;
+	} else if (*indexing == MAN_IDX) {
+		cry(c, "format", CHEAX_EVALUE,
+		    "expected index (cannot switch from manual indexing to automatic indexing)");
+		return -1;
+	} else {
+		*indexing = AUTO_IDX;
+	}
+
+	if (*fmt == '!') {
+		++fmt;
+		if (*fmt == 's' || *fmt == 'r') {
+			sp->conv = (*fmt++ == 's') ? CONV_S : CONV_R;
+		} else {
+			cry(c, "format", CHEAX_EVALUE, "expected `s' or `r' after `!'");
+			return -1;
+		}
+	}
+
+	if (*fmt == ':') {
+		++fmt;
+		if (*fmt == ' ' || *fmt == '0')
+			sp->pad_char = *fmt++;
+
+		if (isdigit(*fmt) && read_int(c, "field width", &fmt, &sp->field_width) < 0)
+			return -1;
+
+		if (*fmt == '.') {
+			sp->can_int = sp->can_other = false;
+			if (!isdigit(*++fmt)) {
+				cry(c, "format", CHEAX_EVALUE, "expected precision specifier");
+				return -1;
+			}
+
+			if (read_int(c, "precision", &fmt, &sp->precision) < 0)
+				return -1;
+		}
+
+		if (strchr("xXobcd", *fmt) != NULL) {
+			sp->can_double = sp->can_other = false;
+			sp->misc_spec = *fmt++;
+		} else if (strchr("eEfFgG", *fmt) != NULL) {
+			sp->can_int = sp->can_other = false;
+			sp->misc_spec = *fmt++;
+		}
+	}
+
+	if (*fmt++ != '}') {
+		cry(c, "format", CHEAX_EVALUE, "expected `}'");
+		return -1;
+	}
+
+	*fmt_in = fmt;
+	return 0;
+}
+
+static int
+format_fspec(CHEAX *c,
+             struct sostream *ss,
+             struct fspec *sp,
+             int cur_arg_idx,
+             struct chx_value **arg_array,
+             size_t arg_count)
+{
+	if (cur_arg_idx >= arg_count) {
+		cry(c, "format", CHEAX_EINDEX, "too few arguments");
+		return -1;
+	}
+
+	/* this is primarily so we can catch any ENOMEM early if
+	 * field_width is too big, instead of letting the mem use slowly
+	 * creep up as we add more and more padding. */
+	size_t ufield_width = sp->field_width;
+	if (ss->idx > SIZE_MAX - ufield_width || sostream_expand(ss, ss->idx + ufield_width) < 0)
+		return -1;
+
+	/* Used to gauge if padding is necessary. With numbers, the
+	 * padding should be correct as it is, but there can still be
+	 * edge-cases (like the `:c' specifier to integers). */
+	int prev_idx = ss->idx;
+
+	struct chx_value *arg = arg_array[cur_arg_idx];
+	int ty = cheax_type_of(arg);
+
+	if (sp->conv == CONV_NONE && ty == CHEAX_INT) {
+		if (!sp->can_int) {
+			cry(c, "format", CHEAX_EVALUE, "invalid specifiers for integer");
+			return -1;
+		}
+
+		int num = ((struct chx_int *)arg)->value;
+
+		if (sp->misc_spec == 'c') {
+			if (num < 0 || num >= 256) {
+				cry(c, "format", CHEAX_EVALUE, "invalid character %d", num);
+				return -1;
+			}
+
+			ostream_putchar(&ss->ostr, num);
+		} else {
+			ostream_print_int(&ss->ostr, num, sp->pad_char, sp->field_width, sp->misc_spec);
+		}
+	} else if (sp->conv == CONV_NONE && ty == CHEAX_DOUBLE) {
+		if (!sp->can_double) {
+			cry(c, "format", CHEAX_EVALUE, "invalid specifiers for double");
+			return -1;
+		}
+
+		double num = ((struct chx_double *)arg)->value;
+
+		if (sp->misc_spec == '\0')
+			sp->misc_spec = 'g';
+
+		char fmt_buf[32];
+		if (sp->pad_char == ' ')
+			snprintf(fmt_buf, sizeof(fmt_buf), "%%*.*%c", sp->misc_spec);
+		else
+			snprintf(fmt_buf, sizeof(fmt_buf), "%%%c*.*%c", sp->pad_char, sp->misc_spec);
+
+		ostream_printf(&ss->ostr, fmt_buf, sp->field_width, sp->precision, num);
+	} else {
+		if (!sp->can_other) {
+			cry(c, "format", CHEAX_EVALUE, "invalid specifiers for given value");
+			return -1;
+		}
+
+		if (ty == CHEAX_STRING && sp->conv != CONV_R) {
+			/* can't do ostream_printf() in case string
+			 * contains null character */
+			struct chx_string *str = (struct chx_string *)arg;
+			for (int i = 0; i < str->len; ++i)
+				ostream_putchar(&ss->ostr, str->value[i]);
+		} else {
+			ostream_show(c, &ss->ostr, arg);
+		}
+	}
+
+	/* Add padding if necessary.
+	 * TODO this should probably count graphemes rather than bytes */
+	int written = ss->idx - prev_idx;
+	int padding = sp->field_width - written;
+
+	for (int i = 0; i < padding; ++i)
+		ostream_putchar(&ss->ostr, sp->pad_char);
+
+	return 0;
+}
+
 struct chx_value *
 cheax_format(CHEAX *c, const char *fmt, struct chx_list *args)
 {
@@ -111,323 +311,43 @@ cheax_format(CHEAX *c, const char *fmt, struct chx_list *args)
 	ss.cap = strlen(fmt) + 1; /* conservative size estimate */
 	ss.buf = malloc(ss.cap);
 
-	enum {
-		UNSPECIFIED,
-		AUTO_IDX,    /* for {} indices */
-		MAN_IDX,     /* for {idx} indices */
-	} indexing = UNSPECIFIED;
-
-	enum {
-		CONV_NONE,
-		CONV_S,   /* for {!s} */
-		CONV_R,   /* for {!r} */
-	} conv;                              /* set per specifier */
-
-	char pad_char, misc_spec;            /* ditto */
-	int field_width, precision;          /* --"-- */
-	bool can_int, can_double, can_other; /* --"-- */
-
+	int indexing = UNSPECIFIED;
 	int cur_arg_idx = 0;
 	struct chx_value *res = NULL;
 
 	struct chx_value **arg_array;
 	size_t arg_count;
 	if (0 != cheax_list_to_array(c, args, &arg_array, &arg_count))
-		goto error;
+		goto done;
 
-	char ch;
-
-normal:
-	ch = *fmt;
-	if (ch == '\0')
-		goto finish;
-
-	++fmt;
-	if (ch == '{')
-		goto entered_curly;
-	if (ch == '}')
-		goto single_end_curly;
-
-	ostream_putchar(&ss.ostr, ch);
-	goto normal;
-
-entered_curly:
-	ch = *fmt;
-
-	/* set the per-specifier settings here */
-	conv = CONV_NONE;
-	pad_char = ' ';
-	field_width = 0;
-	precision = -1;
-	misc_spec = '\0';
-	can_int = can_double = can_other = true;
-
-	if (ch == '{') {
-		ostream_putchar(&ss.ostr, ch);
-		++fmt;
-		goto normal;
-	}
-
-	if (isdigit(ch)) {
-		if (indexing == AUTO_IDX) {
-			cry(c, "format", CHEAX_EVALUE,
-			    "cannot switch from automatic indexing to manual indexing");
-			goto error;
+	for (;;) {
+		if (*fmt == '\0') {
+			res = &cheax_nstring(c, ss.buf, ss.idx)->base;
+			break;
 		}
 
-		indexing = MAN_IDX;
-		cur_arg_idx = 0;
-		goto read_idx;
-	} else if (indexing == MAN_IDX) {
-		cry(c, "format", CHEAX_EVALUE,
-		    "expected index (cannot switch from manual indexing to automatic indexing)");
-		goto error;
-	} else {
-		indexing = AUTO_IDX;
-	}
-
-	goto read_any_conv;
-
-read_idx:
-	cur_arg_idx = ch - '0';
-	++fmt;
-	goto read_more_idx;
-
-read_more_idx:
-	ch = *fmt;
-	if (!isdigit(ch))
-		goto read_any_conv;
-
-	if (cur_arg_idx > INT_MAX / 10 || (cur_arg_idx * 10) > INT_MAX - (ch - '0')) {
-		cry(c, "format", CHEAX_EVALUE, "index too big");
-		goto error;
-	}
-
-	cur_arg_idx = (cur_arg_idx * 10) + (ch - '0');
-	++fmt;
-	goto read_more_idx;
-
-read_any_conv:
-	ch = *fmt;
-	if (ch == '!') {
-		++fmt;
-		goto read_conv;
-	}
-
-	goto read_any_format_specs;
-
-read_conv:
-	ch = *fmt;
-	if (ch == 's') {
-		conv = CONV_S;
-		++fmt;
-		goto read_any_format_specs;
-	}
-	if (ch == 'r') {
-		conv = CONV_R;
-		++fmt;
-		goto read_any_format_specs;
-	}
-
-	cry(c, "format", CHEAX_EVALUE, "expected `s' or `r' after `!'");
-	goto error;
-
-read_any_format_specs:
-	ch = *fmt;
-
-	if (ch == ':') {
-		++fmt;
-		goto read_format_specs;
-	}
-
-	goto read_closing_curly;
-
-read_format_specs:
-	ch = *fmt;
-	if (ch == ' ' || ch == '0') {
-		pad_char = ch;
-		++fmt;
-		goto read_field_width;
-	}
-
-	if (isdigit(ch))
-		goto read_field_width;
-
-	goto read_any_precision_spec;
-
-read_field_width:
-	ch = *fmt;
-	if (isdigit(ch)) {
-		if (field_width > INT_MAX / 10 || (field_width * 10) > INT_MAX - (ch - '0')) {
-			cry(c, "format", CHEAX_EVALUE, "field width too big");
-			goto error;
+		if (*fmt == '}' && *++fmt != '}') {
+			cry(c, "format", CHEAX_EVALUE, "encountered single `}' in format string");
+			break;
 		}
 
-		field_width = (field_width * 10) + (ch - '0');
-		++fmt;
-		goto read_field_width;
-	}
-
-	goto read_any_precision_spec;
-
-read_any_precision_spec:
-	ch = *fmt;
-	if (ch == '.') {
-		can_int = can_other = false;
-		++fmt;
-		goto read_precision_spec;
-	}
-
-	goto read_misc_spec;
-
-read_precision_spec:
-	ch = *fmt;
-	if (!isdigit(ch)) {
-		cry(c, "format", CHEAX_EVALUE, "expected precision specifier");
-		goto error;
-	}
-
-	precision = ch - '0';
-	++fmt;
-	goto read_more_precision_spec;
-
-read_more_precision_spec:
-	ch = *fmt;
-	if (!isdigit(ch))
-		goto read_misc_spec;
-
-	if (precision > INT_MAX / 10 || (precision * 10) > INT_MAX - (ch - '0')) {
-		cry(c, "format", CHEAX_EVALUE, "precision too big");
-		goto error;
-	}
-
-	precision = (precision * 10) + (ch - '0');
-	++fmt;
-	goto read_more_precision_spec;
-
-read_misc_spec:
-	ch = *fmt;
-	if (strchr("xXobcd", ch) != NULL) {
-		can_double = can_other = false;
-		misc_spec = ch;
-		++fmt;
-	} else if (strchr("eEfFgG", ch) != NULL) {
-		can_int = can_other = false;
-		misc_spec = ch;
-		++fmt;
-	}
-
-	goto read_closing_curly;
-
-read_closing_curly:
-	ch = *fmt;
-	if (ch != '}') {
-		cry(c, "format", CHEAX_EVALUE, "expected `}'");
-		goto error;
-	}
-
-	if (cur_arg_idx >= arg_count) {
-		cry(c, "format", CHEAX_EINDEX, "too few arguments");
-		goto error;
-	}
-
-	/* this is primarily so we can catch any ENOMEM early if
-	 * field_width is too big, instead of letting the mem use slowly
-	 * creep up as we add more and more padding. */
-	size_t ufield_width = field_width;
-	if (ss.idx > SIZE_MAX - ufield_width || sostream_expand(&ss, ss.idx + ufield_width) < 0)
-		goto error;
-
-	/* Used to gauge if padding is necessary. With numbers, the
-	 * padding should be correct as it is, but there can still be
-	 * edge-cases (like the `:c' specifier to integers). */
-	int prev_idx = ss.idx;
-
-	struct chx_value *arg = arg_array[cur_arg_idx];
-	int ty = cheax_type_of(arg);
-
-	if (conv == CONV_NONE && ty == CHEAX_INT) {
-		if (!can_int) {
-			cry(c, "format", CHEAX_EVALUE, "invalid specifiers for integer");
-			goto error;
+		if (*fmt != '{' || *++fmt == '{') {
+			ostream_putchar(&ss.ostr, *fmt++);
+			continue;
 		}
 
-		int num = ((struct chx_int *)arg)->value;
-
-		if (misc_spec == 'c') {
-			if (num < 0 || num >= 256) {
-				cry(c, "format", CHEAX_EVALUE, "invalid character %d", num);
-				goto error;
-			}
-
-			ostream_putchar(&ss.ostr, num);
-		} else {
-			ostream_print_int(&ss.ostr, num, pad_char, field_width, misc_spec);
-		}
-	} else if (conv == CONV_NONE && ty == CHEAX_DOUBLE) {
-		if (!can_double) {
-			cry(c, "format", CHEAX_EVALUE, "invalid specifiers for double");
-			goto error;
+		struct fspec spec;
+		if (read_fspec(c, &fmt, &spec, &indexing, &cur_arg_idx) < 0
+		 || format_fspec(c, &ss, &spec, cur_arg_idx, arg_array, arg_count) < 0)
+		{
+			break;
 		}
 
-		double num = ((struct chx_double *)arg)->value;
-
-		if (misc_spec == '\0')
-			misc_spec = 'g';
-
-		char fmt_buf[32];
-		if (pad_char == ' ')
-			snprintf(fmt_buf, sizeof(fmt_buf), "%%*.*%c", misc_spec);
-		else
-			snprintf(fmt_buf, sizeof(fmt_buf), "%%%c*.*%c", pad_char, misc_spec);
-
-		ostream_printf(&ss.ostr, fmt_buf, field_width, precision, num);
-	} else {
-		if (!can_other) {
-			cry(c, "format", CHEAX_EVALUE, "invalid specifiers for given value");
-			goto error;
-		}
-
-		if (ty == CHEAX_STRING && conv != CONV_R) {
-			/* can't do ostream_printf() in case string
-			 * contains null character */
-			struct chx_string *str = (struct chx_string *)arg;
-			for (int i = 0; i < str->len; ++i)
-				ostream_putchar(&ss.ostr, str->value[i]);
-		} else {
-			ostream_show(c, &ss.ostr, arg);
-		}
+		if (indexing == AUTO_IDX)
+			++cur_arg_idx;
 	}
 
-	/* Add padding if necessary.
-	 * TODO this should probably count graphemes rather than bytes */
-	int written = ss.idx - prev_idx;
-	int padding = field_width - written;
-
-	for (int i = 0; i < padding; ++i)
-		ostream_putchar(&ss.ostr, pad_char);
-
-	if (indexing == AUTO_IDX)
-		++cur_arg_idx;
-
-	++fmt;
-	goto normal;
-
-single_end_curly:
-	ch = *fmt;
-	if (ch == '}') {
-		ostream_putchar(&ss.ostr, ch);
-		++fmt;
-		goto normal;
-	}
-
-	cry(c, "format", CHEAX_EVALUE, "encountered single `}' in format string");
-	goto error;
-
-finish:
-	res = &cheax_nstring(c, ss.buf, ss.idx)->base;
-
-error:
+done:
 	free(arg_array);
 	free(ss.buf);
 	return res;
