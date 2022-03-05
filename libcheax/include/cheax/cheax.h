@@ -21,7 +21,7 @@
  * The virtual machine is initialized with cheax_init(), and destroyed
  * with cheax_destroy().
  *
- * \sa cheax_init(), cheax_destroy(), cheax_load_extra_builtins(),
+ * \sa cheax_init(), cheax_destroy(), cheax_load_features(),
  *     cheax_load_prelude()
  */
 typedef struct cheax CHEAX;
@@ -343,17 +343,19 @@ struct chx_sym {
 	struct chx_value *protect;
 };
 
+typedef bool chx_ref;
+
 /*! \brief Increase reference count on cheax value, preventing it from
  *         gc deletion when cheax_eval() is called.
  * \sa cheax_unref()
  */
-CHX_API void cheax_ref(CHEAX *c, void *value);
+CHX_API chx_ref cheax_ref(CHEAX *c, void *restrict value);
 
 /*! \brief Decrease reference count on cheax value, potentially allowing
  *         it to be deleted by gc when cheax_eval() is called.
  * \sa cheax_ref()
  */
-CHX_API void cheax_unref(CHEAX *c, void *value);
+CHX_API void cheax_unref(CHEAX *c, void *restrict value, chx_ref ref);
 
 /*! \brief Gets the type code of the given expression.
  *
@@ -590,7 +592,7 @@ CHX_API int cheax_new_error_code(CHEAX *c, const char *name);
 /*! @} */
 
 /*! \brief Initializes a new cheax virtual machine instance.
- * \sa cheax_load_extra_builtins(), cheax_load_prelude(), cheax_destroy(),
+ * \sa cheax_load_features(), cheax_load_prelude(), cheax_destroy(),
  *     cheax_version()
  */
 CHX_API CHEAX *cheax_init(void);
@@ -603,7 +605,7 @@ CHX_API const char *cheax_version(void);
 /*! \brief Options to load extra built-in functions to the cheax
  *         environment.
  *
- * \sa cheax_load_extra_builtins()
+ * \sa cheax_load_features()
  */
 enum {
 	/*! \brief To load \c fopen and \c fclose.  */
@@ -625,8 +627,8 @@ enum {
 	                          | CHEAX_EXPOSE_STDOUT
 	                          | CHEAX_EXPOSE_STDERR,
 
-	/*! \brief Loads all extra built-ins */
-	CHEAX_ALL_BUILTINS        = 0xFFFF,
+	/*! \brief Loads all extra features. */
+	CHEAX_ALL_FEATURES        = 0xFFFF,
 };
 
 /*! \brief Loads extra built-in functions to the cheax environment.
@@ -634,7 +636,7 @@ enum {
  * \param c        Virtual machine instance.
  * \param builtins Which built-in functions to load.
  */
-CHX_API void cheax_load_extra_builtins(CHEAX *c, int builtins);
+CHX_API void cheax_load_features(CHEAX *c, int builtins);
 
 /*! \brief Loads the cheax standard library.
  *

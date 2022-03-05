@@ -26,32 +26,27 @@ enum {
 	FIN_BIT     = USABLE_BIT,
 	NO_GC_BIT   = USABLE_BIT << 1,
 	GC_MARKED   = USABLE_BIT << 2,
-	GC_UNMARKED = 0,
-	GC_BITS     = NO_GC_BIT | GC_MARKED,
+	GC_REFD     = USABLE_BIT << 3,
+	GC_BITS     = NO_GC_BIT | GC_MARKED | GC_REFD,
 };
 
-static inline int
-gc_bits(struct chx_value *val)
+static inline bool
+has_flag(int i, int f)
 {
-	return val->type & GC_BITS;
-}
-
-static inline int
-set_gc_bits(struct chx_value *val, int bits)
-{
-	return val->type = (val->type & ~GC_BITS) | (bits & GC_BITS);
+	return (i & f) == f;
 }
 
 static inline bool
 has_fin_bit(struct chx_value *val)
 {
-	return (val->type & FIN_BIT) == FIN_BIT;
+	return has_flag(val->type, FIN_BIT);
 }
 
-static inline int
+static inline struct chx_value *
 set_type(struct chx_value *value, int type)
 {
-	return value->type = (value->type & ~CHEAX_TYPE_MASK) | (type & CHEAX_TYPE_MASK);
+	value->type = (value->type & ~CHEAX_TYPE_MASK) | (type & CHEAX_TYPE_MASK);
+	return value;
 }
 
 enum {

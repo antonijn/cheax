@@ -14,8 +14,6 @@
  */
 
 #include <stdarg.h>
-#include <stdbool.h>
-#include <stdio.h>
 
 #include "unpack.h"
 #include "api.h"
@@ -165,18 +163,24 @@ store_value(CHEAX *c, struct chx_value *v, va_list ap)
 	return -1;
 }
 
+struct valueref {
+	struct chx_value *v;
+	chx_ref ref;
+};
+
 static int
-store_arg(CHEAX *c, int *argc, struct chx_value **argv_out, struct chx_value *v, va_list ap)
+store_arg(CHEAX *c, int *argc, struct valueref *argv_out, struct chx_value *v, va_list ap)
 {
-	cheax_ref(c, v);
-	*va_arg(ap, struct chx_value **) = argv_out[(*argc)++] = v;
+	int i = (*argc)++;
+	argv_out[i].v = *va_arg(ap, struct chx_value **) = v;
+	argv_out[i].ref = cheax_ref(c, v);
 	return 0;
 }
 
 static int
 unpack_arg(CHEAX *c,
 	   int *argc,
-	   struct chx_value **argv_out,
+	   struct valueref *argv_out,
 	   struct chx_list **args,
            const char *ufs_i,
            const char *ufs_f,
@@ -186,6 +190,9 @@ unpack_arg(CHEAX *c,
 	struct chx_list *lst = NULL, **nxt = &lst;
 	struct chx_value *v = NULL;
 	int res;
+
+	bool has_refd_list = false;
+	chx_ref lst_ref;
 
 	switch (mod) {
 	case '!':
@@ -209,23 +216,26 @@ unpack_arg(CHEAX *c,
 			return res;
 
 		lst = cheax_list(c, v, NULL);
-		cheax_ref(c, lst);
+		lst_ref = cheax_ref(c, lst);
+		has_refd_list = true;
 		nxt = &lst->next;
 	case '*':
 		while ((res = unpack_once(c, args, ufs_i, ufs_f, &v)) == 0) {
-			cheax_unref(c, lst);
-
 			*nxt = cheax_list(c, v, NULL);
 			nxt = &(*nxt)->next;
 
-			cheax_ref(c, lst);
+			if (!has_refd_list) {
+				lst_ref = cheax_ref(c, lst);
+				has_refd_list = true;
+			}
 		}
 
-		cheax_unref(c, lst);
+		if (has_refd_list)
+			cheax_unref(c, lst, lst_ref);
 
-		if (res == -CHEAX_EEVAL)
-			return -CHEAX_EEVAL;
-		return store_arg(c, argc, argv_out, &lst->base, ap);
+		return (res == -CHEAX_EEVAL)
+		     ? -CHEAX_EEVAL
+		     : store_arg(c, argc, argv_out, &lst->base, ap);
 
 	default:
 		res = unpack_once(c, args, ufs_i, ufs_f, &v);
@@ -239,7 +249,7 @@ int
 unpack(CHEAX *c, const char *fname, struct chx_list *args, const char *fmt, ...)
 {
 	int argc = 0, res = 0;
-	struct chx_value *argv[16];
+	struct valueref argv[16];
 
 	va_list ap;
 	va_start(ap, fmt);
@@ -277,7 +287,7 @@ unpack(CHEAX *c, const char *fname, struct chx_list *args, const char *fmt, ...)
 	va_end(ap);
 
 	for (int i = 0; i < argc; ++i)
-		cheax_unref(c, argv[i]);
+		cheax_unref(c, argv[i].v, argv[i].ref);
 
 	if (res == 0) {
 		if (args != NULL) {

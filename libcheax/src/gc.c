@@ -38,18 +38,6 @@ cheax_force_gc(CHEAX *c)
 }
 
 void
-cheax_ref(CHEAX *c, void *obj)
-{
-	/* empty */
-}
-
-void
-cheax_unref(CHEAX *c, void *obj)
-{
-	/* empty */
-}
-
-void
 gcol_init(CHEAX *c)
 {
 	/* empty */
@@ -109,20 +97,6 @@ get_fin_footer(void *obj)
 }
 
 void
-cheax_ref(CHEAX *c, void *value)
-{
-	if (value != NULL && gc_bits(value) != NO_GC_BIT)
-		++get_header(value)->ext_refs;
-}
-
-void
-cheax_unref(CHEAX *c, void *value)
-{
-	if (value != NULL && gc_bits(value) != NO_GC_BIT)
-		--get_header(value)->ext_refs;
-}
-
-void
 gcol_init(CHEAX *c)
 {
 	c->gc.objects.prev = c->gc.objects.next = &c->gc.objects;
@@ -133,7 +107,7 @@ gcol_init(CHEAX *c)
 
 /* sets GC_MARKED bit for all reachable objects */
 static void mark(CHEAX *c);
-/* locks GC and cheax_free()'s all GC_UNMARKED objects */
+/* locks GC and cheax_free()'s all non-GC_MARKED objects */
 static void sweep(CHEAX *c);
 
 void
@@ -169,7 +143,6 @@ cheax_alloc(CHEAX *c, size_t size, int type)
 	}
 
 	hdr->size = total_size;
-	hdr->ext_refs = 0;
 	hdr->obj.type = type & CHEAX_TYPE_MASK;
 
 	c->gc.all_mem += total_size;
@@ -241,10 +214,10 @@ mark_env(CHEAX *c, struct rb_node *root)
 static void
 mark_obj(CHEAX *c, struct chx_value *used)
 {
-	if (used == NULL || gc_bits(used) != GC_UNMARKED)
+	if (used == NULL || has_flag(used->type, NO_GC_BIT) || has_flag(used->type, GC_MARKED))
 		return;
 
-	set_gc_bits(used, GC_MARKED);
+	used->type |= GC_MARKED;
 
 	struct chx_list *list;
 	struct chx_func *func;
@@ -300,7 +273,8 @@ mark(CHEAX *c)
 	struct gc_header_node *n;
 	for (n = c->gc.objects.next; n != &c->gc.objects; n = n->next) {
 		struct gc_header *hdr = (struct gc_header *)n;
-		if (hdr->ext_refs > 0)
+		struct chx_value *obj = &hdr->obj;
+		if (has_flag(obj->type, GC_REFD))
 			mark_obj(c, &hdr->obj);
 	}
 
@@ -320,10 +294,10 @@ sweep(CHEAX *c)
 		nxt = n->next;
 		struct gc_header *hdr = (struct gc_header *)n;
 		struct chx_value *obj = &hdr->obj;
-		if (gc_bits(obj) == GC_UNMARKED)
+		if (!has_flag(obj->type, GC_MARKED))
 			cheax_free(c, obj);
 		else
-			set_gc_bits(obj, GC_UNMARKED);
+			obj->type &= ~GC_MARKED;
 	}
 
 	c->gc.lock = was_locked;
@@ -345,3 +319,24 @@ cheax_force_gc(CHEAX *c)
 }
 
 #endif
+
+chx_ref
+cheax_ref(CHEAX *c, void *restrict value)
+{
+	struct chx_value *obj = value;
+	if (obj != NULL) {
+		chx_ref res = has_flag(obj->type, GC_REFD);
+		if (!has_flag(obj->type, NO_GC_BIT))
+			obj->type |= GC_REFD;
+		return res;
+	}
+	return false;
+}
+
+void
+cheax_unref(CHEAX *c, void *restrict value, chx_ref ref)
+{
+	struct chx_value *obj = value;
+	if (obj != NULL && !has_flag(obj->type, NO_GC_BIT) && !ref)
+		obj->type &= ~GC_REFD;
+}

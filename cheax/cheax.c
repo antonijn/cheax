@@ -133,7 +133,7 @@ main(int argc, char **argv)
 	c = cheax_init();
 	atexit(cleanup);
 
-	cheax_load_extra_builtins(c, CHEAX_ALL_BUILTINS);
+	cheax_load_features(c, CHEAX_ALL_FEATURES);
 
 	if (use_prelude && cheax_load_prelude(c)) {
 		cheax_perror(c, argv[0]);

@@ -213,9 +213,11 @@ var_set(CHEAX *c, struct chx_sym *sym, struct chx_value *value)
 void
 cheax_var(CHEAX *c, const char *id, struct chx_value *value, int flags)
 {
-	chx_getter get = ((flags & CHEAX_WRITEONLY) == 0) ? var_get : NULL;
-	chx_setter set = ((flags & CHEAX_READONLY)  == 0) ? var_set : NULL;
-	struct chx_sym *sym = cheax_defsym(c, id, get, set, NULL, NULL);
+	struct chx_sym *sym;
+	sym = cheax_defsym(c, id,
+	                   has_flag(flags, CHEAX_WRITEONLY) ? NULL : var_get,
+	                   has_flag(flags, CHEAX_READONLY)  ? NULL : var_set,
+	                   NULL, NULL);
 	if (sym != NULL)
 		sym->protect = value;
 }
@@ -493,10 +495,7 @@ cheax_new_error_code(CHEAX *c, const char *name)
 
 	c->user_error_names.array[code - CHEAX_EUSER0] = name;
 
-	struct chx_value *errcode = &cheax_int(c, code)->base;
-	set_type(errcode, CHEAX_ERRORCODE);
-	cheax_var(c, name, errcode, CHEAX_EREADONLY);
-
+	cheax_var(c, name, set_type(&cheax_int(c, code)->base, CHEAX_ERRORCODE), CHEAX_EREADONLY);
 	return code;
 }
 static void
@@ -509,9 +508,9 @@ declare_builtin_errors(CHEAX *c)
 		const char *name = bltn_error_names[i].name;
 		int code = bltn_error_names[i].code;
 
-		struct chx_value *errcode = &cheax_int(c, code)->base;
-		set_type(errcode, CHEAX_ERRORCODE);
-		cheax_var(c, name, errcode, CHEAX_READONLY);
+		cheax_var(c, name,
+		          set_type(&cheax_int(c, code)->base, CHEAX_ERRORCODE),
+		          CHEAX_READONLY);
 	}
 }
 
@@ -523,11 +522,10 @@ match_colon(CHEAX *c,
 {
 	if (pan->next == NULL)
 		return cheax_match(c, pan->value, &match->base, flags);
-	if (match == NULL)
-		return false;
-	if (!cheax_match(c, pan->value, match->value, flags))
-		return false;
-	return match_colon(c, pan->next, match->next, flags);
+
+	return match != NULL
+	    && cheax_match(c, pan->value, match->value, flags)
+	    && match_colon(c, pan->next, match->next, flags);
 }
 
 static bool
@@ -555,34 +553,23 @@ cheax_match(CHEAX *c, struct chx_value *pan, struct chx_value *match, int flags)
 {
 	int pan_ty = cheax_type_of(pan);
 
-	if (pan_ty == CHEAX_NIL)
-		return match == NULL;
-
 	if (pan_ty == CHEAX_ID) {
 		cheax_var(c, ((struct chx_id *)pan)->id, match, flags);
 		return true;
 	}
 
-	if (match == NULL)
+	if (pan_ty != cheax_type_of(match))
 		return false;
 
-	struct chx_list *pan_list;
-
 	switch (pan_ty) {
+	case CHEAX_LIST:
+		return match_list(c, (struct chx_list *)pan, (struct chx_list *)match, flags);
+	case CHEAX_NIL:
 	case CHEAX_INT:
 	case CHEAX_DOUBLE:
 	case CHEAX_BOOL:
 	case CHEAX_STRING:
 		return cheax_eq(c, pan, match);
-
-	case CHEAX_LIST:
-		pan_list = (struct chx_list *)pan;
-		if (cheax_type_of(match) != CHEAX_LIST)
-			return false;
-		struct chx_list *mlist = (struct chx_list *)match;
-
-		return match_list(c, pan_list, mlist, flags);
-
 	default:
 		return false;
 	}
@@ -594,9 +581,7 @@ cheax_eq(CHEAX *c, struct chx_value *l, struct chx_value *r)
 	if (cheax_type_of(l) != cheax_type_of(r))
 		return false;
 
-	int ty = cheax_resolve_type(c, cheax_type_of(l));
-
-	switch (ty) {
+	switch (cheax_resolve_type(c, cheax_type_of(l))) {
 	case CHEAX_NIL:
 		return true;
 	case CHEAX_ID:
@@ -718,8 +703,7 @@ cheax_destroy(CHEAX *c)
 const char *
 cheax_version(void)
 {
-	static const char ver[] = VERSION_STRING;
-	return ver;
+	return VERSION_STRING;
 }
 
 int
@@ -828,24 +812,34 @@ cheax_shallow_copy(CHEAX *c, struct chx_value *v)
 	int was_type = cpy->type;
 	memcpy(cpy, v, size);
 	cpy->type = was_type;
-
 	return cpy;
+}
+
+static bool
+can_cast(CHEAX *c, struct chx_value *v, int type)
+{
+	if (!cheax_is_valid_type(c, type))
+		return false;
+
+	int vtype = cheax_type_of(v);
+	return vtype == type
+	    || cheax_get_base_type(c, vtype) == type
+	    || (vtype == CHEAX_INT && type == CHEAX_DOUBLE);
 }
 
 struct chx_value *
 cheax_cast(CHEAX *c, struct chx_value *v, int type)
 {
-	/* TODO: improve critria */
-	if (cheax_resolve_type(c, cheax_type_of(v)) != cheax_resolve_type(c, type)) {
+	if (!can_cast(c, v, type)) {
 		cry(c, "cast", CHEAX_ETYPE, "invalid cast");
 		return NULL;
 	}
 
-	struct chx_value *res = cheax_shallow_copy(c, v);
-	if (res != NULL)
-		set_type(res, cheax_type_of(v));
+	if (cheax_type_of(v) == CHEAX_INT && type == CHEAX_DOUBLE)
+		return &cheax_double(c, (double)((struct chx_int *)v)->value)->base;
 
-	return res;
+	struct chx_value *res = cheax_shallow_copy(c, v);
+	return (res != NULL) ? set_type(res, type) : res;
 }
 
 int
@@ -885,13 +879,9 @@ cheax_new_type(CHEAX *c, const char *name, int base_type)
 	alias.casts = NULL;
 	c->typestore.array[ts_idx] = alias;
 
-	int typecode = ts_idx + CHEAX_TYPESTORE_BIAS;
-
-	struct chx_value *value = &cheax_int(c, typecode)->base;
-	set_type(value, CHEAX_TYPECODE);
-	cheax_var(c, name, value, CHEAX_READONLY);
-
-	return typecode;
+	int tycode = ts_idx + CHEAX_TYPESTORE_BIAS;
+	cheax_var(c, name, set_type(&cheax_int(c, tycode)->base, CHEAX_TYPECODE), CHEAX_READONLY);
+	return tycode;
 }
 int
 cheax_find_type(CHEAX *c, const char *name)
@@ -1000,9 +990,10 @@ sync_int_set(CHEAX *c, struct chx_sym *sym, struct chx_value *value)
 void
 cheax_sync_int(CHEAX *c, const char *name, int *var, int flags)
 {
-	chx_getter get = ((flags & CHEAX_WRITEONLY) == 0) ? sync_int_get : NULL;
-	chx_setter set = ((flags & CHEAX_READONLY)  == 0) ? sync_int_set : NULL;
-	cheax_defsym(c, name, get, set, NULL, var);
+	cheax_defsym(c, name,
+	             has_flag(flags, CHEAX_WRITEONLY) ? NULL : sync_int_get,
+	             has_flag(flags, CHEAX_READONLY)  ? NULL : sync_int_set,
+	             NULL, var);
 }
 
 static struct chx_value *
@@ -1023,9 +1014,10 @@ sync_float_set(CHEAX *c, struct chx_sym *sym, struct chx_value *value)
 void
 cheax_sync_float(CHEAX *c, const char *name, float *var, int flags)
 {
-	chx_getter get = ((flags & CHEAX_WRITEONLY) == 0) ? sync_float_get : NULL;
-	chx_setter set = ((flags & CHEAX_READONLY)  == 0) ? sync_float_set : NULL;
-	cheax_defsym(c, name, get, set, NULL, var);
+	cheax_defsym(c, name,
+	             has_flag(flags, CHEAX_WRITEONLY) ? NULL : sync_float_get,
+	             has_flag(flags, CHEAX_READONLY)  ? NULL : sync_float_set,
+	             NULL, var);
 }
 
 static struct chx_value *
@@ -1043,9 +1035,10 @@ sync_double_set(CHEAX *c, struct chx_sym *sym, struct chx_value *value)
 void
 cheax_sync_double(CHEAX *c, const char *name, double *var, int flags)
 {
-	chx_getter get = ((flags & CHEAX_WRITEONLY) == 0) ? sync_double_get : NULL;
-	chx_setter set = ((flags & CHEAX_READONLY)  == 0) ? sync_double_set : NULL;
-	cheax_defsym(c, name, get, set, NULL, var);
+	cheax_defsym(c, name,
+	             has_flag(flags, CHEAX_WRITEONLY) ? NULL : sync_double_get,
+	             has_flag(flags, CHEAX_READONLY)  ? NULL : sync_double_set,
+	             NULL, var);
 }
 
 int

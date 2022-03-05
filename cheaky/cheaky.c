@@ -113,7 +113,7 @@ main(void)
 {
 	CHEAX *c = cheax_init();
 
-	cheax_load_extra_builtins(c, CHEAX_ALL_BUILTINS);
+	cheax_load_features(c, CHEAX_ALL_FEATURES);
 
 	cheax_defmacro(c, "show-w", show_w, NULL);
 	cheax_defmacro(c, "show-c", show_c, NULL);

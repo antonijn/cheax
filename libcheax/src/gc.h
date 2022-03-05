@@ -36,13 +36,9 @@ struct gc_header_node {
 
 struct gc_header {
 	struct gc_header_node node;
-
 	size_t size;          /* Total malloc()-ed size */
-	int ext_refs;         /* Number of cheax_ref() references */
-
 	struct chx_value obj; /* Only for locating the start of the user object */
 };
-
 
 struct gc_info {
 	struct gc_header_node objects;

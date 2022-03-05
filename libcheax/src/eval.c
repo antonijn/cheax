@@ -19,6 +19,7 @@
 
 #include "api.h"
 #include "gc.h"
+#include "unpack.h"
 
 void
 cheax_exec(CHEAX *c, FILE *f)
@@ -44,43 +45,16 @@ pad:
 	return;
 }
 
-static struct chx_list *
-eval_args(CHEAX *c, struct chx_list *input)
-{
-	struct chx_list *args = NULL;
-	struct chx_list **args_last = &args;
-	for (struct chx_list *arg = input; arg != NULL; arg = arg->next) {
-		struct chx_value *arge = cheax_eval(c, arg->value);
-
-		/* won't set if args is NULL, so this ensures
-		 * the GC won't delete our argument list */
-		cheax_unref(c, args);
-
-		cheax_ft(c, pad);
-
-		*args_last = cheax_list(c, arge, NULL);
-		args_last = &(*args_last)->next;
-
-		cheax_ref(c, args);
-	}
-
-	cheax_unref(c, args);
-	return args;
-
-pad:
-	return NULL;
-}
-
 static struct chx_value *
 eval_sexpr(CHEAX *c, struct chx_list *input)
 {
 	struct chx_value *head = cheax_eval(c, input->value);
-	cheax_ref(c, head);
+	chx_ref head_ref = cheax_ref(c, head);
 	cheax_ft(c, pad);
 
 	struct chx_list *args = input->next;
 
-	struct chx_value *res = NULL;
+	struct chx_value *res = NULL, *cast_arg;
 	struct chx_ext_func *extf;
 	struct chx_func *fn;
 	struct chx_env *env;
@@ -101,21 +75,20 @@ eval_sexpr(CHEAX *c, struct chx_list *input)
 		fn = (struct chx_func *)head;
 		bool call_ok = false;
 
-		if (ty == CHEAX_FUNC) {
-			args = eval_args(c, args);
-			cheax_ft(c, args_pad);
-		}
+		struct chx_list *old_args = args;
+		if (ty == CHEAX_FUNC && unpack(c, "eval", old_args, ".*", &args) < 0)
+			break;
 
-		cheax_ref(c, args);
+		chx_ref args_ref = cheax_ref(c, args);
 
 		struct chx_env *prev_env = c->env;
-		cheax_ref(c, prev_env);
+		chx_ref prev_env_ref = cheax_ref(c, prev_env);
 		c->env = fn->lexenv;
 		cheax_push_env(c);
 
 		bool arg_match_ok = cheax_match(c, fn->args, &args->base, CHEAX_READONLY);
 
-		cheax_unref(c, args);
+		cheax_unref(c, args, args_ref);
 
 		if (!arg_match_ok) {
 			cry(c, "eval", CHEAX_EMATCH, "invalid (number of) arguments");
@@ -131,35 +104,15 @@ eval_sexpr(CHEAX *c, struct chx_list *input)
 		call_ok = true;
 		res = retval;
 fn_pad:
-		cheax_unref(c, prev_env);
+		cheax_unref(c, prev_env, prev_env_ref);
 		c->env = prev_env;
 		if (call_ok && ty == CHEAX_MACRO)
 			res = cheax_eval(c, res);
-args_pad:
 		break;
 
 	case CHEAX_TYPECODE:
-		; int type = ((struct chx_int *)head)->value;
-
-		if (!cheax_is_valid_type(c, type)) {
-			cry(c, "eval", CHEAX_ETYPE, "invalid typecode %d", type);
-			break;
-		}
-
-		struct chx_list *cast_args = input->next;
-		if (cast_args == NULL || cast_args->next != NULL) {
-			cry(c, "eval", CHEAX_EMATCH, "expected single argument to cast");
-			break;
-		}
-
-		struct chx_value *cast_arg = cast_args->value;
-
-		if (cheax_get_base_type(c, type) != cheax_type_of(cast_arg)) {
-			cry(c, "eval", CHEAX_ETYPE, "unable to instantiate");
-			break;
-		}
-
-		res = cheax_cast(c, cast_arg, type);
+		if (0 == unpack(c, "eval", args, ".", &cast_arg))
+			res = cheax_cast(c, cast_arg, ((struct chx_int *)head)->value);
 		break;
 
 	case CHEAX_ENV:
@@ -183,7 +136,7 @@ env_pad:
 	}
 
 pad:
-	cheax_unref(c, head);
+	cheax_unref(c, head, head_ref);
 	return res;
 }
 
@@ -199,9 +152,9 @@ eval_bkquoted(CHEAX *c, struct chx_value *quoted, int nest)
 	case CHEAX_LIST:
 		lst_quoted = (struct chx_list *)quoted;
 		struct chx_value *car = eval_bkquoted(c, lst_quoted->value, nest);
-		cheax_ref(c, car);
+		chx_ref car_ref = cheax_ref(c, car);
 		struct chx_value *cdr = eval_bkquoted(c, &lst_quoted->next->base, nest);
-		cheax_unref(c, car);
+		cheax_unref(c, car, car_ref);
 		cheax_ft(c, pad);
 		res = &cheax_list(c, car, (struct chx_list *)cdr)->base;
 		break;
@@ -239,7 +192,7 @@ struct chx_value *
 cheax_eval(CHEAX *c, struct chx_value *input)
 {
 	struct chx_value *res = NULL;
-	cheax_ref(c, input);
+	chx_ref input_ref = cheax_ref(c, input);
 
 	switch (cheax_type_of(input)) {
 	case CHEAX_ID:
@@ -274,10 +227,10 @@ cheax_eval(CHEAX *c, struct chx_value *input)
 		break;
 	}
 
-	cheax_ref(c, res);
+	chx_ref res_ref = cheax_ref(c, res);
 	cheax_gc(c);
-	cheax_unref(c, res);
-	cheax_unref(c, input);
+	cheax_unref(c, res, res_ref);
+	cheax_unref(c, input, input_ref);
 	return res;
 }
 
