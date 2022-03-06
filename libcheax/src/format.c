@@ -111,6 +111,8 @@ read_int(CHEAX *c, const char *desc, const char **fmt_in, int *out)
 
 /* format (or field) specifier */
 struct fspec {
+	int index;       /* field index (default -1) */
+
 	/* conversion specifier */
 	enum {
 		CONV_NONE,
@@ -119,56 +121,28 @@ struct fspec {
 	} conv;
 
 	char pad_char;   /* character to pad with: ' ' (default) or '0' */
-	char misc_spec;  /* xXobcd for int, eEfFgG for double (default 0) */
 	int field_width; /* width (number of bytes) to pad to (default 0) */
 	int precision;   /* floating point precision spec (default -1) */
-
-	/* whether specifier can apply to int field, double field or any
-	 * other type of field, respectively */
-	bool can_int, can_double, can_other;
-};
-
-/* indexing mode */
-enum {
-	UNSPECIFIED,
-	AUTO_IDX,    /* for {} indices */
-	MAN_IDX,     /* for {idx} indices */
+	char misc_spec;  /* xXobcd for int, eEfFgG for double (default 0) */
 };
 
 static int
-read_fspec(CHEAX *c, const char **fmt_in, struct fspec *sp, int *indexing, int *cur_arg_idx)
+read_fspec(CHEAX *c, const char **fmt_in, struct fspec *sp)
 {
+	sp->index = -1;
 	sp->conv = CONV_NONE;
 	sp->pad_char = ' ';
-	sp->misc_spec = '\0';
 	sp->field_width = 0;
 	sp->precision = -1;
-	sp->can_int = sp->can_double = sp->can_other = true;
+	sp->misc_spec = '\0';
 
 	const char *fmt = *fmt_in;
 
-	if (isdigit(*fmt)) {
-		if (*indexing == AUTO_IDX) {
-			cry(c, "format", CHEAX_EVALUE,
-			    "cannot switch from automatic indexing to manual indexing");
-			return -1;
-		}
-
-		*indexing = MAN_IDX;
-
-		if (read_int(c, "index", &fmt, cur_arg_idx) < 0)
-			return -1;
-	} else if (*indexing == MAN_IDX) {
-		cry(c, "format", CHEAX_EVALUE,
-		    "expected index (cannot switch from manual indexing to automatic indexing)");
+	if (isdigit(*fmt) && read_int(c, "index", &fmt, &sp->index) < 0)
 		return -1;
-	} else {
-		*indexing = AUTO_IDX;
-	}
 
 	if (*fmt == '!') {
-		++fmt;
-		if (*fmt == 's' || *fmt == 'r') {
+		if (*++fmt == 's' || *fmt == 'r') {
 			sp->conv = (*fmt++ == 's') ? CONV_S : CONV_R;
 		} else {
 			cry(c, "format", CHEAX_EVALUE, "expected `s' or `r' after `!'");
@@ -177,15 +151,13 @@ read_fspec(CHEAX *c, const char **fmt_in, struct fspec *sp, int *indexing, int *
 	}
 
 	if (*fmt == ':') {
-		++fmt;
-		if (*fmt == ' ' || *fmt == '0')
+		if (*++fmt == ' ' || *fmt == '0')
 			sp->pad_char = *fmt++;
 
 		if (isdigit(*fmt) && read_int(c, "field width", &fmt, &sp->field_width) < 0)
 			return -1;
 
 		if (*fmt == '.') {
-			sp->can_int = sp->can_other = false;
 			if (!isdigit(*++fmt)) {
 				cry(c, "format", CHEAX_EVALUE, "expected precision specifier");
 				return -1;
@@ -195,13 +167,8 @@ read_fspec(CHEAX *c, const char **fmt_in, struct fspec *sp, int *indexing, int *
 				return -1;
 		}
 
-		if (strchr("xXobcd", *fmt) != NULL) {
-			sp->can_double = sp->can_other = false;
+		if (*fmt != '\0' && strchr("xXobcdeEfFgG", *fmt) != NULL)
 			sp->misc_spec = *fmt++;
-		} else if (strchr("eEfFgG", *fmt) != NULL) {
-			sp->can_int = sp->can_other = false;
-			sp->misc_spec = *fmt++;
-		}
 	}
 
 	if (*fmt++ != '}') {
@@ -214,16 +181,18 @@ read_fspec(CHEAX *c, const char **fmt_in, struct fspec *sp, int *indexing, int *
 }
 
 static int
-format_fspec(CHEAX *c,
-             struct sostream *ss,
-             struct fspec *sp,
-             int cur_arg_idx,
-             struct chx_value **arg_array,
-             size_t arg_count)
+format_fspec(CHEAX *c, struct sostream *ss, struct fspec *sp, struct chx_value *arg)
 {
-	if (cur_arg_idx >= arg_count) {
-		cry(c, "format", CHEAX_EINDEX, "too few arguments");
-		return -1;
+	bool can_int = true, can_double = true, can_other = true;
+
+	if (sp->precision != -1)
+		can_int = can_other = false;
+
+	if (sp->misc_spec != '\0') {
+		if (strchr("xXobcd", sp->misc_spec) != NULL)
+			can_double = can_other = false;
+		else if (strchr("eEfFgG", sp->misc_spec) != NULL)
+			can_int = can_other = false;
 	}
 
 	/* this is primarily so we can catch any ENOMEM early if
@@ -238,11 +207,10 @@ format_fspec(CHEAX *c,
 	 * edge-cases (like the `:c' specifier to integers). */
 	int prev_idx = ss->idx;
 
-	struct chx_value *arg = arg_array[cur_arg_idx];
 	int ty = cheax_type_of(arg);
 
 	if (sp->conv == CONV_NONE && ty == CHEAX_INT) {
-		if (!sp->can_int) {
+		if (!can_int) {
 			cry(c, "format", CHEAX_EVALUE, "invalid specifiers for integer");
 			return -1;
 		}
@@ -260,25 +228,23 @@ format_fspec(CHEAX *c,
 			ostream_print_int(&ss->ostr, num, sp->pad_char, sp->field_width, sp->misc_spec);
 		}
 	} else if (sp->conv == CONV_NONE && ty == CHEAX_DOUBLE) {
-		if (!sp->can_double) {
+		if (!can_double) {
 			cry(c, "format", CHEAX_EVALUE, "invalid specifiers for double");
 			return -1;
 		}
 
 		double num = ((struct chx_double *)arg)->value;
-
-		if (sp->misc_spec == '\0')
-			sp->misc_spec = 'g';
+		char ms = (sp->misc_spec != '\0') ? sp->misc_spec : 'g';
 
 		char fmt_buf[32];
 		if (sp->pad_char == ' ')
-			snprintf(fmt_buf, sizeof(fmt_buf), "%%*.*%c", sp->misc_spec);
+			snprintf(fmt_buf, sizeof(fmt_buf), "%%*.*%c", ms);
 		else
-			snprintf(fmt_buf, sizeof(fmt_buf), "%%%c*.*%c", sp->pad_char, sp->misc_spec);
+			snprintf(fmt_buf, sizeof(fmt_buf), "%%%c*.*%c", sp->pad_char, ms);
 
 		ostream_printf(&ss->ostr, fmt_buf, sp->field_width, sp->precision, num);
 	} else {
-		if (!sp->can_other) {
+		if (!can_other) {
 			cry(c, "format", CHEAX_EVALUE, "invalid specifiers for given value");
 			return -1;
 		}
@@ -313,20 +279,20 @@ cheax_format(CHEAX *c, const char *fmt, struct chx_list *args)
 		return NULL;
 	}
 
+	struct chx_value **arg_array;
+	size_t arg_count;
+	if (0 != cheax_list_to_array(c, args, &arg_array, &arg_count))
+		return NULL;
+
 	struct sostream ss;
 	sostream_init(&ss, c);
 
 	ss.cap = strlen(fmt) + 1; /* conservative size estimate */
 	ss.buf = malloc(ss.cap);
 
-	int indexing = UNSPECIFIED;
-	int cur_arg_idx = 0;
+	enum { UNSPECIFIED, AUTO_IDX, MAN_IDX } indexing = UNSPECIFIED;
+	size_t auto_idx = 0;
 	struct chx_value *res = NULL;
-
-	struct chx_value **arg_array;
-	size_t arg_count;
-	if (0 != cheax_list_to_array(c, args, &arg_array, &arg_count))
-		goto done;
 
 	for (;;) {
 		if (*fmt == '\0') {
@@ -340,22 +306,41 @@ cheax_format(CHEAX *c, const char *fmt, struct chx_list *args)
 		}
 
 		if (*fmt != '{' || *++fmt == '{') {
+			/* most likely condition: 'regular' character or
+			 * double "{{" */
 			ostream_putchar(&ss.ostr, *fmt++);
 			continue;
 		}
 
+		/* we're dealing with a field specifier */
+
 		struct fspec spec;
-		if (read_fspec(c, &fmt, &spec, &indexing, &cur_arg_idx) < 0
-		 || format_fspec(c, &ss, &spec, cur_arg_idx, arg_array, arg_count) < 0)
-		{
+		if (read_fspec(c, &fmt, &spec) < 0)
+			break;
+
+		if (indexing == AUTO_IDX && spec.index != -1) {
+			cry(c, "format", CHEAX_EVALUE, "cannot switch from automatic indexing to manual indexing");
 			break;
 		}
 
-		if (indexing == AUTO_IDX)
-			++cur_arg_idx;
+		if (indexing == MAN_IDX && spec.index == -1) {
+			cry(c, "format", CHEAX_EVALUE, "expected index (cannot switch from manual indexing to automatic indexing)");
+			break;
+		}
+
+		if (indexing == UNSPECIFIED)
+			indexing = (spec.index == -1) ? AUTO_IDX : MAN_IDX;
+
+		size_t idx = (indexing == AUTO_IDX) ? auto_idx++ : (size_t)spec.index;
+		if (idx >= arg_count) {
+			cry(c, "format", CHEAX_EINDEX, "too few arguments");
+			break;
+		}
+
+		if (format_fspec(c, &ss, &spec, arg_array[idx]) < 0)
+			break;
 	}
 
-done:
 	free(arg_array);
 	free(ss.buf);
 	return res;
