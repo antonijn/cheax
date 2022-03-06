@@ -52,7 +52,7 @@ int main(void)
 
 	/* Loads some "unsafe" functions, i.e. setting the maximum stack depth,
 	   IO functions etc. */
-	cheax_load_extra_builtins(c, CHEAX_ALL_BUILTINS);
+	cheax_load_feature(c, "all");
 
 	/* Load the standard library */
 	if (cheax_load_prelude(c)) {
