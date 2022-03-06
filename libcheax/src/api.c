@@ -515,10 +515,7 @@ declare_builtin_errors(CHEAX *c)
 }
 
 static bool
-match_colon(CHEAX *c,
-            struct chx_list *pan,
-            struct chx_list *match,
-            int flags)
+match_colon(CHEAX *c, struct chx_list *pan, struct chx_list *match, int flags)
 {
 	if (pan->next == NULL)
 		return cheax_match(c, pan->value, &match->base, flags);

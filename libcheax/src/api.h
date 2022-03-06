@@ -49,13 +49,6 @@ set_type(struct chx_value *value, int type)
 	return value;
 }
 
-enum {
-	CTYPE_NONE, /* only for non-synchronized variables */
-	CTYPE_INT,
-	CTYPE_FLOAT,
-	CTYPE_DOUBLE,
-};
-
 struct full_sym {
 	const char *name;
 	struct chx_sym sym;
@@ -100,8 +93,7 @@ struct cheax {
 	int fhandle_type;
 
 	struct {
-		int state;
-		int code;
+		int state, code;
 		struct chx_string *msg;
 	} error;
 

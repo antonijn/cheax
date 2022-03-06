@@ -92,24 +92,6 @@ ostream_print_int(struct ostream *ostr, int num, char pad_char, int field_width,
 	ostream_printf(ostr, "%s", buf + i);
 }
 
-struct fspec {
-	enum {
-		CONV_NONE,
-		CONV_S,   /* for {!s} */
-		CONV_R,   /* for {!r} */
-	} conv;                              /* set per specifier */
-
-	char pad_char, misc_spec;            /* ditto */
-	int field_width, precision;          /* --"-- */
-	bool can_int, can_double, can_other; /* --"-- */
-};
-
-enum {
-	UNSPECIFIED,
-	AUTO_IDX,    /* for {} indices */
-	MAN_IDX,     /* for {idx} indices */
-};
-
 static int
 read_int(CHEAX *c, const char *desc, const char **fmt_in, int *out)
 {
@@ -127,14 +109,40 @@ read_int(CHEAX *c, const char *desc, const char **fmt_in, int *out)
 	return 0;
 }
 
+/* format (or field) specifier */
+struct fspec {
+	/* conversion specifier */
+	enum {
+		CONV_NONE,
+		CONV_S,  /* for {!s} */
+		CONV_R,  /* for {!r} */
+	} conv;
+
+	char pad_char;   /* character to pad with: ' ' (default) or '0' */
+	char misc_spec;  /* xXobcd for int, eEfFgG for double (default 0) */
+	int field_width; /* width (number of bytes) to pad to (default 0) */
+	int precision;   /* floating point precision spec (default -1) */
+
+	/* whether specifier can apply to int field, double field or any
+	 * other type of field, respectively */
+	bool can_int, can_double, can_other;
+};
+
+/* indexing mode */
+enum {
+	UNSPECIFIED,
+	AUTO_IDX,    /* for {} indices */
+	MAN_IDX,     /* for {idx} indices */
+};
+
 static int
 read_fspec(CHEAX *c, const char **fmt_in, struct fspec *sp, int *indexing, int *cur_arg_idx)
 {
 	sp->conv = CONV_NONE;
 	sp->pad_char = ' ';
+	sp->misc_spec = '\0';
 	sp->field_width = 0;
 	sp->precision = -1;
-	sp->misc_spec = '\0';
 	sp->can_int = sp->can_double = sp->can_other = true;
 
 	const char *fmt = *fmt_in;
