@@ -14,6 +14,7 @@
  */
 
 #include <stdarg.h>
+#include <stdlib.h>
 
 #include "unpack.h"
 #include "api.h"
@@ -61,25 +62,19 @@ static const struct unpack_field unpack_fields[] = {
 	{ 'x', CHEAX_ERRORCODE, true  },
 };
 
+/* for use in bsearch() */
+static int
+ufcompar(const char *f, const struct unpack_field *uf)
+{
+	return (*f > uf->f) - (*f < uf->f);
+}
+
 static const struct unpack_field *
 find_unpack_field(char f)
 {
-	int lo = 0;
-	int hi = sizeof(unpack_fields)
-	       / sizeof(unpack_fields[0]);
-
-	while (lo <= hi) {
-		int pivot = (lo + hi) / 2;
-		char uf = unpack_fields[pivot].f;
-		if (uf == f)
-			return &unpack_fields[pivot];
-		else if (uf < f)
-			lo = pivot + 1;
-		else
-			hi = pivot - 1;
-	}
-
-	return NULL;
+	return bsearch(&f, unpack_fields,
+	               sizeof(unpack_fields) / sizeof(unpack_fields[0]), sizeof(unpack_fields[0]),
+	               (int (*)(const void *, const void *))ufcompar);
 }
 
 static int

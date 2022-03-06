@@ -410,17 +410,13 @@ errname(CHEAX *c, int code)
 
 	/* builtin error code, binary search */
 
-	int lo = 0;
-	int hi = sizeof(bltn_error_names)
-	       / sizeof(bltn_error_names[0]);
-
+	int lo = 0, hi = sizeof(bltn_error_names) / sizeof(bltn_error_names[0]);
 	while (lo <= hi) {
 		int pivot = (lo + hi) / 2;
-		const char *pivot_name = bltn_error_names[pivot].name;
 		int pivot_code = bltn_error_names[pivot].code;
 		if (pivot_code == code)
-			return pivot_name;
-		else if (pivot_code < code)
+			return bltn_error_names[pivot].name;
+		if (pivot_code < code)
 			lo = pivot + 1;
 		else
 			hi = pivot - 1;

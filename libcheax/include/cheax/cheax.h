@@ -602,41 +602,30 @@ CHX_API CHEAX *cheax_init(void);
  */
 CHX_API const char *cheax_version(void);
 
-/*! \brief Options to load extra built-in functions to the cheax
- *         environment.
+/*! \brief Loads extra functions or language features into the cheax
+ *         environment, including 'unsafe' ones.
  *
- * \sa cheax_load_features()
- */
-enum {
-	/*! \brief To load \c fopen and \c fclose.  */
-	CHEAX_FILE_IO             = 0x0001,
-	/*! \brief To load \c set-max-stack-depth. */
-	CHEAX_SET_MAX_STACK_DEPTH = 0x0002,
-	/*! \brief To load \c gc. */
-	CHEAX_GC_BUILTIN          = 0x0004,
-	/*! \brief To load \c exit. */
-	CHEAX_EXIT_BUILTIN        = 0x0008,
-	/*! \brief To expose \c stdin. */
-	CHEAX_EXPOSE_STDIN        = 0x0010,
-	/*! \brief To expose \c stdout. */
-	CHEAX_EXPOSE_STDOUT       = 0x0020,
-	/*! \brief To expose \c stderr. */
-	CHEAX_EXPOSE_STDERR       = 0x0040,
-	/*! \brief To expose \c stdin, \c stdout and \c stderr. */
-	CHEAX_STDIO               = CHEAX_EXPOSE_STDIN
-	                          | CHEAX_EXPOSE_STDOUT
-	                          | CHEAX_EXPOSE_STDERR,
-
-	/*! \brief Loads all extra features. */
-	CHEAX_ALL_FEATURES        = 0xFFFF,
-};
-
-/*! \brief Loads extra built-in functions to the cheax environment.
+ * Supported values for \a feat are:
+ * \li \c "file-io" to load \c fopen and \c fclose built-ins;
+ * \li <tt>"set-max-stack-depth"</tt> to load the <tt>set-max-stack-depth</tt> built-in;
+ * \li \c "gc" to load the \c gc built-in function;
+ * \li \c "exit" to load the \c exit function;
+ * \li \c "stdin" to expose the \c stdin variable;
+ * \li \c "stdout" to expose the \c stdout variable;
+ * \li \c "stderr" to expose the \c stderr variable;
+ * \li \c "stdio" to expose \c stdin, \c stdout and \c stderr;
+ * \li \c "all" to load every feature available (think twice before using).
  *
- * \param c        Virtual machine instance.
- * \param builtins Which built-in functions to load.
+ * A feature can only be loaded once. Attempting to load a feature more
+ * than once will cause no action.
+ *
+ * \param c    Virtual machine instance.
+ * \param feat Which feature to load.
+ *
+ * \returns 0 if the given feature was loaded succesfully, or -1 if the
+ *          given feature is not supported.
  */
-CHX_API void cheax_load_features(CHEAX *c, int builtins);
+CHX_API int cheax_load_feature(CHEAX *c, const char *feat);
 
 /*! \brief Loads the cheax standard library.
  *

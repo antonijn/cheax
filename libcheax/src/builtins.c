@@ -1035,29 +1035,7 @@ get_cheax_version(CHEAX *c, struct chx_sym *sym)
 	return &res.base;
 }
 
-static struct chx_value *
-get_features(CHEAX *c, struct chx_sym *sym)
-{
-	struct { int feat; const char *name; } assoc[] = {
-		{ CHEAX_FILE_IO,             "file-io"             },
-		{ CHEAX_SET_MAX_STACK_DEPTH, "set-max-stack-depth" },
-		{ CHEAX_GC_BUILTIN,          "gc"                  },
-		{ CHEAX_EXIT_BUILTIN,        "exit"                },
-		{ CHEAX_EXPOSE_STDIN,        "stdin"               },
-		{ CHEAX_EXPOSE_STDOUT,       "stdout"              },
-		{ CHEAX_EXPOSE_STDERR,       "stderr"              },
-		{ CHEAX_STDIO,               "stdio"               },
-	};
-
-	struct chx_list *list = NULL;
-
-	int len = sizeof(assoc) / sizeof(assoc[0]);
-	for (int i = len - 1; i >= 0; --i)
-		if (has_flag(c->features, assoc[i].feat))
-			list = cheax_list(c, &cheax_string(c, assoc[i].name)->base, list);
-
-	return &list->base;
-}
+static struct chx_value *get_features(CHEAX *c, struct chx_sym *sym);
 
 void
 export_builtins(CHEAX *c)
@@ -1110,45 +1088,106 @@ export_builtins(CHEAX *c)
 	cheax_defsym(c, "features",      get_features,      NULL, NULL, NULL);
 }
 
-void
-cheax_load_features(CHEAX *c, int builtins)
-{
-	/* newly set builtins */
-	int nb = builtins & ~c->features;
+enum {
+	FILE_IO             = 0x0001,
+	SET_MAX_STACK_DEPTH = 0x0002,
+	GC_BUILTIN          = 0x0004,
+	EXIT_BUILTIN        = 0x0008,
+	EXPOSE_STDIN        = 0x0010,
+	EXPOSE_STDOUT       = 0x0020,
+	EXPOSE_STDERR       = 0x0040,
+	STDIO               = EXPOSE_STDIN | EXPOSE_STDOUT | EXPOSE_STDERR,
 
-	if (has_flag(nb, CHEAX_FILE_IO)) {
+	ALL_FEATURES        = (EXPOSE_STDERR << 1) - 1,
+};
+
+/* sorted asciibetically for use in bsearch() */
+static const struct nfeat { const char *name; int feat; } named_feats[] = {
+	{"all",                  ALL_FEATURES        },
+	{"exit",                 EXIT_BUILTIN        },
+	{"file-io",              FILE_IO             },
+	{"gc",                   GC_BUILTIN          },
+	{"set-max-stack-depth",  SET_MAX_STACK_DEPTH },
+	{"stderr",               EXPOSE_STDERR       },
+	{"stdin",                EXPOSE_STDIN        },
+	{"stdio",                STDIO               },
+	{"stdout",               EXPOSE_STDOUT       },
+};
+
+/* used in bsearch() */
+static int
+feature_compar(const char *key, const struct nfeat *nf)
+{
+	return strcmp(key, nf->name);
+}
+
+static struct chx_value *
+get_features(CHEAX *c, struct chx_sym *sym)
+{
+	struct chx_list *list = NULL;
+
+	int len = sizeof(named_feats) / sizeof(named_feats[0]);
+	for (int i = len - 1; i >= 0; --i)
+		if (has_flag(c->features, named_feats[i].feat))
+			list = cheax_list(c, &cheax_string(c, named_feats[i].name)->base, list);
+
+	return &list->base;
+}
+
+static int
+find_feature(const char *feat)
+{
+	struct nfeat *res;
+	res = bsearch(feat, named_feats,
+	              sizeof(named_feats) / sizeof(named_feats[0]), sizeof(named_feats[0]),
+	              (int (*)(const void *, const void *))feature_compar);
+	return (res == NULL) ? 0 : res->feat;
+}
+
+int
+cheax_load_feature(CHEAX *c, const char *feat)
+{
+	int feats = find_feature(feat);
+	if (feats == 0)
+		return -1;
+
+	/* newly set features */
+	int nf = feats & ~c->features;
+
+	if (has_flag(nf, FILE_IO)) {
 		cheax_defmacro(c, "fopen", builtin_fopen, NULL);
 		cheax_defmacro(c, "fclose", builtin_fclose, NULL);
 	}
 
-	if (has_flag(nb, CHEAX_SET_MAX_STACK_DEPTH))
+	if (has_flag(nf, SET_MAX_STACK_DEPTH))
 		cheax_defmacro(c, "set-max-stack-depth", builtin_set_max_stack_depth, NULL);
 
-	if (has_flag(nb, CHEAX_GC_BUILTIN)) {
+	if (has_flag(nf, GC_BUILTIN)) {
 		cheax_defmacro(c, "gc", builtin_gc, NULL);
 		cheax_defmacro(c, "get-used-memory", builtin_get_used_memory, NULL);
 	}
 
-	if (has_flag(nb, CHEAX_EXIT_BUILTIN))
+	if (has_flag(nf, EXIT_BUILTIN))
 		cheax_defmacro(c, "exit", builtin_exit, NULL);
 
-	if (has_flag(nb, CHEAX_EXPOSE_STDIN)) {
+	if (has_flag(nf, EXPOSE_STDIN)) {
 		cheax_var(c, "stdin",
 		          &cheax_user_ptr(c, stdin,  c->fhandle_type)->base,
 		          CHEAX_READONLY);
 	}
 
-	if (has_flag(nb, CHEAX_EXPOSE_STDOUT)) {
+	if (has_flag(nf, EXPOSE_STDOUT)) {
 		cheax_var(c, "stdout",
 		          &cheax_user_ptr(c, stdout, c->fhandle_type)->base,
 		          CHEAX_READONLY);
 	}
 
-	if (has_flag(nb, CHEAX_EXPOSE_STDERR)) {
+	if (has_flag(nf, EXPOSE_STDERR)) {
 		cheax_var(c, "stderr",
 		          &cheax_user_ptr(c, stderr, c->fhandle_type)->base,
 		          CHEAX_READONLY);
 	}
 
-	c->features |= builtins;
+	c->features |= nf;
+	return 0;
 }
