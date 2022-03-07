@@ -801,13 +801,6 @@ pad:
 }
 
 
-static bool
-is_numeric_type(struct chx_value *val)
-{
-	int ty = cheax_type_of(val);
-	return (ty == CHEAX_INT) || (ty == CHEAX_DOUBLE);
-}
-
 static struct chx_value *
 do_aop(CHEAX *c,
        const char *name,
@@ -1079,8 +1072,7 @@ export_builtins(CHEAX *c)
 		{ ">=",                  builtin_ge                  },
 	};
 
-	size_t nbtns = sizeof(btns) / sizeof(btns[0]);
-
+	int nbtns = sizeof(btns) / sizeof(btns[0]);
 	for (int i = 0; i < nbtns; ++i)
 		cheax_defmacro(c, btns[i].name, btns[i].fn, NULL);
 

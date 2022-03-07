@@ -415,6 +415,15 @@ CHX_API bool cheax_is_valid_type(CHEAX *c, int type);
  */
 CHX_API bool cheax_is_basic_type(CHEAX *c, int type);
 
+/*! \brief Checks whether a given type code is a user-defined type code.
+ *
+ * \param c    Virtual machine instance.
+ * \param type Type code to check.
+ *
+ * \returns Whether \a type is a user-defined type code.
+ */
+CHX_API bool cheax_is_user_type(CHEAX *c, int type);
+
 /*! \brief Gets the base type for a given type.
  *
  * The base type of a given type is either the type itself for basic
@@ -508,7 +517,7 @@ static const struct { const char *name; int code; } var[] = { \
 	ERR_NAME_PAIR(EINDEX), ERR_NAME_PAIR(EIO),            \
 	                                                      \
 	ERR_NAME_PAIR(EAPI), ERR_NAME_PAIR(ENOMEM)            \
-};
+}
 
 enum {
 	CHEAX_RUNNING,

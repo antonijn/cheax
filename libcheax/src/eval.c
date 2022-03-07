@@ -48,13 +48,13 @@ pad:
 static struct chx_value *
 eval_sexpr(CHEAX *c, struct chx_list *input)
 {
-	struct chx_value *head = cheax_eval(c, input->value);
+	struct chx_value *res = NULL, *head = cheax_eval(c, input->value);
 	chx_ref head_ref = cheax_ref(c, head);
 	cheax_ft(c, pad);
 
 	struct chx_list *args = input->next;
 
-	struct chx_value *res = NULL, *cast_arg;
+	struct chx_value *cast_arg;
 	struct chx_ext_func *extf;
 	struct chx_func *fn;
 	struct chx_env *env;

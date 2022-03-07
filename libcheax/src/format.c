@@ -47,7 +47,7 @@ ostream_print_int(struct ostream *ostr, int num, char pad_char, int field_width,
 	int base;
 
 	switch (misc_spec) {
-	case 'X': upper = true;
+	case 'X': upper = true; /* fall through */
 	case 'x': base = 16; break;
 	case 'o': base = 8;  break;
 	case 'b': base = 2;  break;
@@ -253,7 +253,7 @@ format_fspec(CHEAX *c, struct sostream *ss, struct fspec *sp, struct chx_value *
 			/* can't do ostream_printf() in case string
 			 * contains null character */
 			struct chx_string *str = (struct chx_string *)arg;
-			for (int i = 0; i < str->len; ++i)
+			for (size_t i = 0; i < str->len; ++i)
 				ostream_putchar(&ss->ostr, str->value[i]);
 		} else {
 			ostream_show(c, &ss->ostr, arg);

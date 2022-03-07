@@ -102,7 +102,7 @@ ostream_show_basic_type(CHEAX *c, struct ostream *s, struct chx_value *val)
 	case CHEAX_STRING:
 		ostream_putchar(s, '"');
 		struct chx_string *string = (struct chx_string *)val;
-		for (int i = 0; i < string->len; ++i) {
+		for (size_t i = 0; i < string->len; ++i) {
 			char ch = string->value[i];
 			if (ch == '"')
 				ostream_printf(s, "\\\"");

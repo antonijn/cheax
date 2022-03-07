@@ -400,7 +400,7 @@ static const char *
 errname(CHEAX *c, int code)
 {
 	if (code >= CHEAX_EUSER0) {
-		int idx = code - CHEAX_EUSER0;
+		size_t idx = code - CHEAX_EUSER0;
 		if (idx >= c->user_error_names.len) {
 			cry(c, "errname", CHEAX_EAPI, "invalid user error code");
 			return NULL;
@@ -674,7 +674,7 @@ cheax_init(void)
 void
 cheax_destroy(CHEAX *c)
 {
-	for (int i = 0; i < c->typestore.len; ++i) {
+	for (size_t i = 0; i < c->typestore.len; ++i) {
 		struct type_cast *cnext;
 		for (struct type_cast *cast = c->typestore.array[i].casts;
 		     cast != NULL;
@@ -884,7 +884,7 @@ cheax_find_type(CHEAX *c, const char *name)
 		return -1;
 	}
 
-	for (int i = 0; i < c->typestore.len; ++i)
+	for (size_t i = 0; i < c->typestore.len; ++i)
 		if (!strcmp(name, c->typestore.array[i].name))
 			return i + CHEAX_TYPESTORE_BIAS;
 
@@ -893,15 +893,17 @@ cheax_find_type(CHEAX *c, const char *name)
 bool
 cheax_is_valid_type(CHEAX *c, int type)
 {
-	if (type < 0)
-		return false;
-
-	return cheax_is_basic_type(c, type) || (type - CHEAX_TYPESTORE_BIAS) < c->typestore.len;
+	return cheax_is_basic_type(c, type) || cheax_is_user_type(c, type);
 }
 bool
 cheax_is_basic_type(CHEAX *c, int type)
 {
 	return type >= 0 && type <= CHEAX_LAST_BASIC_TYPE;
+}
+bool
+cheax_is_user_type(CHEAX *c, int type)
+{
+	return type >= CHEAX_TYPESTORE_BIAS && (size_t)(type - CHEAX_TYPESTORE_BIAS) < c->typestore.len;
 }
 int
 cheax_get_base_type(CHEAX *c, int type)
@@ -909,13 +911,12 @@ cheax_get_base_type(CHEAX *c, int type)
 	if (cheax_is_basic_type(c, type))
 		return type;
 
-	int ts_idx = type - CHEAX_TYPESTORE_BIAS;
-	if (ts_idx >= c->typestore.len) {
+	if (!cheax_is_user_type(c, type)) {
 		cry(c, "cheax_get_base_type", CHEAX_EEVAL, "unable to resolve type");
 		return -1;
 	}
 
-	return c->typestore.array[ts_idx].base_type;
+	return c->typestore.array[type - CHEAX_TYPESTORE_BIAS].base_type;
 }
 int
 cheax_resolve_type(CHEAX *c, int type)
