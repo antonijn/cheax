@@ -121,16 +121,42 @@ builtin_format(CHEAX *c, struct chx_list *args, void *info)
 }
 
 static struct chx_value *
-builtin_bytes(CHEAX *c, struct chx_list *args, void *info)
+builtin_strbytes(CHEAX *c, struct chx_list *args, void *info)
 {
 	struct chx_string *str;
-	if (unpack(c, "bytes", args, "s", &str) < 0)
+	if (unpack(c, "strbytes", args, "s", &str) < 0)
 		return NULL;
 
 	struct chx_list *bytes = NULL;
 	for (int i = (int)str->len - 1; i >= 0; --i)
 		bytes = cheax_list(c, &cheax_int(c, (unsigned char)str->value[i])->base, bytes);
 	return &bytes->base;
+}
+static struct chx_value *
+builtin_strsize(CHEAX *c, struct chx_list *args, void *info)
+{
+	struct chx_string *str;
+	return (0 == unpack(c, "strsize", args, "s", &str))
+	     ? &cheax_int(c, (int)str->len)->base
+	     : NULL;
+}
+static struct chx_value *
+builtin_substr(CHEAX *c, struct chx_list *args, void *info)
+{
+	struct chx_string *str;
+	int pos, len;
+	struct chx_int *len_or_nil;
+	if (unpack(c, "substr", args, "si!i?", &str, &pos, &len_or_nil) < 0)
+		return NULL;
+
+	len = (len_or_nil == NULL) ? (int)str->len - pos : len_or_nil->value;
+
+	if (pos < 0 || len < 0) {
+		cry(c, "substr", CHEAX_EVALUE, "expected positive integer");
+		return NULL;
+	}
+
+	return &cheax_substr(c, str, pos, len)->base;
 }
 
 static struct chx_value *
@@ -1023,7 +1049,7 @@ static struct chx_value *
 get_cheax_version(CHEAX *c, struct chx_sym *sym)
 {
 	static struct chx_string res = {
-		{ CHEAX_STRING | NO_GC_BIT }, VERSION_STRING, sizeof(VERSION_STRING) - 1
+		{ CHEAX_STRING | NO_GC_BIT }, VERSION_STRING, sizeof(VERSION_STRING) - 1, &res
 	};
 	return &res.base;
 }
@@ -1042,7 +1068,9 @@ export_builtins(CHEAX *c)
 		{ "get-byte-from",       builtin_get_byte_from       },
 		{ "get-line-from",       builtin_get_line_from       },
 		{ "format",              builtin_format              },
-		{ "bytes",               builtin_bytes               },
+		{ "strbytes",            builtin_strbytes            },
+		{ "strsize",             builtin_strsize             },
+		{ "substr",              builtin_substr              },
 		{ "throw",               builtin_throw               },
 		{ "try",                 builtin_try                 },
 		{ "new-error-code",      builtin_new_error_code      },

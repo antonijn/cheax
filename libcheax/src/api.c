@@ -392,7 +392,27 @@ cheax_nstring(CHEAX *c, const char *value, size_t len)
 
 	res->value = buf;
 	res->len = len;
+	res->orig = res;
 
+	return res;
+}
+struct chx_string *
+cheax_substr(CHEAX *c, struct chx_string *str, size_t pos, size_t len)
+{
+	if (str == NULL) {
+		cry(c, "substr", CHEAX_EAPI, "`str' cannot be NULL");
+		return NULL;
+	}
+
+	if (pos > SIZE_MAX - len || pos + len > str->len) {
+		cry(c, "substr", CHEAX_EVALUE, "substring out of bounds");
+		return NULL;
+	}
+
+	struct chx_string *res = cheax_alloc(c, sizeof(struct chx_string), CHEAX_STRING);
+	res->value = str->value + pos;
+	res->len = len;
+	res->orig = str->orig;
 	return res;
 }
 

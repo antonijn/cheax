@@ -276,6 +276,7 @@ struct chx_string {
 	struct chx_value base; /*!< Base. */
 	char *value;           /*!< Null-terminated string value. */
 	size_t len;            /*!< String length. */
+	struct chx_string *orig;
 };
 
 /*! \brief Creates a cheax string expression.
@@ -296,6 +297,17 @@ CHX_API struct chx_string *cheax_string(CHEAX *c, const char *value);
  * \sa chx_string, cheax_string(), CHEAX_STRING
  */
 CHX_API struct chx_string *cheax_nstring(CHEAX *c, const char *value, size_t len);
+
+/*! \brief Takes substring of given cheax string.
+ *
+ * Sets cheax_errno() to \ref CHEAX_EVALUE if substring is out of bounds.
+ *
+ * \param c   Virtual machine instance.
+ * \param str Initial string.
+ * \param pos Substring starting offset in number of bytes.
+ * \param len Substring length in number of bytes.
+ */
+CHX_API struct chx_string *cheax_substr(CHEAX *c, struct chx_string *str, size_t pos, size_t len);
 
 /*! \brief Cheax user pointer expression.
  *

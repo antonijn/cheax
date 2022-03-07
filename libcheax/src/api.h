@@ -23,11 +23,10 @@
 
 enum {
 	USABLE_BIT  = CHEAX_TYPE_MASK + 1,
-	FIN_BIT     = USABLE_BIT,
-	NO_GC_BIT   = USABLE_BIT << 1,
-	GC_MARKED   = USABLE_BIT << 2,
-	GC_REFD     = USABLE_BIT << 3,
-	GC_BITS     = NO_GC_BIT | GC_MARKED | GC_REFD,
+	FIN_BIT     = USABLE_BIT,          /* has registered finalizer */
+	NO_GC_BIT   = USABLE_BIT << 1,     /* not GC allocated */
+	GC_MARKED   = USABLE_BIT << 2,     /* marked in use */
+	GC_REFD     = USABLE_BIT << 3,     /* carries cheax_ref() */
 };
 
 static inline bool

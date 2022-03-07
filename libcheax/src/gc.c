@@ -220,6 +220,7 @@ mark_obj(CHEAX *c, struct chx_value *used)
 	used->type |= GC_MARKED;
 
 	struct chx_list *list;
+	struct chx_string *str;
 	struct chx_func *func;
 	struct chx_quote *quote;
 	struct chx_env *env;
@@ -228,6 +229,11 @@ mark_obj(CHEAX *c, struct chx_value *used)
 		list = (struct chx_list *)used;
 		mark_obj(c, list->value);
 		mark_obj(c, &list->next->base);
+		break;
+
+	case CHEAX_STRING:
+		str = (struct chx_string *)used;
+		mark_obj(c, &str->orig->base);
 		break;
 
 	case CHEAX_FUNC:
