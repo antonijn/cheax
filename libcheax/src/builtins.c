@@ -144,12 +144,15 @@ static struct chx_value *
 builtin_substr(CHEAX *c, struct chx_list *args, void *info)
 {
 	struct chx_string *str;
-	int pos, len;
+	int pos, len = 0;
 	struct chx_int *len_or_nil;
 	if (unpack(c, "substr", args, "si!i?", &str, &pos, &len_or_nil) < 0)
 		return NULL;
 
-	len = (len_or_nil == NULL) ? (int)str->len - pos : len_or_nil->value;
+	if (len_or_nil != NULL)
+		len = len_or_nil->value;
+	else if (pos >= 0 && (size_t)pos <= str->len)
+		len = str->len - (size_t)pos;
 
 	if (pos < 0 || len < 0) {
 		cry(c, "substr", CHEAX_EVALUE, "expected positive integer");

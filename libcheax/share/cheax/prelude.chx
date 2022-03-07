@@ -34,9 +34,10 @@
     ((: ty tys) (or (= (type-of value) ty) (is-any-of value tys)))
     (()         false)))
 (defmacro type-assert (: sym types)
- `(let ((_types (unsafe-map eval ',types)))
-    (unless (is-any-of ,sym _types)
-      (throw ETYPE (format "`{}' must have any of the following types: {}" ',sym _types)))))
+ `(let ((names ',types)
+        (tys   (unsafe-map eval names)))
+    (unless (is-any-of ,sym tys)
+      (throw ETYPE (format "`{}' must have type {}" ',sym (join names " or "))))))
 
 (def pi 3.1415926535897932384)
 (def nil ())
@@ -121,15 +122,28 @@
 (defun contains (e xs)
   (any (fn (x) (= e x)) xs))
 
-(defun unsafe-pos (e xs)
+(defun unsafe-strfind (e s)
+  (if (starts-with e s)
+    0
+    (if (= s "")
+      nil
+      (case (unsafe-strfind e (substr s 1))
+        (() nil)
+        (n  (+ n 1))))))
+(defun unsafe-find (e xs)
   (case xs
-    ((: y ys) (if (= e y)
-                0
-                (+ (unsafe-pos e ys) 1)))
-    (() (throw EINDEX "element not found"))))
-(defun position (e xs)
-  (type-assert xs List Nil)
-  (unsafe-pos e xs))
+    ((: y ys)
+      (if (= e y)
+        0
+        (case (unsafe-find e ys)
+          (() nil)
+          (n  (+ n 1)))))
+    (() nil)))
+(defun find (e xs)
+  (if (= (type-of xs) String)
+    (do (type-assert e String)
+        (unsafe-strfind e xs))
+    (unsafe-find e xs)))
 
 (defun zip-with (: op args)
   (case args
@@ -193,8 +207,53 @@
     (..helper from to  1 >)
     (..helper from to -1 <)))
 
+(defun list-starts-with (pfx arg)
+  (case pfx
+    ((: p ps)
+      (case arg
+        ((: a as) (and (= p a) (list-starts-with ps as)))
+        (()       false)))
+    (() true)))
+(defun starts-with (pfx arg)
+  (if (= (type-of pfx) String)
+    (do (type-assert arg String)
+        (let ((n (strsize pfx)))
+          (and (<= n (strsize arg)) (= pfx (substr arg 0 n)))))
+    (do (type-assert pfx List Nil)
+        (type-assert arg List Nil)
+        (list-starts-with pfx arg))))
+
+(defun ends-with (sfx arg)
+  (if (= (type-of sfx) String)
+    (do (type-assert arg String)
+        (let ((n (strsize sfx)) (m (strsize arg)))
+          (and (<= n m) (= sfx (substr arg (- m n))))))
+    (do (type-assert sfx List Nil)
+        (type-assert arg List Nil)
+        (list-starts-with (reverse sfx) (reverse arg)))))
+
 (defun str  (arg) (format "{!s}" arg))
 (defun repr (arg) (format "{!r}" arg))
+
+(defun unsafe-split (s at)
+  (case (find at s)
+    (() s)
+    (n  (: (substr s 0 n) (unsafe-split (substr s (+ n (strsize at))) at)))))
+(defun split (s at)
+  (type-assert s String)
+  (type-assert at String)
+  (unsafe-split s at))
+
+(defun unsafe-join (xs j)
+  (case xs
+    ((y)      (str y))
+    ((: y ys) (format "{}{}{}" y j (unsafe-join ys j)))
+    (()       "")))
+(defun join (xs j)
+  (type-assert xs List Nil)
+  (type-assert j String)
+  (unsafe-join xs j))
+
 (defun read () (read-from stdin))
 (defun print (arg) (print-to stdout arg))
 (defun put (arg) (put-to stdout arg))
