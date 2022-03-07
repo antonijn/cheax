@@ -62,7 +62,7 @@ eval_sexpr(CHEAX *c, struct chx_list *input)
 	int ty = cheax_type_of(head);
 	switch (ty) {
 	case CHEAX_NIL:
-		cry(c, "eval", CHEAX_ENIL, "cannot call nil");
+		cry(c, "eval", CHEAX_ETYPE, "cannot call nil");
 		break;
 
 	case CHEAX_EXT_FUNC:

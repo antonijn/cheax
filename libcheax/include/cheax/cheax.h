@@ -496,7 +496,7 @@ enum {
 	CHEAX_ESTACK     = 0x0103, /*!< Stack overflow error. */
 	CHEAX_ETYPE      = 0x0104, /*!< Invalid type error. */
 	CHEAX_EMATCH     = 0x0105, /*!< Unable to match expression error. */
-	CHEAX_ENIL       = 0x0106, /*!< Unexpected nil value error. */
+	/* CHEAX_ENIL was removed */
 	CHEAX_EDIVZERO   = 0x0107, /*!< Division by zero error. */
 	CHEAX_EREADONLY  = 0x0108, /*!< Attempted write to read-only symbol error. */
 	CHEAX_EWRITEONLY = 0x0109, /*!< Attempted read from write-only symbol error. */
@@ -522,7 +522,7 @@ static const struct { const char *name; int code; } var[] = { \
 	                                                      \
 	ERR_NAME_PAIR(EEVAL), ERR_NAME_PAIR(ENOSYM),          \
 	ERR_NAME_PAIR(ESTACK), ERR_NAME_PAIR(ETYPE),          \
-	ERR_NAME_PAIR(EMATCH), ERR_NAME_PAIR(ENIL),           \
+	ERR_NAME_PAIR(EMATCH), /* ENIL removed */             \
 	ERR_NAME_PAIR(EDIVZERO), ERR_NAME_PAIR(EREADONLY),    \
 	ERR_NAME_PAIR(EWRITEONLY), ERR_NAME_PAIR(EEXIST),     \
 	ERR_NAME_PAIR(EVALUE), ERR_NAME_PAIR(EOVERFLOW),      \
