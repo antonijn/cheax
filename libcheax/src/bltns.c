@@ -38,10 +38,33 @@
 static struct chx_value *
 bltn_fopen(CHEAX *c, struct chx_list *args, void *info)
 {
-	const char *fname, *mode;
-	return (0 == unpack(c, "fopen", args, "s!s!", &fname, &mode))
-	     ? &cheax_user_ptr(c, fopen(fname, mode), c->fhandle_type)->base
-	     : NULL;
+	struct chx_string *fname_val, *mode_val;
+	if (unpack(c, "fopen", args, "ss", &fname_val, &mode_val) < 0)
+		return NULL;
+
+	char *fname;
+	fname = malloc(fname_val->len + 1);
+	memcpy(fname, fname_val->value, fname_val->len);
+	fname[fname_val->len] = '\0';
+
+	char *mode;
+	mode = malloc(mode_val->len + 1);
+	memcpy(mode, mode_val->value, mode_val->len);
+	mode[mode_val->len] = '\0';
+
+	FILE *f = fopen(fname, mode);
+
+	free(fname);
+	free(mode);
+
+	if (f == NULL) {
+		/* TODO inspect errno */
+		cry(c, "fopen", CHEAX_EIO, "error opening file");
+		return NULL;
+	}
+
+	return &cheax_user_ptr(c, f, c->fhandle_type)->base;
+
 }
 
 static struct chx_value *
