@@ -142,9 +142,6 @@ store_value(CHEAX *c, struct chx_value *v, va_list ap)
 	case CHEAX_BOOL:
 		*va_arg(ap, bool *) = ((struct chx_int *)v)->value;
 		return 0;
-	case CHEAX_STRING:
-		*va_arg(ap, const char **) = ((struct chx_string *)v)->value;
-		return 0;
 	case CHEAX_ID:
 		*va_arg(ap, const char **) = ((struct chx_id *)v)->id;
 		return 0;
@@ -196,7 +193,7 @@ unpack_arg(CHEAX *c,
 
 		res = unpack_once(c, args, ufs_i, ufs_f, &v);
 		if (res == 0 && store_value(c, v, ap) < 0)
-			return store_arg(c, argc, argv_out, v, ap);
+			return -CHEAX_EAPI;
 		return res;
 
 	case '?':
@@ -300,6 +297,11 @@ unpack(CHEAX *c, const char *fname, struct chx_list *args, const char *fmt, ...)
 
 	if (res == -CHEAX_ETYPE) {
 		cry(c, fname, CHEAX_ETYPE, "invalid argument type");
+		return -1;
+	}
+
+	if (res == -CHEAX_EAPI) {
+		cry(c, fname, CHEAX_EAPI, "internal error");
 		return -1;
 	}
 
