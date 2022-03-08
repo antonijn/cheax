@@ -21,6 +21,7 @@
 
 #include "api.h"
 #include "config.h"
+#include "format.h"
 #include "gc.h"
 #include "strm.h"
 #include "unpack.h"
@@ -135,10 +136,10 @@ bltn_get_line_from(CHEAX *c, struct chx_list *args, void *info)
 static struct chx_value *
 bltn_format(CHEAX *c, struct chx_list *args, void *info)
 {
-	const char *fmt;
+	struct chx_string *fmt;
 	struct chx_list *lst;
-	return (0 == unpack(c, "format", args, "s!.*", &fmt, &lst))
-	     ? cheax_format(c, fmt, lst)
+	return (0 == unpack(c, "format", args, "s.*", &fmt, &lst))
+	     ? format(c, fmt, lst)
 	     : NULL;
 }
 

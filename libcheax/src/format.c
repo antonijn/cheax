@@ -20,23 +20,21 @@
 #include <string.h>
 
 #include "api.h"
+#include "format.h"
 #include "print.h"
 #include "strm.h"
 
 static int
-read_int(CHEAX *c, const char *desc, const char **fmt_in, int *out)
+read_int(CHEAX *c, const char *desc, struct scnr *fmt, int *out)
 {
-	const char *fmt = *fmt_in;
-
-	for (*out = 0; isdigit(*fmt); ++fmt) {
-		if (*out > INT_MAX / 10 || (*out * 10) > INT_MAX - (*fmt - '0')) {
+	for (*out = 0; isdigit(fmt->ch); scnr_adv(fmt)) {
+		if (*out > INT_MAX / 10 || (*out * 10) > INT_MAX - (fmt->ch - '0')) {
 			cry(c, "format", CHEAX_EVALUE, "%s too big", desc);
 			return -1;
 		}
-		*out = (*out * 10) + (*fmt - '0');
+		*out = (*out * 10) + (fmt->ch - '0');
 	}
 
-	*fmt_in = fmt;
 	return 0;
 }
 
@@ -58,7 +56,7 @@ struct fspec {
 };
 
 static int
-read_fspec(CHEAX *c, const char **fmt_in, struct fspec *sp)
+read_fspec(CHEAX *c, struct scnr *fmt, struct fspec *sp)
 {
 	sp->index = -1;
 	sp->conv = CONV_NONE;
@@ -67,47 +65,47 @@ read_fspec(CHEAX *c, const char **fmt_in, struct fspec *sp)
 	sp->precision = -1;
 	sp->misc_spec = '\0';
 
-	const char *fmt = *fmt_in;
-
-	if (isdigit(*fmt) && read_int(c, "index", &fmt, &sp->index) < 0)
+	if (isdigit(fmt->ch) && read_int(c, "index", fmt, &sp->index) < 0)
 		return -1;
 
-	if (*fmt == '!') {
-		if (*++fmt == 's' || *fmt == 'r') {
-			sp->conv = (*fmt++ == 's') ? CONV_S : CONV_R;
+	if (fmt->ch == '!') {
+		scnr_adv(fmt);
+		if (fmt->ch == 's' || fmt->ch == 'r') {
+			sp->conv = (scnr_adv(fmt) == 's') ? CONV_S : CONV_R;
 		} else {
 			cry(c, "format", CHEAX_EVALUE, "expected `s' or `r' after `!'");
 			return -1;
 		}
 	}
 
-	if (*fmt == ':') {
-		if (*++fmt == ' ' || *fmt == '0')
-			sp->pad_char = *fmt++;
+	if (fmt->ch == ':') {
+		scnr_adv(fmt);
+		if (fmt->ch == ' ' || fmt->ch == '0')
+			sp->pad_char = scnr_adv(fmt);
 
-		if (isdigit(*fmt) && read_int(c, "field width", &fmt, &sp->field_width) < 0)
+		if (isdigit(fmt->ch) && read_int(c, "field width", fmt, &sp->field_width) < 0)
 			return -1;
 
-		if (*fmt == '.') {
-			if (!isdigit(*++fmt)) {
+		if (fmt->ch == '.') {
+			scnr_adv(fmt);
+			if (!isdigit(fmt->ch)) {
 				cry(c, "format", CHEAX_EVALUE, "expected precision specifier");
 				return -1;
 			}
 
-			if (read_int(c, "precision", &fmt, &sp->precision) < 0)
+			if (read_int(c, "precision", fmt, &sp->precision) < 0)
 				return -1;
 		}
 
-		if (*fmt != '\0' && strchr("xXobcdeEfFgG", *fmt) != NULL)
-			sp->misc_spec = *fmt++;
+		if (fmt->ch != '\0' && strchr("xXobcdeEfFgG", fmt->ch) != NULL)
+			sp->misc_spec = scnr_adv(fmt);
 	}
 
-	if (*fmt++ != '}') {
+	if (scnr_adv(fmt) != '}') {
 		cry(c, "format", CHEAX_EVALUE, "expected `}'");
 		return -1;
 	}
 
-	*fmt_in = fmt;
 	return 0;
 }
 
@@ -203,14 +201,9 @@ format_fspec(CHEAX *c, struct sostrm *ss, struct fspec *sp, struct chx_value *ar
 	return 0;
 }
 
-struct chx_value *
-cheax_format(CHEAX *c, const char *fmt, struct chx_list *args)
+static struct chx_value *
+scnr_format(CHEAX *c, struct scnr *fmt, struct chx_list *args, size_t size_hint)
 {
-	if (fmt == NULL) {
-		cry(c, "format", CHEAX_EAPI, "`fmt' cannot be NULL");
-		return NULL;
-	}
-
 	struct chx_value **arg_array;
 	size_t arg_count;
 	if (0 != cheax_list_to_array(c, args, &arg_array, &arg_count))
@@ -219,7 +212,7 @@ cheax_format(CHEAX *c, const char *fmt, struct chx_list *args)
 	struct sostrm ss;
 	sostrm_init(&ss, c);
 
-	ss.cap = strlen(fmt) + 1; /* conservative size estimate */
+	ss.cap = size_hint;
 	ss.buf = malloc(ss.cap);
 
 	enum { UNSPECIFIED, AUTO_IDX, MAN_IDX } indexing = UNSPECIFIED;
@@ -227,27 +220,27 @@ cheax_format(CHEAX *c, const char *fmt, struct chx_list *args)
 	struct chx_value *res = NULL;
 
 	for (;;) {
-		if (*fmt == '\0') {
+		if (fmt->ch == EOF) {
 			res = &cheax_nstring(c, ss.buf, ss.idx)->base;
 			break;
 		}
 
-		if (*fmt == '}' && *++fmt != '}') {
+		if (fmt->ch == '}' && (scnr_adv(fmt), fmt->ch) != '}') {
 			cry(c, "format", CHEAX_EVALUE, "encountered single `}' in format string");
 			break;
 		}
 
-		if (*fmt != '{' || *++fmt == '{') {
+		if (fmt->ch != '{' || (scnr_adv(fmt), fmt->ch) == '{') {
 			/* most likely condition: 'regular' character or
 			 * double "{{" */
-			sostrm_putc(&ss, *fmt++);
+			sostrm_putc(&ss, scnr_adv(fmt));
 			continue;
 		}
 
 		/* we're dealing with a field specifier */
 
 		struct fspec spec;
-		if (read_fspec(c, &fmt, &spec) < 0)
+		if (read_fspec(c, fmt, &spec) < 0)
 			break;
 
 		if (indexing == AUTO_IDX && spec.index != -1) {
@@ -276,4 +269,32 @@ cheax_format(CHEAX *c, const char *fmt, struct chx_list *args)
 	free(arg_array);
 	free(ss.buf);
 	return res;
+}
+
+struct chx_value *
+format(CHEAX *c, struct chx_string *fmt, struct chx_list *args)
+{
+	struct sistrm ss;
+	sistrm_initn(&ss, fmt->value, fmt->len);
+
+	struct scnr s;
+	scnr_init(&s, &ss.strm, 0, NULL);
+	return scnr_format(c, &s, args, ss.len + 1);
+}
+
+struct chx_value *
+cheax_format(CHEAX *c, const char *fmt, struct chx_list *args)
+{
+	if (fmt == NULL) {
+		cry(c, "format", CHEAX_EAPI, "`fmt' cannot be NULL");
+		return NULL;
+	}
+
+	struct sistrm ss;
+	sistrm_init(&ss, fmt);
+
+	struct scnr s;
+	scnr_init(&s, &ss.strm, 0, NULL);
+
+	return scnr_format(c, &s, args, ss.len + 1);
 }

@@ -13,13 +13,12 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  */
 
-#ifndef PRINT_H
-#define PRINT_H
+#ifndef FORMAT_H
+#define FORMAT_H
 
 #include <cheax.h>
 
-#include "strm.h"
-
-void ostrm_show(CHEAX *c, struct ostrm *s, struct chx_value *val);
+/* like cheax_format(), except takes a chx_string */
+struct chx_value *format(CHEAX *c, struct chx_string *fmt, struct chx_list *args);
 
 #endif
