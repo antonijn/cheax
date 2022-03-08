@@ -25,7 +25,7 @@
 #include "api.h"
 #include "config.h"
 #include "loc.h"
-#include "stream.h"
+#include "strm.h"
 
 /*
  * We might need two characters of lookahead for atoms
@@ -36,7 +36,7 @@
 
 struct reader {
 	CHEAX *c;
-	struct istream *istr;
+	struct istrm *strm;
 	int ch;
 	int bkquote_stack, comma_stack;
 
@@ -57,7 +57,7 @@ rdr_advch(struct reader *rdr)
 		}
 
 		if (rdr->lah == 0) {
-			rdr->ch = istream_getchar(rdr->istr);
+			rdr->ch = istrm_getc(rdr->strm);
 		} else {
 			--rdr->lah;
 			rdr->ch = pop;
@@ -87,10 +87,10 @@ rdr_backup_to(struct reader *rdr, int c)
 }
 
 static void
-rdr_init(struct reader *rdr, struct istream *istr, CHEAX *c)
+rdr_init(struct reader *rdr, struct istrm *strm, CHEAX *c)
 {
 	rdr->c = c;
-	rdr->istr = istr;
+	rdr->strm = strm;
 	rdr->ch = 0;
 	rdr->bkquote_stack = 0;
 	rdr->comma_stack = 0;
@@ -132,13 +132,13 @@ skip_space(struct reader *rdr)
 static struct chx_value *
 read_id(struct reader *rdr) /* consume_final = true */
 {
-	struct sostream ss;
-	sostream_init(&ss, rdr->c);
+	struct sostrm ss;
+	sostrm_init(&ss, rdr->c);
 
 	struct chx_value *res = NULL;
 
 	while (is_id(rdr->ch))
-		ostream_putchar(&ss.ostr, rdr_advch(rdr));
+		ostrm_putc(&ss.strm, rdr_advch(rdr));
 
 	if (rdr->ch != EOF && !isspace(rdr->ch) && rdr->ch != ')') {
 		cry(rdr->c, "read", CHEAX_EREAD, "only whitespace or `)' may follow identifier");
@@ -150,7 +150,7 @@ read_id(struct reader *rdr) /* consume_final = true */
 	} else if (ss.idx == 5 && memcmp(ss.buf, "false", 5) == 0) {
 		res = &cheax_false(rdr->c)->base;
 	} else {
-		ostream_putchar(&ss.ostr, '\0');
+		ostrm_putc(&ss.strm, '\0');
 		res = &cheax_id(rdr->c, ss.buf)->base;
 	}
 
@@ -161,7 +161,7 @@ done:
 
 static int_least64_t
 read_digits(struct reader *rdr,
-            struct ostream *ostr,
+            struct ostrm *ostr,
             int base,
             bool *too_big)
 {
@@ -180,7 +180,7 @@ read_digits(struct reader *rdr,
 		else
 			break;
 
-		ostream_putchar(ostr, rdr_advch(rdr));
+		ostrm_putc(ostr, rdr_advch(rdr));
 
 		if (overflow || value > INT_LEAST64_MAX / base) {
 			overflow = true;
@@ -206,8 +206,8 @@ read_digits(struct reader *rdr,
 static struct chx_value *
 read_num(struct reader *rdr) /* consume_final = true */
 {
-	struct sostream ss;
-	sostream_init(&ss, rdr->c);
+	struct sostrm ss;
+	sostrm_init(&ss, rdr->c);
 
 	struct chx_value *res = NULL;
 
@@ -227,41 +227,41 @@ read_num(struct reader *rdr) /* consume_final = true */
 
 	if (rdr->ch == '-') {
 		negative = true;
-		ostream_putchar(&ss.ostr, rdr_advch(rdr));
+		ostrm_putc(&ss.strm, rdr_advch(rdr));
 	} else if (rdr->ch == '+') {
-		ostream_putchar(&ss.ostr, rdr_advch(rdr));
+		ostrm_putc(&ss.strm, rdr_advch(rdr));
 	}
 
 	if (rdr->ch == '0') {
-		ostream_putchar(&ss.ostr, rdr_advch(rdr));
+		ostrm_putc(&ss.strm, rdr_advch(rdr));
 		if (rdr->ch == 'x' || rdr->ch == 'X') {
 			base = 16;
-			ostream_putchar(&ss.ostr, rdr_advch(rdr));
+			ostrm_putc(&ss.strm, rdr_advch(rdr));
 		} else if (rdr->ch == 'b' || rdr->ch == 'B') {
 			base = 2;
-			ostream_putchar(&ss.ostr, rdr_advch(rdr));
+			ostrm_putc(&ss.strm, rdr_advch(rdr));
 		} else if (isdigit(rdr->ch)) {
 			base = 8;
 		}
 	}
 
-	pos_whole_value = read_digits(rdr, &ss.ostr, base, &too_big);
+	pos_whole_value = read_digits(rdr, &ss.strm, base, &too_big);
 
 	if (rdr->ch == '.' && (base == 10 || base == 16)) {
 		is_double = true;
-		ostream_putchar(&ss.ostr, rdr_advch(rdr));
-		read_digits(rdr, &ss.ostr, base, NULL);
+		ostrm_putc(&ss.strm, rdr_advch(rdr));
+		read_digits(rdr, &ss.strm, base, NULL);
 	}
 
 	if ((base == 10 && (rdr->ch == 'e' || rdr->ch == 'E'))
 	 || (base == 16 && (rdr->ch == 'p' || rdr->ch == 'P')))
 	{
-		ostream_putchar(&ss.ostr, rdr_advch(rdr));
+		ostrm_putc(&ss.strm, rdr_advch(rdr));
 
 		if (rdr->ch == '-' || rdr->ch == '+')
-			ostream_putchar(&ss.ostr, rdr_advch(rdr));
+			ostrm_putc(&ss.strm, rdr_advch(rdr));
 
-		read_digits(rdr, &ss.ostr, base, NULL);
+		read_digits(rdr, &ss.strm, base, NULL);
 	}
 
 	if (rdr->ch != EOF && !isspace(rdr->ch) && rdr->ch != ')') {
@@ -282,7 +282,7 @@ read_num(struct reader *rdr) /* consume_final = true */
 		goto done;
 	}
 
-	ostream_putchar(&ss.ostr, '\0');
+	ostrm_putc(&ss.strm, '\0');
 
 	double dval;
 	char *endptr;
@@ -310,7 +310,7 @@ done:
 }
 
 static void
-read_bslash_expr(struct reader *rdr, struct ostream *ostr) /* consume_final = true */
+read_bslash_expr(struct reader *rdr, struct ostrm *ostr) /* consume_final = true */
 {
 	/* I expect the backslash itself to have been consumed */
 
@@ -326,7 +326,7 @@ read_bslash_expr(struct reader *rdr, struct ostream *ostr) /* consume_final = tr
 	}
 
 	if (ch != -1) {
-		ostream_putchar(ostr, ch);
+		ostrm_putc(ostr, ch);
 		rdr_advch(rdr);
 		return;
 	}
@@ -349,7 +349,7 @@ read_bslash_expr(struct reader *rdr, struct ostream *ostr) /* consume_final = tr
 			rdr_advch(rdr);
 		}
 
-		ostream_putchar(ostr, (digits[0] << 4) + digits[1]);
+		ostrm_putc(ostr, (digits[0] << 4) + digits[1]);
 		return;
 	}
 
@@ -361,8 +361,8 @@ read_bslash_expr(struct reader *rdr, struct ostream *ostr) /* consume_final = tr
 static struct chx_value *
 read_string(struct reader *rdr, int consume_final)
 {
-	struct sostream ss;
-	sostream_init(&ss, rdr->c);
+	struct sostrm ss;
+	sostrm_init(&ss, rdr->c);
 
 	struct chx_value *res = NULL;
 
@@ -378,11 +378,11 @@ read_string(struct reader *rdr, int consume_final)
 			goto done;
 
 		case '\\':
-			read_bslash_expr(rdr, &ss.ostr);
+			read_bslash_expr(rdr, &ss.strm);
 			cheax_ft(rdr->c, done);
 			break;
 		default:
-			ostream_putchar(&ss.ostr, ch);
+			ostrm_putc(&ss.strm, ch);
 			break;
 		}
 	}
@@ -505,22 +505,22 @@ pad:
 struct chx_value *
 cheax_read(CHEAX *c, FILE *infile)
 {
-	struct fistream fs;
-	fistream_init(&fs, infile, c);
+	struct fistrm fs;
+	fistrm_init(&fs, infile, c);
 
 	struct reader rdr;
-	rdr_init(&rdr, &fs.istr, c);
+	rdr_init(&rdr, &fs.strm, c);
 
 	return rdr_read(&rdr, false);
 }
 struct chx_value *
 cheax_readstr(CHEAX *c, const char *str)
 {
-	struct sistream ss;
-	sistream_init(&ss, str);
+	struct sistrm ss;
+	sistrm_init(&ss, str);
 
 	struct reader rdr;
-	rdr_init(&rdr, &ss.istr, c);
+	rdr_init(&rdr, &ss.strm, c);
 
 	return rdr_read(&rdr, false);
 }

@@ -22,7 +22,7 @@
 #include "api.h"
 #include "config.h"
 #include "gc.h"
-#include "stream.h"
+#include "strm.h"
 #include "unpack.h"
 
 /*
@@ -104,12 +104,12 @@ bltn_get_line_from(CHEAX *c, struct chx_list *args, void *info)
 	if (unpack(c, "get-line-from", args, "f!", &f) < 0)
 		return NULL;
 
-	struct sostream ss;
-	sostream_init(&ss, c);
+	struct sostrm ss;
+	sostrm_init(&ss, c);
 
 	int ch;
 	while ((ch = fgetc(f)) != EOF) {
-		if (ostream_putchar(&ss.ostr, ch) == -1) {
+		if (ostrm_putc(&ss.strm, ch) == -1) {
 			free(ss.buf);
 			return NULL;
 		}

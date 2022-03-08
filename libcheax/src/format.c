@@ -21,76 +21,7 @@
 
 #include "api.h"
 #include "print.h"
-#include "stream.h"
-
-/* Print integer `num' to ostream `ostr', padding it to length
- * `field_width' using padding character `pad_char' if necessary.
- * `misc_spec' can be:
- * 'X':   0xdeadbeef => "DEADBEEF" (uppercase hex)
- * 'x':   0xdeadbeef => "deadbeef" (lowercase hex)
- * 'o':   71         => "107"      (octal)
- * 'b':   123        => "1111011"  (binary)
- * other: 123        => "123"      (decimal)
- *
- * Why not just a printf() variant, I hear you ask. The problem with
- * printf() is that, depending on format specifier, it expects different
- * data types (unsigned int for 'x', for instance). This one just
- * handles int, and handles it well.
- */
-static void
-ostream_print_int(struct ostream *ostr, int num, char pad_char, int field_width, char misc_spec)
-{
-	if (field_width < 0)
-		field_width = 0;
-
-	bool upper = false;
-	int base;
-
-	switch (misc_spec) {
-	case 'X': upper = true; /* fall through */
-	case 'x': base = 16; break;
-	case 'o': base = 8;  break;
-	case 'b': base = 2;  break;
-	default:  base = 10; break;
-	}
-
-	long pos_num = num;
-	if (pos_num < 0)
-		pos_num = -pos_num;
-
-	char buf[1 + sizeof(int) * 8 * 2];
-	int i = sizeof(buf) - 1;
-	buf[i--] = '\0';
-
-	for (; i >= 0; --i) {
-		int digit = pos_num % base;
-		if (digit < 10)
-			buf[i] = digit + '0';
-		else if (upper)
-			buf[i] = (digit - 10) + 'A';
-		else
-			buf[i] = (digit - 10) + 'a';
-
-		pos_num /= base;
-		if (pos_num == 0)
-			break;
-	}
-
-	int content_len = sizeof(buf) - 1 - i;
-	if (num < 0) {
-		++content_len;
-		if (pad_char != ' ')
-			ostream_printf(ostr, "-");
-	}
-
-	for (int j = 0; j < field_width - content_len; ++j)
-		ostream_putchar(ostr, pad_char);
-
-	if (num < 0 && pad_char == ' ')
-		ostream_printf(ostr, "-");
-
-	ostream_printf(ostr, "%s", buf + i);
-}
+#include "strm.h"
 
 static int
 read_int(CHEAX *c, const char *desc, const char **fmt_in, int *out)
@@ -181,8 +112,9 @@ read_fspec(CHEAX *c, const char **fmt_in, struct fspec *sp)
 }
 
 static int
-format_fspec(CHEAX *c, struct sostream *ss, struct fspec *sp, struct chx_value *arg)
+format_fspec(CHEAX *c, struct sostrm *ss, struct fspec *sp, struct chx_value *arg)
 {
+	struct ostrm *strm = &ss->strm;
 	bool can_int = true, can_double = true, can_other = true;
 
 	if (sp->precision != -1)
@@ -199,7 +131,7 @@ format_fspec(CHEAX *c, struct sostream *ss, struct fspec *sp, struct chx_value *
 	 * field_width is too big, instead of letting the mem use slowly
 	 * creep up as we add more and more padding. */
 	size_t ufield_width = sp->field_width;
-	if (ss->idx > SIZE_MAX - ufield_width || sostream_expand(ss, ss->idx + ufield_width) < 0)
+	if (ss->idx > SIZE_MAX - ufield_width || sostrm_expand(ss, ss->idx + ufield_width) < 0)
 		return -1;
 
 	/* Used to gauge if padding is necessary. With numbers, the
@@ -223,9 +155,9 @@ format_fspec(CHEAX *c, struct sostream *ss, struct fspec *sp, struct chx_value *
 				return -1;
 			}
 
-			ostream_putchar(&ss->ostr, num);
+			ostrm_putc(strm, num);
 		} else {
-			ostream_print_int(&ss->ostr, num, sp->pad_char, sp->field_width, sp->misc_spec);
+			ostrm_printi(strm, num, sp->pad_char, sp->field_width, sp->misc_spec);
 		}
 	} else if (sp->conv == CONV_NONE && ty == CHEAX_DOUBLE) {
 		if (!can_double) {
@@ -242,7 +174,7 @@ format_fspec(CHEAX *c, struct sostream *ss, struct fspec *sp, struct chx_value *
 		else
 			snprintf(fmt_buf, sizeof(fmt_buf), "%%%c*.*%c", sp->pad_char, ms);
 
-		ostream_printf(&ss->ostr, fmt_buf, sp->field_width, sp->precision, num);
+		ostrm_printf(strm, fmt_buf, sp->field_width, sp->precision, num);
 	} else {
 		if (!can_other) {
 			cry(c, "format", CHEAX_EVALUE, "invalid specifiers for given value");
@@ -250,13 +182,13 @@ format_fspec(CHEAX *c, struct sostream *ss, struct fspec *sp, struct chx_value *
 		}
 
 		if (ty == CHEAX_STRING && sp->conv != CONV_R) {
-			/* can't do ostream_printf() in case string
+			/* can't do ostrm_printf() in case string
 			 * contains null character */
 			struct chx_string *str = (struct chx_string *)arg;
 			for (size_t i = 0; i < str->len; ++i)
-				ostream_putchar(&ss->ostr, str->value[i]);
+				ostrm_putc(strm, str->value[i]);
 		} else {
-			ostream_show(c, &ss->ostr, arg);
+			ostrm_show(c, strm, arg);
 		}
 	}
 
@@ -266,7 +198,7 @@ format_fspec(CHEAX *c, struct sostream *ss, struct fspec *sp, struct chx_value *
 	int padding = sp->field_width - written;
 
 	for (int i = 0; i < padding; ++i)
-		ostream_putchar(&ss->ostr, sp->pad_char);
+		ostrm_putc(strm, sp->pad_char);
 
 	return 0;
 }
@@ -284,8 +216,8 @@ cheax_format(CHEAX *c, const char *fmt, struct chx_list *args)
 	if (0 != cheax_list_to_array(c, args, &arg_array, &arg_count))
 		return NULL;
 
-	struct sostream ss;
-	sostream_init(&ss, c);
+	struct sostrm ss;
+	sostrm_init(&ss, c);
 
 	ss.cap = strlen(fmt) + 1; /* conservative size estimate */
 	ss.buf = malloc(ss.cap);
@@ -308,7 +240,7 @@ cheax_format(CHEAX *c, const char *fmt, struct chx_list *args)
 		if (*fmt != '{' || *++fmt == '{') {
 			/* most likely condition: 'regular' character or
 			 * double "{{" */
-			ostream_putchar(&ss.ostr, *fmt++);
+			sostrm_putc(&ss, *fmt++);
 			continue;
 		}
 

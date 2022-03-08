@@ -18,8 +18,8 @@
 
 #include <cheax.h>
 
-#include "stream.h"
+#include "strm.h"
 
-void ostream_show(CHEAX *c, struct ostream *s, struct chx_value *val);
+void ostrm_show(CHEAX *c, struct ostrm *s, struct chx_value *val);
 
 #endif
