@@ -231,7 +231,7 @@
         (type-assert arg List Nil)
         (list-starts-with (reverse sfx) (reverse arg)))))
 
-(defun str  (arg) (format "{!s}" arg))
+(defun show (arg) (format "{!s}" arg))
 (defun repr (arg) (format "{!r}" arg))
 
 (defun unsafe-split (s at)
@@ -245,7 +245,7 @@
 
 (defun unsafe-join (xs j)
   (case xs
-    ((y)      (str y))
+    ((y)      (show y))
     ((: y ys) (format "{}{}{}" y j (unsafe-join ys j)))
     (()       "")))
 (defun join (xs j)
