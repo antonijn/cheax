@@ -168,4 +168,28 @@ fistrm_init(struct fistrm *fs, FILE *f, CHEAX *c)
 	fs->strm.getchar = fistrm_getc;
 }
 
+/* scanner */
+struct scnr {
+	int ch;
+	struct istrm *strm;
+	size_t max_lah, lah;
+	int *lah_buf;
+
+	int pos, line;
+};
+
+int scnr_adv(struct scnr *s);
+int scnr_backup(struct scnr *s, int to);
+
+static inline void
+scnr_init(struct scnr *s, struct istrm *strm, size_t max_lah, int *lah_buf)
+{
+	s->strm = strm;
+	s->max_lah = max_lah;
+	s->lah_buf = lah_buf;
+	s->lah = s->pos = 0;
+	s->line = 1;
+	scnr_adv(s);
+}
+
 #endif

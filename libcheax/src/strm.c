@@ -15,6 +15,61 @@
 
 #include "strm.h"
 
+void
+ostrm_printi(struct ostrm *strm, int num, char pad_char, int field_width, char misc_spec)
+{
+	if (field_width < 0)
+		field_width = 0;
+
+	bool upper = false;
+	int base;
+
+	switch (misc_spec) {
+	case 'X': upper = true; /* fall through */
+	case 'x': base = 16; break;
+	case 'o': base = 8;  break;
+	case 'b': base = 2;  break;
+	default:  base = 10; break;
+	}
+
+	long pos_num = num;
+	if (pos_num < 0)
+		pos_num = -pos_num;
+
+	char buf[1 + sizeof(int) * 8 * 2];
+	int i = sizeof(buf) - 1;
+	buf[i--] = '\0';
+
+	for (; i >= 0; --i) {
+		int digit = pos_num % base;
+		if (digit < 10)
+			buf[i] = digit + '0';
+		else if (upper)
+			buf[i] = (digit - 10) + 'A';
+		else
+			buf[i] = (digit - 10) + 'a';
+
+		pos_num /= base;
+		if (pos_num == 0)
+			break;
+	}
+
+	int content_len = sizeof(buf) - 1 - i;
+	if (num < 0) {
+		++content_len;
+		if (pad_char != ' ')
+			ostrm_putc(strm, '-');
+	}
+
+	for (int j = 0; j < field_width - content_len; ++j)
+		ostrm_putc(strm, pad_char);
+
+	if (num < 0 && pad_char == ' ')
+		ostrm_putc(strm, '-');
+
+	ostrm_printf(strm, "%s", buf + i);
+}
+
 int
 sostrm_expand(struct sostrm *strm, size_t req_buf)
 {
@@ -127,57 +182,54 @@ fistrm_getc(void *info)
 	return fgetc(ff->f);
 }
 
-void
-ostrm_printi(struct ostrm *strm, int num, char pad_char, int field_width, char misc_spec)
+int
+scnr_adv(struct scnr *s)
 {
-	if (field_width < 0)
-		field_width = 0;
+	int res = s->ch;
+	if (res != EOF) {
+		int pop;
+		/* offset by one to avoid unsigned shenanigans */
+		for (size_t i = s->lah; i >= 1; --i) {
+			int next_pop = s->lah_buf[i - 1];
+			s->lah_buf[i - 1] = pop;
+			pop = next_pop;
+		}
 
-	bool upper = false;
-	int base;
+		if (s->lah == 0) {
+			s->ch = istrm_getc(s->strm);
+		} else {
+			--s->lah;
+			s->ch = pop;
+		}
 
-	switch (misc_spec) {
-	case 'X': upper = true; /* fall through */
-	case 'x': base = 16; break;
-	case 'o': base = 8;  break;
-	case 'b': base = 2;  break;
-	default:  base = 10; break;
+		if (s->ch == '\n') {
+			s->pos = 0;
+			++s->line;
+		} else {
+			++s->pos;
+		}
+
 	}
+	return res;
+}
 
-	long pos_num = num;
-	if (pos_num < 0)
-		pos_num = -pos_num;
+int
+scnr_backup(struct scnr *s, int to)
+{
+	if (s->lah >= s->max_lah)
+		return -1;
 
-	char buf[1 + sizeof(int) * 8 * 2];
-	int i = sizeof(buf) - 1;
-	buf[i--] = '\0';
+	/* pray that there are no newlines involved */
+	--s->pos;
 
-	for (; i >= 0; --i) {
-		int digit = pos_num % base;
-		if (digit < 10)
-			buf[i] = digit + '0';
-		else if (upper)
-			buf[i] = (digit - 10) + 'A';
-		else
-			buf[i] = (digit - 10) + 'a';
+	++s->lah;
 
-		pos_num /= base;
-		if (pos_num == 0)
-			break;
+	int push = s->ch;
+	for (size_t i = 0; i < s->lah; ++i) {
+		int next_push = s->lah_buf[i];
+		s->lah_buf[i] = push;
+		push = next_push;
 	}
-
-	int content_len = sizeof(buf) - 1 - i;
-	if (num < 0) {
-		++content_len;
-		if (pad_char != ' ')
-			ostrm_putc(strm, '-');
-	}
-
-	for (int j = 0; j < field_width - content_len; ++j)
-		ostrm_putc(strm, pad_char);
-
-	if (num < 0 && pad_char == ' ')
-		ostrm_putc(strm, '-');
-
-	ostrm_printf(strm, "%s", buf + i);
+	s->ch = to;
+	return 0;
 }

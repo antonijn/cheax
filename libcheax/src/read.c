@@ -34,71 +34,20 @@
  */
 #define MAX_LOOKAHEAD 2
 
-struct reader {
+struct read_info {
 	CHEAX *c;
-	struct istrm *strm;
-	int ch;
 	int bkquote_stack, comma_stack;
 
-	int buf[MAX_LOOKAHEAD];
-	int lah; /* actual lookahead */
+	int lah_buf[MAX_LOOKAHEAD];
 };
 
-static int
-rdr_advch(struct reader *rdr)
-{
-	int res = rdr->ch;
-	if (res != EOF) {
-		int pop = 0;
-		for (int i = rdr->lah - 1; i >= 0; --i) {
-			int next_pop = rdr->buf[i];
-			rdr->buf[i] = pop;
-			pop = next_pop;
-		}
-
-		if (rdr->lah == 0) {
-			rdr->ch = istrm_getc(rdr->strm);
-		} else {
-			--rdr->lah;
-			rdr->ch = pop;
-		}
-
-	}
-	return res;
-}
-
-static int
-rdr_backup_to(struct reader *rdr, int c)
-{
-	if (rdr->lah >= MAX_LOOKAHEAD) {
-		cry(rdr->c, "read", CHEAX_EREAD, "rdr_backup_to() called too often");
-		return EOF;
-	}
-
-	++rdr->lah;
-
-	int push = rdr->ch;
-	for (int i = 0; i < rdr->lah; ++i) {
-		int next_push = rdr->buf[i];
-		rdr->buf[i] = push;
-		push = next_push;
-	}
-	return rdr->ch = c;
-}
-
 static void
-rdr_init(struct reader *rdr, struct istrm *strm, CHEAX *c)
+read_init(struct read_info *ri, struct scnr *s, struct istrm *strm, CHEAX *c)
 {
-	rdr->c = c;
-	rdr->strm = strm;
-	rdr->ch = 0;
-	rdr->bkquote_stack = 0;
-	rdr->comma_stack = 0;
+	ri->c = c;
+	ri->bkquote_stack = ri->comma_stack = 0;
 
-	memset(rdr->buf, 0, MAX_LOOKAHEAD * sizeof(rdr->buf[0]));
-	rdr->lah = 0;
-
-	rdr_advch(rdr);
+	scnr_init(s, strm, MAX_LOOKAHEAD, &ri->lah_buf[0]);
 }
 
 static int
@@ -116,42 +65,44 @@ is_initial_id(int ch)
 }
 
 static void
-skip_space(struct reader *rdr)
+skip_space(struct scnr *s)
 {
-	while (isspace(rdr->ch))
-		rdr_advch(rdr);
+	for (;;) {
+		while (isspace(s->ch))
+			scnr_adv(s);
 
-	if (rdr->ch == ';') {
-		rdr_advch(rdr);
-		while (rdr->ch != '\n' && rdr->ch != EOF)
-			rdr_advch(rdr);
-		skip_space(rdr);
+		if (s->ch != ';')
+			break;
+
+		scnr_adv(s);
+		while (s->ch != '\n' && s->ch != EOF)
+			scnr_adv(s);
 	}
 }
 
 static struct chx_value *
-read_id(struct reader *rdr) /* consume_final = true */
+read_id(struct read_info *ri, struct scnr *s) /* consume_final = true */
 {
 	struct sostrm ss;
-	sostrm_init(&ss, rdr->c);
+	sostrm_init(&ss, ri->c);
 
 	struct chx_value *res = NULL;
 
-	while (is_id(rdr->ch))
-		ostrm_putc(&ss.strm, rdr_advch(rdr));
+	while (is_id(s->ch))
+		ostrm_putc(&ss.strm, scnr_adv(s));
 
-	if (rdr->ch != EOF && !isspace(rdr->ch) && rdr->ch != ')') {
-		cry(rdr->c, "read", CHEAX_EREAD, "only whitespace or `)' may follow identifier");
+	if (s->ch != EOF && !isspace(s->ch) && s->ch != ')') {
+		cry(ri->c, "read", CHEAX_EREAD, "only whitespace or `)' may follow identifier");
 		goto done;
 	}
 
 	if (ss.idx == 4 && memcmp(ss.buf, "true", 4) == 0) {
-		res = &cheax_true(rdr->c)->base;
+		res = &cheax_true(ri->c)->base;
 	} else if (ss.idx == 5 && memcmp(ss.buf, "false", 5) == 0) {
-		res = &cheax_false(rdr->c)->base;
+		res = &cheax_false(ri->c)->base;
 	} else {
 		ostrm_putc(&ss.strm, '\0');
-		res = &cheax_id(rdr->c, ss.buf)->base;
+		res = &cheax_id(ri->c, ss.buf)->base;
 	}
 
 done:
@@ -160,10 +111,7 @@ done:
 }
 
 static int_least64_t
-read_digits(struct reader *rdr,
-            struct ostrm *ostr,
-            int base,
-            bool *too_big)
+read_digits(struct scnr *s, struct ostrm *ostr, int base, bool *too_big)
 {
 	int_least64_t value = 0;
 	char max_digit = (base <= 10) ? '0' + base - 1 : '9';
@@ -171,16 +119,16 @@ read_digits(struct reader *rdr,
 
 	for (;;) {
 		int digit;
-		if (rdr->ch >= '0' && rdr->ch <= max_digit)
-			digit = rdr->ch - '0';
-		else if (base == 16 && rdr->ch >= 'A' && rdr->ch <= 'F')
-			digit = rdr->ch - 'A' + 10;
-		else if (base == 16 && rdr->ch >= 'a' && rdr->ch <= 'f')
-			digit = rdr->ch - 'a' + 10;
+		if (s->ch >= '0' && s->ch <= max_digit)
+			digit = s->ch - '0';
+		else if (base == 16 && s->ch >= 'A' && s->ch <= 'F')
+			digit = s->ch - 'A' + 10;
+		else if (base == 16 && s->ch >= 'a' && s->ch <= 'f')
+			digit = s->ch - 'a' + 10;
 		else
 			break;
 
-		ostrm_putc(ostr, rdr_advch(rdr));
+		ostrm_putc(ostr, scnr_adv(s));
 
 		if (overflow || value > INT_LEAST64_MAX / base) {
 			overflow = true;
@@ -204,10 +152,10 @@ read_digits(struct reader *rdr,
 }
 
 static struct chx_value *
-read_num(struct reader *rdr) /* consume_final = true */
+read_num(struct read_info *ri, struct scnr *s) /* consume_final = true */
 {
 	struct sostrm ss;
-	sostrm_init(&ss, rdr->c);
+	sostrm_init(&ss, ri->c);
 
 	struct chx_value *res = NULL;
 
@@ -225,47 +173,47 @@ read_num(struct reader *rdr) /* consume_final = true */
 	bool negative = false, too_big = false, is_double = false;
 	int base = 10;
 
-	if (rdr->ch == '-') {
+	if (s->ch == '-') {
 		negative = true;
-		ostrm_putc(&ss.strm, rdr_advch(rdr));
-	} else if (rdr->ch == '+') {
-		ostrm_putc(&ss.strm, rdr_advch(rdr));
+		ostrm_putc(&ss.strm, scnr_adv(s));
+	} else if (s->ch == '+') {
+		ostrm_putc(&ss.strm, scnr_adv(s));
 	}
 
-	if (rdr->ch == '0') {
-		ostrm_putc(&ss.strm, rdr_advch(rdr));
-		if (rdr->ch == 'x' || rdr->ch == 'X') {
+	if (s->ch == '0') {
+		ostrm_putc(&ss.strm, scnr_adv(s));
+		if (s->ch == 'x' || s->ch == 'X') {
 			base = 16;
-			ostrm_putc(&ss.strm, rdr_advch(rdr));
-		} else if (rdr->ch == 'b' || rdr->ch == 'B') {
+			ostrm_putc(&ss.strm, scnr_adv(s));
+		} else if (s->ch == 'b' || s->ch == 'B') {
 			base = 2;
-			ostrm_putc(&ss.strm, rdr_advch(rdr));
-		} else if (isdigit(rdr->ch)) {
+			ostrm_putc(&ss.strm, scnr_adv(s));
+		} else if (isdigit(s->ch)) {
 			base = 8;
 		}
 	}
 
-	pos_whole_value = read_digits(rdr, &ss.strm, base, &too_big);
+	pos_whole_value = read_digits(s, &ss.strm, base, &too_big);
 
-	if (rdr->ch == '.' && (base == 10 || base == 16)) {
+	if (s->ch == '.' && (base == 10 || base == 16)) {
 		is_double = true;
-		ostrm_putc(&ss.strm, rdr_advch(rdr));
-		read_digits(rdr, &ss.strm, base, NULL);
+		ostrm_putc(&ss.strm, scnr_adv(s));
+		read_digits(s, &ss.strm, base, NULL);
 	}
 
-	if ((base == 10 && (rdr->ch == 'e' || rdr->ch == 'E'))
-	 || (base == 16 && (rdr->ch == 'p' || rdr->ch == 'P')))
+	if ((base == 10 && (s->ch == 'e' || s->ch == 'E'))
+	 || (base == 16 && (s->ch == 'p' || s->ch == 'P')))
 	{
-		ostrm_putc(&ss.strm, rdr_advch(rdr));
+		ostrm_putc(&ss.strm, scnr_adv(s));
 
-		if (rdr->ch == '-' || rdr->ch == '+')
-			ostrm_putc(&ss.strm, rdr_advch(rdr));
+		if (s->ch == '-' || s->ch == '+')
+			ostrm_putc(&ss.strm, scnr_adv(s));
 
-		read_digits(rdr, &ss.strm, base, NULL);
+		read_digits(s, &ss.strm, base, NULL);
 	}
 
-	if (rdr->ch != EOF && !isspace(rdr->ch) && rdr->ch != ')') {
-		cry(rdr->c, "read", CHEAX_EREAD, "only whitespace or `)' may follow number");
+	if (s->ch != EOF && !isspace(s->ch) && s->ch != ')') {
+		cry(ri->c, "read", CHEAX_EREAD, "only whitespace or `)' may follow number");
 		goto done;
 	}
 
@@ -274,11 +222,11 @@ read_num(struct reader *rdr) /* consume_final = true */
 			pos_whole_value = -pos_whole_value;
 
 		if (too_big || pos_whole_value > INT_MAX || pos_whole_value < INT_MIN) {
-			cry(rdr->c, "read", CHEAX_EREAD, "integer too big");
+			cry(ri->c, "read", CHEAX_EREAD, "integer too big");
 			goto done;
 		}
 
-		res = &cheax_int(rdr->c, (int)pos_whole_value)->base;
+		res = &cheax_int(ri->c, (int)pos_whole_value)->base;
 		goto done;
 	}
 
@@ -298,11 +246,11 @@ read_num(struct reader *rdr) /* consume_final = true */
 #endif
 
 	if (*endptr != '\0') {
-		cry(rdr->c, "read", CHEAX_EREAD, "unexpected strtod() error");
+		cry(ri->c, "read", CHEAX_EREAD, "unexpected strtod() error");
 		goto done;
 	}
 
-	res = &cheax_double(rdr->c, dval)->base;
+	res = &cheax_double(ri->c, dval)->base;
 
 done:
 	free(ss.buf);
@@ -310,12 +258,12 @@ done:
 }
 
 static void
-read_bslash_expr(struct reader *rdr, struct ostrm *ostr) /* consume_final = true */
+read_bslash(struct read_info *ri, struct scnr *s, struct ostrm *ostr) /* consume_final = true */
 {
 	/* I expect the backslash itself to have been consumed */
 
 	int ch = -1;
-	switch (rdr->ch) {
+	switch (s->ch) {
 	case 'n':  ch = '\n'; break;
 	case 'r':  ch = '\r'; break;
 	case '\\': ch = '\\'; break;
@@ -327,26 +275,26 @@ read_bslash_expr(struct reader *rdr, struct ostrm *ostr) /* consume_final = true
 
 	if (ch != -1) {
 		ostrm_putc(ostr, ch);
-		rdr_advch(rdr);
+		scnr_adv(s);
 		return;
 	}
 
-	if (rdr->ch == 'x' || rdr->ch == 'X') {
-		rdr_advch(rdr);
+	if (s->ch == 'x' || s->ch == 'X') {
+		scnr_adv(s);
 		int digits[2];
 		for (int i = 0; i < 2; ++i) {
-			if (rdr->ch >= '0' && rdr->ch <= '9') {
-				digits[i] = rdr->ch - '0';
-			} else if (rdr->ch >= 'A' && rdr->ch <= 'F') {
-				digits[i] = rdr->ch - 'A' + 10;
-			} else if (rdr->ch >= 'a' && rdr->ch <= 'f') {
-				digits[i] = rdr->ch - 'a' + 10;
+			if (s->ch >= '0' && s->ch <= '9') {
+				digits[i] = s->ch - '0';
+			} else if (s->ch >= 'A' && s->ch <= 'F') {
+				digits[i] = s->ch - 'A' + 10;
+			} else if (s->ch >= 'a' && s->ch <= 'f') {
+				digits[i] = s->ch - 'a' + 10;
 			} else {
-				cry(rdr->c, "read", CHEAX_EREAD, "expected two hex digits after `\\x'");
+				cry(ri->c, "read", CHEAX_EREAD, "expected two hex digits after `\\x'");
 				return;
 			}
 
-			rdr_advch(rdr);
+			scnr_adv(s);
 		}
 
 		ostrm_putc(ostr, (digits[0] << 4) + digits[1]);
@@ -355,31 +303,31 @@ read_bslash_expr(struct reader *rdr, struct ostrm *ostr) /* consume_final = true
 
 	/* TODO maybe uXXXX expressions */
 
-	cry(rdr->c, "read", CHEAX_EREAD, "unexpected character after `\\'");
+	cry(ri->c, "read", CHEAX_EREAD, "unexpected character after `\\'");
 }
 
 static struct chx_value *
-read_string(struct reader *rdr, int consume_final)
+read_string(struct read_info *ri, struct scnr *s, bool consume_final)
 {
 	struct sostrm ss;
-	sostrm_init(&ss, rdr->c);
+	sostrm_init(&ss, ri->c);
 
 	struct chx_value *res = NULL;
 
 	/* consume initial `"' */
-	rdr_advch(rdr);
+	scnr_adv(s);
 
-	while (rdr->ch != '"') {
+	while (s->ch != '"') {
 		int ch;
-		switch ((ch = rdr_advch(rdr))) {
+		switch ((ch = scnr_adv(s))) {
 		case '\n':
 		case EOF:
-			cry(rdr->c, "read", CHEAX_EREAD, "unexpected string termination");
+			cry(ri->c, "read", CHEAX_EREAD, "unexpected string termination");
 			goto done;
 
 		case '\\':
-			read_bslash_expr(rdr, &ss.strm);
-			cheax_ft(rdr->c, done);
+			read_bslash(ri, s, &ss.strm);
+			cheax_ft(ri->c, done);
 			break;
 		default:
 			ostrm_putc(&ss.strm, ch);
@@ -388,116 +336,114 @@ read_string(struct reader *rdr, int consume_final)
 	}
 
 	if (consume_final)
-		rdr_advch(rdr);
+		scnr_adv(s);
 
-	res = &cheax_nstring(rdr->c, ss.buf, ss.idx)->base;
-
+	res = &cheax_nstring(ri->c, ss.buf, ss.idx)->base;
 done:
 	free(ss.buf);
 	return res;
 }
 
 static struct chx_value *
-rdr_read(struct reader *rdr, bool consume_final)
+read_value(struct read_info *ri, struct scnr *s, bool consume_final)
 {
-	skip_space(rdr);
+	skip_space(s);
 
-	if (rdr->ch == '-') {
-		rdr_advch(rdr);
+	if (s->ch == '-') {
+		scnr_adv(s);
 		bool is_num = false;
 
-		if (isdigit(rdr->ch)) {
+		if (isdigit(s->ch)) {
 			is_num = true;
-		} else if (rdr->ch == '.') {
-			rdr_advch(rdr);
-			is_num = isdigit(rdr->ch);
-			rdr_backup_to(rdr, '.');
+		} else if (s->ch == '.') {
+			scnr_adv(s);
+			is_num = isdigit(s->ch);
+			scnr_backup(s, '.');
 		}
 
-		rdr_backup_to(rdr, '-');
+		scnr_backup(s, '-');
 
-		return is_num ? read_num(rdr) : read_id(rdr);
+		return is_num ? read_num(ri, s) : read_id(ri, s);
 	}
 
-	if (rdr->ch == '.') {
-		rdr_advch(rdr);
-		bool is_num = isdigit(rdr->ch);
-		rdr_backup_to(rdr, '.');
+	if (s->ch == '.') {
+		scnr_adv(s);
+		bool is_num = isdigit(s->ch);
+		scnr_backup(s, '.');
 
-		return is_num ? read_num(rdr) : read_id(rdr);
+		return is_num ? read_num(ri, s) : read_id(ri, s);
 	}
 
-	if (is_initial_id(rdr->ch))
-		return read_id(rdr);
+	if (is_initial_id(s->ch))
+		return read_id(ri, s);
 
-	if (isdigit(rdr->ch))
-		return read_num(rdr);
+	if (isdigit(s->ch))
+		return read_num(ri, s);
 
-	if (rdr->ch == '(') {
+	if (s->ch == '(') {
 		struct chx_list *lst = NULL;
 		struct chx_list **next = &lst;
 
-		rdr_advch(rdr);
-		while (rdr->ch != ')') {
-			if (rdr->ch == EOF) {
-				cry(rdr->c, "read", CHEAX_EEOF, "unexpected end-of-file in s-expression");
+		scnr_adv(s);
+		while (s->ch != ')') {
+			if (s->ch == EOF) {
+				cry(ri->c, "read", CHEAX_EEOF, "unexpected end-of-file in s-expression");
 				return NULL;
 			}
 
-			*next = cheax_list(rdr->c, rdr_read(rdr, true), NULL);
-			cheax_ft(rdr->c, pad);
+			*next = cheax_list(ri->c, read_value(ri, s, true), NULL);
+			cheax_ft(ri->c, pad);
 			next = &(*next)->next;
 
-			skip_space(rdr);
+			skip_space(s);
 		}
 
 		if (consume_final)
-			rdr_advch(rdr);
+			scnr_adv(s);
 
 		return &lst->base;
 	}
 
-	if (rdr->ch == '\'') {
-		rdr_advch(rdr);
-		struct chx_value *to_quote = rdr_read(rdr, consume_final);
-		cheax_ft(rdr->c, pad);
-		return &cheax_quote(rdr->c, to_quote)->base;
+	if (s->ch == '\'') {
+		scnr_adv(s);
+		struct chx_value *to_quote = read_value(ri, s, consume_final);
+		cheax_ft(ri->c, pad);
+		return &cheax_quote(ri->c, to_quote)->base;
 	}
 
-	if (rdr->ch == '`') {
-		rdr_advch(rdr);
-		++rdr->bkquote_stack;
-		struct chx_value *to_quote = rdr_read(rdr, consume_final);
-		--rdr->bkquote_stack;
-		cheax_ft(rdr->c, pad);
-		return &cheax_backquote(rdr->c, to_quote)->base;
+	if (s->ch == '`') {
+		scnr_adv(s);
+		++ri->bkquote_stack;
+		struct chx_value *to_quote = read_value(ri, s, consume_final);
+		--ri->bkquote_stack;
+		cheax_ft(ri->c, pad);
+		return &cheax_backquote(ri->c, to_quote)->base;
 	}
 
-	if (rdr->ch == ',') {
-		if (rdr->bkquote_stack == 0) {
-			cry(rdr->c, "read", CHEAX_EREAD, "comma is illegal outside of backquotes");
+	if (s->ch == ',') {
+		if (ri->bkquote_stack == 0) {
+			cry(ri->c, "read", CHEAX_EREAD, "comma is illegal outside of backquotes");
 			return NULL;
 		}
 		/* same error, different message */
-		if (rdr->comma_stack >= rdr->bkquote_stack) {
-			cry(rdr->c, "read", CHEAX_EREAD, "more commas than backquotes");
+		if (ri->comma_stack >= ri->bkquote_stack) {
+			cry(ri->c, "read", CHEAX_EREAD, "more commas than backquotes");
 			return NULL;
 		}
 
-		rdr_advch(rdr);
-		++rdr->comma_stack;
-		struct chx_value *to_comma = rdr_read(rdr, consume_final);
-		--rdr->comma_stack;
-		cheax_ft(rdr->c, pad);
-		return &cheax_comma(rdr->c, to_comma)->base;
+		scnr_adv(s);
+		++ri->comma_stack;
+		struct chx_value *to_comma = read_value(ri, s, consume_final);
+		--ri->comma_stack;
+		cheax_ft(ri->c, pad);
+		return &cheax_comma(ri->c, to_comma)->base;
 	}
 
-	if (rdr->ch == '"')
-		return read_string(rdr, consume_final);
+	if (s->ch == '"')
+		return read_string(ri, s, consume_final);
 
-	if (rdr->ch != EOF)
-		cry(rdr->c, "read", CHEAX_EREAD, "unexpected character `%c'", rdr->ch);
-
+	if (s->ch != EOF)
+		cry(ri->c, "read", CHEAX_EREAD, "unexpected character `%c'", s->ch);
 pad:
 	return NULL;
 }
@@ -508,10 +454,11 @@ cheax_read(CHEAX *c, FILE *infile)
 	struct fistrm fs;
 	fistrm_init(&fs, infile, c);
 
-	struct reader rdr;
-	rdr_init(&rdr, &fs.strm, c);
+	struct read_info ri;
+	struct scnr s;
+	read_init(&ri, &s, &fs.strm, c);
 
-	return rdr_read(&rdr, false);
+	return read_value(&ri, &s, false);
 }
 struct chx_value *
 cheax_readstr(CHEAX *c, const char *str)
@@ -519,8 +466,9 @@ cheax_readstr(CHEAX *c, const char *str)
 	struct sistrm ss;
 	sistrm_init(&ss, str);
 
-	struct reader rdr;
-	rdr_init(&rdr, &ss.strm, c);
+	struct read_info ri;
+	struct scnr s;
+	read_init(&ri, &s, &ss.strm, c);
 
-	return rdr_read(&rdr, false);
+	return read_value(&ri, &s, false);
 }
