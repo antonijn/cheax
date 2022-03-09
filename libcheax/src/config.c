@@ -19,6 +19,24 @@
 #include "config.h"
 #include "api.h"
 
+union config_get {
+	int (*get_int)(CHEAX *c);
+	bool (*get_bool)(CHEAX *c);
+};
+
+union config_set {
+	void (*set_int)(CHEAX *c, int value);
+	void (*set_bool)(CHEAX *c, bool value);
+};
+
+struct config_info {
+	const char *name;
+	int type;
+	union config_get get;
+	union config_set set;
+	const char *help;
+};
+
 static int
 get_stack_limit(CHEAX *c)
 {
@@ -58,12 +76,17 @@ static struct config_info opts[] = {
 	{
 		"mem-limit", CHEAX_INT,
 		{ .get_int = get_mem_limit },
-		{ .set_int = set_mem_limit }
+		{ .set_int = set_mem_limit },
+		"Maximum amount of memory that cheax is allowed to use "
+		"given as a number of bytes. Set to 0 to disable "
+		"memory limiting."
 	},
 	{
 		"stack-limit", CHEAX_INT,
 		{ .get_int = get_stack_limit },
-		{ .set_int = set_stack_limit }
+		{ .set_int = set_stack_limit },
+		"Maximum call stack depth. Set to 0 to disable stack "
+		"depth limiting."
 	},
 };
 
@@ -229,5 +252,27 @@ cheax_config_bool(CHEAX *c, const char *opt, bool value)
 		return -1;
 
 	ci->set.set_bool(c, value);
+	return 0;
+}
+
+int
+cheax_config_help(struct chx_config_help **help, size_t *num_opts)
+{
+	size_t nopts = sizeof(opts) / sizeof(opts[0]);
+	struct chx_config_help *arr = malloc(nopts * sizeof(struct chx_config_help));
+	if (arr == NULL) {
+		*help = NULL;
+		*num_opts = 0;
+		return -1;
+	}
+
+	for (size_t i = 0; i < nopts; ++i) {
+		arr[i].name = opts[i].name;
+		arr[i].type = opts[i].type;
+		arr[i].help = opts[i].help;
+	}
+
+	*help = arr;
+	*num_opts = nopts;
 	return 0;
 }

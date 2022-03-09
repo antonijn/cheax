@@ -924,6 +924,14 @@ CHX_API bool cheax_config_get_bool(CHEAX *c, const char *opt);
  */
 CHX_API int cheax_config_bool(CHEAX *c, const char *opt, bool value);
 
+struct chx_config_help {
+	const char *name;
+	int type;
+	const char *help;
+};
+
+CHX_API int cheax_config_help(struct chx_config_help **help, size_t *num_opts);
+
 /*! \brief Reads cheax expression from file.
  *
  * Core element of the read, eval, print loop.

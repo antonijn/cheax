@@ -18,23 +18,6 @@
 
 #include <cheax.h>
 
-union config_get {
-	int (*get_int)(CHEAX *c);
-	bool (*get_bool)(CHEAX *c);
-};
-
-union config_set {
-	void (*set_int)(CHEAX *c, int value);
-	void (*set_bool)(CHEAX *c, bool value);
-};
-
-struct config_info {
-	const char *name;
-	int type;
-	union config_get get;
-	union config_set set;
-};
-
 int config_init(CHEAX *c);
 int find_config_feature(const char *feat);
 void load_config_features(CHEAX *c, int bits);
