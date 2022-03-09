@@ -19,6 +19,7 @@
 #include <stdlib.h>
 
 #include "api.h"
+#include "config.h"
 #include "setup.h"
 #include "gc.h"
 
@@ -722,6 +723,7 @@ cheax_init(void)
 
 	declare_builtin_errors(res);
 	export_builtins(res);
+	config_init(res);
 	return res;
 }
 void
@@ -737,6 +739,7 @@ cheax_destroy(CHEAX *c)
 
 	cheax_free(c, c->typestore.array);
 	cheax_free(c, c->user_error_names.array);
+	free(c->config_syms);
 
 	env_cleanup(&c->globals, NULL);
 	gcol_destroy(c);

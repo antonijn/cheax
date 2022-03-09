@@ -20,6 +20,7 @@
 #include <limits.h>
 
 #include "api.h"
+#include "config.h"
 #include "setup.h"
 #include "format.h"
 #include "gc.h"
@@ -801,30 +802,6 @@ bltn_type_of(CHEAX *c, struct chx_list *args, void *info)
 }
 
 static struct chx_value *
-bltn_get_stack_limit(CHEAX *c, struct chx_list *args, void *info)
-{
-	return (0 == unpack(c, "get-stack-limit", args, ""))
-	     ? &cheax_int(c, cheax_config_get_int(c, "stack-limit"))->base
-	     : NULL;
-}
-
-static struct chx_value *
-bltn_set_stack_limit(CHEAX *c, struct chx_list *args, void *info)
-{
-	int setto;
-	if (unpack(c, "set-stack-limit", args, "i!", &setto) < 0)
-		return NULL;
-
-	cheax_config_int(c, "stack-limit", setto);
-	if (cheax_errstate(c) == CHEAX_THROWN && cheax_errno(c) == CHEAX_EAPI) {
-		/* convert EAPI to EVALUE */
-		c->error.code = CHEAX_EVALUE;
-	}
-
-	return NULL;
-}
-
-static struct chx_value *
 create_func(CHEAX *c,
             const char *name,
             struct chx_list *args,
@@ -1190,7 +1167,6 @@ export_builtins(CHEAX *c)
 		{ "env",             bltn_env             },
 		{ ":",               bltn_prepend         },
 		{ "type-of",         bltn_type_of         },
-		{ "get-stack-limit", bltn_get_stack_limit },
 		{ "fn",              bltn_fn              },
 		{ "macro",           bltn_macro           },
 		{ "eval",            bltn_eval            },
@@ -1217,19 +1193,6 @@ export_builtins(CHEAX *c)
 	cheax_defsym(c, "features",      get_features,      NULL, NULL, NULL);
 }
 
-enum {
-	FILE_IO         = 0x0001,
-	SET_STACK_LIMIT = 0x0002,
-	GC_BUILTIN      = 0x0004,
-	EXIT_BUILTIN    = 0x0008,
-	EXPOSE_STDIN    = 0x0010,
-	EXPOSE_STDOUT   = 0x0020,
-	EXPOSE_STDERR   = 0x0040,
-	STDIO           = EXPOSE_STDIN | EXPOSE_STDOUT | EXPOSE_STDERR,
-
-	ALL_FEATURES    = (EXPOSE_STDERR << 1) - 1,
-};
-
 /* sorted asciibetically for use in bsearch() */
 static const struct nfeat { const char *name; int feat; } named_feats[] = {
 	{"all",             ALL_FEATURES    },
@@ -1238,7 +1201,6 @@ static const struct nfeat { const char *name; int feat; } named_feats[] = {
 #ifndef USE_BOEHM_GC
 	{"gc",              GC_BUILTIN      },
 #endif
-	{"set-stack-limit", SET_STACK_LIMIT },
 	{"stderr",          EXPOSE_STDERR   },
 	{"stdin",           EXPOSE_STDIN    },
 	{"stdio",           STDIO           },
@@ -1252,17 +1214,21 @@ feature_compar(const char *key, const struct nfeat *nf)
 	return strcmp(key, nf->name);
 }
 
-static struct chx_value *
-get_features(CHEAX *c, struct chx_sym *sym)
+static struct chx_list *
+feature_list(CHEAX *c, struct chx_list *base)
 {
-	struct chx_list *list = NULL;
-
+	struct chx_list *list = base;
 	int len = sizeof(named_feats) / sizeof(named_feats[0]);
 	for (int i = len - 1; i >= 0; --i)
 		if (has_flag(c->features, named_feats[i].feat))
 			list = cheax_list(c, &cheax_string(c, named_feats[i].name)->base, list);
+	return list;
+}
 
-	return &list->base;
+static struct chx_value *
+get_features(CHEAX *c, struct chx_sym *sym)
+{
+	return &feature_list(c, config_feature_list(c, NULL))->base;
 }
 
 static int
@@ -1278,7 +1244,7 @@ find_feature(const char *feat)
 int
 cheax_load_feature(CHEAX *c, const char *feat)
 {
-	int feats = find_feature(feat);
+	int feats = find_feature(feat) | find_config_feature(feat);
 	if (feats == 0)
 		return -1;
 
@@ -1289,9 +1255,6 @@ cheax_load_feature(CHEAX *c, const char *feat)
 		cheax_defmacro(c, "fopen", bltn_fopen, NULL);
 		cheax_defmacro(c, "fclose", bltn_fclose, NULL);
 	}
-
-	if (has_flag(nf, SET_STACK_LIMIT))
-		cheax_defmacro(c, "set-stack-limit", bltn_set_stack_limit, NULL);
 
 #ifndef USE_BOEHM_GC
 	if (has_flag(nf, GC_BUILTIN)) {
@@ -1320,6 +1283,8 @@ cheax_load_feature(CHEAX *c, const char *feat)
 		          &cheax_user_ptr(c, stderr, c->fhandle_type)->base,
 		          CHEAX_READONLY);
 	}
+
+	load_config_features(c, nf);
 
 	c->features |= nf;
 	return 0;

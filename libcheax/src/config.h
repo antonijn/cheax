@@ -35,8 +35,9 @@ struct config_info {
 	union config_set set;
 };
 
-extern struct config_info opts[];
-
-struct config_info *find_opt(const char *name);
+int config_init(CHEAX *c);
+int find_config_feature(const char *feat);
+void load_config_features(CHEAX *c, int bits);
+struct chx_list *config_feature_list(CHEAX *c, struct chx_list *base);
 
 #endif

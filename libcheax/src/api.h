@@ -87,7 +87,21 @@ struct cheax {
 	struct chx_env globals;
 	struct chx_env *env;
 
-	int features;
+	enum {
+		FILE_IO         = 0x0001,
+		SET_STACK_LIMIT = 0x0002,
+		GC_BUILTIN      = 0x0004,
+		EXIT_BUILTIN    = 0x0008,
+		EXPOSE_STDIN    = 0x0010,
+		EXPOSE_STDOUT   = 0x0020,
+		EXPOSE_STDERR   = 0x0040,
+		STDIO           = EXPOSE_STDIN | EXPOSE_STDOUT | EXPOSE_STDERR,
+		CONFIG_FEAT_BIT = 0x0080,
+		/* bits above CONFIG_FEAT_BIT reserved */
+
+		ALL_FEATURES    = ~0,
+	} features;
+
 	int stack_limit, stack_depth, mem_limit;
 
 	int fhandle_type;
@@ -106,6 +120,8 @@ struct cheax {
 		struct type_alias *array;
 		size_t len, cap;
 	} typestore;
+
+	struct chx_sym **config_syms;
 
 	struct gc_info gc;
 };
