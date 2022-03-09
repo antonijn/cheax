@@ -817,8 +817,7 @@ can_cast(CHEAX *c, struct chx_value *v, int type)
 
 	int vtype = cheax_type_of(v);
 	return vtype == type
-	    || cheax_get_base_type(c, vtype) == type
-	    || (vtype == CHEAX_INT && type == CHEAX_DOUBLE);
+	    || cheax_get_base_type(c, vtype) == type;
 }
 
 struct chx_value *
@@ -828,9 +827,6 @@ cheax_cast(CHEAX *c, struct chx_value *v, int type)
 		cry(c, "cast", CHEAX_ETYPE, "invalid cast");
 		return NULL;
 	}
-
-	if (cheax_type_of(v) == CHEAX_INT && type == CHEAX_DOUBLE)
-		return &cheax_double(c, (double)((struct chx_int *)v)->value)->base;
 
 	struct chx_value *res = cheax_shallow_copy(c, v);
 	return (res != NULL) ? set_type(res, type) : res;
