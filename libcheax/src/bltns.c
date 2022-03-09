@@ -793,24 +793,25 @@ bltn_type_of(CHEAX *c, struct chx_list *args, void *info)
 }
 
 static struct chx_value *
-bltn_get_max_stack_depth(CHEAX *c, struct chx_list *args, void *info)
+bltn_get_stack_limit(CHEAX *c, struct chx_list *args, void *info)
 {
-	return (0 == unpack(c, "get-max-stack-depth", args, ""))
-	     ? &cheax_int(c, c->max_stack_depth)->base
+	return (0 == unpack(c, "get-stack-limit", args, ""))
+	     ? &cheax_int(c, cheax_config_get_int(c, "stack-limit"))->base
 	     : NULL;
 }
 
 static struct chx_value *
-bltn_set_max_stack_depth(CHEAX *c, struct chx_list *args, void *info)
+bltn_set_stack_limit(CHEAX *c, struct chx_list *args, void *info)
 {
 	int setto;
-	if (unpack(c, "set-max-stack-depth", args, "i!", &setto) < 0)
+	if (unpack(c, "set-stack-limit", args, "i!", &setto) < 0)
 		return NULL;
 
-	if (setto > 0)
-		cheax_set_max_stack_depth(c, setto);
-	else
-		cry(c, "set-max-stack-depth", CHEAX_EVALUE, "maximum stack depth must be positive");
+	cheax_config_int(c, "stack-limit", setto);
+	if (cheax_errstate(c) == CHEAX_THROWN && cheax_errno(c) == CHEAX_EAPI) {
+		/* convert EAPI to EVALUE */
+		c->error.code = CHEAX_EVALUE;
+	}
 
 	return NULL;
 }
@@ -1154,47 +1155,47 @@ export_builtins(CHEAX *c)
 	c->fhandle_type = cheax_new_type(c, "FileHandle", CHEAX_USER_PTR);
 
 	struct { const char *name; chx_func_ptr fn; } bltns[] = {
-		{ "read-from",           bltn_read_from           },
-		{ "print-to",            bltn_print_to            },
-		{ "put-to",              bltn_put_to              },
-		{ "get-byte-from",       bltn_get_byte_from       },
-		{ "get-line-from",       bltn_get_line_from       },
+		{ "read-from",       bltn_read_from       },
+		{ "print-to",        bltn_print_to        },
+		{ "put-to",          bltn_put_to          },
+		{ "get-byte-from",   bltn_get_byte_from   },
+		{ "get-line-from",   bltn_get_line_from   },
 
-		{ "format",              bltn_format              },
-		{ "strbytes",            bltn_strbytes            },
-		{ "strsize",             bltn_strsize             },
-		{ "substr",              bltn_substr              },
+		{ "format",          bltn_format          },
+		{ "strbytes",        bltn_strbytes        },
+		{ "strsize",         bltn_strsize         },
+		{ "substr",          bltn_substr          },
 
-		{ "throw",               bltn_throw               },
-		{ "try",                 bltn_try                 },
-		{ "new-error-code",      bltn_new_error_code      },
+		{ "throw",           bltn_throw           },
+		{ "try",             bltn_try             },
+		{ "new-error-code",  bltn_new_error_code  },
 
-		{ "defsym",              bltn_defsym              },
-		{ "var",                 bltn_var                 },
-		{ "def",                 bltn_def                 },
-		{ "let",                 bltn_let                 },
-		{ "set",                 bltn_set                 },
+		{ "defsym",          bltn_defsym          },
+		{ "var",             bltn_var             },
+		{ "def",             bltn_def             },
+		{ "let",             bltn_let             },
+		{ "set",             bltn_set             },
 
-		{ "env",                 bltn_env                 },
-		{ ":",                   bltn_prepend             },
-		{ "type-of",             bltn_type_of             },
-		{ "get-max-stack-depth", bltn_get_max_stack_depth },
-		{ "fn",                  bltn_fn                  },
-		{ "macro",               bltn_macro               },
-		{ "eval",                bltn_eval                },
-		{ "case",                bltn_case                },
+		{ "env",             bltn_env             },
+		{ ":",               bltn_prepend         },
+		{ "type-of",         bltn_type_of         },
+		{ "get-stack-limit", bltn_get_stack_limit },
+		{ "fn",              bltn_fn              },
+		{ "macro",           bltn_macro           },
+		{ "eval",            bltn_eval            },
+		{ "case",            bltn_case            },
 
-		{ "+",                   bltn_add                 },
-		{ "-",                   bltn_sub                 },
-		{ "*",                   bltn_mul                 },
-		{ "/",                   bltn_div                 },
-		{ "%",                   bltn_mod                 },
-		{ "=",                   bltn_eq                  },
-		{ "!=",                  bltn_ne                  },
-		{ "<",                   bltn_lt                  },
-		{ "<=",                  bltn_le                  },
-		{ ">",                   bltn_gt                  },
-		{ ">=",                  bltn_ge                  },
+		{ "+",               bltn_add             },
+		{ "-",               bltn_sub             },
+		{ "*",               bltn_mul             },
+		{ "/",               bltn_div             },
+		{ "%",               bltn_mod             },
+		{ "=",               bltn_eq              },
+		{ "!=",              bltn_ne              },
+		{ "<",               bltn_lt              },
+		{ "<=",              bltn_le              },
+		{ ">",               bltn_gt              },
+		{ ">=",              bltn_ge              },
 	};
 
 	int nbltns = sizeof(bltns) / sizeof(bltns[0]);
@@ -1206,31 +1207,31 @@ export_builtins(CHEAX *c)
 }
 
 enum {
-	FILE_IO             = 0x0001,
-	SET_MAX_STACK_DEPTH = 0x0002,
-	GC_BUILTIN          = 0x0004,
-	EXIT_BUILTIN        = 0x0008,
-	EXPOSE_STDIN        = 0x0010,
-	EXPOSE_STDOUT       = 0x0020,
-	EXPOSE_STDERR       = 0x0040,
-	STDIO               = EXPOSE_STDIN | EXPOSE_STDOUT | EXPOSE_STDERR,
+	FILE_IO         = 0x0001,
+	SET_STACK_LIMIT = 0x0002,
+	GC_BUILTIN      = 0x0004,
+	EXIT_BUILTIN    = 0x0008,
+	EXPOSE_STDIN    = 0x0010,
+	EXPOSE_STDOUT   = 0x0020,
+	EXPOSE_STDERR   = 0x0040,
+	STDIO           = EXPOSE_STDIN | EXPOSE_STDOUT | EXPOSE_STDERR,
 
-	ALL_FEATURES        = (EXPOSE_STDERR << 1) - 1,
+	ALL_FEATURES    = (EXPOSE_STDERR << 1) - 1,
 };
 
 /* sorted asciibetically for use in bsearch() */
 static const struct nfeat { const char *name; int feat; } named_feats[] = {
-	{"all",                  ALL_FEATURES        },
-	{"exit",                 EXIT_BUILTIN        },
-	{"file-io",              FILE_IO             },
+	{"all",             ALL_FEATURES    },
+	{"exit",            EXIT_BUILTIN    },
+	{"file-io",         FILE_IO         },
 #ifndef USE_BOEHM_GC
-	{"gc",                   GC_BUILTIN          },
+	{"gc",              GC_BUILTIN      },
 #endif
-	{"set-max-stack-depth",  SET_MAX_STACK_DEPTH },
-	{"stderr",               EXPOSE_STDERR       },
-	{"stdin",                EXPOSE_STDIN        },
-	{"stdio",                STDIO               },
-	{"stdout",               EXPOSE_STDOUT       },
+	{"set-stack-limit", SET_STACK_LIMIT },
+	{"stderr",          EXPOSE_STDERR   },
+	{"stdin",           EXPOSE_STDIN    },
+	{"stdio",           STDIO           },
+	{"stdout",          EXPOSE_STDOUT   },
 };
 
 /* used in bsearch() */
@@ -1278,8 +1279,8 @@ cheax_load_feature(CHEAX *c, const char *feat)
 		cheax_defmacro(c, "fclose", bltn_fclose, NULL);
 	}
 
-	if (has_flag(nf, SET_MAX_STACK_DEPTH))
-		cheax_defmacro(c, "set-max-stack-depth", bltn_set_max_stack_depth, NULL);
+	if (has_flag(nf, SET_STACK_LIMIT))
+		cheax_defmacro(c, "set-stack-limit", bltn_set_stack_limit, NULL);
 
 #ifndef USE_BOEHM_GC
 	if (has_flag(nf, GC_BUILTIN)) {

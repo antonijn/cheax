@@ -200,8 +200,8 @@ cheax_eval(CHEAX *c, struct chx_value *input)
 		break;
 
 	case CHEAX_LIST:
-		if (c->stack_depth >= c->max_stack_depth) {
-			cry(c, "eval", CHEAX_ESTACK, "stack overflow! (maximum stack depth = %d)", c->max_stack_depth);
+		if (c->stack_limit > 0 && c->stack_depth >= c->stack_limit) {
+			cry(c, "eval", CHEAX_ESTACK, "stack overflow! (stack limit %d)", c->stack_limit);
 			break;
 		}
 

@@ -87,8 +87,8 @@ struct cheax {
 	struct chx_env *env;
 
 	int features;
+	int stack_limit, stack_depth, mem_limit;
 
-	int max_stack_depth, stack_depth;
 	int fhandle_type;
 
 	struct {

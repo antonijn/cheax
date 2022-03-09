@@ -664,8 +664,9 @@ cheax_init(void)
 
 	res->features = 0;
 
-	res->max_stack_depth = 0x1000;
+	res->stack_limit = 0;
 	res->stack_depth = 0;
+	res->mem_limit = 0;
 	res->error.state = CHEAX_RUNNING;
 	res->error.code = 0;
 	res->error.msg = NULL;
@@ -759,22 +760,6 @@ cheax_list_to_array(CHEAX *c,
 	*length = len;
 	return 0;
 }
-
-
-int
-cheax_get_max_stack_depth(CHEAX *c)
-{
-	return c->max_stack_depth;
-}
-void
-cheax_set_max_stack_depth(CHEAX *c, int max_stack_depth)
-{
-	if (max_stack_depth > 0)
-		c->max_stack_depth = max_stack_depth;
-	else
-		cry(c, "cheax_set_max_stack_depth", CHEAX_EAPI, "maximum stack depth must be positive");
-}
-
 
 struct chx_value *
 cheax_shallow_copy(CHEAX *c, struct chx_value *v)

@@ -1,6 +1,8 @@
-#ifndef CONFIG_H
-#define CONFIG_H
+#ifndef SETUP_H
+#define SETUP_H
+
 #include "version.h"
+
 #define CMAKE_INSTALL_PREFIX "@CMAKE_INSTALL_PREFIX@"
 #cmakedefine BUILD_SHARED_LIBS
 #ifdef BUILD_SHARED_LIBS
@@ -22,4 +24,5 @@
 
 #define FEATURE_SUFFIX GC_SUFFIX SHARED_SUFFIX
 #define VERSION_STRING GIT_HASH FEATURE_SUFFIX
+
 #endif

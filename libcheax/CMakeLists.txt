@@ -29,6 +29,7 @@ set(CMAKE_C_VISIBILITY_PRESET hidden)
 
 add_library (libcheax
 	src/api.c
+	src/config.c
 	src/strm.c
 	src/rbtree.c
 	src/loc.c

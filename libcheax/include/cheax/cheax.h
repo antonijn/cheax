@@ -872,27 +872,57 @@ CHX_API struct chx_value *cheax_shallow_copy(CHEAX *c, struct chx_value *v);
  */
 CHX_API struct chx_value *cheax_cast(CHEAX *c, struct chx_value *v, int type);
 
-/*! \brief Gets the maximum cheax call stack depth.
+/* \brief Get value of integer configuration option.
  *
- * \param c Virtual machine instance.
+ * Sets cheax_errno() to \ref CHEAX_EAPI if no option of integer type
+ * with name \a opt exists.
  *
- * \returns Maximum cheax call stack depth.
+ * \param c   Virtual machine instance.
+ * \param opt Option name.
  *
- * \sa cheax_set_max_stack_depth()
+ * \returns Option value, or 0 upon failure.
  */
-CHX_API int cheax_get_max_stack_depth(CHEAX *c);
+CHX_API int cheax_config_get_int(CHEAX *c, const char *opt);
 
-/*! \brief Sets the maximum cheax call stack depth.
+/* \brief Set value of integer configuration option.
  *
- * Sets cheax_errno() to \ref CHEAX_EAPI if \a max_stack_depth is not
- * positive.
+ * Sets cheax_errno() to \ref CHEAX_EAPI if option \a opt does not have
+ * integer type, or if \a value is otherwise invalid for option \a opt.
+ * Fails silently in case no option with name \a opt could be found.
  *
- * \param c               Virtual machine instance.
- * \param max_stack_depth The new maximum cheax call stack depth.
+ * \param c     Virtual machine instance.
+ * \param opt   Option name.
+ * \param value Option value.
  *
- * \sa cheax_get_max_stack_depth()
+ * \returns 0 if an integer option with name \a opt was found, -1 otherwise.
  */
-CHX_API void cheax_set_max_stack_depth(CHEAX *c, int max_stack_depth);
+CHX_API int cheax_config_int(CHEAX *c, const char *opt, int value);
+
+/* \brief Get value of boolean configuration option.
+ *
+ * Sets cheax_errno() to \ref CHEAX_EAPI if no option of boolean type
+ * with name \a opt exists.
+ *
+ * \param c   Virtual machine instance.
+ * \param opt Option name.
+ *
+ * \returns Option value, or \c false upon failure.
+ */
+CHX_API bool cheax_config_get_bool(CHEAX *c, const char *opt);
+
+/* \brief Set value of boolean configuration option.
+ *
+ * Sets cheax_errno() to \ref CHEAX_EAPI if option \a opt does not have
+ * boolean type, or if \a value is otherwise invalid for option \a opt.
+ * Fails silently in case no option with name \a opt could be found.
+ *
+ * \param c     Virtual machine instance.
+ * \param opt   Option name.
+ * \param value Option value.
+ *
+ * \returns 0 if a boolean option with name \a opt was found, -1 otherwise.
+ */
+CHX_API int cheax_config_bool(CHEAX *c, const char *opt, bool value);
 
 /*! \brief Reads cheax expression from file.
  *
