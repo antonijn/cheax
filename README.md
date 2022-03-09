@@ -16,15 +16,17 @@ $ make
 Language example
 ----------------
 
+Run the `cheaky` program for an interactive prompt.
+
 ```
-> (print "Hello, world!")
-"Hello, world!"
+> (put "hello, world!\n")
+hello, world!
 ()
 
-> (print '(1 2 3))          ; ' allows you to create symbols without evaluation
+> (print '(1 2 3))          ; quote syntax: evaluates to the quoted expression
 (1 2 3)
 
-> (print (: 4 '(5 6)))      ; (:) is the list-append operator
+> (print (: 4 '(5 6)))      ; (: car cdr) is the list prepend function
 (4 5 6)
 
 > (defun sum (lst)
@@ -43,23 +45,28 @@ C API example
 #include <cheax.h>
 
 #include <stdio.h>
-#include <stdlib.h>
 
 int main(void)
 {
 	int result;
 	CHEAX *c = cheax_init();
 
-	/* Loads some "unsafe" functions, i.e. setting the maximum stack depth,
-	   IO functions etc. */
+	/* Load some "unsafe" functions, e.g. file io and the program
+	 * exit function */
 	cheax_load_feature(c, "all");
 
+	/* Make sure cheax doesn't cause a stack overflow */
+	cheax_config_int(c, "stack-limit", 4096);
+
 	/* Load the standard library */
-	if (cheax_load_prelude(c)) {
-		perror("failed to load prelude");
+	if (cheax_load_prelude(c) < 0) {
+		/* Display error message on behalf of "example" program */
+		cheax_perror(c, "example");
 		return EXIT_FAILURE;
 	}
 
+	/* Synchronize variable `result' with the eponymous symbol
+	 * in cheax */
 	cheax_sync_int(c, "result", &result, 0);
 
 	cheax_eval(c, cheax_readstr(c, "(set result (sum (.. 1 100)))"));
