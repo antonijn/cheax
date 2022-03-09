@@ -106,7 +106,7 @@ read_id(struct read_info *ri, struct scnr *s) /* consume_final = true */
 	}
 
 done:
-	free(ss.buf);
+	cheax_free(ri->c, ss.buf);
 	return res;
 }
 
@@ -253,7 +253,7 @@ read_num(struct read_info *ri, struct scnr *s) /* consume_final = true */
 	res = &cheax_double(ri->c, dval)->base;
 
 done:
-	free(ss.buf);
+	cheax_free(ri->c, ss.buf);
 	return res;
 }
 
@@ -340,7 +340,7 @@ read_string(struct read_info *ri, struct scnr *s, bool consume_final)
 
 	res = &cheax_nstring(ri->c, ss.buf, ss.idx)->base;
 done:
-	free(ss.buf);
+	cheax_free(ri->c, ss.buf);
 	return res;
 }
 

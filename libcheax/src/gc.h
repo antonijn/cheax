@@ -36,7 +36,6 @@ struct gc_header_node {
 
 struct gc_header {
 	struct gc_header_node node;
-	size_t size;          /* Total malloc()-ed size */
 	struct chx_value obj; /* Only for locating the start of the user object */
 };
 
@@ -56,9 +55,10 @@ void gcol_destroy(CHEAX *c);
  * Result must be treated as chx_value. Specifically, gc decisions will
  * be made depending on the value of chx_value::type.
  */
-void *cheax_alloc(CHEAX *c, size_t size, int type);
-void *cheax_alloc_with_fin(CHEAX *c, size_t size, int type, chx_fin fin, void *info);
-void cheax_free(CHEAX *c, void *obj);
+void *gcol_alloc(CHEAX *c, size_t size, int type);
+void *gcol_alloc_with_fin(CHEAX *c, size_t size, int type, chx_fin fin, void *info);
+void gcol_free(CHEAX *c, void *obj);
+
 void cheax_gc(CHEAX *c);
 void cheax_force_gc(CHEAX *c);
 

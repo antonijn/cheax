@@ -184,6 +184,7 @@ int scnr_backup(struct scnr *s, int to);
 static inline void
 scnr_init(struct scnr *s, struct istrm *strm, size_t max_lah, int *lah_buf)
 {
+	s->ch = 0;
 	s->strm = strm;
 	s->max_lah = max_lah;
 	s->lah_buf = lah_buf;

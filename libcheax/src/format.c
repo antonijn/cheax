@@ -213,7 +213,7 @@ scnr_format(CHEAX *c, struct scnr *fmt, struct chx_list *args, size_t size_hint)
 	sostrm_init(&ss, c);
 
 	ss.cap = size_hint;
-	ss.buf = malloc(ss.cap);
+	ss.buf = cheax_malloc(c, ss.cap);
 
 	enum { UNSPECIFIED, AUTO_IDX, MAN_IDX } indexing = UNSPECIFIED;
 	size_t auto_idx = 0;
@@ -266,8 +266,8 @@ scnr_format(CHEAX *c, struct scnr *fmt, struct chx_list *args, size_t size_hint)
 			break;
 	}
 
-	free(arg_array);
-	free(ss.buf);
+	cheax_free(c, arg_array);
+	cheax_free(c, ss.buf);
 	return res;
 }
 

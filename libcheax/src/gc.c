@@ -25,6 +25,30 @@
 
 #include <gc/gc.h>
 
+void *
+cheax_malloc(CHEAX *c, size_t size)
+{
+	return malloc(size);
+}
+
+void *
+cheax_calloc(CHEAX *c, size_t nmemb, size_t size)
+{
+	return calloc(nmemb, size);
+}
+
+void *
+cheax_realloc(CHEAX *c, void *ptr, size_t size)
+{
+	return realloc(ptr, size);
+}
+
+void
+gcol_free(CHEAX *c, void *ptr)
+{
+	free(ptr);
+}
+
 void
 cheax_gc(CHEAX *c)
 {
@@ -50,13 +74,13 @@ gcol_destroy(CHEAX *c)
 }
 
 void
-cheax_free(CHEAX *c, void *obj)
+gcol_alloc(CHEAX *c, void *obj)
 {
 	GC_free(obj);
 }
 
 void *
-cheax_alloc(CHEAX *c, size_t size, int type)
+gcol_alloc(CHEAX *c, size_t size, int type)
 {
 	struct chx_value *res = GC_malloc(size);
 	res->type = type;
@@ -64,7 +88,7 @@ cheax_alloc(CHEAX *c, size_t size, int type)
 }
 
 void *
-cheax_alloc_with_fin(CHEAX *c, size_t size, int type, chx_fin fin, void *info)
+gcol_alloc_with_fin(CHEAX *c, size_t size, int type, chx_fin fin, void *info)
 {
 	struct chx_value *res = GC_malloc(size);
 	res->type = type;
@@ -74,6 +98,126 @@ cheax_alloc_with_fin(CHEAX *c, size_t size, int type, chx_fin fin, void *info)
 
 
 #else
+
+struct alloc_header {
+	size_t size;
+	long obj;
+};
+
+static struct alloc_header *
+get_alloc_header(void *ptr)
+{
+	char *m = ptr;
+	return (struct alloc_header *)(m - offsetof(struct alloc_header, obj));
+}
+
+static int
+claim_mem(CHEAX *c, size_t size, size_t hdr_size)
+{
+	if (size > SIZE_MAX - hdr_size) {
+		cry(c, "claim_mem", CHEAX_ENOMEM, "not enough space for alloc header");
+		return -1;
+	}
+
+	size += hdr_size;
+
+	size_t limit = c->mem_limit;
+	if (c->gc.all_mem > SIZE_MAX - size
+	 || (c->mem_limit > 0 && c->gc.all_mem + size > limit))
+	{
+		cry(c, "claim_mem", CHEAX_ENOMEM, "memory limit reached (%zd bytes)", limit);
+		return -1;
+	}
+
+	c->gc.all_mem += size;
+	return 0;
+}
+
+void *
+cheax_malloc(CHEAX *c, size_t size)
+{
+	struct alloc_header *hdr;
+	const size_t hdr_size = sizeof(*hdr) - sizeof(hdr->obj);
+	if (size == 0 || claim_mem(c, size, hdr_size) < 0)
+		return NULL;
+
+	hdr = malloc(size + hdr_size);
+	if (hdr == NULL) {
+		cry(c, "cheax_malloc", CHEAX_ENOMEM, "malloc() failure");
+		return NULL;
+	}
+
+	hdr->size = size + hdr_size;
+	return &hdr->obj;
+}
+
+void *
+cheax_calloc(CHEAX *c, size_t nmemb, size_t size)
+{
+	if (size == 0 || nmemb == 0)
+		return NULL;
+
+	if (nmemb > SIZE_MAX / size) {
+		cry(c, "cheax_calloc", CHEAX_ENOMEM, "nmemb * size overflow");
+		return NULL;
+	}
+
+	struct alloc_header *hdr;
+	const size_t hdr_size = sizeof(*hdr) - sizeof(hdr->obj);
+	if (claim_mem(c, nmemb * size, hdr_size) < 0)
+		return NULL;
+
+	hdr = malloc(nmemb * size + hdr_size);
+	if (hdr == NULL) {
+		cry(c, "cheax_calloc", CHEAX_ENOMEM, "malloc() failure");
+		return NULL;
+	}
+
+	hdr->size = size + hdr_size;
+	return memset(&hdr->obj, 0, size);
+}
+
+void *
+cheax_realloc(CHEAX *c, void *ptr, size_t size)
+{
+	if (size == 0) {
+		if (ptr != NULL)
+			free(ptr);
+		return NULL;
+	}
+
+	if (ptr == NULL)
+		return cheax_malloc(c, size);
+
+	struct alloc_header *hdr = get_alloc_header(ptr);
+	const size_t hdr_size = sizeof(*hdr) - sizeof(hdr->obj);
+	size_t prev_size = hdr->size;
+	c->gc.all_mem -= prev_size;
+
+	if (claim_mem(c, size, hdr_size) < 0) {
+		c->gc.all_mem += prev_size;
+		return NULL;
+	}
+
+	hdr = realloc(hdr, size + hdr_size);
+	if (hdr == NULL) {
+		cry(c, "cheax_realloc", CHEAX_ENOMEM, "realloc() failure");
+		return NULL;
+	}
+
+	hdr->size = size + hdr_size;
+	return &hdr->obj;
+}
+
+void
+cheax_free(CHEAX *c, void *ptr)
+{
+	if (ptr != NULL) {
+		struct alloc_header *hdr = get_alloc_header(ptr);
+		c->gc.all_mem -= hdr->size;
+		free(hdr);
+	}
+}
 
 struct gc_fin_footer {
 	chx_fin fin;
@@ -90,7 +234,7 @@ get_header(void *obj)
 static struct gc_fin_footer *
 get_fin_footer(void *obj)
 {
-	struct gc_header *hdr = get_header(obj);
+	struct alloc_header *hdr = get_alloc_header(get_header(obj));
 	char *m = (char *)hdr;
 	size_t ftr_ofs = hdr->size - sizeof(struct gc_fin_footer);
 	return (struct gc_fin_footer *)(m + ftr_ofs);
@@ -107,7 +251,7 @@ gcol_init(CHEAX *c)
 
 /* sets GC_MARKED bit for all reachable objects */
 static void mark(CHEAX *c);
-/* locks GC and cheax_free()'s all non-GC_MARKED objects */
+/* locks GC and gcol_free()'s all non-GC_MARKED objects */
 static void sweep(CHEAX *c);
 
 void
@@ -131,21 +275,22 @@ gcol_destroy(CHEAX *c)
 }
 
 void *
-cheax_alloc(CHEAX *c, size_t size, int type)
+gcol_alloc(CHEAX *c, size_t size, int type)
 {
 	struct gc_header *hdr;
-	size_t total_size = size + sizeof(struct gc_header) - sizeof(hdr->obj);
-	hdr = malloc(total_size);
-
-	if (hdr == NULL) {
-		cry(c, "cheax_alloc", CHEAX_ENOMEM, "out of memory");
+	const size_t hdr_size = sizeof(*hdr) - sizeof(hdr->obj);
+	if (size > SIZE_MAX - hdr_size) {
+		cry(c, "gcol_alloc", CHEAX_ENOMEM, "not enough space for gc header");
 		return NULL;
 	}
 
-	hdr->size = total_size;
+	size_t total_size = size + hdr_size;
+	hdr = cheax_malloc(c, total_size);
+	if (hdr == NULL)
+		return NULL;
+
 	hdr->obj.type = type & CHEAX_TYPE_MASK;
 
-	c->gc.all_mem += total_size;
 	++c->gc.num_objects;
 
 	/* insert new object */
@@ -163,19 +308,24 @@ cheax_alloc(CHEAX *c, size_t size, int type)
 }
 
 void *
-cheax_alloc_with_fin(CHEAX *c, size_t size, int type, chx_fin fin, void *info)
+gcol_alloc_with_fin(CHEAX *c, size_t size, int type, chx_fin fin, void *info)
 {
-	struct chx_value *obj = cheax_alloc(c, size + sizeof(struct gc_fin_footer), type);
-	struct gc_fin_footer *ftr = get_fin_footer(obj);
-	ftr->fin = fin;
-	ftr->info = info;
-	obj->type |= FIN_BIT;
+	struct chx_value *obj = gcol_alloc(c, size + sizeof(struct gc_fin_footer), type);
+	if (obj != NULL) {
+		struct gc_fin_footer *ftr = get_fin_footer(obj);
+		ftr->fin = fin;
+		ftr->info = info;
+		obj->type |= FIN_BIT;
+	}
 	return obj;
 }
 
 void
-cheax_free(CHEAX *c, void *obj)
+gcol_free(CHEAX *c, void *obj)
 {
+	if (obj == NULL)
+		return;
+
 	struct gc_header *hdr = get_header(obj);
 
 	struct gc_header_node *prev, *next;
@@ -190,9 +340,7 @@ cheax_free(CHEAX *c, void *obj)
 		ftr->fin(obj, ftr->info);
 	}
 
-	c->gc.all_mem -= hdr->size;
-	memset(hdr, 0, hdr->size);
-	free(hdr);
+	cheax_free(c, hdr);
 }
 
 static void mark_obj(CHEAX *c, struct chx_value *used);
@@ -301,7 +449,7 @@ sweep(CHEAX *c)
 		struct gc_header *hdr = (struct gc_header *)n;
 		struct chx_value *obj = &hdr->obj;
 		if (!has_flag(obj->type, GC_MARKED))
-			cheax_free(c, obj);
+			gcol_free(c, obj);
 		else
 			obj->type &= ~GC_MARKED;
 	}

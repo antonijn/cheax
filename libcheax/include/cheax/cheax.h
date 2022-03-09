@@ -678,7 +678,7 @@ CHX_API void cheax_destroy(CHEAX *c);
  * \param c         Virtual machine instance.
  * \param list      List to convert.
  * \param array_ptr Output parameter, will point to array of cheax_value
- *                  pointers. Make sure to free() after use.
+ *                  pointers. Make sure to cheax_free() after use.
  * \param length    Output parameter, will point to length of output
  *                  array.
  *
@@ -1004,6 +1004,11 @@ CHX_API struct chx_value *cheax_format(CHEAX *c, const char *fmt, struct chx_lis
  * \param f Input file handle.
  */
 CHX_API void cheax_exec(CHEAX *c, FILE *f);
+
+CHX_API void *cheax_malloc(CHEAX *c, size_t size);
+CHX_API void *cheax_calloc(CHEAX *c, size_t nmemb, size_t size);
+CHX_API void *cheax_realloc(CHEAX *c, void *ptr, size_t size);
+CHX_API void cheax_free(CHEAX *c, void *ptr);
 
 /*! @} */
 

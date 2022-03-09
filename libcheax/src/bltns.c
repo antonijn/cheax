@@ -43,19 +43,19 @@ bltn_fopen(CHEAX *c, struct chx_list *args, void *info)
 		return NULL;
 
 	char *fname;
-	fname = malloc(fname_val->len + 1);
+	fname = cheax_malloc(c, fname_val->len + 1);
 	memcpy(fname, fname_val->value, fname_val->len);
 	fname[fname_val->len] = '\0';
 
 	char *mode;
-	mode = malloc(mode_val->len + 1);
+	mode = cheax_malloc(c, mode_val->len + 1);
 	memcpy(mode, mode_val->value, mode_val->len);
 	mode[mode_val->len] = '\0';
 
 	FILE *f = fopen(fname, mode);
 
-	free(fname);
-	free(mode);
+	cheax_free(c, fname);
+	cheax_free(c, mode);
 
 	if (f == NULL) {
 		/* TODO inspect errno */
@@ -134,7 +134,7 @@ bltn_get_line_from(CHEAX *c, struct chx_list *args, void *info)
 	int ch;
 	while ((ch = fgetc(f)) != EOF) {
 		if (ostrm_putc(&ss.strm, ch) == -1) {
-			free(ss.buf);
+			cheax_free(c, ss.buf);
 			return NULL;
 		}
 
@@ -143,7 +143,7 @@ bltn_get_line_from(CHEAX *c, struct chx_list *args, void *info)
 	}
 
 	struct chx_string *res = cheax_nstring(c, ss.buf, ss.idx);
-	free(ss.buf);
+	cheax_free(c, ss.buf);
 	return &res->base;
 }
 
@@ -520,7 +520,7 @@ defgetset(CHEAX *c, const char *name,
 		return;
 	}
 
-	struct chx_func *res = cheax_alloc(c, sizeof(struct chx_func), CHEAX_FUNC);
+	struct chx_func *res = gcol_alloc(c, sizeof(struct chx_func), CHEAX_FUNC);
 	res->args = getset_args;
 	res->body = args;
 	res->lexenv = c->env;
@@ -564,7 +564,7 @@ defsym_set(CHEAX *c, struct chx_sym *sym, struct chx_value *value)
 static void
 defsym_finalizer(CHEAX *c, struct chx_sym *sym)
 {
-	free(sym->user_info);
+	cheax_free(c, sym->user_info);
 }
 
 static struct chx_value *
@@ -586,7 +586,7 @@ bltn_defsym(CHEAX *c, struct chx_list *args, void *info)
 
 	cheax_push_env(c);
 
-	struct defsym_info *dinfo = malloc(sizeof(struct defsym_info));
+	struct defsym_info *dinfo = cheax_malloc(c, sizeof(struct defsym_info));
 	dinfo->get = dinfo->set = NULL;
 
 	struct chx_ext_func *defget, *defset;
@@ -629,7 +629,7 @@ pad:
 
 	return NULL;
 err_pad:
-	free(dinfo);
+	cheax_free(c, dinfo);
 	return NULL;
 }
 
@@ -835,7 +835,7 @@ create_func(CHEAX *c,
 		return NULL;
 	}
 
-	struct chx_func *res = cheax_alloc(c, sizeof(struct chx_func), type);
+	struct chx_func *res = gcol_alloc(c, sizeof(struct chx_func), type);
 	res->args = arg_list;
 	res->body = body;
 	res->lexenv = c->env;

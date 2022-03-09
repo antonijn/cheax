@@ -83,13 +83,11 @@ sostrm_expand(struct sostrm *strm, size_t req_buf)
 	else
 		alloc = SIZE_MAX;
 
-	char *new_buf = realloc(strm->buf, alloc);
+	char *new_buf = cheax_realloc(strm->c, strm->buf, alloc);
 	if (new_buf == NULL) {
-		free(strm->buf);
+		cheax_free(strm->c, strm->buf);
 		strm->buf = NULL;
 		strm->cap = strm->idx = 0;
-
-		cry(strm->c, "sostrm_expand", CHEAX_ENOMEM, "out of memory");
 		return -1;
 	}
 

@@ -92,9 +92,8 @@ find_sym(CHEAX *c, const char *name)
 static struct chx_env *
 env_init(CHEAX *c, struct chx_env *env, struct chx_env *below)
 {
-	rb_tree_init(&env->value.norm.syms, full_sym_cmp);
+	rb_tree_init(&env->value.norm.syms, full_sym_cmp, c);
 	env->is_bif = false;
-	env->value.norm.syms.info = c;
 	env->value.norm.below = below;
 	return env;
 }
@@ -105,9 +104,9 @@ full_sym_node_dealloc(struct rb_tree *syms, struct rb_node *node)
 	struct full_sym *fs = node->value;
 	struct chx_sym *sym = &fs->sym;
 	if (sym->fin != NULL)
-		sym->fin(syms->info, sym);
-	free(fs);
-	rb_node_dealloc(node);
+		sym->fin(syms->c, sym);
+	cheax_free(syms->c, fs);
+	rb_node_dealloc(syms->c, node);
 }
 
 static void
@@ -120,7 +119,7 @@ env_cleanup(void *env_bytes, void *info)
 struct chx_env *
 cheax_push_env(CHEAX *c)
 {
-	struct chx_env *env = cheax_alloc_with_fin(c, sizeof(struct chx_env), CHEAX_ENV,
+	struct chx_env *env = gcol_alloc_with_fin(c, sizeof(struct chx_env), CHEAX_ENV,
 	                                           env_cleanup, NULL);
 	return c->env = env_init(c, env, c->env);
 }
@@ -128,7 +127,7 @@ cheax_push_env(CHEAX *c)
 struct chx_env *
 cheax_enter_env(CHEAX *c, struct chx_env *main)
 {
-	struct chx_env *env = cheax_alloc(c, sizeof(struct chx_env), CHEAX_ENV);
+	struct chx_env *env = gcol_alloc(c, sizeof(struct chx_env), CHEAX_ENV);
 	env->is_bif = true;
 	env->value.bif[0] = main;
 	env->value.bif[1] = c->env;
@@ -184,7 +183,7 @@ cheax_defsym(CHEAX *c, const char *id,
 
 	size_t idlen = strlen(id);
 
-	char *fs_mem = malloc(sizeof(struct full_sym) + idlen + 1);
+	char *fs_mem = cheax_malloc(c, sizeof(struct full_sym) + idlen + 1);
 	char *idcpy = fs_mem + sizeof(struct full_sym);
 	memcpy(idcpy, id, idlen + 1);
 
@@ -268,21 +267,21 @@ cheax_get(CHEAX *c, const char *id)
 struct chx_quote *
 cheax_quote(CHEAX *c, struct chx_value *value)
 {
-	struct chx_quote *res = cheax_alloc(c, sizeof(struct chx_quote), CHEAX_QUOTE);
+	struct chx_quote *res = gcol_alloc(c, sizeof(struct chx_quote), CHEAX_QUOTE);
 	res->value = value;
 	return res;
 }
 struct chx_quote *
 cheax_backquote(CHEAX *c, struct chx_value *value)
 {
-	struct chx_quote *res = cheax_alloc(c, sizeof(struct chx_quote), CHEAX_BACKQUOTE);
+	struct chx_quote *res = gcol_alloc(c, sizeof(struct chx_quote), CHEAX_BACKQUOTE);
 	res->value = value;
 	return res;
 }
 struct chx_quote *
 cheax_comma(CHEAX *c, struct chx_value *value)
 {
-	struct chx_quote *res = cheax_alloc(c, sizeof(struct chx_quote), CHEAX_COMMA);
+	struct chx_quote *res = gcol_alloc(c, sizeof(struct chx_quote), CHEAX_COMMA);
 	res->base.type = CHEAX_COMMA;
 	res->value = value;
 	return res;
@@ -290,7 +289,7 @@ cheax_comma(CHEAX *c, struct chx_value *value)
 struct chx_int *
 cheax_int(CHEAX *c, int value)
 {
-	struct chx_int *res = cheax_alloc(c, sizeof(struct chx_int), CHEAX_INT);
+	struct chx_int *res = gcol_alloc(c, sizeof(struct chx_int), CHEAX_INT);
 	res->value = value;
 	return res;
 }
@@ -314,7 +313,7 @@ cheax_bool(CHEAX *c, bool value)
 struct chx_double *
 cheax_double(CHEAX *c, double value)
 {
-	struct chx_double *res = cheax_alloc(c, sizeof(struct chx_double), CHEAX_DOUBLE);
+	struct chx_double *res = gcol_alloc(c, sizeof(struct chx_double), CHEAX_DOUBLE);
 	res->value = value;
 	return res;
 }
@@ -325,7 +324,7 @@ cheax_user_ptr(CHEAX *c, void *value, int type)
 		cry(c, "cheax_user_ptr", CHEAX_EAPI, "invalid user pointer type");
 		return NULL;
 	}
-	struct chx_user_ptr *res = cheax_alloc(c, sizeof(struct chx_user_ptr), type);
+	struct chx_user_ptr *res = gcol_alloc(c, sizeof(struct chx_user_ptr), type);
 	res->value = value;
 	return res;
 }
@@ -335,7 +334,7 @@ cheax_id(CHEAX *c, const char *id)
 	if (id == NULL)
 		return NULL;
 
-	struct chx_id *res = cheax_alloc(c, sizeof(struct chx_id) + strlen(id) + 1, CHEAX_ID);
+	struct chx_id *res = gcol_alloc(c, sizeof(struct chx_id) + strlen(id) + 1, CHEAX_ID);
 	char *buf = ((char *)res) + sizeof(struct chx_id);
 	strcpy(buf, id);
 
@@ -346,7 +345,7 @@ cheax_id(CHEAX *c, const char *id)
 struct chx_list *
 cheax_list(CHEAX *c, struct chx_value *car, struct chx_list *cdr)
 {
-	struct chx_list *res = cheax_alloc(c, sizeof(struct chx_list), CHEAX_LIST);
+	struct chx_list *res = gcol_alloc(c, sizeof(struct chx_list), CHEAX_LIST);
 	res->value = car;
 	res->next = cdr;
 	return res;
@@ -357,7 +356,7 @@ cheax_ext_func(CHEAX *c, const char *name, chx_func_ptr perform, void *info)
 	if (perform == NULL || name == NULL)
 		return NULL;
 
-	struct chx_ext_func *res = cheax_alloc(c, sizeof(struct chx_ext_func), CHEAX_EXT_FUNC);
+	struct chx_ext_func *res = gcol_alloc(c, sizeof(struct chx_ext_func), CHEAX_EXT_FUNC);
 	res->name = name;
 	res->perform = perform;
 	res->info = info;
@@ -385,7 +384,7 @@ cheax_nstring(CHEAX *c, const char *value, size_t len)
 		value = "";
 	}
 
-	struct chx_string *res = cheax_alloc(c, sizeof(struct chx_string) + len + 1, CHEAX_STRING);
+	struct chx_string *res = gcol_alloc(c, sizeof(struct chx_string) + len + 1, CHEAX_STRING);
 	char *buf = ((char *)res) + sizeof(struct chx_string);
 	memcpy(buf, value, len);
 	buf[len] = '\0';
@@ -409,7 +408,7 @@ cheax_substr(CHEAX *c, struct chx_string *str, size_t pos, size_t len)
 		return NULL;
 	}
 
-	struct chx_string *res = cheax_alloc(c, sizeof(struct chx_string), CHEAX_STRING);
+	struct chx_string *res = gcol_alloc(c, sizeof(struct chx_string), CHEAX_STRING);
 	res->value = str->value + pos;
 	res->len = len;
 	res->orig = str->orig;
@@ -506,7 +505,8 @@ cheax_new_error_code(CHEAX *c, const char *name)
 	int code = CHEAX_EUSER0 + c->user_error_names.len++;
 	if (c->user_error_names.len > c->user_error_names.cap) {
 		c->user_error_names.cap = ((c->user_error_names.cap / 2) + 1) * 3;
-		c->user_error_names.array = realloc(c->user_error_names.array, c->user_error_names.cap * sizeof(const char *));
+		c->user_error_names.array = cheax_realloc(c, c->user_error_names.array,
+		                                          c->user_error_names.cap * sizeof(const char *));
 	}
 
 	c->user_error_names.array[code - CHEAX_EUSER0] = name;
@@ -696,18 +696,15 @@ void
 cheax_destroy(CHEAX *c)
 {
 	for (size_t i = 0; i < c->typestore.len; ++i) {
-		struct type_cast *cnext;
-		for (struct type_cast *cast = c->typestore.array[i].casts;
-		     cast != NULL;
-		     cast = cnext)
-		{
+		struct type_cast *cnext, *cast;
+		for (cast = c->typestore.array[i].casts; cast != NULL; cast = cnext) {
 			cnext = cast->next;
-			free(c);
+			cheax_free(c, cast);
 		}
 	}
 
-	free(c->typestore.array);
-	free(c->user_error_names.array);
+	cheax_free(c, c->typestore.array);
+	cheax_free(c, c->user_error_names.array);
 
 	env_cleanup(&c->globals, NULL);
 	gcol_destroy(c);
@@ -742,10 +739,9 @@ cheax_list_to_array(CHEAX *c,
 	for (; list != NULL; list = list->next) {
 		if (++len > cap) {
 			cap = len + len / 2;
-			struct chx_value **new_res = realloc(res, sizeof(*res) * cap);
+			struct chx_value **new_res = cheax_realloc(c, res, sizeof(*res) * cap);
 			if (new_res == NULL) {
-				cry(c, "list_to_array", CHEAX_ENOMEM, "realloc() failure");
-				free(res);
+				cheax_free(c, res);
 				*length = 0;
 				*array_ptr = NULL;
 				return -1;
@@ -806,7 +802,7 @@ cheax_shallow_copy(CHEAX *c, struct chx_value *v)
 		break;
 	}
 
-	struct chx_value *cpy = cheax_alloc(c, size, act_type);
+	struct chx_value *cpy = gcol_alloc(c, size, act_type);
 	int was_type = cpy->type;
 	memcpy(cpy, v, size);
 	cpy->type = was_type;
@@ -867,7 +863,8 @@ cheax_new_type(CHEAX *c, const char *name, int base_type)
 
 	if (c->typestore.len > c->typestore.cap) {
 		c->typestore.cap = ((c->typestore.cap / 2) + 1) * 3;
-		c->typestore.array = realloc(c->typestore.array, c->typestore.cap * sizeof(struct type_alias));
+		c->typestore.array = cheax_realloc(c, c->typestore.array,
+		                                   c->typestore.cap * sizeof(struct type_alias));
 	}
 
 	struct type_alias alias = { 0 };

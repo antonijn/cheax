@@ -36,9 +36,9 @@
 /* rb_node */
 
 struct rb_node *
-rb_node_alloc()
+rb_node_alloc(CHEAX *c)
 {
-	return malloc(sizeof(struct rb_node));
+	return cheax_malloc(c, sizeof(struct rb_node));
 }
 
 struct rb_node *
@@ -53,15 +53,15 @@ rb_node_init(struct rb_node *self, void *value)
 }
 
 struct rb_node *
-rb_node_create(void *value)
+rb_node_create(CHEAX *c, void *value)
 {
-	return rb_node_init(rb_node_alloc(), value);
+	return rb_node_init(rb_node_alloc(c), value);
 }
 
 void
-rb_node_dealloc(struct rb_node *self)
+rb_node_dealloc(CHEAX *c, struct rb_node *self)
 {
-	free(self);
+	cheax_free(c, self);
 }
 
 static bool
@@ -111,33 +111,22 @@ void
 rb_tree_node_dealloc_cb(struct rb_tree *self, struct rb_node *node)
 {
 	if (self != NULL && node != NULL)
-		rb_node_dealloc(node);
+		rb_node_dealloc(self->c, node);
 }
 
 /* rb_tree */
 
 struct rb_tree *
-rb_tree_alloc()
-{
-	return malloc(sizeof(struct rb_tree));
-}
-
-struct rb_tree *
-rb_tree_init(struct rb_tree *self, rb_tree_node_cmp_f node_cmp_cb)
+rb_tree_init(struct rb_tree *self, rb_tree_node_cmp_f node_cmp_cb, CHEAX *c)
 {
 	if (self != NULL) {
 		self->root = NULL;
 		self->size = 0;
 		self->cmp = node_cmp_cb ? node_cmp_cb : rb_tree_node_cmp_ptr_cb;
+		self->c = c;
 	}
 
 	return self;
-}
-
-struct rb_tree *
-rb_tree_create(rb_tree_node_cmp_f node_cb)
-{
-	return rb_tree_init(rb_tree_alloc(), node_cb);
 }
 
 void
@@ -165,14 +154,6 @@ rb_tree_cleanup(struct rb_tree *self, rb_tree_node_f node_cb)
 		}
 	}
 }
-
-void
-rb_tree_dealloc(struct rb_tree *self, rb_tree_node_f node_cb)
-{
-	rb_tree_cleanup(self, node_cb);
-	free(self);
-}
-
 
 int
 rb_tree_test(struct rb_tree *self, struct rb_node *root)
@@ -240,7 +221,7 @@ rb_tree_find(struct rb_tree *self, void *value)
 void
 rb_tree_insert(struct rb_tree *self, void *value)
 {
-	rb_tree_insert_node(self, rb_node_create(value));
+	rb_tree_insert_node(self, rb_node_create(self->c, value));
 }
 
 void
@@ -426,12 +407,6 @@ rb_tree_size(struct rb_tree *self)
 /* rb_iter */
 
 struct rb_iter *
-rb_iter_alloc()
-{
-	return malloc(sizeof(struct rb_iter));
-}
-
-struct rb_iter *
 rb_iter_init(struct rb_iter *self)
 {
 	if (self != NULL) {
@@ -440,18 +415,6 @@ rb_iter_init(struct rb_iter *self)
 		self->top = 0;
 	}
 	return self;
-}
-
-struct rb_iter *
-rb_iter_create()
-{
-	return rb_iter_init(rb_iter_alloc());
-}
-
-void
-rb_iter_dealloc(struct rb_iter *self)
-{
-	free(self);
 }
 
 /* Internal function, init traversal object, dir determines whether
