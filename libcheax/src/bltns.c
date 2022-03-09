@@ -338,7 +338,8 @@ pad1:
 static void
 run_finally(CHEAX *c, struct chx_list *finally_block)
 {
-	cheax_push_env(c);
+	if (cheax_push_env(c) == NULL)
+		return;
 
 	int prev_errstate = c->error.state;
 	c->error.state = CHEAX_RUNNING;
@@ -377,7 +378,8 @@ bltn_try(CHEAX *c, struct chx_list *args, void *info)
 	if (validate_catch_blocks(c, catch_blocks, &finally_block) < 0)
 		return NULL;
 
-	cheax_push_env(c);
+	if (cheax_push_env(c) == NULL)
+		return NULL;
 	struct chx_value *retval = cheax_eval(c, block);
 	cheax_pop_env(c);
 
@@ -389,7 +391,8 @@ bltn_try(CHEAX *c, struct chx_list *args, void *info)
 		 * We set errno and errmsg here, to allow (catch errno ...),
 		 * which matches any error code.
 		 */
-		cheax_push_env(c);
+		if (cheax_push_env(c) == NULL)
+			return NULL;
 		struct chx_int *code = cheax_int(c, cheax_errno(c));
 		set_type(&code->base, CHEAX_ERRORCODE);
 		cheax_var(c, "errno",  &code->base,         CHEAX_READONLY);
@@ -521,9 +524,11 @@ defgetset(CHEAX *c, const char *name,
 	}
 
 	struct chx_func *res = gcol_alloc(c, sizeof(struct chx_func), CHEAX_FUNC);
-	res->args = getset_args;
-	res->body = args;
-	res->lexenv = c->env;
+	if (res != NULL) {
+		res->args = getset_args;
+		res->body = args;
+		res->lexenv = c->env;
+	}
 	*out = res;
 }
 
@@ -584,17 +589,22 @@ bltn_defsym(CHEAX *c, struct chx_list *args, void *info)
 	struct chx_id *id = (struct chx_id *)idval;
 	bool body_ok = false;
 
-	cheax_push_env(c);
-
 	struct defsym_info *dinfo = cheax_malloc(c, sizeof(struct defsym_info));
+	if (dinfo == NULL)
+		return NULL;
 	dinfo->get = dinfo->set = NULL;
 
 	struct chx_ext_func *defget, *defset;
 	defget = cheax_ext_func(c, "defget", bltn_defget, dinfo);
 	defset = cheax_ext_func(c, "defset", bltn_defset, dinfo);
+	cheax_ft(c, err_pad); /* alloc failure */
+
+	if (cheax_push_env(c) == NULL)
+		goto err_pad;
 
 	cheax_var(c, "defget", &defget->base, CHEAX_READONLY);
 	cheax_var(c, "defset", &defset->base, CHEAX_READONLY);
+	cheax_ft(c, pad); /* alloc failure */
 
 	for (struct chx_list *cons = args->next; cons != NULL; cons = cons->next) {
 		cheax_eval(c, cons->value);
@@ -672,7 +682,8 @@ bltn_let(CHEAX *c, struct chx_list *args, void *info)
 		return NULL;
 	}
 
-	cheax_push_env(c);
+	if (cheax_push_env(c) == NULL)
+		return NULL;
 
 	for (struct chx_list *pairs = (struct chx_list *)pairsv;
 	     pairs != NULL;
@@ -706,10 +717,7 @@ bltn_let(CHEAX *c, struct chx_list *args, void *info)
 	}
 
 	struct chx_value *retval;
-	for (struct chx_list *cons = args->next;
-	     cons != NULL;
-	     cons = cons->next)
-	{
+	for (struct chx_list *cons = args->next; cons != NULL; cons = cons->next) {
 		retval = cheax_eval(c, cons->value);
 		cheax_ft(c, pad);
 	}
@@ -836,9 +844,11 @@ create_func(CHEAX *c,
 	}
 
 	struct chx_func *res = gcol_alloc(c, sizeof(struct chx_func), type);
-	res->args = arg_list;
-	res->body = body;
-	res->lexenv = c->env;
+	if (res != NULL) {
+		res->args = arg_list;
+		res->body = body;
+		res->lexenv = c->env;
+	}
 	return &res->base;
 }
 
@@ -884,7 +894,8 @@ bltn_case(CHEAX *c, struct chx_list *args, void *info)
 		struct chx_list *cons_pair = (struct chx_list *)pair;
 		struct chx_value *pan = cons_pair->value;
 
-		cheax_push_env(c);
+		if (cheax_push_env(c) == NULL)
+			goto pad;
 
 		if (!cheax_match(c, pan, what, CHEAX_READONLY)) {
 			cheax_pop_env(c);

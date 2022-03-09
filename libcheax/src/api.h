@@ -44,7 +44,8 @@ has_fin_bit(struct chx_value *val)
 static inline struct chx_value *
 set_type(struct chx_value *value, int type)
 {
-	value->type = (value->type & ~CHEAX_TYPE_MASK) | (type & CHEAX_TYPE_MASK);
+	if (value != NULL)
+		value->type = (value->type & ~CHEAX_TYPE_MASK) | (type & CHEAX_TYPE_MASK);
 	return value;
 }
 

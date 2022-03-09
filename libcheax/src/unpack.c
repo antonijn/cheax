@@ -208,12 +208,19 @@ unpack_arg(CHEAX *c,
 			return res;
 
 		lst = cheax_list(c, v, NULL);
+		if (lst == NULL)
+			return -CHEAX_EEVAL;
 		lst_ref = cheax_ref(c, lst);
 		has_refd_list = true;
 		nxt = &lst->next;
 	case '*':
 		while ((res = unpack_once(c, args, ufs_i, ufs_f, &v)) == 0) {
 			*nxt = cheax_list(c, v, NULL);
+			if (*nxt == NULL) {
+				res = -CHEAX_EEVAL;
+				break;
+			}
+
 			nxt = &(*nxt)->next;
 
 			if (!has_refd_list) {

@@ -79,16 +79,13 @@ eval_sexpr(CHEAX *c, struct chx_list *input)
 		if (ty == CHEAX_FUNC && unpack(c, "eval", old_args, ".*", &args) < 0)
 			break;
 
-		chx_ref args_ref = cheax_ref(c, args);
-
 		struct chx_env *prev_env = c->env;
 		chx_ref prev_env_ref = cheax_ref(c, prev_env);
 		c->env = fn->lexenv;
-		cheax_push_env(c);
+		if (cheax_push_env(c) == NULL)
+			goto fn_pad;
 
 		bool arg_match_ok = cheax_match(c, fn->args, &args->base, CHEAX_READONLY);
-
-		cheax_unref(c, args, args_ref);
 
 		if (!arg_match_ok) {
 			cry(c, "eval", CHEAX_EMATCH, "invalid (number of) arguments");
@@ -117,7 +114,8 @@ fn_pad:
 
 	case CHEAX_ENV:
 		env = (struct chx_env *)head;
-		cheax_enter_env(c, env);
+		if (cheax_enter_env(c, env) == NULL)
+			break;
 
 		struct chx_value *envval = NULL;
 		for (struct chx_list *cons = args; cons != NULL; cons = cons->next) {
@@ -152,6 +150,7 @@ eval_bkquoted(CHEAX *c, struct chx_value *quoted, int nest)
 	case CHEAX_LIST:
 		lst_quoted = (struct chx_list *)quoted;
 		struct chx_value *car = eval_bkquoted(c, lst_quoted->value, nest);
+		cheax_ft(c, pad);
 		chx_ref car_ref = cheax_ref(c, car);
 		struct chx_value *cdr = eval_bkquoted(c, &lst_quoted->next->base, nest);
 		cheax_unref(c, car, car_ref);
@@ -161,11 +160,15 @@ eval_bkquoted(CHEAX *c, struct chx_value *quoted, int nest)
 
 	case CHEAX_QUOTE:
 		qt_quoted = (struct chx_quote *)quoted;
-		res = &cheax_quote(c, eval_bkquoted(c, qt_quoted->value, nest))->base;
+		struct chx_value *to_quote = eval_bkquoted(c, qt_quoted->value, nest);
+		cheax_ft(c, pad);
+		res = &cheax_quote(c, to_quote)->base;
 		break;
 	case CHEAX_BACKQUOTE:
 		qt_quoted = (struct chx_quote *)quoted;
-		res = &cheax_backquote(c, eval_bkquoted(c, qt_quoted->value, nest + 1))->base;
+		struct chx_value *to_bkquote = eval_bkquoted(c, qt_quoted->value, nest + 1);
+		cheax_ft(c, pad);
+		res = &cheax_backquote(c, to_bkquote)->base;
 		break;
 
 	case CHEAX_COMMA:
@@ -227,10 +230,11 @@ cheax_eval(CHEAX *c, struct chx_value *input)
 		break;
 	}
 
+	cheax_unref(c, input, input_ref);
+
 	chx_ref res_ref = cheax_ref(c, res);
 	cheax_gc(c);
 	cheax_unref(c, res, res_ref);
-	cheax_unref(c, input, input_ref);
 	return res;
 }
 

@@ -415,10 +415,12 @@ mark_obj(CHEAX *c, struct chx_value *used)
 void
 cheax_gc(CHEAX *c)
 {
-	size_t mem = c->gc.all_mem;
-	size_t prev = c->gc.prev_run;
-	if (mem > prev && mem - prev >= GC_RUN_THRESHOLD)
+	size_t mem = c->gc.all_mem, prev = c->gc.prev_run;
+	if ((mem > prev && mem - prev >= GC_RUN_THRESHOLD)
+	 || (c->mem_limit > 256 && mem > (size_t)(c->mem_limit - 256)))
+	{
 		cheax_force_gc(c);
+	}
 }
 
 static void

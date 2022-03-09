@@ -121,17 +121,20 @@ cheax_push_env(CHEAX *c)
 {
 	struct chx_env *env = gcol_alloc_with_fin(c, sizeof(struct chx_env), CHEAX_ENV,
 	                                           env_cleanup, NULL);
-	return c->env = env_init(c, env, c->env);
+	return (env == NULL) ? NULL : (c->env = env_init(c, env, c->env));
 }
 
 struct chx_env *
 cheax_enter_env(CHEAX *c, struct chx_env *main)
 {
 	struct chx_env *env = gcol_alloc(c, sizeof(struct chx_env), CHEAX_ENV);
-	env->is_bif = true;
-	env->value.bif[0] = main;
-	env->value.bif[1] = c->env;
-	return c->env = env;
+	if (env != NULL) {
+		env->is_bif = true;
+		env->value.bif[0] = main;
+		env->value.bif[1] = c->env;
+		c->env = env;
+	}
+	return env;
 }
 
 struct chx_env *
@@ -184,6 +187,8 @@ cheax_defsym(CHEAX *c, const char *id,
 	size_t idlen = strlen(id);
 
 	char *fs_mem = cheax_malloc(c, sizeof(struct full_sym) + idlen + 1);
+	if (fs_mem == NULL)
+		return NULL;
 	char *idcpy = fs_mem + sizeof(struct full_sym);
 	memcpy(idcpy, id, idlen + 1);
 
@@ -268,29 +273,34 @@ struct chx_quote *
 cheax_quote(CHEAX *c, struct chx_value *value)
 {
 	struct chx_quote *res = gcol_alloc(c, sizeof(struct chx_quote), CHEAX_QUOTE);
-	res->value = value;
+	if (res != NULL)
+		res->value = value;
 	return res;
 }
 struct chx_quote *
 cheax_backquote(CHEAX *c, struct chx_value *value)
 {
 	struct chx_quote *res = gcol_alloc(c, sizeof(struct chx_quote), CHEAX_BACKQUOTE);
-	res->value = value;
+	if (res != NULL)
+		res->value = value;
 	return res;
 }
 struct chx_quote *
 cheax_comma(CHEAX *c, struct chx_value *value)
 {
 	struct chx_quote *res = gcol_alloc(c, sizeof(struct chx_quote), CHEAX_COMMA);
-	res->base.type = CHEAX_COMMA;
-	res->value = value;
+	if (res != NULL) {
+		res->base.type = CHEAX_COMMA;
+		res->value = value;
+	}
 	return res;
 }
 struct chx_int *
 cheax_int(CHEAX *c, int value)
 {
 	struct chx_int *res = gcol_alloc(c, sizeof(struct chx_int), CHEAX_INT);
-	res->value = value;
+	if (res != NULL)
+		res->value = value;
 	return res;
 }
 struct chx_int *
@@ -314,7 +324,8 @@ struct chx_double *
 cheax_double(CHEAX *c, double value)
 {
 	struct chx_double *res = gcol_alloc(c, sizeof(struct chx_double), CHEAX_DOUBLE);
-	res->value = value;
+	if (res != NULL)
+		res->value = value;
 	return res;
 }
 struct chx_user_ptr *
@@ -325,7 +336,8 @@ cheax_user_ptr(CHEAX *c, void *value, int type)
 		return NULL;
 	}
 	struct chx_user_ptr *res = gcol_alloc(c, sizeof(struct chx_user_ptr), type);
-	res->value = value;
+	if (res != NULL)
+		res->value = value;
 	return res;
 }
 struct chx_id *
@@ -335,19 +347,22 @@ cheax_id(CHEAX *c, const char *id)
 		return NULL;
 
 	struct chx_id *res = gcol_alloc(c, sizeof(struct chx_id) + strlen(id) + 1, CHEAX_ID);
-	char *buf = ((char *)res) + sizeof(struct chx_id);
-	strcpy(buf, id);
+	if (res != NULL) {
+		char *buf = ((char *)res) + sizeof(struct chx_id);
+		strcpy(buf, id);
 
-	res->id = buf;
-
+		res->id = buf;
+	}
 	return res;
 }
 struct chx_list *
 cheax_list(CHEAX *c, struct chx_value *car, struct chx_list *cdr)
 {
 	struct chx_list *res = gcol_alloc(c, sizeof(struct chx_list), CHEAX_LIST);
-	res->value = car;
-	res->next = cdr;
+	if (res != NULL) {
+		res->value = car;
+		res->next = cdr;
+	}
 	return res;
 }
 struct chx_ext_func *
@@ -357,9 +372,11 @@ cheax_ext_func(CHEAX *c, const char *name, chx_func_ptr perform, void *info)
 		return NULL;
 
 	struct chx_ext_func *res = gcol_alloc(c, sizeof(struct chx_ext_func), CHEAX_EXT_FUNC);
-	res->name = name;
-	res->perform = perform;
-	res->info = info;
+	if (res != NULL) {
+		res->name = name;
+		res->perform = perform;
+		res->info = info;
+	}
 	return res;
 }
 struct chx_string *
@@ -385,14 +402,15 @@ cheax_nstring(CHEAX *c, const char *value, size_t len)
 	}
 
 	struct chx_string *res = gcol_alloc(c, sizeof(struct chx_string) + len + 1, CHEAX_STRING);
-	char *buf = ((char *)res) + sizeof(struct chx_string);
-	memcpy(buf, value, len);
-	buf[len] = '\0';
+	if (res != NULL) {
+		char *buf = ((char *)res) + sizeof(struct chx_string);
+		memcpy(buf, value, len);
+		buf[len] = '\0';
 
-	res->value = buf;
-	res->len = len;
-	res->orig = res;
-
+		res->value = buf;
+		res->len = len;
+		res->orig = res;
+	}
 	return res;
 }
 struct chx_string *
@@ -409,9 +427,11 @@ cheax_substr(CHEAX *c, struct chx_string *str, size_t pos, size_t len)
 	}
 
 	struct chx_string *res = gcol_alloc(c, sizeof(struct chx_string), CHEAX_STRING);
-	res->value = str->value + pos;
-	res->len = len;
-	res->orig = str->orig;
+	if (res != NULL) {
+		res->value = str->value + pos;
+		res->len = len;
+		res->orig = str->orig;
+	}
 	return res;
 }
 
@@ -568,7 +588,7 @@ cheax_match(CHEAX *c, struct chx_value *pan, struct chx_value *match, int flags)
 
 	if (pan_ty == CHEAX_ID) {
 		cheax_var(c, ((struct chx_id *)pan)->id, match, flags);
-		return true;
+		return cheax_errstate(c) != CHEAX_THROWN; /* false if cheax_var() failed */
 	}
 
 	if (pan_ty != cheax_type_of(match))
@@ -636,28 +656,40 @@ void
 cry(CHEAX *c, const char *name, int err, const char *frmt, ...)
 {
 	va_list ap;
-
 	size_t preamble_len = strlen(name) + 4;
+	struct chx_string *msg = NULL;
 
 	va_start(ap, frmt);
 	size_t msglen = preamble_len + vsnprintf(NULL, 0, frmt, ap);
 	va_end(ap);
 
 	char *buf = malloc(msglen + 1);
-	sprintf(buf, "(%s): ", name);
-	va_start(ap, frmt);
-	vsnprintf(buf + preamble_len, msglen - preamble_len + 1, frmt, ap);
-	va_end(ap);
+	if (buf != NULL) {
+		sprintf(buf, "(%s): ", name);
+		va_start(ap, frmt);
+		vsnprintf(buf + preamble_len, msglen - preamble_len + 1, frmt, ap);
+		va_end(ap);
 
-	cheax_throw(c, err, cheax_nstring(c, buf, msglen));
+		/* hack to avoid allocation failure */
+		int prev_mem_limit = c->mem_limit;
+		c->mem_limit = 0;
 
-	free(buf);
+		msg = cheax_nstring(c, buf, msglen);
+
+		c->mem_limit = prev_mem_limit;
+		free(buf);
+	}
+
+	cheax_throw(c, err, msg);
 }
 
 CHEAX *
 cheax_init(void)
 {
 	CHEAX *res = malloc(sizeof(struct cheax));
+	if (res == NULL)
+		return NULL;
+
 	res->globals.base.type = CHEAX_ENV | NO_GC_BIT;
 	env_init(res, &res->globals, NULL);
 	res->env = NULL;
@@ -803,9 +835,11 @@ cheax_shallow_copy(CHEAX *c, struct chx_value *v)
 	}
 
 	struct chx_value *cpy = gcol_alloc(c, size, act_type);
-	int was_type = cpy->type;
-	memcpy(cpy, v, size);
-	cpy->type = was_type;
+	if (cpy != NULL) {
+		int was_type = cpy->type;
+		memcpy(cpy, v, size);
+		cpy->type = was_type;
+	}
 	return cpy;
 }
 
