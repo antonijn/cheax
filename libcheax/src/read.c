@@ -23,7 +23,7 @@
 #include <ctype.h>
 
 #include "api.h"
-#include "config.h"
+#include "setup.h"
 #include "loc.h"
 #include "strm.h"
 

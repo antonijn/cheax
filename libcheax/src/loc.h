@@ -18,7 +18,7 @@
 
 #include <locale.h>
 
-#include "config.h"
+#include "setup.h"
 
 #if defined(HAVE_NEWLOCALE)
 locale_t get_c_locale(void);

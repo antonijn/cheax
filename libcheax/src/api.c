@@ -19,7 +19,7 @@
 #include <stdlib.h>
 
 #include "api.h"
-#include "config.h"
+#include "setup.h"
 #include "gc.h"
 
 /* declare associative array of builtin error codes and their names */

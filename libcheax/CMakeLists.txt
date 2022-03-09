@@ -22,7 +22,7 @@ if (NOT (HAVE_STRTOD_L OR HAVE_NEWLOCALE OR (HAVE_STUPID_WINDOWS_STRTOD_L AND HA
 	message(SEND_ERROR "Target platform must support strtod_l(), uselocale(), or both _strtod_l() and _create_locale().")
 endif()
 
-configure_file (src/config.h.in src/config.h)
+configure_file (src/setup.h.in src/setup.h)
 
 # hide all library functions by, unless declared with CHX_API
 set(CMAKE_C_VISIBILITY_PRESET hidden)

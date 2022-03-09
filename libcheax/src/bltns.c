@@ -20,7 +20,7 @@
 #include <limits.h>
 
 #include "api.h"
-#include "config.h"
+#include "setup.h"
 #include "format.h"
 #include "gc.h"
 #include "strm.h"
