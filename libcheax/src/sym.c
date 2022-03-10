@@ -129,15 +129,27 @@ norm_env_fin(void *env_bytes, void *info)
 	norm_env_cleanup(env_bytes);
 }
 
+static void
+escape(struct chx_env *env)
+{
+	if (env == NULL)
+		return;
+
+	env->base.type &= ~NO_ESC_BIT;
+
+	if (env->is_bif) {
+		for (int i = 0; i < 2; ++i)
+			escape(env->value.bif[i]);
+	} else {
+		escape(env->value.norm.below);
+	}
+}
+
 struct chx_env *
 cheax_env(CHEAX *c)
 {
-	if (c->env != NULL) {
-		c->env->base.type &= ~NO_ESC_BIT; /* env escapes! */
-		return c->env;
-	}
-
-	return &c->globals;
+	escape(c->env);
+	return (c->env == NULL) ? &c->globals : c->env;
 }
 
 struct chx_env *
