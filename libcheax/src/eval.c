@@ -92,7 +92,8 @@ eval_sexpr(CHEAX *c, struct chx_list *input)
 		bool arg_match_ok = cheax_match(c, fn->args, &args->base, CHEAX_READONLY);
 
 		if (!arg_match_ok) {
-			cry(c, "eval", CHEAX_EMATCH, "invalid (number of) arguments");
+			if (cheax_errstate(c) == CHEAX_RUNNING)
+				cry(c, "eval", CHEAX_EMATCH, "invalid (number of) arguments");
 			goto fn_pad;
 		}
 
