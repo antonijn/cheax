@@ -160,21 +160,23 @@ cheax_enter_env(CHEAX *c, struct chx_env *main)
 	return env;
 }
 
-struct chx_env *
+void
 cheax_pop_env(CHEAX *c)
 {
-	struct chx_env *res = c->env;
-	if (res == NULL) {
+	struct chx_env *env = c->env;
+	if (env == NULL) {
 		cry(c, "cheax_pop_env", CHEAX_EAPI, "cannot pop NULL env");
-		return NULL;
+		return;
 	}
 
-	if (res->is_bif)
-		c->env = res->value.bif[1];
+	if (env->is_bif)
+		c->env = env->value.bif[1];
 	else
-		c->env = res->value.norm.below;
+		c->env = env->value.norm.below;
 
-	return res;
+	/* dangerous, but worth it! */
+	if (has_flag(env->base.type, NO_ESC_BIT))
+		gcol_free(c, env);
 }
 
 void

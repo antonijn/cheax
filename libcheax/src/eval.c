@@ -58,6 +58,7 @@ eval_sexpr(CHEAX *c, struct chx_list *input)
 	struct chx_ext_func *extf;
 	struct chx_func *fn;
 	struct chx_env *env;
+	struct chx_env *new_env;
 
 	int ty = cheax_type_of(head);
 	switch (ty) {
@@ -83,10 +84,9 @@ eval_sexpr(CHEAX *c, struct chx_list *input)
 		chx_ref prev_env_ref = cheax_ref(c, prev_env);
 		c->env = fn->lexenv;
 
-		struct chx_env *new_env = cheax_push_env(c);
-		if (cheax_push_env(c) == NULL)
+		new_env = cheax_push_env(c);
+		if (new_env == NULL)
 			goto env_fail_pad;
-
 		/* probably won't escape; major memory optimisation */
 		new_env->base.type |= NO_ESC_BIT;
 
@@ -106,9 +106,7 @@ eval_sexpr(CHEAX *c, struct chx_list *input)
 		call_ok = true;
 		res = retval;
 fn_pad:
-		/* dangerous, but worth it! */
-		if (has_flag(new_env->base.type, NO_ESC_BIT))
-			gcol_free(c, new_env);
+		cheax_pop_env(c);
 env_fail_pad:
 		cheax_unref(c, prev_env, prev_env_ref);
 		c->env = prev_env;
@@ -123,8 +121,11 @@ env_fail_pad:
 
 	case CHEAX_ENV:
 		env = (struct chx_env *)head;
-		if (cheax_enter_env(c, env) == NULL)
+		new_env = cheax_enter_env(c, env);
+		if (new_env == NULL)
 			break;
+		/* probably won't escape; major memory optimisation */
+		new_env->base.type |= NO_ESC_BIT;
 
 		struct chx_value *envval = NULL;
 		for (struct chx_list *cons = args; cons != NULL; cons = cons->next) {

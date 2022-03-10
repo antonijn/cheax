@@ -339,8 +339,10 @@ pad1:
 static void
 run_finally(CHEAX *c, struct chx_list *finally_block)
 {
-	if (cheax_push_env(c) == NULL)
+	struct chx_env *new_env = cheax_push_env(c);
+	if (new_env == NULL)
 		return;
+	new_env->base.type |= NO_ESC_BIT;
 
 	int prev_errstate = c->error.state;
 	c->error.state = CHEAX_RUNNING;
@@ -379,9 +381,13 @@ bltn_try(CHEAX *c, struct chx_list *args, void *info)
 	if (validate_catch_blocks(c, catch_blocks, &finally_block) < 0)
 		return NULL;
 
-	if (cheax_push_env(c) == NULL)
+	struct chx_env *new_env = cheax_push_env(c);
+	if (new_env == NULL)
 		return NULL;
+	new_env->base.type |= NO_ESC_BIT;
+
 	struct chx_value *retval = cheax_eval(c, block);
+
 	cheax_pop_env(c);
 
 	if (cheax_errstate(c) == CHEAX_THROWN) {
@@ -600,8 +606,10 @@ bltn_defsym(CHEAX *c, struct chx_list *args, void *info)
 	defset = cheax_ext_func(c, "defset", bltn_defset, dinfo);
 	cheax_ft(c, err_pad); /* alloc failure */
 
-	if (cheax_push_env(c) == NULL)
+	struct chx_env *new_env = cheax_push_env(c);
+	if (new_env == NULL)
 		goto err_pad;
+	new_env->base.type |= NO_ESC_BIT;
 
 	cheax_var(c, "defget", &defget->base, CHEAX_READONLY);
 	cheax_var(c, "defset", &defset->base, CHEAX_READONLY);
@@ -685,8 +693,11 @@ bltn_let(CHEAX *c, struct chx_list *args, void *info)
 		return NULL;
 	}
 
-	if (cheax_push_env(c) == NULL)
+	struct chx_env *new_env = cheax_push_env(c);
+	if (new_env == NULL)
 		return NULL;
+	/* probably won't escape; major memory optimisation */
+	new_env->base.type |= NO_ESC_BIT;
 
 	for (struct chx_list *pairs = (struct chx_list *)pairsv;
 	     pairs != NULL;

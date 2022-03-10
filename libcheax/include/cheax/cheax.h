@@ -728,10 +728,8 @@ CHX_API struct chx_env *cheax_enter_env(CHEAX *c, struct chx_env *main);
  * Sets cheax_errno() to \ref CHEAX_EAPI if environment stack is empty.
  *
  * \param c  Virtual machine instance.
- *
- * \returns Popped environment, or \a NULL in case of an error.
  */
-CHX_API struct chx_env *cheax_pop_env(CHEAX *c);
+CHX_API void cheax_pop_env(CHEAX *c);
 
 CHX_API struct chx_sym *cheax_defsym(CHEAX *c, const char *id,
                                      chx_getter get, chx_setter set,
