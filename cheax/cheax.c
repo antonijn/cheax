@@ -24,35 +24,50 @@
 #include <string.h>
 
 #define MAX_INPUT_FILES 16
-static int num_input_files = 0;
-static const char *input_files[MAX_INPUT_FILES], *cmd = NULL;
+#define TERM_WIDTH      80
+#define HELP_MARGIN     24
+
+/* cheax_config_help() output */
+static size_t num_cfg_opts;
+static struct chx_config_help *cfg_help;
+
+/* program input files */
+static size_t num_input_files = 0;
+static const char *input_files[MAX_INPUT_FILES];
+
+/* -c CMD */
+static const char *cmd = NULL;
+
 static bool read_stdin = false, use_prelude = true;
-static struct chx_config_help *help;
-static size_t num_opts;
+
 static CHEAX *c;
 
+/*
+ * Print text as column, with left margin HELP_MARGIN, and right margin
+ * TERM_WIDTH. Used to print --help message.
+ */
 static void
-pretty(const char *help, int head_start, int margin, int twidth)
+print_column(const char *msg, int head_start)
 {
-	int len = strlen(help);
-	int colwidth = twidth - margin;
+	int len = strlen(msg);
+	int colwidth = TERM_WIDTH - HELP_MARGIN;
 	char *buf = malloc(colwidth + 1);
 
 	while (len > 0) {
-		for (int i = head_start; i < margin; ++i)
+		for (int i = head_start; i < HELP_MARGIN; ++i)
 			putchar(' ');
 		head_start = 0;
 
-		while (isspace(*help)) {
-			++help;
+		while (isspace(*msg)) {
+			++msg;
 			--len;
 		}
 
 		int lnwidth = (len < colwidth) ? len : colwidth;
-		memcpy(buf, help, lnwidth);
+		memcpy(buf, msg, lnwidth);
 		buf[lnwidth] = '\0';
 
-		if (isgraph(help[lnwidth])) {
+		if (isgraph(msg[lnwidth])) {
 			/* need to break-off word */
 			char *space = strrchr(buf, ' ');
 			if (space == NULL)
@@ -65,7 +80,7 @@ pretty(const char *help, int head_start, int margin, int twidth)
 		puts(buf);
 
 		len -= lnwidth;
-		help += lnwidth;
+		msg += lnwidth;
 	}
 
 	free(buf);
@@ -74,7 +89,6 @@ pretty(const char *help, int head_start, int margin, int twidth)
 static void
 print_usage(void)
 {
-	const int margin = 24, twidth = 80;
 	static const char usage[] =
 		"Usage: cheax [OPTION]... [FILE]...\n"
 		"Executes cheax programs.\n\n"
@@ -85,75 +99,78 @@ print_usage(void)
 
 	puts(usage);
 
-	for (size_t i = 0; i < num_opts; ++i) {
+	for (size_t i = 0; i < num_cfg_opts; ++i) {
 		const char *metavar;
-		switch (help[i].type) {
+		switch (cfg_help[i].type) {
 		case CHEAX_INT:  metavar = "N";          break;
 		case CHEAX_BOOL: metavar = "true/false"; break;
 		default:         metavar = "???";        break;
 		}
 
-		int head_start = printf("  --%s %s ", help[i].name, metavar);
-		if (head_start > margin) {
+		int head_start = printf("  --%s %s ", cfg_help[i].name, metavar);
+		if (head_start > HELP_MARGIN) {
+			/* scoot to next line */
 			putchar('\n');
 			head_start = 0;
 		}
-		pretty(help[i].help, head_start, margin, twidth);
+		print_column(cfg_help[i].help, head_start);
 	}
 
 	putchar('\n');
 }
 
 static int
-handle_config_option(struct chx_config_help *ch, const char *value)
+parse_int(const char *value, int *out)
 {
 	char *endptr;
-	long i;
-	bool valid_num = true, b, valid_bool = false;
+	long i = strtol(value, &endptr, 10);
+	for (; *endptr != '\0'; ++endptr)
+		if (isgraph(*endptr))
+			return -1;
+
+	if (errno == ERANGE || errno == EINVAL || i > INT_MAX || i < INT_MIN)
+		return -1;
+
+	*out = i;
+	return 0;
+}
+
+static int
+parse_bool(const char *value, bool *out)
+{
+	if (0 == strcmp(value, "true") || 0 == strcmp(value, "1") || 0 == strcmp(value, "yes")) {
+		*out = true;
+		return 0;
+	}
+
+	if (0 == strcmp(value, "false") || 0 == strcmp(value, "0") || 0 == strcmp(value, "no")) {
+		*out = false;
+		return 0;
+	}
+
+	return -1;
+}
+
+/* set cheax_config() */
+static int
+set_config(struct chx_config_help *ch, const char *value)
+{
+	int i;
+	bool b;
 
 	switch (ch->type) {
 	case CHEAX_INT:
-		i = strtol(value, &endptr, 10);
-		for (; *endptr != '\0'; ++endptr) {
-			if (isgraph(*endptr)) {
-				valid_num = false;
-				break;
-			}
-		}
-
-		if (errno == ERANGE || errno == EINVAL)
-			valid_num = false;
-
-		if (i > INT_MAX || i < INT_MIN)
-			valid_num = false;
-
-		if (!valid_num) {
+		if (parse_int(value, &i) < 0) {
 			fprintf(stderr, "invalid int `%s'\n", value);
 			return -1;
 		}
-
 		cheax_config_int(c, ch->name, i);
 		break;
 	case CHEAX_BOOL:
-		if (0 == strcmp(value, "yes")
-		 || 0 == strcmp(value, "1")
-		 || 0 == strcmp(value, "true"))
-		{
-			b = valid_bool = true;
-		}
-		else
-		if (0 == strcmp(value, "no")
-		 || 0 == strcmp(value, "0")
-		 || 0 == strcmp(value, "false"))
-		{
-			b = !(valid_bool = true);
-		}
-
-		if (!valid_bool) {
+		if (parse_bool(value, &b) < 0) {
 			fprintf(stderr, "invalid bool `%s'\n", value);
 			return -1;
 		}
-
 		cheax_config_bool(c, ch->name, b);
 		break;
 	default:
@@ -176,7 +193,6 @@ handle_string_option(const char *arg, int *arg_idx, int argc, char **argv)
 		exit(0);
 	}
 
-
 	/* try to read cheax_config() option */
 	size_t opt_len;
 	const char *config_opt, *eq, *value;
@@ -191,8 +207,8 @@ handle_string_option(const char *arg, int *arg_idx, int argc, char **argv)
 		value = NULL;
 	}
 
-	for (size_t i = 0; i < num_opts; ++i) {
-		if (0 != strncmp(config_opt, help[i].name, opt_len))
+	for (size_t i = 0; i < num_cfg_opts; ++i) {
+		if (0 != strncmp(config_opt, cfg_help[i].name, opt_len))
 			continue;
 
 		if (value == NULL) {
@@ -203,7 +219,7 @@ handle_string_option(const char *arg, int *arg_idx, int argc, char **argv)
 			value = argv[++*arg_idx];
 		}
 
-		return handle_config_option(&help[i], value);
+		return set_config(&cfg_help[i], value);
 	}
 
 	fprintf(stderr, "unknown option `%s'\n", arg);
@@ -280,16 +296,16 @@ static void
 cleanup(void)
 {
 	cheax_destroy(c);
-	free(help);
+	free(cfg_help);
 }
 
 int
 main(int argc, char **argv)
-{		
+{
 	c = cheax_init();
 	atexit(cleanup);
 
-	if (cheax_config_help(&help, &num_opts) < 0)
+	if (cheax_config_help(&cfg_help, &num_cfg_opts) < 0)
 		return EXIT_FAILURE;
 
 	if (handle_args(argc, argv) < 0)
@@ -305,7 +321,7 @@ main(int argc, char **argv)
 	if (cmd != NULL) {
 		cheax_eval(c, cheax_readstr(c, cmd));
 		if (cheax_errno(c) != 0) {
-			cheax_perror(c, "cheax");
+			cheax_perror(c, argv[0]);
 			return EXIT_FAILURE;
 		}
 	}
@@ -318,10 +334,10 @@ main(int argc, char **argv)
 		}
 	}
 
-	for (int i = 0; i < num_input_files; ++i) {
+	for (size_t i = 0; i < num_input_files; ++i) {
 		FILE *f = fopen(input_files[i], "rb");
 		if (f == NULL) {
-			perror("failed to open input file");
+			perror(argv[0]);
 			return EXIT_FAILURE;
 		}
 		cheax_exec(c, f);
