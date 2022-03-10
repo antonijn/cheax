@@ -13,11 +13,9 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  */
 
-#include <cheax.h>
-#include <stdio.h>
 #include <string.h>
 
-#include "api.h"
+#include "core.h"
 #include "feat.h"
 #include "io.h"
 #include "strm.h"

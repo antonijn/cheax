@@ -16,8 +16,8 @@
 #include <stdlib.h>
 #include <string.h>
 
-#include "api.h"
 #include "config.h"
+#include "core.h"
 #include "feat.h"
 
 union config_get {

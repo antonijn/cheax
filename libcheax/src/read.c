@@ -13,7 +13,6 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  */
 
-#include <cheax.h>
 #include <errno.h>
 #include <limits.h>
 #include <stdlib.h>
@@ -22,9 +21,9 @@
 #include <string.h>
 #include <ctype.h>
 
-#include "api.h"
-#include "setup.h"
+#include "core.h"
 #include "loc.h"
+#include "setup.h"
 #include "strm.h"
 
 /*

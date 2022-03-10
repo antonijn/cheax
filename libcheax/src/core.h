@@ -13,10 +13,8 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  */
 
-#ifndef API_H
-#define API_H
-
-#include <cheax.h>
+#ifndef CORE_H
+#define CORE_H
 
 #include "gc.h"
 #include "sym.h"

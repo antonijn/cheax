@@ -13,13 +13,11 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  */
 
-#include <cheax.h>
 #include <ctype.h>
 #include <limits.h>
-#include <stdint.h>
 #include <string.h>
 
-#include "api.h"
+#include "core.h"
 #include "format.h"
 #include "print.h"
 #include "strm.h"

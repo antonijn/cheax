@@ -13,11 +13,9 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  */
 
-#include <cheax.h>
-
 #include <string.h>
 
-#include "api.h"
+#include "core.h"
 #include "gc.h"
 #include "unpack.h"
 

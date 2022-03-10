@@ -13,13 +13,12 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  */
 
-#include <cheax.h>
 #include <stdlib.h>
 #include <string.h>
 
-#include "api.h"
 #include "arith.h"
 #include "config.h"
+#include "core.h"
 #include "err.h"
 #include "eval.h"
 #include "feat.h"

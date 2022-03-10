@@ -20,7 +20,7 @@
 #include <stdio.h>
 #include <string.h>
 
-#include "api.h"
+#include "core.h"
 
 /* output stream */
 struct ostrm {

@@ -13,10 +13,9 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  */
 
-#include <cheax.h>
 #include <limits.h>
 
-#include "api.h"
+#include "core.h"
 #include "unpack.h"
 
 static struct chx_value *

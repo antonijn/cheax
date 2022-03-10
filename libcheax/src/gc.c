@@ -16,7 +16,7 @@
 #include <stdlib.h>
 #include <string.h>
 
-#include "api.h"
+#include "core.h"
 #include "feat.h"
 #include "gc.h"
 #include "rbtree.h"

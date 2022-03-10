@@ -13,12 +13,11 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  */
 
-#include <cheax.h>
 #include <string.h>
 #include <stdlib.h>
 
-#include "api.h"
 #include "config.h"
+#include "core.h"
 #include "gc.h"
 #include "setup.h"
 #include "unpack.h"

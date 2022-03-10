@@ -16,8 +16,8 @@
 #include <stdarg.h>
 #include <stdlib.h>
 
+#include "core.h"
 #include "unpack.h"
-#include "api.h"
 
 struct unpack_field {
 	char f; /* field specifier */
