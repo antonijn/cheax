@@ -189,124 +189,6 @@ cheax_substr(CHEAX *c, struct chx_string *str, size_t pos, size_t len)
 	return res;
 }
 
-/* declare associative array of builtin error codes and their names */
-CHEAX_BUILTIN_ERROR_NAMES(bltn_error_names);
-
-static const char *
-errname(CHEAX *c, int code)
-{
-	if (code >= CHEAX_EUSER0) {
-		size_t idx = code - CHEAX_EUSER0;
-		if (idx >= c->user_error_names.len) {
-			cry(c, "errname", CHEAX_EAPI, "invalid user error code");
-			return NULL;
-		}
-		return c->user_error_names.array[idx];
-	}
-
-	/* builtin error code, binary search */
-
-	int lo = 0, hi = sizeof(bltn_error_names) / sizeof(bltn_error_names[0]);
-	while (lo <= hi) {
-		int pivot = (lo + hi) / 2;
-		int pivot_code = bltn_error_names[pivot].code;
-		if (pivot_code == code)
-			return bltn_error_names[pivot].name;
-		if (pivot_code < code)
-			lo = pivot + 1;
-		else
-			hi = pivot - 1;
-	}
-
-	cry(c, "errname", CHEAX_EAPI, "invalid error code");
-	return NULL;
-}
-int
-cheax_errstate(CHEAX *c)
-{
-	return c->error.state;
-}
-int
-cheax_errno(CHEAX *c)
-{
-	return c->error.code;
-}
-void
-cheax_perror(CHEAX *c, const char *s)
-{
-	int err = cheax_errno(c);
-	if (err == 0)
-		return;
-
-	if (s != NULL)
-		fprintf(stderr, "%s: ", s);
-
-	if (c->error.msg != NULL)
-		fprintf(stderr, "%.*s ", (int)c->error.msg->len, c->error.msg->value);
-
-	const char *ename = errname(c, err);
-	if (ename != NULL)
-		fprintf(stderr, "[%s]", ename);
-	else
-		fprintf(stderr, "[code %x]", err);
-
-	fprintf(stderr, "\n");
-}
-void
-cheax_clear_errno(CHEAX *c)
-{
-	c->error.state = CHEAX_RUNNING;
-	c->error.code = 0;
-	c->error.msg = NULL;
-}
-void
-cheax_throw(CHEAX *c, int code, struct chx_string *msg)
-{
-	if (code == 0) {
-		cry(c, "throw", CHEAX_EAPI, "cannot throw error code 0");
-		return;
-	}
-
-	c->error.state = CHEAX_THROWN;
-	c->error.code = code;
-	c->error.msg = msg;
-}
-int
-cheax_new_error_code(CHEAX *c, const char *name)
-{
-	if (name == NULL) {
-		cry(c, "new_error_code", CHEAX_EAPI, "`name' cannot be NULL");
-		return -1;
-	}
-
-	int code = CHEAX_EUSER0 + c->user_error_names.len++;
-	if (c->user_error_names.len > c->user_error_names.cap) {
-		c->user_error_names.cap = ((c->user_error_names.cap / 2) + 1) * 3;
-		c->user_error_names.array = cheax_realloc(c, c->user_error_names.array,
-		                                          c->user_error_names.cap * sizeof(const char *));
-	}
-
-	c->user_error_names.array[code - CHEAX_EUSER0] = name;
-
-	cheax_var(c, name, set_type(&cheax_int(c, code)->base, CHEAX_ERRORCODE), CHEAX_EREADONLY);
-	return code;
-}
-static void
-declare_builtin_errors(CHEAX *c)
-{
-	int num_codes = sizeof(bltn_error_names)
-	              / sizeof(bltn_error_names[0]);
-
-	for (int i = 0; i < num_codes; ++i) {
-		const char *name = bltn_error_names[i].name;
-		int code = bltn_error_names[i].code;
-
-		cheax_var(c, name,
-		          set_type(&cheax_int(c, code)->base, CHEAX_ERRORCODE),
-		          CHEAX_READONLY);
-	}
-}
-
 static bool
 match_colon(CHEAX *c, struct chx_list *pan, struct chx_list *match, int flags)
 {
@@ -477,7 +359,6 @@ cheax_init(void)
 	cheax_new_type(res, "TypeCode", CHEAX_INT);
 	cheax_new_type(res, "ErrorCode", CHEAX_INT);
 
-	declare_builtin_errors(res);
 	export_builtins(res);
 	config_init(res);
 	return res;
