@@ -38,6 +38,17 @@ struct config_info {
 	const char *help;
 };
 
+static bool
+get_allow_redef(CHEAX *c)
+{
+	return c->allow_redef;
+}
+static void
+set_allow_redef(CHEAX *c, bool value)
+{
+	c->allow_redef = value;
+}
+
 static int
 get_stack_limit(CHEAX *c)
 {
@@ -74,6 +85,12 @@ set_mem_limit(CHEAX *c, int value)
 
 /* sorted asciibetically for use in bsearch() */
 static struct config_info opts[] = {
+	{
+		"allow-redef", CHEAX_BOOL, "<true|false>",
+		{ .get_bool = get_allow_redef },
+		{ .set_bool = set_allow_redef },
+		"Allow symbol redefinition."
+	},
 	{
 		"mem-limit", CHEAX_INT, "N",
 		{ .get_int = get_mem_limit },

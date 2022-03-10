@@ -125,6 +125,8 @@ main(void)
 		return EXIT_FAILURE;
 	}
 
+	cheax_config_bool(c, "allow-redef", true);
+
 #ifdef HAVE_ISATTY
 	if (!isatty(1)) {
 		struct chx_value *v;

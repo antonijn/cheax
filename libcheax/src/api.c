@@ -45,7 +45,7 @@ norm_env(struct chx_env *env)
 	return env;
 }
 
-struct chx_sym *
+static struct full_sym *
 find_sym_in(struct chx_env *env, const char *name)
 {
 	struct full_sym dummy;
@@ -55,18 +55,17 @@ find_sym_in(struct chx_env *env, const char *name)
 	if (env == NULL)
 		return NULL;
 
-	struct full_sym *fs = rb_tree_find(&env->value.norm.syms, &dummy);
-	return (fs == NULL) ? NULL : &fs->sym;
+	return rb_tree_find(&env->value.norm.syms, &dummy);
 }
 
-struct chx_sym *
+static struct full_sym *
 find_sym_in_or_below(struct chx_env *env, const char *name)
 {
 	if (env == NULL)
 		return NULL;
 
 	if (!env->is_bif) {
-		struct chx_sym *sym = find_sym_in(env, name);
+		struct full_sym *sym = find_sym_in(env, name);
 		if (sym != NULL)
 			return sym;
 
@@ -74,7 +73,7 @@ find_sym_in_or_below(struct chx_env *env, const char *name)
 	}
 
 	for (int i = 0; i < 2; ++i) {
-		struct chx_sym *sym = find_sym_in_or_below(env->value.bif[i], name);
+		struct full_sym *sym = find_sym_in_or_below(env->value.bif[i], name);
 		if (sym != NULL)
 			return sym;
 	}
@@ -82,11 +81,11 @@ find_sym_in_or_below(struct chx_env *env, const char *name)
 	return NULL;
 }
 
-struct chx_sym *
+static struct full_sym *
 find_sym(CHEAX *c, const char *name)
 {
-	struct chx_sym *sym = find_sym_in_or_below(c->env, name);
-	return (sym != NULL) ? sym : find_sym_in(&c->globals, name);
+	struct full_sym *fs = find_sym_in_or_below(c->env, name);
+	return (fs != NULL) ? fs : find_sym_in(&c->globals, name);
 }
 
 
@@ -100,13 +99,25 @@ env_init(CHEAX *c, struct chx_env *env, struct chx_env *below)
 }
 
 static void
-full_sym_node_dealloc(struct rb_tree *syms, struct rb_node *node)
+sym_destroy(CHEAX *c, struct full_sym *fs)
 {
-	struct full_sym *fs = node->value;
 	struct chx_sym *sym = &fs->sym;
 	if (sym->fin != NULL)
-		sym->fin(syms->c, sym);
-	cheax_free(syms->c, fs);
+		sym->fin(c, sym);
+	cheax_free(c, fs);
+}
+
+static void
+undef_sym(CHEAX *c, struct chx_env *env, struct full_sym *fs)
+{
+	if (rb_tree_remove(&env->value.norm.syms, fs))
+		sym_destroy(c, fs);
+}
+
+static void
+full_sym_node_dealloc(struct rb_tree *syms, struct rb_node *node)
+{
+	sym_destroy(syms->c, node->value);
 	rb_node_dealloc(syms->c, node);
 }
 
@@ -180,7 +191,8 @@ cheax_defsym(CHEAX *c, const char *id,
 	if (env == NULL)
 		env = &c->globals;
 
-	if (find_sym_in(env, id) != NULL) {
+	struct full_sym *prev_fs = find_sym_in(env, id);
+	if (prev_fs != NULL && !c->allow_redef) {
 		cry(c, "defsym", CHEAX_EEXIST, "symbol `%s' already exists", id);
 		return NULL;
 	}
@@ -200,6 +212,10 @@ cheax_defsym(CHEAX *c, const char *id,
 	fs->sym.fin = fin;
 	fs->sym.user_info = user_info;
 	fs->sym.protect = NULL;
+
+	if (prev_fs != NULL && c->allow_redef)
+		undef_sym(c, env, prev_fs);
+
 	rb_tree_insert(&env->value.norm.syms, fs);
 	return &fs->sym;
 }
@@ -235,12 +251,13 @@ cheax_set(CHEAX *c, const char *id, struct chx_value *value)
 		return;
 	}
 
-	struct chx_sym *sym = find_sym(c, id);
-	if (sym == NULL) {
+	struct full_sym *fs = find_sym(c, id);
+	if (fs == NULL) {
 		cry(c, "set", CHEAX_ENOSYM, "no such symbol `%s'", id);
 		return;
 	}
 
+	struct chx_sym *sym = &fs->sym;
 	if (sym->set == NULL)
 		cry(c, "set", CHEAX_EREADONLY, "cannot write to read-only symbol");
 	else
@@ -255,12 +272,13 @@ cheax_get(CHEAX *c, const char *id)
 		return NULL;
 	}
 
-	struct chx_sym *sym = find_sym(c, id);
-	if (sym == NULL) {
+	struct full_sym *fs = find_sym(c, id);
+	if (fs == NULL) {
 		cry(c, "get", CHEAX_ENOSYM, "no such symbol `%s'", id);
 		return NULL;
 	}
 
+	struct chx_sym *sym = &fs->sym;
 	if (sym->get == NULL) {
 		cry(c, "set", CHEAX_EWRITEONLY, "cannot read from write-only symbol");
 		return NULL;
@@ -694,12 +712,12 @@ cheax_init(void)
 	res->globals.base.type = CHEAX_ENV | NO_GC_BIT;
 	env_init(res, &res->globals, NULL);
 	res->env = NULL;
+	res->stack_depth = 0;
 
 	res->features = 0;
-
-	res->stack_limit = 0;
-	res->stack_depth = 0;
+	res->allow_redef = false;
 	res->mem_limit = 0;
+	res->stack_limit = 0;
 	res->error.state = CHEAX_RUNNING;
 	res->error.code = 0;
 	res->error.msg = NULL;

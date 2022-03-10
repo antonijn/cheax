@@ -87,6 +87,8 @@ struct cheax {
 	struct chx_env globals;
 	struct chx_env *env;
 
+	int stack_depth;
+
 	enum {
 		FILE_IO         = 0x0001,
 		SET_STACK_LIMIT = 0x0002,
@@ -102,7 +104,8 @@ struct cheax {
 		ALL_FEATURES    = ~0,
 	} features;
 
-	int stack_limit, stack_depth, mem_limit;
+	bool allow_redef;
+	int mem_limit, stack_limit;
 
 	int fhandle_type;
 
@@ -131,8 +134,6 @@ bool try_vtoi(struct chx_value *value, int *res);
 /* v-to-d: value to double */
 bool try_vtod(struct chx_value *value, double *res);
 
-struct chx_sym *find_sym_in(struct chx_env *env, const char *name);
-struct chx_sym *find_sym(CHEAX *c, const char *name);
 void cry(CHEAX *c, const char *name, int err, const char *frmt, ...);
 
 /* defined in builtins.c */
