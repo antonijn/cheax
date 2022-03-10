@@ -23,6 +23,7 @@
 #include "arith.h"
 #include "config.h"
 #include "err.h"
+#include "eval.h"
 #include "setup.h"
 #include "format.h"
 #include "gc.h"
@@ -327,82 +328,6 @@ bltn_macro(CHEAX *c, struct chx_list *args, void *info)
 }
 
 static struct chx_value *
-bltn_eval(CHEAX *c, struct chx_list *args, void *info)
-{
-	struct chx_value *arg;
-	return (0 == unpack(c, "eval", args, ".", &arg))
-	     ? cheax_eval(c, arg)
-	     : NULL;
-}
-
-static struct chx_value *
-bltn_case(CHEAX *c, struct chx_list *args, void *info)
-{
-	if (args == NULL) {
-		cry(c, "case", CHEAX_EMATCH, "invalid case");
-		return NULL;
-	}
-
-	struct chx_value *what = cheax_eval(c, args->value);
-	cheax_ft(c, pad);
-
-	/* pattern-value-pair */
-	for (struct chx_list *pvp = args->next; pvp; pvp = pvp->next) {
-		struct chx_value *pair = pvp->value;
-		if (cheax_type_of(pair) != CHEAX_LIST) {
-			cry(c, "case", CHEAX_EMATCH, "pattern-value pair expected");
-			return NULL;
-		}
-
-		struct chx_list *cons_pair = (struct chx_list *)pair;
-		struct chx_value *pan = cons_pair->value;
-
-		if (cheax_push_env(c) == NULL)
-			goto pad;
-
-		if (!cheax_match(c, pan, what, CHEAX_READONLY)) {
-			cheax_pop_env(c);
-			continue;
-		}
-
-		/* pattern matches! */
-		chx_ref what_ref = cheax_ref(c, what);
-
-		struct chx_value *retval = NULL;
-		for (struct chx_list *val = cons_pair->next; val != NULL; val = val->next) {
-			retval = cheax_eval(c, val->value);
-			cheax_ft(c, pad2);
-		}
-
-pad2:
-		cheax_unref(c, what, what_ref);
-		cheax_pop_env(c);
-		return retval;
-	}
-
-	cry(c, "case", CHEAX_EMATCH, "non-exhaustive pattern");
-pad:
-	return NULL;
-}
-
-static struct chx_value *
-bltn_eq(CHEAX *c, struct chx_list *args, void *info)
-{
-	struct chx_value *l, *r;
-	return (0 == unpack(c, "=", args, "..", &l, &r))
-	     ? &cheax_bool(c, cheax_eq(c, l, r))->base
-	     : NULL;
-}
-static struct chx_value *
-bltn_ne(CHEAX *c, struct chx_list *args, void *info)
-{
-	struct chx_value *l, *r;
-	return (0 == unpack(c, "!=", args, "..", &l, &r))
-	     ? &cheax_bool(c, !cheax_eq(c, l, r))->base
-	     : NULL;
-}
-
-static struct chx_value *
 get_cheax_version(CHEAX *c, struct chx_sym *sym)
 {
 	static struct chx_string res = {
@@ -434,11 +359,6 @@ export_builtins(CHEAX *c)
 		{ "type-of",       bltn_type_of       },
 		{ "fn",            bltn_fn            },
 		{ "macro",         bltn_macro         },
-		{ "eval",          bltn_eval          },
-		{ "case",          bltn_case          },
-
-		{ "=",             bltn_eq            },
-		{ "!=",            bltn_ne            },
 	};
 
 	int nbltns = sizeof(bltns) / sizeof(bltns[0]);
@@ -450,21 +370,22 @@ export_builtins(CHEAX *c)
 
 	export_arith_bltns(c);
 	export_err_bltns(c);
+	export_eval_bltns(c);
 	export_sym_bltns(c);
 }
 
 /* sorted asciibetically for use in bsearch() */
 static const struct nfeat { const char *name; int feat; } named_feats[] = {
-	{"all",             ALL_FEATURES    },
-	{"exit",            EXIT_BUILTIN    },
-	{"file-io",         FILE_IO         },
+	{"all",     ALL_FEATURES  },
+	{"exit",    EXIT_BUILTIN  },
+	{"file-io", FILE_IO       },
 #ifndef USE_BOEHM_GC
-	{"gc",              GC_BUILTIN      },
+	{"gc",      GC_BUILTIN    },
 #endif
-	{"stderr",          EXPOSE_STDERR   },
-	{"stdin",           EXPOSE_STDIN    },
-	{"stdio",           STDIO           },
-	{"stdout",          EXPOSE_STDOUT   },
+	{"stderr",  EXPOSE_STDERR },
+	{"stdin",   EXPOSE_STDIN  },
+	{"stdio",   STDIO         },
+	{"stdout",  EXPOSE_STDOUT },
 };
 
 /* used in bsearch() */

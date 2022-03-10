@@ -349,3 +349,98 @@ cheax_eq(CHEAX *c, struct chx_value *l, struct chx_value *r)
 		return l == r;
 	}
 }
+
+/*
+ *  _           _ _ _   _
+ * | |__  _   _(_) | |_(_)_ __  ___
+ * | '_ \| | | | | | __| | '_ \/ __|
+ * | |_) | |_| | | | |_| | | | \__ \
+ * |_.__/ \__,_|_|_|\__|_|_| |_|___/
+ *
+ */
+
+static struct chx_value *
+bltn_eval(CHEAX *c, struct chx_list *args, void *info)
+{
+	struct chx_value *arg;
+	return (0 == unpack(c, "eval", args, ".", &arg))
+	     ? cheax_eval(c, arg)
+	     : NULL;
+}
+
+static struct chx_value *
+bltn_case(CHEAX *c, struct chx_list *args, void *info)
+{
+	if (args == NULL) {
+		cry(c, "case", CHEAX_EMATCH, "invalid case");
+		return NULL;
+	}
+
+	struct chx_value *what = cheax_eval(c, args->value);
+	cheax_ft(c, pad);
+
+	/* pattern-value-pair */
+	for (struct chx_list *pvp = args->next; pvp; pvp = pvp->next) {
+		struct chx_value *pair = pvp->value;
+		if (cheax_type_of(pair) != CHEAX_LIST) {
+			cry(c, "case", CHEAX_EMATCH, "pattern-value pair expected");
+			return NULL;
+		}
+
+		struct chx_list *cons_pair = (struct chx_list *)pair;
+		struct chx_value *pan = cons_pair->value;
+
+		if (cheax_push_env(c) == NULL)
+			goto pad;
+
+		if (!cheax_match(c, pan, what, CHEAX_READONLY)) {
+			cheax_pop_env(c);
+			continue;
+		}
+
+		/* pattern matches! */
+		chx_ref what_ref = cheax_ref(c, what);
+
+		struct chx_value *retval = NULL;
+		for (struct chx_list *val = cons_pair->next; val != NULL; val = val->next) {
+			retval = cheax_eval(c, val->value);
+			cheax_ft(c, pad2);
+		}
+
+pad2:
+		cheax_unref(c, what, what_ref);
+		cheax_pop_env(c);
+		return retval;
+	}
+
+	cry(c, "case", CHEAX_EMATCH, "non-exhaustive pattern");
+pad:
+	return NULL;
+}
+
+static struct chx_value *
+bltn_eq(CHEAX *c, struct chx_list *args, void *info)
+{
+	struct chx_value *l, *r;
+	return (0 == unpack(c, "=", args, "..", &l, &r))
+	     ? &cheax_bool(c, cheax_eq(c, l, r))->base
+	     : NULL;
+}
+
+static struct chx_value *
+bltn_ne(CHEAX *c, struct chx_list *args, void *info)
+{
+	struct chx_value *l, *r;
+	return (0 == unpack(c, "!=", args, "..", &l, &r))
+	     ? &cheax_bool(c, !cheax_eq(c, l, r))->base
+	     : NULL;
+}
+
+void
+export_eval_bltns(CHEAX *c)
+{
+	cheax_defmacro(c, "eval", bltn_eval, NULL);
+	cheax_defmacro(c, "case", bltn_case, NULL);
+	cheax_defmacro(c, "=",    bltn_eq,   NULL);
+	cheax_defmacro(c, "!=",   bltn_ne,   NULL);
+}

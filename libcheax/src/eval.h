@@ -13,11 +13,11 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  */
 
-#ifndef ARITH_H
-#define ARITH_H
+#ifndef EVAL_H
+#define EVAL_H
 
 #include <cheax.h>
 
-void export_arith_bltns(CHEAX *c);
+void export_eval_bltns(CHEAX *c);
 
 #endif
