@@ -28,9 +28,9 @@ configure_file (src/setup.h.in src/setup.h)
 set(CMAKE_C_VISIBILITY_PRESET hidden)
 
 add_library (libcheax
-	src/api.c
 	src/arith.c
 	src/config.c
+	src/core.c
 	src/err.c
 	src/eval.c
 	src/feat.c
