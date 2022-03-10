@@ -530,7 +530,7 @@ bltn_def(CHEAX *c, struct chx_list *args, void *info)
 	struct chx_value *idval, *setto;
 	if (0 == unpack(c, "def", args, "_.", &idval, &setto)
 	 && !cheax_match(c, idval, setto, CHEAX_READONLY)
-	 && cheax_errno(c) == 0)
+	 && cheax_errstate(c) == CHEAX_RUNNING)
 	{
 		cry(c, "def", CHEAX_EMATCH, "invalid pattern");
 	}
@@ -542,7 +542,7 @@ bltn_var(CHEAX *c, struct chx_list *args, void *info)
 	struct chx_value *idval, *setto;
 	if (0 == unpack(c, "var", args, "_.?", &idval, &setto)
 	 && !cheax_match(c, idval, setto, 0)
-	 && cheax_errno(c) == 0)
+	 && cheax_errstate(c) == CHEAX_RUNNING)
 	{
 		cry(c, "var", CHEAX_EMATCH, "invalid pattern");
 	}
