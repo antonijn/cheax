@@ -233,50 +233,6 @@ bltn_exit(CHEAX *c, struct chx_list *args, void *info)
 	exit((code_val == NULL) ? 0 : ((struct chx_int *)code_val)->value);
 }
 
-#ifndef USE_BOEHM_GC
-
-/*
- *
- *   __ _  ___
- *  / _` |/ __|
- * | (_| | (__
- *  \__, |\___|
- *  |___/
- */
-
-static struct chx_value *
-bltn_gc(CHEAX *c, struct chx_list *args, void *info)
-{
-	if (unpack(c, "gc", args, "") < 0)
-		return NULL;
-
-	static struct chx_id mem = { { CHEAX_ID | NO_GC_BIT }, "mem" },
-			      to = { { CHEAX_ID | NO_GC_BIT }, "->" },
-			     obj = { { CHEAX_ID | NO_GC_BIT }, "obj" };
-
-	int mem_i = c->gc.all_mem, obj_i = c->gc.num_objects;
-	cheax_force_gc(c);
-	int mem_f = c->gc.all_mem, obj_f = c->gc.num_objects;
-
-	return &cheax_list(c, &mem.base,
-		cheax_list(c, &cheax_int(c, mem_i)->base,
-		cheax_list(c, &to.base,
-		cheax_list(c, &cheax_int(c, mem_f)->base,
-		cheax_list(c, &obj.base,
-		cheax_list(c, &cheax_int(c, obj_i)->base,
-		cheax_list(c, &to.base,
-		cheax_list(c, &cheax_int(c, obj_f)->base, NULL))))))))->base;
-}
-static struct chx_value *
-bltn_get_used_memory(CHEAX *c, struct chx_list *args, void *info)
-{
-	return (0 == unpack(c, "get-used-memory", args, ""))
-	     ? &cheax_int(c, c->gc.all_mem)->base
-	     : NULL;
-}
-
-#endif
-
 /*
  *                  _
  * __   ____ _ _ __(_) ___  _   _ ___
@@ -463,26 +419,26 @@ export_builtins(CHEAX *c)
 	c->fhandle_type = cheax_new_type(c, "FileHandle", CHEAX_USER_PTR);
 
 	struct { const char *name; chx_func_ptr fn; } bltns[] = {
-		{ "read-from",       bltn_read_from       },
-		{ "print-to",        bltn_print_to        },
-		{ "put-to",          bltn_put_to          },
-		{ "get-byte-from",   bltn_get_byte_from   },
-		{ "get-line-from",   bltn_get_line_from   },
+		{ "read-from",     bltn_read_from     },
+		{ "print-to",      bltn_print_to      },
+		{ "put-to",        bltn_put_to        },
+		{ "get-byte-from", bltn_get_byte_from },
+		{ "get-line-from", bltn_get_line_from },
 
-		{ "format",          bltn_format          },
-		{ "strbytes",        bltn_strbytes        },
-		{ "strsize",         bltn_strsize         },
-		{ "substr",          bltn_substr          },
+		{ "format",        bltn_format        },
+		{ "strbytes",      bltn_strbytes      },
+		{ "strsize",       bltn_strsize       },
+		{ "substr",        bltn_substr        },
 
-		{ ":",               bltn_prepend         },
-		{ "type-of",         bltn_type_of         },
-		{ "fn",              bltn_fn              },
-		{ "macro",           bltn_macro           },
-		{ "eval",            bltn_eval            },
-		{ "case",            bltn_case            },
+		{ ":",             bltn_prepend       },
+		{ "type-of",       bltn_type_of       },
+		{ "fn",            bltn_fn            },
+		{ "macro",         bltn_macro         },
+		{ "eval",          bltn_eval          },
+		{ "case",          bltn_case          },
 
-		{ "=",               bltn_eq              },
-		{ "!=",              bltn_ne              },
+		{ "=",             bltn_eq            },
+		{ "!=",            bltn_ne            },
 	};
 
 	int nbltns = sizeof(bltns) / sizeof(bltns[0]);
@@ -560,13 +516,6 @@ cheax_load_feature(CHEAX *c, const char *feat)
 		cheax_defmacro(c, "fclose", bltn_fclose, NULL);
 	}
 
-#ifndef USE_BOEHM_GC
-	if (has_flag(nf, GC_BUILTIN)) {
-		cheax_defmacro(c, "gc", bltn_gc, NULL);
-		cheax_defmacro(c, "get-used-memory", bltn_get_used_memory, NULL);
-	}
-#endif
-
 	if (has_flag(nf, EXIT_BUILTIN))
 		cheax_defmacro(c, "exit", bltn_exit, NULL);
 
@@ -589,6 +538,7 @@ cheax_load_feature(CHEAX *c, const char *feat)
 	}
 
 	load_config_features(c, nf);
+	load_gc_features(c, nf);
 
 	c->features |= nf;
 	return 0;

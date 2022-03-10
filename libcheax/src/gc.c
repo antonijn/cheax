@@ -17,9 +17,31 @@
 #include <string.h>
 
 #include "api.h"
-#include "setup.h"
 #include "gc.h"
 #include "rbtree.h"
+#include "setup.h"
+#include "unpack.h"
+
+chx_ref
+cheax_ref(CHEAX *c, void *restrict value)
+{
+	struct chx_value *obj = value;
+	if (obj != NULL) {
+		chx_ref res = has_flag(obj->type, GC_REFD);
+		if (!has_flag(obj->type, NO_GC_BIT))
+			obj->type |= GC_REFD;
+		return res;
+	}
+	return false;
+}
+
+void
+cheax_unref(CHEAX *c, void *restrict value, chx_ref ref)
+{
+	struct chx_value *obj = value;
+	if (obj != NULL && !has_flag(obj->type, NO_GC_BIT) && !ref)
+		obj->type &= ~GC_REFD;
+}
 
 #ifdef USE_BOEHM_GC
 
@@ -102,6 +124,11 @@ gcol_alloc_with_fin(CHEAX *c, size_t size, int type, chx_fin fin, void *info)
 	return res;
 }
 
+void
+load_gc_features(CHEAX *c, int bits)
+{
+	/* empty */
+}
 
 #else
 
@@ -480,25 +507,54 @@ cheax_force_gc(CHEAX *c)
 	c->gc.lock = false;
 }
 
-#endif
+/*
+ *  _           _ _ _   _
+ * | |__  _   _(_) | |_(_)_ __  ___
+ * | '_ \| | | | | | __| | '_ \/ __|
+ * | |_) | |_| | | | |_| | | | \__ \
+ * |_.__/ \__,_|_|_|\__|_|_| |_|___/
+ *
+ */
 
-chx_ref
-cheax_ref(CHEAX *c, void *restrict value)
+static struct chx_value *
+bltn_gc(CHEAX *c, struct chx_list *args, void *info)
 {
-	struct chx_value *obj = value;
-	if (obj != NULL) {
-		chx_ref res = has_flag(obj->type, GC_REFD);
-		if (!has_flag(obj->type, NO_GC_BIT))
-			obj->type |= GC_REFD;
-		return res;
-	}
-	return false;
+	if (unpack(c, "gc", args, "") < 0)
+		return NULL;
+
+	static struct chx_id mem = { { CHEAX_ID | NO_GC_BIT }, "mem" },
+			      to = { { CHEAX_ID | NO_GC_BIT }, "->" },
+			     obj = { { CHEAX_ID | NO_GC_BIT }, "obj" };
+
+	int mem_i = c->gc.all_mem, obj_i = c->gc.num_objects;
+	cheax_force_gc(c);
+	int mem_f = c->gc.all_mem, obj_f = c->gc.num_objects;
+
+	return &cheax_list(c, &mem.base,
+		cheax_list(c, &cheax_int(c, mem_i)->base,
+		cheax_list(c, &to.base,
+		cheax_list(c, &cheax_int(c, mem_f)->base,
+		cheax_list(c, &obj.base,
+		cheax_list(c, &cheax_int(c, obj_i)->base,
+		cheax_list(c, &to.base,
+		cheax_list(c, &cheax_int(c, obj_f)->base, NULL))))))))->base;
+}
+
+static struct chx_value *
+bltn_get_used_memory(CHEAX *c, struct chx_list *args, void *info)
+{
+	return (0 == unpack(c, "get-used-memory", args, ""))
+	     ? &cheax_int(c, c->gc.all_mem)->base
+	     : NULL;
 }
 
 void
-cheax_unref(CHEAX *c, void *restrict value, chx_ref ref)
+load_gc_features(CHEAX *c, int bits)
 {
-	struct chx_value *obj = value;
-	if (obj != NULL && !has_flag(obj->type, NO_GC_BIT) && !ref)
-		obj->type &= ~GC_REFD;
+	if (has_flag(bits, GC_BUILTIN)) {
+		cheax_defmacro(c, "gc", bltn_gc, NULL);
+		cheax_defmacro(c, "get-used-memory", bltn_get_used_memory, NULL);
+	}
 }
+
+#endif

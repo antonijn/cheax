@@ -24,24 +24,24 @@ endif()
 
 configure_file (src/setup.h.in src/setup.h)
 
-# hide all library functions by, unless declared with CHX_API
+# hide all library functions, unless declared with CHX_API
 set(CMAKE_C_VISIBILITY_PRESET hidden)
 
 add_library (libcheax
 	src/api.c
 	src/arith.c
-	src/err.c
-	src/sym.c
-	src/config.c
-	src/strm.c
-	src/rbtree.c
-	src/loc.c
-	src/gc.c
-	src/read.c
-	src/eval.c
-	src/print.c
-	src/format.c
 	src/bltns.c
+	src/config.c
+	src/err.c
+	src/eval.c
+	src/format.c
+	src/gc.c
+	src/loc.c
+	src/print.c
+	src/rbtree.c
+	src/read.c
+	src/strm.c
+	src/sym.c
 	src/unpack.c)
 add_dependencies (libcheax generate_version_header)
 

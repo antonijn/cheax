@@ -62,4 +62,6 @@ void gcol_free(CHEAX *c, void *obj);
 void cheax_gc(CHEAX *c);
 void cheax_force_gc(CHEAX *c);
 
+void load_gc_features(CHEAX *c, int bits);
+
 #endif
