@@ -19,7 +19,7 @@
 #include <cheax.h>
 
 #include "gc.h"
-#include "rbtree.h"
+#include "sym.h"
 
 enum {
 	USABLE_BIT  = CHEAX_TYPE_MASK + 1,
@@ -50,12 +50,6 @@ set_type(struct chx_value *value, int type)
 	return value;
 }
 
-struct full_sym {
-	const char *name;
-	bool allow_redef;
-	struct chx_sym sym;
-};
-
 struct type_cast {
 	int to;
 	chx_func_ptr cast;
@@ -70,19 +64,6 @@ struct type_alias {
 	chx_func_ptr print;
 
 	struct type_cast *casts;
-};
-
-struct chx_env {
-	struct chx_value base;
-	bool is_bif;
-	union {
-		struct chx_env *bif[2];
-
-		struct {
-			struct rb_tree syms;
-			struct chx_env *below;
-		} norm;
-	} value;
 };
 
 struct cheax {
