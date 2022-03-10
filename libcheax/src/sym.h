@@ -42,4 +42,6 @@ struct chx_env {
 struct chx_env *norm_env_init(CHEAX *c, struct chx_env *env, struct chx_env *below);
 void norm_env_cleanup(struct chx_env *env);
 
+void export_sym_bltns(CHEAX *c);
+
 #endif

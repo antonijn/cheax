@@ -19,8 +19,9 @@
 
 #include "api.h"
 #include "config.h"
-#include "setup.h"
 #include "gc.h"
+#include "setup.h"
+#include "unpack.h"
 
 static int
 full_sym_cmp(struct rb_tree *tree, struct rb_node *a, struct rb_node *b)
@@ -365,4 +366,280 @@ cheax_sync_double(CHEAX *c, const char *name, double *var, int flags)
 	             has_flag(flags, CHEAX_WRITEONLY) ? NULL : sync_double_get,
 	             has_flag(flags, CHEAX_READONLY)  ? NULL : sync_double_set,
 	             NULL, var);
+}
+
+/*
+ *  _           _ _ _   _
+ * | |__  _   _(_) | |_(_)_ __  ___
+ * | '_ \| | | | | | __| | '_ \/ __|
+ * | |_) | |_| | | | |_| | | | \__ \
+ * |_.__/ \__,_|_|_|\__|_|_| |_|___/
+ *
+ */
+
+struct defsym_info {
+	struct chx_func *get, *set;
+};
+
+static void
+defgetset(CHEAX *c, const char *name,
+          struct chx_value *getset_args,
+          struct chx_list *args,
+          struct defsym_info *info,
+          struct chx_func **out)
+{
+	if (info == NULL) {
+		cry(c, name, CHEAX_EEVAL, "out of symbol scope");
+		return;
+	}
+
+	if (args == NULL) {
+		cry(c, name, CHEAX_EMATCH, "expected body");
+		return;
+	}
+
+	if (*out != NULL) {
+		cry(c, name, CHEAX_EEXIST, "already called");
+		return;
+	}
+
+	struct chx_func *res = gcol_alloc(c, sizeof(struct chx_func), CHEAX_FUNC);
+	if (res != NULL) {
+		res->args = getset_args;
+		res->body = args;
+		res->lexenv = c->env;
+	}
+	*out = res;
+}
+
+static struct chx_value *
+bltn_defget(CHEAX *c, struct chx_list *args, void *info)
+{
+	struct defsym_info *dinfo = info;
+	defgetset(c, "defget", NULL, args, dinfo, &dinfo->get);
+	return NULL;
+}
+static struct chx_value *
+bltn_defset(CHEAX *c, struct chx_list *args, void *info)
+{
+	static struct chx_id value_id = { { CHEAX_ID | NO_GC_BIT }, "value" };
+	static struct chx_list set_args = { { CHEAX_LIST | NO_GC_BIT }, &value_id.base, NULL };
+
+	struct defsym_info *dinfo = info;
+	defgetset(c, "defset", &set_args.base, args, dinfo, &dinfo->set);
+	return NULL;
+}
+
+static struct chx_value *
+defsym_get(CHEAX *c, struct chx_sym *sym)
+{
+	struct defsym_info *info = sym->user_info;
+	struct chx_list sexpr = { { CHEAX_LIST | NO_GC_BIT }, &info->get->base, NULL };
+	return cheax_eval(c, &sexpr.base);
+}
+static void
+defsym_set(CHEAX *c, struct chx_sym *sym, struct chx_value *value)
+{
+	struct defsym_info *info = sym->user_info;
+	struct chx_quote arg  = { { CHEAX_QUOTE | NO_GC_BIT }, value };
+	struct chx_list args  = { { CHEAX_LIST | NO_GC_BIT }, &arg.base,        NULL  };
+	struct chx_list sexpr = { { CHEAX_LIST | NO_GC_BIT }, &info->set->base, &args };
+	cheax_eval(c, &sexpr.base);
+}
+static void
+defsym_finalizer(CHEAX *c, struct chx_sym *sym)
+{
+	cheax_free(c, sym->user_info);
+}
+
+static struct chx_value *
+bltn_defsym(CHEAX *c, struct chx_list *args, void *info)
+{
+	if (args == NULL) {
+		cry(c, "defsym", CHEAX_EMATCH, "expected symbol name");
+		return NULL;
+	}
+
+	struct chx_value *idval = args->value;
+	if (cheax_type_of(idval) != CHEAX_ID) {
+		cry(c, "defsym", CHEAX_ETYPE, "expected identifier");
+		return NULL;
+	}
+
+	struct chx_id *id = (struct chx_id *)idval;
+	bool body_ok = false;
+
+	struct defsym_info *dinfo = cheax_malloc(c, sizeof(struct defsym_info));
+	if (dinfo == NULL)
+		return NULL;
+	dinfo->get = dinfo->set = NULL;
+
+	struct chx_ext_func *defget, *defset;
+	defget = cheax_ext_func(c, "defget", bltn_defget, dinfo);
+	defset = cheax_ext_func(c, "defset", bltn_defset, dinfo);
+	cheax_ft(c, err_pad); /* alloc failure */
+
+	struct chx_env *new_env = cheax_push_env(c);
+	if (new_env == NULL)
+		goto err_pad;
+	new_env->base.type |= NO_ESC_BIT;
+
+	cheax_var(c, "defget", &defget->base, CHEAX_READONLY);
+	cheax_var(c, "defset", &defset->base, CHEAX_READONLY);
+	cheax_ft(c, pad); /* alloc failure */
+
+	for (struct chx_list *cons = args->next; cons != NULL; cons = cons->next) {
+		cheax_eval(c, cons->value);
+		cheax_ft(c, pad);
+	}
+
+	body_ok = true;
+pad:
+	defget->info = defset->info = NULL;
+	cheax_pop_env(c);
+
+	if (!body_ok)
+		goto err_pad;
+
+	if (dinfo->get == NULL && dinfo->set == NULL) {
+		cry(c, "defsym", CHEAX_ENOSYM, "symbol must have getter or setter");
+		goto err_pad;
+	}
+
+	chx_getter act_get = (dinfo->get == NULL) ? NULL : defsym_get;
+	chx_setter act_set = (dinfo->set == NULL) ? NULL : defsym_set;
+	struct chx_sym *sym = cheax_defsym(c, id->id, act_get, act_set, defsym_finalizer, dinfo);
+	if (sym == NULL)
+		goto err_pad;
+
+	struct chx_list *protect = NULL;
+	if (dinfo->get != NULL)
+		protect = cheax_list(c, &dinfo->get->base, protect);
+	if (dinfo->set != NULL)
+		protect = cheax_list(c, &dinfo->set->base, protect);
+	sym->protect = &protect->base;
+
+	return NULL;
+err_pad:
+	cheax_free(c, dinfo);
+	return NULL;
+}
+
+static struct chx_value *
+bltn_def(CHEAX *c, struct chx_list *args, void *info)
+{
+	struct chx_value *idval, *setto;
+	if (0 == unpack(c, "def", args, "_.", &idval, &setto)
+	 && !cheax_match(c, idval, setto, CHEAX_READONLY)
+	 && cheax_errno(c) == 0)
+	{
+		cry(c, "def", CHEAX_EMATCH, "invalid pattern");
+	}
+	return NULL;
+}
+static struct chx_value *
+bltn_var(CHEAX *c, struct chx_list *args, void *info)
+{
+	struct chx_value *idval, *setto;
+	if (0 == unpack(c, "var", args, "_.?", &idval, &setto)
+	 && !cheax_match(c, idval, setto, 0)
+	 && cheax_errno(c) == 0)
+	{
+		cry(c, "var", CHEAX_EMATCH, "invalid pattern");
+	}
+	return NULL;
+}
+
+static struct chx_value *
+bltn_let(CHEAX *c, struct chx_list *args, void *info)
+{
+	struct chx_value *res = NULL;
+
+	if (args == NULL) {
+		cry(c, "let", CHEAX_EMATCH, "invalid let");
+		return NULL;
+	}
+
+	struct chx_value *pairsv = args->value;
+	if (cheax_type_of(pairsv) != CHEAX_LIST) {
+		cry(c, "let", CHEAX_ETYPE, "invalid let");
+		return NULL;
+	}
+
+	struct chx_env *new_env = cheax_push_env(c);
+	if (new_env == NULL)
+		return NULL;
+	/* probably won't escape; major memory optimisation */
+	new_env->base.type |= NO_ESC_BIT;
+
+	for (struct chx_list *pairs = (struct chx_list *)pairsv;
+	     pairs != NULL;
+	     pairs = pairs->next)
+	{
+		struct chx_value *pairv = pairs->value;
+		if (cheax_type_of(pairv) != CHEAX_LIST) {
+			cry(c, "let", CHEAX_ETYPE, "expected list of lists in first arg");
+			goto pad;
+		}
+
+		struct chx_list *pair = (struct chx_list *)pairv;
+		if (pair->next == NULL || pair->next->next != NULL) {
+			cry(c, "let", CHEAX_EVALUE, "expected list of match pairs in first arg");
+			goto pad;
+		}
+
+		struct chx_value *pan = pair->value, *match = pair->next->value;
+		match = cheax_eval(c, match);
+		cheax_ft(c, pad);
+
+		if (!cheax_match(c, pan, match, CHEAX_READONLY)) {
+			cry(c, "let", CHEAX_EMATCH, "failed match in match pair list");
+			goto pad;
+		}
+	}
+
+	if (args->next == NULL) {
+		cry(c, "let", CHEAX_EMATCH, "expected body");
+		goto pad;
+	}
+
+	struct chx_value *retval;
+	for (struct chx_list *cons = args->next; cons != NULL; cons = cons->next) {
+		retval = cheax_eval(c, cons->value);
+		cheax_ft(c, pad);
+	}
+
+	res = retval;
+pad:
+	cheax_pop_env(c);
+	return res;
+}
+
+static struct chx_value *
+bltn_set(CHEAX *c, struct chx_list *args, void *info)
+{
+	const char *id;
+	struct chx_value *setto;
+	if (0 == unpack(c, "set", args, "N!.", &id, &setto))
+		cheax_set(c, id, setto);
+	return NULL;
+}
+
+static struct chx_value *
+bltn_env(CHEAX *c, struct chx_list *args, void *info)
+{
+	return (0 == unpack(c, "env", args, ""))
+	     ? &cheax_env(c)->base
+	     : NULL;
+}
+
+void
+export_sym_bltns(CHEAX *c)
+{
+	cheax_defmacro(c, "defsym", bltn_defsym, NULL);
+	cheax_defmacro(c, "var",    bltn_var,    NULL);
+	cheax_defmacro(c, "def",    bltn_def,    NULL);
+	cheax_defmacro(c, "let",    bltn_let,    NULL);
+	cheax_defmacro(c, "set",    bltn_set,    NULL);
+	cheax_defmacro(c, "env",    bltn_env,    NULL);
 }
