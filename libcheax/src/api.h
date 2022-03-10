@@ -51,6 +51,7 @@ set_type(struct chx_value *value, int type)
 
 struct full_sym {
 	const char *name;
+	bool allow_redef;
 	struct chx_sym sym;
 };
 

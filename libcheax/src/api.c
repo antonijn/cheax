@@ -192,7 +192,7 @@ cheax_defsym(CHEAX *c, const char *id,
 		env = &c->globals;
 
 	struct full_sym *prev_fs = find_sym_in(env, id);
-	if (prev_fs != NULL && !c->allow_redef) {
+	if (prev_fs != NULL && !prev_fs->allow_redef) {
 		cry(c, "defsym", CHEAX_EEXIST, "symbol `%s' already exists", id);
 		return NULL;
 	}
@@ -207,13 +207,14 @@ cheax_defsym(CHEAX *c, const char *id,
 
 	struct full_sym *fs = (struct full_sym *)fs_mem;
 	fs->name = idcpy;
+	fs->allow_redef = c->allow_redef;
 	fs->sym.get = get;
 	fs->sym.set = set;
 	fs->sym.fin = fin;
 	fs->sym.user_info = user_info;
 	fs->sym.protect = NULL;
 
-	if (prev_fs != NULL && c->allow_redef)
+	if (prev_fs != NULL && prev_fs->allow_redef)
 		undef_sym(c, env, prev_fs);
 
 	rb_tree_insert(&env->value.norm.syms, fs);
