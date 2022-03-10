@@ -44,9 +44,15 @@ cheax_realloc(CHEAX *c, void *ptr, size_t size)
 }
 
 void
-gcol_free(CHEAX *c, void *ptr)
+cheax_free(CHEAX *c, void *ptr)
 {
 	free(ptr);
+}
+
+void
+gcol_free(CHEAX *c, void *ptr)
+{
+	cheax_free(c, ptr);
 }
 
 void

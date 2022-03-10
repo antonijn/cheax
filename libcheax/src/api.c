@@ -129,6 +129,17 @@ env_cleanup(void *env_bytes, void *info)
 }
 
 struct chx_env *
+cheax_env(CHEAX *c)
+{
+	if (c->env != NULL) {
+		c->env->base.type &= ~NO_ESC_BIT; /* env escapes! */
+		return c->env;
+	}
+
+	return &c->globals;
+}
+
+struct chx_env *
 cheax_push_env(CHEAX *c)
 {
 	struct chx_env *env = gcol_alloc_with_fin(c, sizeof(struct chx_env), CHEAX_ENV,

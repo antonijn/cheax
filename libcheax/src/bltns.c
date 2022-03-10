@@ -754,7 +754,7 @@ static struct chx_value *
 bltn_env(CHEAX *c, struct chx_list *args, void *info)
 {
 	return (0 == unpack(c, "env", args, ""))
-	     ? &c->env->base
+	     ? &cheax_env(c)->base
 	     : NULL;
 }
 

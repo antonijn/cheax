@@ -82,8 +82,13 @@ eval_sexpr(CHEAX *c, struct chx_list *input)
 		struct chx_env *prev_env = c->env;
 		chx_ref prev_env_ref = cheax_ref(c, prev_env);
 		c->env = fn->lexenv;
+
+		struct chx_env *new_env = cheax_push_env(c);
 		if (cheax_push_env(c) == NULL)
-			goto fn_pad;
+			goto env_fail_pad;
+
+		/* probably won't escape; major memory optimisation */
+		new_env->base.type |= NO_ESC_BIT;
 
 		bool arg_match_ok = cheax_match(c, fn->args, &args->base, CHEAX_READONLY);
 
@@ -101,6 +106,10 @@ eval_sexpr(CHEAX *c, struct chx_list *input)
 		call_ok = true;
 		res = retval;
 fn_pad:
+		/* dangerous, but worth it! */
+		if (has_flag(new_env->base.type, NO_ESC_BIT))
+			gcol_free(c, new_env);
+env_fail_pad:
 		cheax_unref(c, prev_env, prev_env_ref);
 		c->env = prev_env;
 		if (call_ok && ty == CHEAX_MACRO)

@@ -341,6 +341,8 @@ CHX_API struct chx_user_ptr *cheax_user_ptr(CHEAX *c, void *value, int type);
  */
 struct chx_env;
 
+CHX_API struct chx_env *cheax_env(CHEAX *c);
+
 struct chx_sym;
 
 typedef struct chx_value *(*chx_getter)(CHEAX *c, struct chx_sym *sym);
