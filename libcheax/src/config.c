@@ -89,7 +89,7 @@ static struct config_info opts[] = {
 		"allow-redef", CHEAX_BOOL, "<true|false>",
 		{ .get_bool = get_allow_redef },
 		{ .set_bool = set_allow_redef },
-		"Allow symbol redefinition."
+		"Allow symbol redefinition in global scope."
 	},
 	{
 		"mem-limit", CHEAX_INT, "N",

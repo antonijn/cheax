@@ -207,7 +207,7 @@ cheax_defsym(CHEAX *c, const char *id,
 
 	struct full_sym *fs = (struct full_sym *)fs_mem;
 	fs->name = idcpy;
-	fs->allow_redef = c->allow_redef;
+	fs->allow_redef = c->allow_redef && env == &c->globals;
 	fs->sym.get = get;
 	fs->sym.set = set;
 	fs->sym.fin = fin;
