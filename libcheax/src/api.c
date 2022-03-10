@@ -20,8 +20,9 @@
 
 #include "api.h"
 #include "config.h"
-#include "setup.h"
+#include "feat.h"
 #include "gc.h"
+#include "setup.h"
 #include "unpack.h"
 
 struct chx_quote *
@@ -258,7 +259,7 @@ cheax_init(void)
 	cheax_new_type(res, "TypeCode", CHEAX_INT);
 	cheax_new_type(res, "ErrorCode", CHEAX_INT);
 
-	export_builtins(res);
+	export_bltns(res);
 	config_init(res);
 	return res;
 }

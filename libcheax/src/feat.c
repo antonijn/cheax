@@ -22,6 +22,7 @@
 #include "config.h"
 #include "err.h"
 #include "eval.h"
+#include "feat.h"
 #include "format.h"
 #include "gc.h"
 #include "io.h"
@@ -108,7 +109,7 @@ cheax_load_feature(CHEAX *c, const char *feat)
 }
 
 void
-export_builtins(CHEAX *c)
+export_bltns(CHEAX *c)
 {
 	export_arith_bltns(c);
 	export_core_bltns(c);

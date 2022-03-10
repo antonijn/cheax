@@ -72,21 +72,7 @@ struct cheax {
 
 	int stack_depth;
 
-	enum {
-		FILE_IO         = 0x0001,
-		SET_STACK_LIMIT = 0x0002,
-		GC_BUILTIN      = 0x0004,
-		EXIT_BUILTIN    = 0x0008,
-		EXPOSE_STDIN    = 0x0010,
-		EXPOSE_STDOUT   = 0x0020,
-		EXPOSE_STDERR   = 0x0040,
-		STDIO           = EXPOSE_STDIN | EXPOSE_STDOUT | EXPOSE_STDERR,
-		CONFIG_FEAT_BIT = 0x0080,
-		/* bits above CONFIG_FEAT_BIT reserved */
-
-		ALL_FEATURES    = ~0,
-	} features;
-
+	int features;
 	bool allow_redef;
 	int mem_limit, stack_limit;
 
@@ -120,8 +106,5 @@ bool try_vtod(struct chx_value *value, double *res);
 void cry(CHEAX *c, const char *name, int err, const char *frmt, ...);
 
 void export_core_bltns(CHEAX *c);
-
-/* defined in bltns.c */
-void export_builtins(CHEAX *c);
 
 #endif

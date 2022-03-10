@@ -17,6 +17,7 @@
 #include <string.h>
 
 #include "api.h"
+#include "feat.h"
 #include "gc.h"
 #include "rbtree.h"
 #include "setup.h"

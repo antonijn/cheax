@@ -18,6 +18,7 @@
 #include <string.h>
 
 #include "api.h"
+#include "feat.h"
 #include "io.h"
 #include "strm.h"
 #include "unpack.h"

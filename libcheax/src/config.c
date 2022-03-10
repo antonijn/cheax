@@ -16,8 +16,9 @@
 #include <stdlib.h>
 #include <string.h>
 
-#include "config.h"
 #include "api.h"
+#include "config.h"
+#include "feat.h"
 
 union config_get {
 	int (*get_int)(CHEAX *c);
