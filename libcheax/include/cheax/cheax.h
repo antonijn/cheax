@@ -924,12 +924,22 @@ CHX_API bool cheax_config_get_bool(CHEAX *c, const char *opt);
  */
 CHX_API int cheax_config_bool(CHEAX *c, const char *opt, bool value);
 
+/* \brief Information about cheax config option. */
 struct chx_config_help {
-	const char *name;
-	int type;
-	const char *help;
+	const char *name;    /*!< Option name. */
+	int type;            /*!< Option type. */
+	const char *metavar; /*!< Printable argument name. */
+	const char *help;    /*!< Help text. */
 };
 
+/*! \brief Load information about all cheax config options.
+ *
+ * \param help     Output parameter. Make sure to free() after use.
+ * \param num_opts Output parameter, will point to length of output
+ *                 array.
+ *
+ * \returns 0 if everything succeeded without errors, -1 otherwise.
+ */
 CHX_API int cheax_config_help(struct chx_config_help **help, size_t *num_opts);
 
 /*! \brief Reads cheax expression from file.

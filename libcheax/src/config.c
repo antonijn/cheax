@@ -32,6 +32,7 @@ union config_set {
 struct config_info {
 	const char *name;
 	int type;
+	const char *metavar;
 	union config_get get;
 	union config_set set;
 	const char *help;
@@ -74,7 +75,7 @@ set_mem_limit(CHEAX *c, int value)
 /* sorted asciibetically for use in bsearch() */
 static struct config_info opts[] = {
 	{
-		"mem-limit", CHEAX_INT,
+		"mem-limit", CHEAX_INT, "N",
 		{ .get_int = get_mem_limit },
 		{ .set_int = set_mem_limit },
 		"Maximum amount of memory that cheax is allowed to use "
@@ -82,7 +83,7 @@ static struct config_info opts[] = {
 		"memory limiting."
 	},
 	{
-		"stack-limit", CHEAX_INT,
+		"stack-limit", CHEAX_INT, "N",
 		{ .get_int = get_stack_limit },
 		{ .set_int = set_stack_limit },
 		"Maximum call stack depth. Set to 0 to disable stack "
@@ -269,6 +270,7 @@ cheax_config_help(struct chx_config_help **help, size_t *num_opts)
 	for (size_t i = 0; i < nopts; ++i) {
 		arr[i].name = opts[i].name;
 		arr[i].type = opts[i].type;
+		arr[i].metavar = opts[i].metavar;
 		arr[i].help = opts[i].help;
 	}
 

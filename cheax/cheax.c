@@ -100,14 +100,7 @@ print_usage(void)
 	puts(usage);
 
 	for (size_t i = 0; i < num_cfg_opts; ++i) {
-		const char *metavar;
-		switch (cfg_help[i].type) {
-		case CHEAX_INT:  metavar = "N";          break;
-		case CHEAX_BOOL: metavar = "true/false"; break;
-		default:         metavar = "???";        break;
-		}
-
-		int head_start = printf("  --%s %s ", cfg_help[i].name, metavar);
+		int head_start = printf("  --%s %s ", cfg_help[i].name, cfg_help[i].metavar);
 		if (head_start > HELP_MARGIN) {
 			/* scoot to next line */
 			putchar('\n');
