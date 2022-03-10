@@ -912,7 +912,7 @@ static struct chx_value *
 do_aop(CHEAX *c,
        const char *name,
        struct chx_list *args,
-       int    (*iop)(CHEAX *, int   , int   ),
+       int (*iop)(CHEAX *, int, int),
        double (*fop)(CHEAX *, double, double))
 {
 	struct chx_value *l, *r;
@@ -941,7 +941,7 @@ do_aop(CHEAX *c,
 }
 
 static int
-iop_add(CHEAX *c, int    a, int    b)
+iop_add(CHEAX *c, int a, int b)
 {
 	if ((b > 0) && (a > INT_MAX - b)) {
 		cry(c, "+", CHEAX_EOVERFLOW, "integer overflow");
@@ -960,7 +960,7 @@ fop_add(CHEAX *c, double a, double b)
 	return a + b;
 }
 static int
-iop_sub(CHEAX *c, int    a, int    b)
+iop_sub(CHEAX *c, int a, int b)
 {
 	if ((b > 0) && (a < INT_MIN + b)) {
 		cry(c, "+", CHEAX_EOVERFLOW, "integer underflow");
@@ -979,7 +979,7 @@ fop_sub(CHEAX *c, double a, double b)
 	return a - b;
 }
 static int
-iop_mul(CHEAX *c, int    a, int    b)
+iop_mul(CHEAX *c, int a, int b)
 {
 	if (((a == -1) && (b == INT_MIN))
 	 || ((b == -1) && (a == INT_MIN)))
@@ -1007,8 +1007,15 @@ fop_mul(CHEAX *c, double a, double b)
 	return a * b;
 }
 static int
-iop_div(CHEAX *c, int    a, int    b)
+iop_div(CHEAX *c, int a, int b)
 {
+	if (((a == -1) && (b == INT_MIN))
+	 || ((b == -1) && (a == INT_MIN)))
+	{
+		cry(c, "/", CHEAX_EOVERFLOW, "integer overflow");
+		return 0;
+	}
+
 	if (b == 0) {
 		cry(c, "/", CHEAX_EDIVZERO, "division by zero");
 		return 0;
@@ -1022,8 +1029,15 @@ fop_div(CHEAX *c, double a, double b)
 	return a / b;
 }
 static int
-iop_mod(CHEAX *c, int    a, int    b)
+iop_mod(CHEAX *c, int a, int b)
 {
+	if (((a == -1) && (b == INT_MIN))
+	 || ((b == -1) && (a == INT_MIN)))
+	{
+		cry(c, "%", CHEAX_EOVERFLOW, "integer overflow");
+		return 0;
+	}
+
 	if (b == 0) {
 		cry(c, "%", CHEAX_EDIVZERO, "division by zero");
 		return 0;
