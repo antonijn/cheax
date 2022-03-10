@@ -16,6 +16,7 @@
 #include <string.h>
 
 #include "core.h"
+#include "err.h"
 #include "feat.h"
 #include "io.h"
 #include "strm.h"

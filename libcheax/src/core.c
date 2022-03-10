@@ -19,6 +19,7 @@
 
 #include "config.h"
 #include "core.h"
+#include "err.h"
 #include "feat.h"
 #include "gc.h"
 #include "setup.h"
@@ -188,37 +189,6 @@ cheax_substr(CHEAX *c, struct chx_string *str, size_t pos, size_t len)
 		res->orig = str->orig;
 	}
 	return res;
-}
-
-void
-cry(CHEAX *c, const char *name, int err, const char *frmt, ...)
-{
-	va_list ap;
-	size_t preamble_len = strlen(name) + 4;
-	struct chx_string *msg = NULL;
-
-	va_start(ap, frmt);
-	size_t msglen = preamble_len + vsnprintf(NULL, 0, frmt, ap);
-	va_end(ap);
-
-	char *buf = malloc(msglen + 1);
-	if (buf != NULL) {
-		sprintf(buf, "(%s): ", name);
-		va_start(ap, frmt);
-		vsnprintf(buf + preamble_len, msglen - preamble_len + 1, frmt, ap);
-		va_end(ap);
-
-		/* hack to avoid allocation failure */
-		int prev_mem_limit = c->mem_limit;
-		c->mem_limit = 0;
-
-		msg = cheax_nstring(c, buf, msglen);
-
-		c->mem_limit = prev_mem_limit;
-		free(buf);
-	}
-
-	cheax_throw(c, err, msg);
 }
 
 CHEAX *

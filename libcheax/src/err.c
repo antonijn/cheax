@@ -124,6 +124,37 @@ cheax_new_error_code(CHEAX *c, const char *name)
 	return code;
 }
 
+void
+cry(CHEAX *c, const char *name, int err, const char *frmt, ...)
+{
+	va_list ap;
+	size_t preamble_len = strlen(name) + 4;
+	struct chx_string *msg = NULL;
+
+	va_start(ap, frmt);
+	size_t msglen = preamble_len + vsnprintf(NULL, 0, frmt, ap);
+	va_end(ap);
+
+	char *buf = malloc(msglen + 1);
+	if (buf != NULL) {
+		sprintf(buf, "(%s): ", name);
+		va_start(ap, frmt);
+		vsnprintf(buf + preamble_len, msglen - preamble_len + 1, frmt, ap);
+		va_end(ap);
+
+		/* hack to avoid allocation failure */
+		int prev_mem_limit = c->mem_limit;
+		c->mem_limit = 0;
+
+		msg = cheax_nstring(c, buf, msglen);
+
+		c->mem_limit = prev_mem_limit;
+		free(buf);
+	}
+
+	cheax_throw(c, err, msg);
+}
+
 /*
  *  _           _ _ _   _
  * | |__  _   _(_) | |_(_)_ __  ___

@@ -17,6 +17,7 @@
 #include <stdlib.h>
 
 #include "core.h"
+#include "err.h"
 #include "unpack.h"
 
 struct unpack_field {

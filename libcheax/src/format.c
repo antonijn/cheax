@@ -18,6 +18,7 @@
 #include <string.h>
 
 #include "core.h"
+#include "err.h"
 #include "format.h"
 #include "print.h"
 #include "strm.h"

@@ -16,6 +16,7 @@
 #include <limits.h>
 
 #include "core.h"
+#include "err.h"
 #include "unpack.h"
 
 static struct chx_value *

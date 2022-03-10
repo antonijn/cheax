@@ -16,6 +16,7 @@
 #include <string.h>
 
 #include "core.h"
+#include "err.h"
 #include "gc.h"
 #include "unpack.h"
 

@@ -17,6 +17,7 @@
 #include <string.h>
 
 #include "core.h"
+#include "err.h"
 #include "feat.h"
 #include "gc.h"
 #include "rbtree.h"

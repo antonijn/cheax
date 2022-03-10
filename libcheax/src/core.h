@@ -101,8 +101,6 @@ bool try_vtoi(struct chx_value *value, int *res);
 /* v-to-d: value to double */
 bool try_vtod(struct chx_value *value, double *res);
 
-void cry(CHEAX *c, const char *name, int err, const char *frmt, ...);
-
 void export_core_bltns(CHEAX *c);
 
 #endif

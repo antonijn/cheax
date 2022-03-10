@@ -18,6 +18,7 @@
 
 #include "config.h"
 #include "core.h"
+#include "err.h"
 #include "feat.h"
 
 union config_get {

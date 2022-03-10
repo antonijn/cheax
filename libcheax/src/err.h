@@ -18,6 +18,7 @@
 
 #include <cheax.h>
 
+void cry(CHEAX *c, const char *name, int err, const char *frmt, ...);
 void export_err_bltns(CHEAX *c);
 
 #endif

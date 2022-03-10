@@ -22,6 +22,7 @@
 #include <ctype.h>
 
 #include "core.h"
+#include "err.h"
 #include "loc.h"
 #include "setup.h"
 #include "strm.h"
