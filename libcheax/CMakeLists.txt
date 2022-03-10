@@ -36,6 +36,7 @@ add_library (libcheax
 	src/eval.c
 	src/format.c
 	src/gc.c
+	src/io.c
 	src/loc.c
 	src/print.c
 	src/rbtree.c

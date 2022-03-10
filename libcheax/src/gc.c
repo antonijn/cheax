@@ -125,7 +125,7 @@ gcol_alloc_with_fin(CHEAX *c, size_t size, int type, chx_fin fin, void *info)
 }
 
 void
-load_gc_features(CHEAX *c, int bits)
+load_gc_feature(CHEAX *c, int bits)
 {
 	/* empty */
 }
@@ -549,7 +549,7 @@ bltn_get_used_memory(CHEAX *c, struct chx_list *args, void *info)
 }
 
 void
-load_gc_features(CHEAX *c, int bits)
+load_gc_feature(CHEAX *c, int bits)
 {
 	if (has_flag(bits, GC_BUILTIN)) {
 		cheax_defmacro(c, "gc", bltn_gc, NULL);

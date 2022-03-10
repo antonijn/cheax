@@ -196,7 +196,7 @@ find_config_feature(const char *feat)
 }
 
 void
-load_config_features(CHEAX *c, int bits)
+load_config_feature(CHEAX *c, int bits)
 {
 	int nopts = sizeof(opts) / sizeof(opts[0]);
 	for (int i = 0; i < nopts; ++i)

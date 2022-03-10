@@ -13,14 +13,12 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  */
 
-#ifndef CONFIG_H
-#define CONFIG_H
+#ifndef IO_H
+#define IO_H
 
 #include <cheax.h>
 
-int config_init(CHEAX *c);
-int find_config_feature(const char *feat);
-void load_config_feature(CHEAX *c, int bits);
-struct chx_list *config_feature_list(CHEAX *c, struct chx_list *base);
+void load_io_feature(CHEAX *c, int bits);
+void export_io_bltns(CHEAX *c);
 
 #endif
