@@ -23,6 +23,7 @@
 #include "format.h"
 #include "print.h"
 #include "strm.h"
+#include "unpack.h"
 
 static int
 read_int(CHEAX *c, const char *desc, struct scnr *fmt, int *out)
@@ -297,4 +298,20 @@ cheax_format(CHEAX *c, const char *fmt, struct chx_list *args)
 	scnr_init(&s, &ss.strm, 0, NULL);
 
 	return scnr_format(c, &s, args, ss.len + 1);
+}
+
+static struct chx_value *
+bltn_format(CHEAX *c, struct chx_list *args, void *info)
+{
+	struct chx_string *fmt;
+	struct chx_list *lst;
+	return (0 == unpack(c, "format", args, "s.*", &fmt, &lst))
+	     ? format(c, fmt, lst)
+	     : NULL;
+}
+
+void
+export_format_bltns(CHEAX *c)
+{
+	cheax_defmacro(c, "format", bltn_format, NULL);
 }

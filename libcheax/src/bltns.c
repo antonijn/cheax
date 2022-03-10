@@ -153,25 +153,6 @@ bltn_get_line_from(CHEAX *c, struct chx_list *args, void *info)
 }
 
 /*
- *      _        _                                     _
- *  ___| |_ _ __(_)_ __   __ _   _ __ ___   __ _ _ __ (_)_ __
- * / __| __| '__| | '_ \ / _` | | '_ ` _ \ / _` | '_ \| | '_ \
- * \__ \ |_| |  | | | | | (_| | | | | | | | (_| | | | | | |_) |
- * |___/\__|_|  |_|_| |_|\__, | |_| |_| |_|\__,_|_| |_|_| .__(_)
- *                       |___/                          |_|
- */
-
-static struct chx_value *
-bltn_format(CHEAX *c, struct chx_list *args, void *info)
-{
-	struct chx_string *fmt;
-	struct chx_list *lst;
-	return (0 == unpack(c, "format", args, "s.*", &fmt, &lst))
-	     ? format(c, fmt, lst)
-	     : NULL;
-}
-
-/*
  *            _ _
  *   _____  _(_) |_
  *  / _ \ \/ / | __|
@@ -206,26 +187,19 @@ export_builtins(CHEAX *c)
 {
 	c->fhandle_type = cheax_new_type(c, "FileHandle", CHEAX_USER_PTR);
 
-	struct { const char *name; chx_func_ptr fn; } bltns[] = {
-		{ "read-from",     bltn_read_from     },
-		{ "print-to",      bltn_print_to      },
-		{ "put-to",        bltn_put_to        },
-		{ "get-byte-from", bltn_get_byte_from },
-		{ "get-line-from", bltn_get_line_from },
+	cheax_defmacro(c, "read-from",     bltn_read_from,     NULL);
+	cheax_defmacro(c, "print-to",      bltn_print_to,      NULL);
+	cheax_defmacro(c, "put-to",        bltn_put_to,        NULL);
+	cheax_defmacro(c, "get-byte-from", bltn_get_byte_from, NULL);
+	cheax_defmacro(c, "get-line-from", bltn_get_line_from, NULL);
 
-		{ "format",        bltn_format        },
-	};
-
-	int nbltns = sizeof(bltns) / sizeof(bltns[0]);
-	for (int i = 0; i < nbltns; ++i)
-		cheax_defmacro(c, bltns[i].name, bltns[i].fn, NULL);
-
-	cheax_defsym(c, "features",      get_features,      NULL, NULL, NULL);
+	cheax_defsym(c, "features", get_features, NULL, NULL, NULL);
 
 	export_arith_bltns(c);
 	export_core_bltns(c);
 	export_err_bltns(c);
 	export_eval_bltns(c);
+	export_format_bltns(c);
 	export_sym_bltns(c);
 }
 
