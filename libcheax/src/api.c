@@ -22,6 +22,7 @@
 #include "config.h"
 #include "setup.h"
 #include "gc.h"
+#include "unpack.h"
 
 struct chx_quote *
 cheax_quote(CHEAX *c, struct chx_value *value)
@@ -551,4 +552,157 @@ cheax_load_prelude(CHEAX *c)
 	fclose(f);
 
 	return (cheax_errno(c) == 0) ? 0 : -1;
+}
+
+/*
+ *  _           _ _ _   _
+ * | |__  _   _(_) | |_(_)_ __  ___
+ * | '_ \| | | | | | __| | '_ \/ __|
+ * | |_) | |_| | | | |_| | | | \__ \
+ * |_.__/ \__,_|_|_|\__|_|_| |_|___/
+ *
+ */
+
+static struct chx_list *
+prepend(CHEAX *c, struct chx_list *args)
+{
+	if (args->next != NULL) {
+		struct chx_value *head = cheax_eval(c, args->value);
+		cheax_ft(c, pad);
+		chx_ref head_ref = cheax_ref(c, head);
+		struct chx_list *tail = prepend(c, args->next);
+		cheax_unref(c, head, head_ref);
+		cheax_ft(c, pad);
+		return cheax_list(c, head, tail);
+	}
+
+	struct chx_value *res = cheax_eval(c, args->value);
+	cheax_ft(c, pad);
+	int ty = cheax_type_of(res);
+	if (ty != CHEAX_LIST && ty != CHEAX_NIL) {
+		cry(c, ":", CHEAX_ETYPE, "improper list not allowed");
+		return NULL;
+	}
+
+	return (struct chx_list *)res;
+pad:
+	return NULL;
+}
+
+static struct chx_value *
+bltn_prepend(CHEAX *c, struct chx_list *args, void *info)
+{
+	if (args == NULL) {
+		cry(c, ":", CHEAX_EMATCH, "expected at least one argument");
+		return NULL;
+	}
+
+	return &prepend(c, args)->base;
+}
+
+static struct chx_value *
+bltn_type_of(CHEAX *c, struct chx_list *args, void *info)
+{
+	struct chx_value *val;
+	return (0 == unpack(c, "type-of", args, ".", &val))
+	     ? set_type(&cheax_int(c, cheax_type_of(val))->base, CHEAX_TYPECODE)
+	     : NULL;
+}
+
+static struct chx_value *
+create_func(CHEAX *c,
+            const char *name,
+            struct chx_list *args,
+            int type)
+{
+	if (args == NULL) {
+		cry(c, name, CHEAX_EMATCH, "expected arguments");
+		return NULL;
+	}
+
+	struct chx_value *arg_list = args->value;
+	struct chx_list *body = args->next;
+
+	if (body == NULL) {
+		cry(c, name, CHEAX_EMATCH, "expected body");
+		return NULL;
+	}
+
+	struct chx_func *res = gcol_alloc(c, sizeof(struct chx_func), type);
+	if (res != NULL) {
+		res->args = arg_list;
+		res->body = body;
+		res->lexenv = c->env;
+	}
+	return &res->base;
+}
+
+static struct chx_value *
+bltn_fn(CHEAX *c, struct chx_list *args, void *info)
+{
+	return create_func(c, "fn", args, CHEAX_FUNC);
+}
+
+static struct chx_value *
+bltn_macro(CHEAX *c, struct chx_list *args, void *info)
+{
+	return create_func(c, "macro", args, CHEAX_MACRO);
+}
+
+static struct chx_value *
+bltn_strbytes(CHEAX *c, struct chx_list *args, void *info)
+{
+	struct chx_string *str;
+	if (unpack(c, "strbytes", args, "s", &str) < 0)
+		return NULL;
+
+	struct chx_list *bytes = NULL;
+	for (int i = (int)str->len - 1; i >= 0; --i)
+		bytes = cheax_list(c, &cheax_int(c, (unsigned char)str->value[i])->base, bytes);
+	return &bytes->base;
+}
+
+static struct chx_value *
+bltn_strsize(CHEAX *c, struct chx_list *args, void *info)
+{
+	struct chx_string *str;
+	return (0 == unpack(c, "strsize", args, "s", &str))
+	     ? &cheax_int(c, (int)str->len)->base
+	     : NULL;
+}
+
+static struct chx_value *
+bltn_substr(CHEAX *c, struct chx_list *args, void *info)
+{
+	struct chx_string *str;
+	int pos, len = 0;
+	struct chx_int *len_or_nil;
+	if (unpack(c, "substr", args, "si!i?", &str, &pos, &len_or_nil) < 0)
+		return NULL;
+
+	if (len_or_nil != NULL)
+		len = len_or_nil->value;
+	else if (pos >= 0 && (size_t)pos <= str->len)
+		len = str->len - (size_t)pos;
+
+	if (pos < 0 || len < 0) {
+		cry(c, "substr", CHEAX_EVALUE, "expected positive integer");
+		return NULL;
+	}
+
+	return &cheax_substr(c, str, pos, len)->base;
+}
+
+void
+export_core_bltns(CHEAX *c)
+{
+	cheax_defmacro(c, ":",        bltn_prepend,  NULL);
+	cheax_defmacro(c, "type-of",  bltn_type_of,  NULL);
+	cheax_defmacro(c, "fn",       bltn_fn,       NULL);
+	cheax_defmacro(c, "macro",    bltn_macro,    NULL);
+	cheax_defmacro(c, "strbytes", bltn_strbytes, NULL);
+	cheax_defmacro(c, "strsize",  bltn_strsize,  NULL);
+	cheax_defmacro(c, "substr",   bltn_substr,   NULL);
+
+	cheax_var(c, "cheax-version", &cheax_string(c, cheax_version())->base, CHEAX_READONLY);
 }

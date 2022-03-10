@@ -171,50 +171,6 @@ bltn_format(CHEAX *c, struct chx_list *args, void *info)
 	     : NULL;
 }
 
-static struct chx_value *
-bltn_strbytes(CHEAX *c, struct chx_list *args, void *info)
-{
-	struct chx_string *str;
-	if (unpack(c, "strbytes", args, "s", &str) < 0)
-		return NULL;
-
-	struct chx_list *bytes = NULL;
-	for (int i = (int)str->len - 1; i >= 0; --i)
-		bytes = cheax_list(c, &cheax_int(c, (unsigned char)str->value[i])->base, bytes);
-	return &bytes->base;
-}
-
-static struct chx_value *
-bltn_strsize(CHEAX *c, struct chx_list *args, void *info)
-{
-	struct chx_string *str;
-	return (0 == unpack(c, "strsize", args, "s", &str))
-	     ? &cheax_int(c, (int)str->len)->base
-	     : NULL;
-}
-
-static struct chx_value *
-bltn_substr(CHEAX *c, struct chx_list *args, void *info)
-{
-	struct chx_string *str;
-	int pos, len = 0;
-	struct chx_int *len_or_nil;
-	if (unpack(c, "substr", args, "si!i?", &str, &pos, &len_or_nil) < 0)
-		return NULL;
-
-	if (len_or_nil != NULL)
-		len = len_or_nil->value;
-	else if (pos >= 0 && (size_t)pos <= str->len)
-		len = str->len - (size_t)pos;
-
-	if (pos < 0 || len < 0) {
-		cry(c, "substr", CHEAX_EVALUE, "expected positive integer");
-		return NULL;
-	}
-
-	return &cheax_substr(c, str, pos, len)->base;
-}
-
 /*
  *            _ _
  *   _____  _(_) |_
@@ -243,99 +199,6 @@ bltn_exit(CHEAX *c, struct chx_list *args, void *info)
  *
  */
 
-static struct chx_list *
-prepend(CHEAX *c, struct chx_list *args)
-{
-	if (args->next != NULL) {
-		struct chx_value *head = cheax_eval(c, args->value);
-		cheax_ft(c, pad);
-		chx_ref head_ref = cheax_ref(c, head);
-		struct chx_list *tail = prepend(c, args->next);
-		cheax_unref(c, head, head_ref);
-		cheax_ft(c, pad);
-		return cheax_list(c, head, tail);
-	}
-
-	struct chx_value *res = cheax_eval(c, args->value);
-	cheax_ft(c, pad);
-	int ty = cheax_type_of(res);
-	if (ty != CHEAX_LIST && ty != CHEAX_NIL) {
-		cry(c, ":", CHEAX_ETYPE, "improper list not allowed");
-		return NULL;
-	}
-
-	return (struct chx_list *)res;
-pad:
-	return NULL;
-}
-static struct chx_value *
-bltn_prepend(CHEAX *c, struct chx_list *args, void *info)
-{
-	if (args == NULL) {
-		cry(c, ":", CHEAX_EMATCH, "expected at least one argument");
-		return NULL;
-	}
-
-	return &prepend(c, args)->base;
-}
-
-static struct chx_value *
-bltn_type_of(CHEAX *c, struct chx_list *args, void *info)
-{
-	struct chx_value *val;
-	return (0 == unpack(c, "type-of", args, ".", &val))
-	     ? set_type(&cheax_int(c, cheax_type_of(val))->base, CHEAX_TYPECODE)
-	     : NULL;
-}
-
-static struct chx_value *
-create_func(CHEAX *c,
-            const char *name,
-            struct chx_list *args,
-            int type)
-{
-	if (args == NULL) {
-		cry(c, name, CHEAX_EMATCH, "expected arguments");
-		return NULL;
-	}
-
-	struct chx_value *arg_list = args->value;
-	struct chx_list *body = args->next;
-
-	if (body == NULL) {
-		cry(c, name, CHEAX_EMATCH, "expected body");
-		return NULL;
-	}
-
-	struct chx_func *res = gcol_alloc(c, sizeof(struct chx_func), type);
-	if (res != NULL) {
-		res->args = arg_list;
-		res->body = body;
-		res->lexenv = c->env;
-	}
-	return &res->base;
-}
-
-static struct chx_value *
-bltn_fn(CHEAX *c, struct chx_list *args, void *info)
-{
-	return create_func(c, "fn", args, CHEAX_FUNC);
-}
-static struct chx_value *
-bltn_macro(CHEAX *c, struct chx_list *args, void *info)
-{
-	return create_func(c, "macro", args, CHEAX_MACRO);
-}
-
-static struct chx_value *
-get_cheax_version(CHEAX *c, struct chx_sym *sym)
-{
-	static struct chx_string res = {
-		{ CHEAX_STRING | NO_GC_BIT }, VERSION_STRING, sizeof(VERSION_STRING) - 1, &res
-	};
-	return &res.base;
-}
-
 static struct chx_value *get_features(CHEAX *c, struct chx_sym *sym);
 
 void
@@ -351,24 +214,16 @@ export_builtins(CHEAX *c)
 		{ "get-line-from", bltn_get_line_from },
 
 		{ "format",        bltn_format        },
-		{ "strbytes",      bltn_strbytes      },
-		{ "strsize",       bltn_strsize       },
-		{ "substr",        bltn_substr        },
-
-		{ ":",             bltn_prepend       },
-		{ "type-of",       bltn_type_of       },
-		{ "fn",            bltn_fn            },
-		{ "macro",         bltn_macro         },
 	};
 
 	int nbltns = sizeof(bltns) / sizeof(bltns[0]);
 	for (int i = 0; i < nbltns; ++i)
 		cheax_defmacro(c, bltns[i].name, bltns[i].fn, NULL);
 
-	cheax_defsym(c, "cheax-version", get_cheax_version, NULL, NULL, NULL);
 	cheax_defsym(c, "features",      get_features,      NULL, NULL, NULL);
 
 	export_arith_bltns(c);
+	export_core_bltns(c);
 	export_err_bltns(c);
 	export_eval_bltns(c);
 	export_sym_bltns(c);

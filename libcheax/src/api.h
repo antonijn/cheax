@@ -119,7 +119,9 @@ bool try_vtod(struct chx_value *value, double *res);
 
 void cry(CHEAX *c, const char *name, int err, const char *frmt, ...);
 
-/* defined in builtins.c */
+void export_core_bltns(CHEAX *c);
+
+/* defined in bltns.c */
 void export_builtins(CHEAX *c);
 
 #endif
