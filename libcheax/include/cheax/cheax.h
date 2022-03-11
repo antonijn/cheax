@@ -721,7 +721,7 @@ CHX_API int cheax_list_to_array(CHEAX *c,
 
 /*! \brief Options for symbol declaration.
  *
- * \sa cheax_var(), cheax_match(), cheax_sync_int(), cheax_sync_float(),
+ * \sa cheax_def(), cheax_match(), cheax_sync_int(), cheax_sync_float(),
  *     cheax_sync_double()
  */
 enum {
@@ -774,7 +774,7 @@ CHX_API struct chx_sym *cheax_defsym(CHEAX *c, const char *id,
  *
  * \sa cheax_get(), cheax_set()
  */
-CHX_API void cheax_var(CHEAX *c, const char *id, struct chx_value *value, int flags);
+CHX_API void cheax_def(CHEAX *c, const char *id, struct chx_value *value, int flags);
 
 /*! \brief Retrieves the value of the given symbol.
  *
@@ -801,13 +801,13 @@ CHX_API struct chx_value *cheax_get(CHEAX *c, const char *id);
  *     \a value is invalid.
  *
  * cheax_set() cannot be used to declare a new symbol, use
- * cheax_var() instead.
+ * cheax_def() instead.
  *
  * \param c     Virtual machine instance.
  * \param id    Identifier of the symbol to look up and set.
  * \param value New value for the symbol with the given identifier.
  *
- * \sa cheax_get(), cheax_var()
+ * \sa cheax_get(), cheax_def()
  */
 CHX_API void cheax_set(CHEAX *c, const char *id, struct chx_value *value);
 
@@ -816,7 +816,7 @@ CHX_API void cheax_set(CHEAX *c, const char *id, struct chx_value *value);
  *
  * Shorthand for:
 \code{.c}
-cheax_var(c, id, &cheax_ext_func(c, id, perform, info)->base, CHEAX_READONLY);
+cheax_def(c, id, &cheax_ext_func(c, id, perform, info)->base, CHEAX_READONLY);
 \endcode
  *
  * \param c       Virtual machine instance.
@@ -824,7 +824,7 @@ cheax_var(c, id, &cheax_ext_func(c, id, perform, info)->base, CHEAX_READONLY);
  * \param perform Callback for the new external function.
  * \param info    Callback info for the new external function.
  *
- * \sa chx_ext_func, cheax_ext_func(), cheax_var()
+ * \sa chx_ext_func, cheax_ext_func(), cheax_def()
  */
 CHX_API void cheax_defmacro(CHEAX *c, const char *id, chx_func_ptr perform, void *info);
 

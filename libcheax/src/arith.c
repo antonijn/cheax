@@ -247,6 +247,6 @@ export_arith_bltns(CHEAX *c)
 	cheax_defmacro(c, ">",  bltn_gt,  NULL);
 	cheax_defmacro(c, ">=", bltn_ge,  NULL);
 
-	cheax_var(c, "int-max", &cheax_int(c, INT_MAX)->base, CHEAX_READONLY);
-	cheax_var(c, "int-min", &cheax_int(c, INT_MIN)->base, CHEAX_READONLY);
+	cheax_def(c, "int-max", &cheax_int(c, INT_MAX)->base, CHEAX_READONLY);
+	cheax_def(c, "int-min", &cheax_int(c, INT_MIN)->base, CHEAX_READONLY);
 }

@@ -120,7 +120,7 @@ cheax_new_error_code(CHEAX *c, const char *name)
 
 	c->user_error_names.array[code - CHEAX_EUSER0] = name;
 
-	cheax_var(c, name, set_type(&cheax_int(c, code)->base, CHEAX_ERRORCODE), CHEAX_EREADONLY);
+	cheax_def(c, name, set_type(&cheax_int(c, code)->base, CHEAX_ERRORCODE), CHEAX_EREADONLY);
 	return code;
 }
 
@@ -346,8 +346,8 @@ bltn_try(CHEAX *c, struct chx_list *args, void *info)
 			return NULL;
 		struct chx_int *code = cheax_int(c, cheax_errno(c));
 		set_type(&code->base, CHEAX_ERRORCODE);
-		cheax_var(c, "errno",  &code->base,         CHEAX_READONLY);
-		cheax_var(c, "errmsg", &c->error.msg->base, CHEAX_READONLY);
+		cheax_def(c, "errno",  &code->base,         CHEAX_READONLY);
+		cheax_def(c, "errmsg", &c->error.msg->base, CHEAX_READONLY);
 
 		struct chx_list *match = match_catch(c, catch_blocks, finally_block);
 		if (match == NULL)
@@ -386,7 +386,7 @@ export_error_names(CHEAX *c)
 		const char *name = bltn_error_names[i].name;
 		int code = bltn_error_names[i].code;
 
-		cheax_var(c, name,
+		cheax_def(c, name,
 		          set_type(&cheax_int(c, code)->base, CHEAX_ERRORCODE),
 		          CHEAX_READONLY);
 	}

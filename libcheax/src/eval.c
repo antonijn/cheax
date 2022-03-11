@@ -285,8 +285,8 @@ cheax_match(CHEAX *c, struct chx_value *pan, struct chx_value *match, int flags)
 	int pan_ty = cheax_type_of(pan);
 
 	if (pan_ty == CHEAX_ID) {
-		cheax_var(c, ((struct chx_id *)pan)->id, match, flags);
-		return cheax_errstate(c) != CHEAX_THROWN; /* false if cheax_var() failed */
+		cheax_def(c, ((struct chx_id *)pan)->id, match, flags);
+		return cheax_errstate(c) != CHEAX_THROWN; /* false if cheax_def() failed */
 	}
 
 	if (pan_ty != cheax_type_of(match))

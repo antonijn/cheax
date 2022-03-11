@@ -144,19 +144,19 @@ load_io_feature(CHEAX *c, int bits)
 	}
 
 	if (has_flag(bits, EXPOSE_STDIN)) {
-		cheax_var(c, "stdin",
+		cheax_def(c, "stdin",
 		          &cheax_user_ptr(c, stdin,  c->fhandle_type)->base,
 		          CHEAX_READONLY);
 	}
 
 	if (has_flag(bits, EXPOSE_STDOUT)) {
-		cheax_var(c, "stdout",
+		cheax_def(c, "stdout",
 		          &cheax_user_ptr(c, stdout, c->fhandle_type)->base,
 		          CHEAX_READONLY);
 	}
 
 	if (has_flag(bits, EXPOSE_STDERR)) {
-		cheax_var(c, "stderr",
+		cheax_def(c, "stderr",
 		          &cheax_user_ptr(c, stderr, c->fhandle_type)->base,
 		          CHEAX_READONLY);
 	}

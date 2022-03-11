@@ -432,7 +432,7 @@ cheax_new_type(CHEAX *c, const char *name, int base_type)
 	c->typestore.array[ts_idx] = alias;
 
 	int tycode = ts_idx + CHEAX_TYPESTORE_BIAS;
-	cheax_var(c, name, set_type(&cheax_int(c, tycode)->base, CHEAX_TYPECODE), CHEAX_READONLY);
+	cheax_def(c, name, set_type(&cheax_int(c, tycode)->base, CHEAX_TYPECODE), CHEAX_READONLY);
 	return tycode;
 }
 int
@@ -692,5 +692,5 @@ export_core_bltns(CHEAX *c)
 	cheax_defmacro(c, "strsize",  bltn_strsize,  NULL);
 	cheax_defmacro(c, "substr",   bltn_substr,   NULL);
 
-	cheax_var(c, "cheax-version", &cheax_string(c, cheax_version())->base, CHEAX_READONLY);
+	cheax_def(c, "cheax-version", &cheax_string(c, cheax_version())->base, CHEAX_READONLY);
 }

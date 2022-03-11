@@ -253,7 +253,7 @@ var_set(CHEAX *c, struct chx_sym *sym, struct chx_value *value)
 }
 
 void
-cheax_var(CHEAX *c, const char *id, struct chx_value *value, int flags)
+cheax_def(CHEAX *c, const char *id, struct chx_value *value, int flags)
 {
 	struct chx_sym *sym;
 	sym = cheax_defsym(c, id,
@@ -267,7 +267,7 @@ cheax_var(CHEAX *c, const char *id, struct chx_value *value, int flags)
 void
 cheax_defmacro(CHEAX *c, const char *id, chx_func_ptr perform, void *info)
 {
-	cheax_var(c, id, &cheax_ext_func(c, id, perform, info)->base, CHEAX_READONLY);
+	cheax_def(c, id, &cheax_ext_func(c, id, perform, info)->base, CHEAX_READONLY);
 }
 
 void
@@ -561,8 +561,8 @@ bltn_defsym(CHEAX *c, struct chx_list *args, void *info)
 		goto err_pad;
 	new_env->base.type |= NO_ESC_BIT;
 
-	cheax_var(c, "defget", &defget->base, CHEAX_READONLY);
-	cheax_var(c, "defset", &defset->base, CHEAX_READONLY);
+	cheax_def(c, "defget", &defget->base, CHEAX_READONLY);
+	cheax_def(c, "defset", &defset->base, CHEAX_READONLY);
 	cheax_ft(c, pad); /* alloc failure */
 
 	for (struct chx_list *cons = args->next; cons != NULL; cons = cons->next) {
