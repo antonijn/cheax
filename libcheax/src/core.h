@@ -48,6 +48,13 @@ set_type(struct chx_value *value, int type)
 	return value;
 }
 
+struct chx_string {
+	struct chx_value base;
+	char *value;
+	size_t len;
+	struct chx_string *orig;
+};
+
 struct type_cast {
 	int to;
 	chx_func_ptr cast;

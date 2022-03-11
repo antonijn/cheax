@@ -270,14 +270,19 @@ CHX_API struct chx_quote *cheax_backquote(CHEAX *c, struct chx_value *value);
 CHX_API struct chx_quote *cheax_comma(CHEAX *c, struct chx_value *value);
 
 /*! \brief Cheax string expression.
- * \sa cheax_string(), cheax_nstring(), CHEAX_STRING
+ * \sa cheax_string(), cheax_nstring(), CHEAX_STRING, cheax_strsize(),
+ *     cheax_substr(), cheax_strdup()
  */
-struct chx_string {
-	struct chx_value base; /*!< Base. */
-	char *value;           /*!< Null-terminated string value. */
-	size_t len;            /*!< String length. */
-	struct chx_string *orig;
-};
+struct chx_string;
+
+/*! \brief Returns size of string in number of bytes.
+ *
+ * \param c   Virtual machine instance.
+ * \param str String.
+ *
+ * \returns Size of given string, or zero if \a str is \a NULL.
+ */
+CHX_API size_t cheax_strsize(CHEAX *c, struct chx_string *str);
 
 /*! \brief Creates a cheax string expression.
  *
@@ -308,6 +313,17 @@ CHX_API struct chx_string *cheax_nstring(CHEAX *c, const char *value, size_t len
  * \param len Substring length in number of bytes.
  */
 CHX_API struct chx_string *cheax_substr(CHEAX *c, struct chx_string *str, size_t pos, size_t len);
+
+/*! \brief Allocates a null-terminated copy of given chx_string.
+ *
+ * Make sure to free() result after use.
+ *
+ * \param c   Virtual machine instance.
+ * \param str String.
+ *
+ * \returns Null terminated string or \a NULL or \a str is \a NULL.
+ */
+CHX_API char *cheax_strdup(CHEAX *c, struct chx_string *str);
 
 /*! \brief Cheax user pointer expression.
  *
@@ -1014,7 +1030,7 @@ CHX_API void cheax_print(CHEAX *c, FILE *output, struct chx_value *expr);
  *
  * \sa cheax_print()
  */
-CHX_API struct chx_value *cheax_format(CHEAX *c, const char *fmt, struct chx_list *args);
+CHX_API struct chx_string *cheax_format(CHEAX *c, struct chx_string *fmt, struct chx_list *args);
 
 /*! \brief Reads a file and executes it.
  *

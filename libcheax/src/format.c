@@ -201,7 +201,7 @@ format_fspec(CHEAX *c, struct sostrm *ss, struct fspec *sp, struct chx_value *ar
 	return 0;
 }
 
-static struct chx_value *
+static struct chx_string *
 scnr_format(CHEAX *c, struct scnr *fmt, struct chx_list *args, size_t size_hint)
 {
 	struct chx_value **arg_array;
@@ -217,11 +217,11 @@ scnr_format(CHEAX *c, struct scnr *fmt, struct chx_list *args, size_t size_hint)
 
 	enum { UNSPECIFIED, AUTO_IDX, MAN_IDX } indexing = UNSPECIFIED;
 	size_t auto_idx = 0;
-	struct chx_value *res = NULL;
+	struct chx_string *res = NULL;
 
 	for (;;) {
 		if (fmt->ch == EOF) {
-			res = &cheax_nstring(c, ss.buf, ss.idx)->base;
+			res = cheax_nstring(c, ss.buf, ss.idx);
 			break;
 		}
 
@@ -271,19 +271,8 @@ scnr_format(CHEAX *c, struct scnr *fmt, struct chx_list *args, size_t size_hint)
 	return res;
 }
 
-struct chx_value *
-format(CHEAX *c, struct chx_string *fmt, struct chx_list *args)
-{
-	struct sistrm ss;
-	sistrm_initn(&ss, fmt->value, fmt->len);
-
-	struct scnr s;
-	scnr_init(&s, &ss.strm, 0, NULL);
-	return scnr_format(c, &s, args, ss.len + 1);
-}
-
-struct chx_value *
-cheax_format(CHEAX *c, const char *fmt, struct chx_list *args)
+struct chx_string *
+cheax_format(CHEAX *c, struct chx_string *fmt, struct chx_list *args)
 {
 	if (fmt == NULL) {
 		cry(c, "format", CHEAX_EAPI, "`fmt' cannot be NULL");
@@ -291,11 +280,10 @@ cheax_format(CHEAX *c, const char *fmt, struct chx_list *args)
 	}
 
 	struct sistrm ss;
-	sistrm_init(&ss, fmt);
+	sistrm_initn(&ss, fmt->value, fmt->len);
 
 	struct scnr s;
 	scnr_init(&s, &ss.strm, 0, NULL);
-
 	return scnr_format(c, &s, args, ss.len + 1);
 }
 
@@ -305,7 +293,7 @@ bltn_format(CHEAX *c, struct chx_list *args, void *info)
 	struct chx_string *fmt;
 	struct chx_list *lst;
 	return (0 == unpack(c, "format", args, "s.*", &fmt, &lst))
-	     ? format(c, fmt, lst)
+	     ? &cheax_format(c, fmt, lst)->base
 	     : NULL;
 }
 

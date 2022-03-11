@@ -135,6 +135,11 @@ cheax_ext_func(CHEAX *c, const char *name, chx_func_ptr perform, void *info)
 	}
 	return res;
 }
+size_t
+cheax_strsize(CHEAX *c, struct chx_string *str)
+{
+	return (str == NULL) ? 0 : str->len;
+}
 struct chx_string *
 cheax_string(CHEAX *c, const char *value)
 {
@@ -187,6 +192,19 @@ cheax_substr(CHEAX *c, struct chx_string *str, size_t pos, size_t len)
 		res->value = str->value + pos;
 		res->len = len;
 		res->orig = str->orig;
+	}
+	return res;
+}
+char *
+cheax_strdup(CHEAX *c, struct chx_string *str)
+{
+	if (str == NULL)
+		return NULL;
+
+	char *res = malloc(str->len + 1);
+	if (res != NULL) {
+		res[str->len] = '\0';
+		memcpy(res, str->value, str->len);
 	}
 	return res;
 }
