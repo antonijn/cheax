@@ -41,6 +41,8 @@ struct read_info {
 	int lah_buf[MAX_LOOKAHEAD];
 };
 
+static struct chx_value *read_value(struct read_info *ri, struct scnr *s, bool consume_final);
+
 static void
 read_init(struct read_info *ri, struct scnr *s, struct istrm *strm, CHEAX *c)
 {
@@ -345,6 +347,43 @@ done:
 }
 
 static struct chx_value *
+read_list(struct read_info *ri, struct scnr *s, bool consume_final)
+{
+	struct chx_list *lst = NULL;
+	struct debug_info info = { "<filename unknown>", s->pos, s->line };
+
+	scnr_adv(s);
+	if ((skip_space(s), s->ch) != ')') {
+		if (s->ch == EOF)
+			goto eof_pad;
+
+		lst = ri->c->gen_debug_info
+		    ? &debug_list(ri->c, read_value(ri, s, true), NULL, info)->base
+		    : cheax_list(ri->c, read_value(ri, s, true), NULL);
+		cheax_ft(ri->c, pad);
+
+		struct chx_list **next = &lst->next;
+		while ((skip_space(s), s->ch) != ')') {
+			if (s->ch == EOF)
+				goto eof_pad;
+
+			*next = cheax_list(ri->c, read_value(ri, s, true), NULL);
+			cheax_ft(ri->c, pad);
+			next = &(*next)->next;
+		}
+	}
+
+	if (consume_final)
+		scnr_adv(s);
+
+	return &lst->base;
+eof_pad:
+	cry(ri->c, "read", CHEAX_EEOF, "unexpected end-of-file in S-expression");
+pad:
+	return NULL;
+}
+
+static struct chx_value *
 read_value(struct read_info *ri, struct scnr *s, bool consume_final)
 {
 	skip_space(s);
@@ -380,29 +419,8 @@ read_value(struct read_info *ri, struct scnr *s, bool consume_final)
 	if (isdigit(s->ch))
 		return read_num(ri, s);
 
-	if (s->ch == '(') {
-		struct chx_list *lst = NULL;
-		struct chx_list **next = &lst;
-
-		scnr_adv(s);
-		while (s->ch != ')') {
-			if (s->ch == EOF) {
-				cry(ri->c, "read", CHEAX_EEOF, "unexpected end-of-file in s-expression");
-				return NULL;
-			}
-
-			*next = cheax_list(ri->c, read_value(ri, s, true), NULL);
-			cheax_ft(ri->c, pad);
-			next = &(*next)->next;
-
-			skip_space(s);
-		}
-
-		if (consume_final)
-			scnr_adv(s);
-
-		return &lst->base;
-	}
+	if (s->ch == '(')
+		return read_list(ri, s, consume_final);
 
 	if (s->ch == '\'') {
 		scnr_adv(s);

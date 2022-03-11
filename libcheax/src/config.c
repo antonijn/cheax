@@ -51,6 +51,17 @@ set_allow_redef(CHEAX *c, bool value)
 	c->allow_redef = value;
 }
 
+static bool
+get_gen_debug_info(CHEAX *c)
+{
+	return c->gen_debug_info;
+}
+static void
+set_gen_debug_info(CHEAX *c, bool value)
+{
+	c->gen_debug_info = value;
+}
+
 static int
 get_stack_limit(CHEAX *c)
 {
@@ -92,6 +103,13 @@ static struct config_info opts[] = {
 		{ .get_bool = get_allow_redef },
 		{ .set_bool = set_allow_redef },
 		"Allow symbol redefinition in global scope."
+	},
+	{
+		"gen-debug-info", CHEAX_BOOL, "<true|false>",
+		{ .get_bool = get_gen_debug_info },
+		{ .set_bool = set_gen_debug_info },
+		"Generate debug info when reading S-expressions to "
+		"improve stack trace readability."
 	},
 	{
 		"mem-limit", CHEAX_INT, "N",

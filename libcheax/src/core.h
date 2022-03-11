@@ -26,6 +26,7 @@ enum {
 	GC_MARKED   = USABLE_BIT << 2, /* marked in use */
 	GC_REFD     = USABLE_BIT << 3, /* carries cheax_ref() */
 	NO_ESC_BIT  = USABLE_BIT << 4, /* presumed not to have escaped */
+	DEBUG_LIST  = USABLE_BIT << 5, /* list is struct debug_list */
 };
 
 static inline bool
@@ -55,6 +56,21 @@ struct chx_string {
 	struct chx_string *orig;
 };
 
+struct debug_info {
+	const char *file;
+	int pos, line;
+};
+
+struct debug_list {
+	struct chx_list base;
+	struct debug_info info;
+};
+
+struct debug_list *debug_list(CHEAX *c,
+                              struct chx_value *car,
+                              struct chx_list *cdr,
+                              struct debug_info info);
+
 struct type_cast {
 	int to;
 	chx_func_ptr cast;
@@ -78,7 +94,7 @@ struct cheax {
 	int stack_depth;
 
 	int features;
-	bool allow_redef;
+	bool allow_redef, gen_debug_info;
 	int mem_limit, stack_limit;
 
 	int fhandle_type;

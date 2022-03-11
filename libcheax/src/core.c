@@ -121,6 +121,19 @@ cheax_list(CHEAX *c, struct chx_value *car, struct chx_list *cdr)
 	}
 	return res;
 }
+struct debug_list*
+debug_list(CHEAX *c, struct chx_value *car, struct chx_list *cdr, struct debug_info info)
+{
+	struct debug_list *res;
+	res = gcol_alloc(c, sizeof(struct debug_list), CHEAX_LIST);
+	if (res != NULL) {
+		res->base.base.type |= DEBUG_LIST;
+		res->base.value = car;
+		res->base.next = cdr;
+		res->info = info;
+	}
+	return res;
+}
 struct chx_ext_func *
 cheax_ext_func(CHEAX *c, const char *name, chx_func_ptr perform, void *info)
 {
@@ -223,6 +236,7 @@ cheax_init(void)
 
 	res->features = 0;
 	res->allow_redef = false;
+	res->gen_debug_info = true;
 	res->mem_limit = 0;
 	res->stack_limit = 0;
 	res->error.state = CHEAX_RUNNING;
