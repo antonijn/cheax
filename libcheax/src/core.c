@@ -196,7 +196,7 @@ cheax_substr(CHEAX *c, struct chx_string *str, size_t pos, size_t len)
 	return res;
 }
 char *
-cheax_strdup(CHEAX *c, struct chx_string *str)
+cheax_strdup(struct chx_string *str)
 {
 	if (str == NULL)
 		return NULL;

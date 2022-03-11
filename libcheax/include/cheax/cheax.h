@@ -305,7 +305,7 @@ CHX_API struct chx_string *cheax_nstring(CHEAX *c, const char *value, size_t len
 
 /*! \brief Takes substring of given cheax string.
  *
- * Sets cheax_errno() to \ref CHEAX_EVALUE if substring is out of bounds.
+ * Sets cheax_errno() to \ref CHEAX_EINDEX if substring is out of bounds.
  *
  * \param c   Virtual machine instance.
  * \param str Initial string.
@@ -318,12 +318,11 @@ CHX_API struct chx_string *cheax_substr(CHEAX *c, struct chx_string *str, size_t
  *
  * Make sure to free() result after use.
  *
- * \param c   Virtual machine instance.
  * \param str String.
  *
  * \returns Null terminated string or \a NULL or \a str is \a NULL.
  */
-CHX_API char *cheax_strdup(CHEAX *c, struct chx_string *str);
+CHX_API char *cheax_strdup(struct chx_string *str);
 
 /*! \brief Cheax user pointer expression.
  *
