@@ -359,6 +359,17 @@ struct chx_env;
 
 CHX_API struct chx_env *cheax_env(CHEAX *c);
 
+#if __STDC_VERSION__ >= 201112L
+#define cheax_val(c, v)                      \
+	((struct chx_value *)_Generic((0,v), \
+		int:          cheax_int,     \
+		bool:         cheax_bool,    \
+		double:       cheax_double,  \
+		float:        cheax_double,  \
+		const char *: cheax_string,  \
+		char *:       cheax_string)(c, v))
+#endif
+
 struct chx_sym;
 
 typedef struct chx_value *(*chx_getter)(CHEAX *c, struct chx_sym *sym);
