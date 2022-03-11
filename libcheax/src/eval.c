@@ -87,7 +87,7 @@ eval_sexpr(CHEAX *c, struct chx_list *input)
 		if (new_env == NULL)
 			goto env_fail_pad;
 		/* probably won't escape; major memory optimisation */
-		new_env->base.type |= NO_ESC_BIT;
+		new_env->base.rtflags |= NO_ESC_BIT;
 
 		bool arg_match_ok = cheax_match(c, fn->args, &args->base, CHEAX_READONLY);
 
@@ -125,7 +125,7 @@ env_fail_pad:
 		if (new_env == NULL)
 			break;
 		/* probably won't escape; major memory optimisation */
-		new_env->base.type |= NO_ESC_BIT;
+		new_env->base.rtflags |= NO_ESC_BIT;
 
 		struct chx_value *envval = NULL;
 		for (struct chx_list *cons = args; cons != NULL; cons = cons->next) {

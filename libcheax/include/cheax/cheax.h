@@ -67,18 +67,11 @@ enum {
 	/*! The type of type codes themselves. A type alias of \ref CHEAX_INT. */
 	CHEAX_TYPECODE = CHEAX_TYPESTORE_BIAS + 0,
 	CHEAX_ERRORCODE, /*!< Error code type. A type alias of \ref CHEAX_INT. */
-
-	CHEAX_TYPE_MASK = 0xFFFFFF,
 };
 
 /*! \brief Base type of cheax expressions. */
 struct chx_value {
-	/*! Hands off! Some bits are used as internal flags. Always use
-	 * cheax_type_of().
-	 * \note Internal use only.
-	 * \sa cheax_type_of()
-	 */
-	int type;
+	unsigned short type, rtflags;
 };
 
 /*! \brief Cheax identifier expression.

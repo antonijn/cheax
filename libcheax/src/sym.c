@@ -135,7 +135,7 @@ escape(struct chx_env *env)
 	if (env == NULL)
 		return;
 
-	env->base.type &= ~NO_ESC_BIT;
+	env->base.rtflags &= ~NO_ESC_BIT;
 
 	if (env->is_bif) {
 		for (int i = 0; i < 2; ++i)
@@ -188,7 +188,7 @@ cheax_pop_env(CHEAX *c)
 		c->env = env->value.norm.below;
 
 	/* dangerous, but worth it! */
-	if (has_flag(env->base.type, NO_ESC_BIT))
+	if (has_flag(env->base.rtflags, NO_ESC_BIT))
 		gcol_free(c, env);
 }
 
@@ -499,8 +499,8 @@ bltn_defget(CHEAX *c, struct chx_list *args, void *info)
 static struct chx_value *
 bltn_defset(CHEAX *c, struct chx_list *args, void *info)
 {
-	static struct chx_id value_id = { { CHEAX_ID | NO_GC_BIT }, "value" };
-	static struct chx_list set_args = { { CHEAX_LIST | NO_GC_BIT }, &value_id.base, NULL };
+	static struct chx_id value_id = { { CHEAX_ID, 0 }, "value" };
+	static struct chx_list set_args = { { CHEAX_LIST, 0 }, &value_id.base, NULL };
 
 	struct defsym_info *dinfo = info;
 	defgetset(c, "defset", &set_args.base, args, dinfo, &dinfo->set);
@@ -511,16 +511,16 @@ static struct chx_value *
 defsym_get(CHEAX *c, struct chx_sym *sym)
 {
 	struct defsym_info *info = sym->user_info;
-	struct chx_list sexpr = { { CHEAX_LIST | NO_GC_BIT }, &info->get->base, NULL };
+	struct chx_list sexpr = { { CHEAX_LIST, 0 }, &info->get->base, NULL };
 	return cheax_eval(c, &sexpr.base);
 }
 static void
 defsym_set(CHEAX *c, struct chx_sym *sym, struct chx_value *value)
 {
 	struct defsym_info *info = sym->user_info;
-	struct chx_quote arg  = { { CHEAX_QUOTE | NO_GC_BIT }, value };
-	struct chx_list args  = { { CHEAX_LIST | NO_GC_BIT }, &arg.base,        NULL  };
-	struct chx_list sexpr = { { CHEAX_LIST | NO_GC_BIT }, &info->set->base, &args };
+	struct chx_quote arg  = { { CHEAX_QUOTE, 0 }, value };
+	struct chx_list args  = { { CHEAX_LIST, 0 }, &arg.base,        NULL  };
+	struct chx_list sexpr = { { CHEAX_LIST, 0 }, &info->set->base, &args };
 	cheax_eval(c, &sexpr.base);
 }
 static void
@@ -559,7 +559,7 @@ bltn_defsym(CHEAX *c, struct chx_list *args, void *info)
 	struct chx_env *new_env = cheax_push_env(c);
 	if (new_env == NULL)
 		goto err_pad;
-	new_env->base.type |= NO_ESC_BIT;
+	new_env->base.rtflags |= NO_ESC_BIT;
 
 	cheax_def(c, "defget", &defget->base, CHEAX_READONLY);
 	cheax_def(c, "defset", &defset->base, CHEAX_READONLY);
@@ -647,7 +647,7 @@ bltn_let(CHEAX *c, struct chx_list *args, void *info)
 	if (new_env == NULL)
 		return NULL;
 	/* probably won't escape; major memory optimisation */
-	new_env->base.type |= NO_ESC_BIT;
+	new_env->base.rtflags |= NO_ESC_BIT;
 
 	for (struct chx_list *pairs = (struct chx_list *)pairsv;
 	     pairs != NULL;

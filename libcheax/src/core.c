@@ -13,9 +13,10 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  */
 
-#include <string.h>
+#include <limits.h>
 #include <stdarg.h>
 #include <stdlib.h>
+#include <string.h>
 
 #include "config.h"
 #include "core.h"
@@ -45,10 +46,8 @@ struct chx_quote *
 cheax_comma(CHEAX *c, struct chx_value *value)
 {
 	struct chx_quote *res = gcol_alloc(c, sizeof(struct chx_quote), CHEAX_COMMA);
-	if (res != NULL) {
-		res->base.type = CHEAX_COMMA;
+	if (res != NULL)
 		res->value = value;
-	}
 	return res;
 }
 struct chx_int *
@@ -60,15 +59,31 @@ cheax_int(CHEAX *c, int value)
 	return res;
 }
 struct chx_int *
+typecode(CHEAX *c, int value)
+{
+	struct chx_int *res = cheax_int(c, value);
+	if (res != NULL)
+		res->base.type = CHEAX_TYPECODE;
+	return res;
+}
+struct chx_int *
+errorcode(CHEAX *c, int value)
+{
+	struct chx_int *res = cheax_int(c, value);
+	if (res != NULL)
+		res->base.type = CHEAX_ERRORCODE;
+	return res;
+}
+struct chx_int *
 cheax_true(CHEAX *c)
 {
-	static struct chx_int yes = { { CHEAX_BOOL | NO_GC_BIT }, 1 };
+	static struct chx_int yes = { { CHEAX_BOOL, 0 }, 1 };
 	return &yes;
 }
 struct chx_int *
 cheax_false(CHEAX *c)
 {
-	static struct chx_int no = { { CHEAX_BOOL | NO_GC_BIT }, 0 };
+	static struct chx_int no = { { CHEAX_BOOL, 0 }, 0 };
 	return &no;
 }
 struct chx_int *
@@ -127,7 +142,7 @@ debug_list(CHEAX *c, struct chx_value *car, struct chx_list *cdr, struct debug_i
 	struct debug_list *res;
 	res = gcol_alloc(c, sizeof(struct debug_list), CHEAX_LIST);
 	if (res != NULL) {
-		res->base.base.type |= DEBUG_LIST;
+		res->base.base.rtflags |= DEBUG_LIST;
 		res->base.value = car;
 		res->base.next = cdr;
 		res->info = info;
@@ -229,7 +244,8 @@ cheax_init(void)
 	if (res == NULL)
 		return NULL;
 
-	res->globals.base.type = CHEAX_ENV | NO_GC_BIT;
+	res->globals.base.type = CHEAX_ENV;
+	res->globals.base.rtflags = 0;
 	norm_env_init(res, &res->globals, NULL);
 	res->env = NULL;
 	res->stack_depth = 0;
@@ -393,9 +409,9 @@ cheax_shallow_copy(CHEAX *c, struct chx_value *v)
 
 	struct chx_value *cpy = gcol_alloc(c, size, act_type);
 	if (cpy != NULL) {
-		int was_type = cpy->type;
+		unsigned short prev_rtflags = cpy->rtflags;
 		memcpy(cpy, v, size);
-		cpy->type = was_type;
+		cpy->rtflags = prev_rtflags;
 	}
 	return cpy;
 }
@@ -420,13 +436,15 @@ cheax_cast(CHEAX *c, struct chx_value *v, int type)
 	}
 
 	struct chx_value *res = cheax_shallow_copy(c, v);
-	return (res != NULL) ? set_type(res, type) : res;
+	if (res != NULL)
+		res->type = type;
+	return res;
 }
 
 int
 cheax_type_of(struct chx_value *v)
 {
-	return (v == NULL) ? CHEAX_NIL : v->type & CHEAX_TYPE_MASK;
+	return (v == NULL) ? CHEAX_NIL : v->type;
 }
 int
 cheax_new_type(CHEAX *c, const char *name, int base_type)
@@ -446,13 +464,31 @@ cheax_new_type(CHEAX *c, const char *name, int base_type)
 		return -1;
 	}
 
-	int ts_idx = c->typestore.len++;
-
-	if (c->typestore.len > c->typestore.cap) {
-		c->typestore.cap = ((c->typestore.cap / 2) + 1) * 3;
-		c->typestore.array = cheax_realloc(c, c->typestore.array,
-		                                   c->typestore.cap * sizeof(struct type_alias));
+	int ts_idx = c->typestore.len;
+	int tycode = ts_idx + CHEAX_TYPESTORE_BIAS;
+	if (tycode > USHRT_MAX) {
+		cry(c, "cheax_new_type", CHEAX_EEVAL, "too many types in existence", name);
+		return -1;
 	}
+
+	if (c->typestore.len + 1 > c->typestore.cap) {
+		size_t new_len, new_cap;
+		new_len = c->typestore.len + 1;
+		new_cap = new_len + (new_len / 2);
+
+
+		void *new_array = cheax_realloc(c,
+		                                c->typestore.array,
+		                                new_cap * sizeof(struct type_alias));
+		if (new_array == NULL)
+			return -1;
+
+		c->typestore.array = new_array;
+		c->typestore.cap = new_cap;
+	}
+
+	cheax_def(c, name, &typecode(c, tycode)->base, CHEAX_READONLY);
+	cheax_ft(c, pad);
 
 	struct type_alias alias = { 0 };
 	alias.name = name;
@@ -460,10 +496,11 @@ cheax_new_type(CHEAX *c, const char *name, int base_type)
 	alias.print = NULL;
 	alias.casts = NULL;
 	c->typestore.array[ts_idx] = alias;
+	++c->typestore.len;
 
-	int tycode = ts_idx + CHEAX_TYPESTORE_BIAS;
-	cheax_def(c, name, set_type(&cheax_int(c, tycode)->base, CHEAX_TYPECODE), CHEAX_READONLY);
 	return tycode;
+pad:
+	return -1;
 }
 int
 cheax_find_type(CHEAX *c, const char *name)
@@ -474,7 +511,7 @@ cheax_find_type(CHEAX *c, const char *name)
 	}
 
 	for (size_t i = 0; i < c->typestore.len; ++i)
-		if (!strcmp(name, c->typestore.array[i].name))
+		if (0 == strcmp(name, c->typestore.array[i].name))
 			return i + CHEAX_TYPESTORE_BIAS;
 
 	return -1;
@@ -623,7 +660,7 @@ bltn_type_of(CHEAX *c, struct chx_list *args, void *info)
 {
 	struct chx_value *val;
 	return (0 == unpack(c, "type-of", args, ".", &val))
-	     ? set_type(&cheax_int(c, cheax_type_of(val))->base, CHEAX_TYPECODE)
+	     ? &typecode(c, cheax_type_of(val))->base
 	     : NULL;
 }
 

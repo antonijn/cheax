@@ -19,34 +19,20 @@
 #include "gc.h"
 #include "sym.h"
 
+/* for rtflags field in chx_value */
 enum {
-	USABLE_BIT  = CHEAX_TYPE_MASK + 1,
-	FIN_BIT     = USABLE_BIT,      /* has registered finalizer */
-	NO_GC_BIT   = USABLE_BIT << 1, /* not GC allocated */
-	GC_MARKED   = USABLE_BIT << 2, /* marked in use */
-	GC_REFD     = USABLE_BIT << 3, /* carries cheax_ref() */
-	NO_ESC_BIT  = USABLE_BIT << 4, /* presumed not to have escaped */
-	DEBUG_LIST  = USABLE_BIT << 5, /* list is struct debug_list */
+	GC_BIT      = 0x0001, /* allocated by gc */
+	FIN_BIT     = 0x0002, /* has registered finalizer */
+	GC_MARKED   = 0x0004, /* marked in use by gc (temporary) */
+	REF_BIT     = 0x0008, /* carries cheax_ref() */
+	NO_ESC_BIT  = 0x0010, /* chx_env presumed not to have escaped */
+	DEBUG_LIST  = 0x0020, /* list is struct debug_list */
 };
 
 static inline bool
 has_flag(int i, int f)
 {
 	return (i & f) == f;
-}
-
-static inline bool
-has_fin_bit(struct chx_value *val)
-{
-	return has_flag(val->type, FIN_BIT);
-}
-
-static inline struct chx_value *
-set_type(struct chx_value *value, int type)
-{
-	if (value != NULL)
-		value->type = (value->type & ~CHEAX_TYPE_MASK) | (type & CHEAX_TYPE_MASK);
-	return value;
 }
 
 struct chx_string {
@@ -123,6 +109,9 @@ struct cheax {
 bool try_vtoi(struct chx_value *value, int *res);
 /* v-to-d: value to double */
 bool try_vtod(struct chx_value *value, double *res);
+
+struct chx_int *typecode(CHEAX *c, int value);
+struct chx_int *errorcode(CHEAX *c, int value);
 
 void export_core_bltns(CHEAX *c);
 

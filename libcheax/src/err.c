@@ -111,17 +111,33 @@ cheax_new_error_code(CHEAX *c, const char *name)
 		return -1;
 	}
 
-	int code = CHEAX_EUSER0 + c->user_error_names.len++;
-	if (c->user_error_names.len > c->user_error_names.cap) {
-		c->user_error_names.cap = ((c->user_error_names.cap / 2) + 1) * 3;
-		c->user_error_names.array = cheax_realloc(c, c->user_error_names.array,
-		                                          c->user_error_names.cap * sizeof(const char *));
+	int code = CHEAX_EUSER0 + c->user_error_names.len;
+
+	if (c->user_error_names.len + 1 > c->user_error_names.cap) {
+		size_t new_len, new_cap;
+		new_len = c->user_error_names.len + 1;
+		new_cap = new_len + (new_len / 2);
+
+
+		void *new_array = cheax_realloc(c,
+		                                c->user_error_names.array,
+		                                new_cap * sizeof(const char *));
+		if (new_array == NULL)
+			return -1;
+
+		c->user_error_names.array = new_array;
+		c->user_error_names.cap = new_cap;
 	}
 
-	c->user_error_names.array[code - CHEAX_EUSER0] = name;
+	cheax_def(c, name, &errorcode(c, code)->base, CHEAX_EREADONLY);
+	cheax_ft(c, pad);
 
-	cheax_def(c, name, set_type(&cheax_int(c, code)->base, CHEAX_ERRORCODE), CHEAX_EREADONLY);
+	c->user_error_names.array[code - CHEAX_EUSER0] = name;
+	++c->user_error_names.len;
+
 	return code;
+pad:
+	return -1;
 }
 
 void
@@ -286,7 +302,7 @@ run_finally(CHEAX *c, struct chx_list *finally_block)
 	struct chx_env *new_env = cheax_push_env(c);
 	if (new_env == NULL)
 		return;
-	new_env->base.type |= NO_ESC_BIT;
+	new_env->base.rtflags |= NO_ESC_BIT;
 
 	int prev_errstate = c->error.state;
 	c->error.state = CHEAX_RUNNING;
@@ -328,7 +344,7 @@ bltn_try(CHEAX *c, struct chx_list *args, void *info)
 	struct chx_env *new_env = cheax_push_env(c);
 	if (new_env == NULL)
 		return NULL;
-	new_env->base.type |= NO_ESC_BIT;
+	new_env->base.rtflags |= NO_ESC_BIT;
 
 	struct chx_value *retval = cheax_eval(c, block);
 
@@ -344,8 +360,7 @@ bltn_try(CHEAX *c, struct chx_list *args, void *info)
 		 */
 		if (cheax_push_env(c) == NULL)
 			return NULL;
-		struct chx_int *code = cheax_int(c, cheax_errno(c));
-		set_type(&code->base, CHEAX_ERRORCODE);
+		struct chx_int *code = errorcode(c, cheax_errno(c));
 		cheax_def(c, "errno",  &code->base,         CHEAX_READONLY);
 		cheax_def(c, "errmsg", &c->error.msg->base, CHEAX_READONLY);
 
@@ -385,10 +400,7 @@ export_error_names(CHEAX *c)
 	for (int i = 0; i < num_codes; ++i) {
 		const char *name = bltn_error_names[i].name;
 		int code = bltn_error_names[i].code;
-
-		cheax_def(c, name,
-		          set_type(&cheax_int(c, code)->base, CHEAX_ERRORCODE),
-		          CHEAX_READONLY);
+		cheax_def(c, name, &errorcode(c, code)->base, CHEAX_READONLY);
 	}
 }
 
