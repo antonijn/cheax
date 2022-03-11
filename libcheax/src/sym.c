@@ -380,6 +380,71 @@ cheax_sync_double(CHEAX *c, const char *name, double *var, int flags)
 	             NULL, var);
 }
 
+struct sync_nstring_info {
+	char *buf;
+	size_t size;
+};
+
+static struct chx_value *
+sync_nstring_get(CHEAX *c, struct chx_sym *sym)
+{
+	struct sync_nstring_info *info = sym->user_info;
+	return &cheax_string(c, info->buf)->base;
+}
+static void
+sync_nstring_set(CHEAX *c, struct chx_sym *sym, struct chx_value *value)
+{
+	if (cheax_type_of(value) != CHEAX_STRING) {
+		cry(c, "set", CHEAX_ETYPE, "invalid type");
+		return;
+	}
+
+	struct chx_string *str = (struct chx_string *)value;
+	struct sync_nstring_info *info = sym->user_info;
+	if (info->size - 1 < str->len) {
+		cry(c, "set", CHEAX_EVALUE, "string too big");
+		return;
+	}
+
+	memcpy(info->buf, str->value, str->len);
+	info->buf[str->len] = '\0';
+}
+static void
+sync_nstring_finalizer(CHEAX *c, struct chx_sym *sym)
+{
+	cheax_free(c, sym->user_info);
+}
+
+void
+cheax_sync_nstring(CHEAX *c, const char *name, char *buf, size_t size, int flags)
+{
+	if (buf == NULL) {
+		cry(c, "cheax_sync_nstring", CHEAX_EAPI, "`buf' cannot be NULL");
+		return;
+	}
+
+	if (size == 0) {
+		cry(c, "cheax_sync_nstring", CHEAX_EAPI, "`size' cannot be zero");
+		return;
+	}
+
+	struct sync_nstring_info *info = cheax_malloc(c, sizeof(struct sync_nstring_info));
+	if (info == NULL)
+		return;
+
+	info->buf = buf;
+	info->size = size;
+
+	struct chx_sym *sym;
+	sym = cheax_defsym(c, name,
+	                   has_flag(flags, CHEAX_WRITEONLY) ? NULL : sync_nstring_get,
+	                   has_flag(flags, CHEAX_READONLY)  ? NULL : sync_nstring_set,
+	                   sync_nstring_finalizer, info);
+
+	if (sym == NULL)
+		cheax_free(c, info);
+}
+
 /*
  *  _           _ _ _   _
  * | |__  _   _(_) | |_(_)_ __  ___

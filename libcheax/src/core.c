@@ -183,7 +183,7 @@ cheax_substr(CHEAX *c, struct chx_string *str, size_t pos, size_t len)
 	}
 
 	if (pos > SIZE_MAX - len || pos + len > str->len) {
-		cry(c, "substr", CHEAX_EVALUE, "substring out of bounds");
+		cry(c, "substr", CHEAX_EINDEX, "substring out of bounds");
 		return NULL;
 	}
 

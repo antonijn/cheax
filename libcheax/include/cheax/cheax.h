@@ -836,6 +836,7 @@ CHX_API void cheax_defmacro(CHEAX *c, const char *id, chx_func_ptr perform, void
  * \param flags Symbol flags. Use 0 if there are no special needs.
  */
 CHX_API void cheax_sync_int(CHEAX *c, const char *name, int *var, int flags);
+
 /*! \brief Synchronizes a variable from C with a symbol in the cheax environment.
  *
  * \param c     Virtual machine instance.
@@ -844,6 +845,7 @@ CHX_API void cheax_sync_int(CHEAX *c, const char *name, int *var, int flags);
  * \param flags Symbol flags. Use 0 if there are no special needs.
  */
 CHX_API void cheax_sync_float(CHEAX *c, const char *name, float *var, int flags);
+
 /*! \brief Synchronizes a variable from C with a symbol in the cheax environment.
  *
  * \param c     Virtual machine instance.
@@ -852,6 +854,17 @@ CHX_API void cheax_sync_float(CHEAX *c, const char *name, float *var, int flags)
  * \param flags Symbol flags. Use 0 if there are no special needs.
  */
 CHX_API void cheax_sync_double(CHEAX *c, const char *name, double *var, int flags);
+
+/*! \brief Synchronizes a null-terminated string buffer from C with a
+ *         symbol in the cheax environment.
+ *
+ * \param c     Virtual machine instance.
+ * \param name  Identifier for the symbol in the cheax environment.
+ * \param var   String buffer to synchronize.
+ * \param size  Capacity of buffer, including null byte.
+ * \param flags Symbol flags. Use 0 if there are no special needs.
+ */
+CHX_API void cheax_sync_nstring(CHEAX *c, const char *name, char *buf, size_t size, int flags);
 
 /*! \brief Matches a cheax expression to a given pattern.
  *
