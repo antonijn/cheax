@@ -532,14 +532,11 @@ bltn_gc(CHEAX *c, struct chx_list *args, void *info)
 	cheax_force_gc(c);
 	int mem_f = c->gc.all_mem, obj_f = c->gc.num_objects;
 
-	return &cheax_list(c, &mem.base,
-		cheax_list(c, &cheax_int(c, mem_i)->base,
-		cheax_list(c, &to.base,
-		cheax_list(c, &cheax_int(c, mem_f)->base,
-		cheax_list(c, &obj.base,
-		cheax_list(c, &cheax_int(c, obj_i)->base,
-		cheax_list(c, &to.base,
-		cheax_list(c, &cheax_int(c, obj_f)->base, NULL))))))))->base;
+	struct chx_value *res[] = {
+		&mem.base, &cheax_int(c, mem_i)->base, &to.base, &cheax_int(c, mem_f)->base,
+		&obj.base, &cheax_int(c, obj_i)->base, &to.base, &cheax_int(c, obj_f)->base,
+	};
+	return &cheax_array_to_list(c, res, sizeof(res) / sizeof(res[0]))->base;
 }
 
 static struct chx_value *

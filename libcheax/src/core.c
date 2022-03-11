@@ -277,10 +277,7 @@ cheax_version(void)
 }
 
 int
-cheax_list_to_array(CHEAX *c,
-                    struct chx_list *list,
-                    struct chx_value ***array_ptr,
-                    size_t *length)
+cheax_list_to_array(CHEAX *c, struct chx_list *list, struct chx_value ***array_ptr, size_t *length)
 {
 	size_t len = 0, cap = 0;
 	struct chx_value **res = NULL;
@@ -314,6 +311,25 @@ cheax_list_to_array(CHEAX *c,
 	*array_ptr = res;
 	*length = len;
 	return 0;
+}
+
+struct chx_list *
+cheax_array_to_list(CHEAX *c, struct chx_value **array, size_t length)
+{
+	if (array == NULL && length > 0) {
+		cry(c, "array_to_list", CHEAX_EAPI, "`array' cannot be NULL");
+		return NULL;
+	}
+
+	struct chx_list *res = NULL;
+	for (size_t i = length; i >= 1; --i) {
+		res = cheax_list(c, array[i - 1], res);
+		cheax_ft(c, pad);
+	}
+
+	return res;
+pad:
+	return NULL;
 }
 
 struct chx_value *

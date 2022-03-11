@@ -717,6 +717,9 @@ CHX_API int cheax_list_to_array(CHEAX *c,
                                 struct chx_list *list,
                                 struct chx_value ***array_ptr,
                                 size_t *length);
+CHX_API struct chx_list *cheax_array_to_list(CHEAX *c,
+                                             struct chx_value **array,
+                                             size_t length);
 
 /*! \brief Options for symbol declaration.
  *
