@@ -41,7 +41,7 @@ errname(CHEAX *c, int code)
 
 	int lo = 0, hi = sizeof(bltn_error_names) / sizeof(bltn_error_names[0]);
 	while (lo <= hi) {
-		int pivot = (lo + hi) / 2;
+		int pivot = lo + (hi - lo) / 2;
 		int pivot_code = bltn_error_names[pivot].code;
 		if (pivot_code == code)
 			return bltn_error_names[pivot].name;
@@ -120,18 +120,21 @@ cheax_new_error_code(CHEAX *c, const char *name)
 
 		void *new_array = cheax_realloc(c,
 		                                c->user_error_names.array,
-		                                new_cap * sizeof(const char *));
-		if (new_array == NULL)
-			return -1;
+		                                new_cap * sizeof(char *));
+		cheax_ft(c, pad);
 
 		c->user_error_names.array = new_array;
 		c->user_error_names.cap = new_cap;
 	}
 
+	char *store_name = cheax_malloc(c, strlen(name));
+	cheax_ft(c, pad);
+	strcpy(store_name, name);
+
 	cheax_def(c, name, &errorcode(c, code)->base, CHEAX_EREADONLY);
 	cheax_ft(c, pad);
 
-	c->user_error_names.array[code - CHEAX_EUSER0] = name;
+	c->user_error_names.array[code - CHEAX_EUSER0] = store_name;
 	++c->user_error_names.len;
 
 	return code;

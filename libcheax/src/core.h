@@ -65,7 +65,7 @@ struct type_cast {
 };
 
 struct type_alias {
-	const char *name;
+	char *name;
 	int base_type;
 
 	chx_func_ptr print;
@@ -101,7 +101,7 @@ struct cheax {
 	} bt; /* backtrace */
 
 	struct {
-		const char **array;
+		char **array;
 		size_t len, cap;
 	} user_error_names;
 

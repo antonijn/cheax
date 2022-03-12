@@ -296,8 +296,15 @@ cheax_destroy(CHEAX *c)
 	norm_env_cleanup(&c->globals);
 
 	cheax_free(c, c->bt.array);
+
+	for (size_t i = 0; i < c->typestore.len; ++i)
+		cheax_free(c, c->typestore.array[i].name);
 	cheax_free(c, c->typestore.array);
+
+	for (size_t i = 0; i < c->user_error_names.len; ++i)
+		cheax_free(c, c->user_error_names.array[i]);
 	cheax_free(c, c->user_error_names.array);
+
 	free(c->config_syms);
 
 	free(c);
@@ -482,18 +489,21 @@ cheax_new_type(CHEAX *c, const char *name, int base_type)
 		void *new_array = cheax_realloc(c,
 		                                c->typestore.array,
 		                                new_cap * sizeof(struct type_alias));
-		if (new_array == NULL)
-			return -1;
+		cheax_ft(c, pad);
 
 		c->typestore.array = new_array;
 		c->typestore.cap = new_cap;
 	}
 
+	char *store_name = cheax_malloc(c, strlen(name));
+	cheax_ft(c, pad);
+	strcpy(store_name, name);
+
 	cheax_def(c, name, &typecode(c, tycode)->base, CHEAX_READONLY);
 	cheax_ft(c, pad);
 
 	struct type_alias alias = { 0 };
-	alias.name = name;
+	alias.name = store_name;
 	alias.base_type = base_type;
 	alias.print = NULL;
 	alias.casts = NULL;
