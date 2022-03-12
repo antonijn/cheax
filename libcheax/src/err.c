@@ -19,6 +19,7 @@
 
 #include "core.h"
 #include "err.h"
+#include "print.h"
 #include "unpack.h"
 
 /* declare associative array of builtin error codes and their names */
@@ -70,6 +71,15 @@ cheax_perror(CHEAX *c, const char *s)
 	if (err == 0)
 		return;
 
+	fprintf(stderr, "Backtrace:\n");
+	for (size_t i = c->bt.len; i >= 1; --i) {
+		struct bt_entry ent = c->bt.array[i - 1];
+		fprintf(stderr, "  File \"%s\"", ent.info.file);
+		if (ent.info.line > 0)
+			fprintf(stderr, ", line %d", ent.info.line);
+		fprintf(stderr, ": %s\n", ent.msg);
+	}
+
 	if (s != NULL)
 		fprintf(stderr, "%s: ", s);
 
@@ -90,6 +100,7 @@ cheax_clear_errno(CHEAX *c)
 	c->error.state = CHEAX_RUNNING;
 	c->error.code = 0;
 	c->error.msg = NULL;
+	c->bt.len = 0;
 }
 void
 cheax_throw(CHEAX *c, int code, struct chx_string *msg)
@@ -118,7 +129,6 @@ cheax_new_error_code(CHEAX *c, const char *name)
 		new_len = c->user_error_names.len + 1;
 		new_cap = new_len + (new_len / 2);
 
-
 		void *new_array = cheax_realloc(c,
 		                                c->user_error_names.array,
 		                                new_cap * sizeof(const char *));
@@ -138,6 +148,44 @@ cheax_new_error_code(CHEAX *c, const char *name)
 	return code;
 pad:
 	return -1;
+}
+
+int
+bt_init(CHEAX *c, size_t limit)
+{
+	c->bt.len = c->bt.limit = 0;
+	c->bt.last_call = NULL;
+
+	c->bt.array = cheax_calloc(c, limit, sizeof(c->bt.array[0]));
+	if (c->bt.array == NULL)
+		return -1;
+
+	c->bt.limit = limit;
+	return 0;
+}
+
+void
+bt_add(CHEAX *c)
+{
+	if (c->bt.len >= c->bt.limit || c->bt.last_call == NULL)
+		return;
+
+	struct chx_list *last_call = c->bt.last_call;
+	size_t idx = c->bt.len++;
+
+	struct snostrm ss;
+	snostrm_init(&ss, c->bt.array[idx].msg, sizeof(c->bt.array[idx].msg));
+	ostrm_show(c, &ss.strm, &last_call->base);
+	strcpy(c->bt.array[idx].msg + sizeof(c->bt.array[idx].msg) - 4, "...");
+
+	if (has_flag(last_call->base.rtflags, DEBUG_LIST)) {
+		struct debug_list *dbg = (struct debug_list *)last_call;
+		c->bt.array[idx].info = dbg->info;
+	} else {
+		c->bt.array[idx].info.file = "<filename unknown>";
+		c->bt.array[idx].info.pos = -1;
+		c->bt.array[idx].info.line = -1;
+	}
 }
 
 void

@@ -91,6 +91,15 @@ struct cheax {
 	} error;
 
 	struct {
+		struct bt_entry {
+			struct debug_info info;
+			char msg[64];
+		} *array;
+		size_t len, limit;
+		struct chx_list *last_call;
+	} bt; /* backtrace */
+
+	struct {
 		const char **array;
 		size_t len, cap;
 	} user_error_names;

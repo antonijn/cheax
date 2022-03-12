@@ -259,6 +259,8 @@ cheax_init(void)
 	res->error.code = 0;
 	res->error.msg = NULL;
 
+	bt_init(res, 32);
+
 	res->typestore.array = NULL;
 	res->typestore.len = res->typestore.cap = 0;
 
