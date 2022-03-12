@@ -52,10 +52,6 @@ generate_export_header (libcheax
 	EXPORT_FILE_NAME   ${CMAKE_CURRENT_SOURCE_DIR}/include/cheax/export.h
 	INCLUDE_GUARD_NAME CHEAX_EXPORT_H)
 
-if (USE_BOEHM_GC)
-	target_link_libraries (libcheax gc)
-endif ()
-
 target_include_directories (libcheax PUBLIC include)
 set_target_properties (libcheax PROPERTIES OUTPUT_NAME "cheax")
 install (TARGETS libcheax DESTINATION lib)

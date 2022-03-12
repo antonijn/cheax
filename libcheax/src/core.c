@@ -29,7 +29,7 @@
 struct chx_quote *
 cheax_quote(CHEAX *c, struct chx_value *value)
 {
-	struct chx_quote *res = gcol_alloc(c, sizeof(struct chx_quote), CHEAX_QUOTE);
+	struct chx_quote *res = gc_alloc(c, sizeof(struct chx_quote), CHEAX_QUOTE);
 	if (res != NULL)
 		res->value = value;
 	return res;
@@ -37,7 +37,7 @@ cheax_quote(CHEAX *c, struct chx_value *value)
 struct chx_quote *
 cheax_backquote(CHEAX *c, struct chx_value *value)
 {
-	struct chx_quote *res = gcol_alloc(c, sizeof(struct chx_quote), CHEAX_BACKQUOTE);
+	struct chx_quote *res = gc_alloc(c, sizeof(struct chx_quote), CHEAX_BACKQUOTE);
 	if (res != NULL)
 		res->value = value;
 	return res;
@@ -45,7 +45,7 @@ cheax_backquote(CHEAX *c, struct chx_value *value)
 struct chx_quote *
 cheax_comma(CHEAX *c, struct chx_value *value)
 {
-	struct chx_quote *res = gcol_alloc(c, sizeof(struct chx_quote), CHEAX_COMMA);
+	struct chx_quote *res = gc_alloc(c, sizeof(struct chx_quote), CHEAX_COMMA);
 	if (res != NULL)
 		res->value = value;
 	return res;
@@ -53,7 +53,7 @@ cheax_comma(CHEAX *c, struct chx_value *value)
 struct chx_int *
 cheax_int(CHEAX *c, int value)
 {
-	struct chx_int *res = gcol_alloc(c, sizeof(struct chx_int), CHEAX_INT);
+	struct chx_int *res = gc_alloc(c, sizeof(struct chx_int), CHEAX_INT);
 	if (res != NULL)
 		res->value = value;
 	return res;
@@ -94,7 +94,7 @@ cheax_bool(CHEAX *c, bool value)
 struct chx_double *
 cheax_double(CHEAX *c, double value)
 {
-	struct chx_double *res = gcol_alloc(c, sizeof(struct chx_double), CHEAX_DOUBLE);
+	struct chx_double *res = gc_alloc(c, sizeof(struct chx_double), CHEAX_DOUBLE);
 	if (res != NULL)
 		res->value = value;
 	return res;
@@ -106,7 +106,7 @@ cheax_user_ptr(CHEAX *c, void *value, int type)
 		cry(c, "cheax_user_ptr", CHEAX_EAPI, "invalid user pointer type");
 		return NULL;
 	}
-	struct chx_user_ptr *res = gcol_alloc(c, sizeof(struct chx_user_ptr), type);
+	struct chx_user_ptr *res = gc_alloc(c, sizeof(struct chx_user_ptr), type);
 	if (res != NULL)
 		res->value = value;
 	return res;
@@ -117,7 +117,7 @@ cheax_id(CHEAX *c, const char *id)
 	if (id == NULL)
 		return NULL;
 
-	struct chx_id *res = gcol_alloc(c, sizeof(struct chx_id) + strlen(id) + 1, CHEAX_ID);
+	struct chx_id *res = gc_alloc(c, sizeof(struct chx_id) + strlen(id) + 1, CHEAX_ID);
 	if (res != NULL) {
 		char *buf = ((char *)res) + sizeof(struct chx_id);
 		strcpy(buf, id);
@@ -129,7 +129,7 @@ cheax_id(CHEAX *c, const char *id)
 struct chx_list *
 cheax_list(CHEAX *c, struct chx_value *car, struct chx_list *cdr)
 {
-	struct chx_list *res = gcol_alloc(c, sizeof(struct chx_list), CHEAX_LIST);
+	struct chx_list *res = gc_alloc(c, sizeof(struct chx_list), CHEAX_LIST);
 	if (res != NULL) {
 		res->value = car;
 		res->next = cdr;
@@ -140,7 +140,7 @@ struct debug_list*
 debug_list(CHEAX *c, struct chx_value *car, struct chx_list *cdr, struct debug_info info)
 {
 	struct debug_list *res;
-	res = gcol_alloc(c, sizeof(struct debug_list), CHEAX_LIST);
+	res = gc_alloc(c, sizeof(struct debug_list), CHEAX_LIST);
 	if (res != NULL) {
 		res->base.base.rtflags |= DEBUG_LIST;
 		res->base.value = car;
@@ -155,7 +155,7 @@ cheax_ext_func(CHEAX *c, const char *name, chx_func_ptr perform, void *info)
 	if (perform == NULL || name == NULL)
 		return NULL;
 
-	struct chx_ext_func *res = gcol_alloc(c, sizeof(struct chx_ext_func), CHEAX_EXT_FUNC);
+	struct chx_ext_func *res = gc_alloc(c, sizeof(struct chx_ext_func), CHEAX_EXT_FUNC);
 	if (res != NULL) {
 		res->name = name;
 		res->perform = perform;
@@ -190,7 +190,7 @@ cheax_nstring(CHEAX *c, const char *value, size_t len)
 		value = "";
 	}
 
-	struct chx_string *res = gcol_alloc(c, sizeof(struct chx_string) + len + 1, CHEAX_STRING);
+	struct chx_string *res = gc_alloc(c, sizeof(struct chx_string) + len + 1, CHEAX_STRING);
 	if (res != NULL) {
 		char *buf = ((char *)res) + sizeof(struct chx_string);
 		memcpy(buf, value, len);
@@ -215,7 +215,7 @@ cheax_substr(CHEAX *c, struct chx_string *str, size_t pos, size_t len)
 		return NULL;
 	}
 
-	struct chx_string *res = gcol_alloc(c, sizeof(struct chx_string), CHEAX_STRING);
+	struct chx_string *res = gc_alloc(c, sizeof(struct chx_string), CHEAX_STRING);
 	if (res != NULL) {
 		res->value = str->value + pos;
 		res->len = len;
@@ -266,7 +266,7 @@ cheax_init(void)
 	res->user_error_names.array = NULL;
 	res->user_error_names.len = res->user_error_names.cap = 0;
 
-	gcol_init(res);
+	gc_init(res);
 
 	/* This is a bit hacky; we declare the these types as aliases
 	 * in the typestore, while at the same time we have the
@@ -292,7 +292,7 @@ cheax_destroy(CHEAX *c)
 		}
 	}
 
-	gcol_destroy(c);
+	gc_cleanup(c);
 	norm_env_cleanup(&c->globals);
 
 	cheax_free(c, c->bt.array);
@@ -416,7 +416,7 @@ cheax_shallow_copy(CHEAX *c, struct chx_value *v)
 		break;
 	}
 
-	struct chx_value *cpy = gcol_alloc(c, size, act_type);
+	struct chx_value *cpy = gc_alloc(c, size, act_type);
 	if (cpy != NULL) {
 		unsigned short prev_rtflags = cpy->rtflags;
 		memcpy(cpy, v, size);
@@ -687,7 +687,7 @@ create_func(CHEAX *c,
 		return NULL;
 	}
 
-	struct chx_func *res = gcol_alloc(c, sizeof(struct chx_func), type);
+	struct chx_func *res = gc_alloc(c, sizeof(struct chx_func), type);
 	if (res != NULL) {
 		res->args = arg_list;
 		res->body = body;

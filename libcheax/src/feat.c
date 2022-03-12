@@ -33,9 +33,7 @@ static const struct nfeat { const char *name; int feat; } named_feats[] = {
 	{"all",     ALL_FEATURES  },
 	{"exit",    EXIT_BUILTIN  },
 	{"file-io", FILE_IO       },
-#ifndef USE_BOEHM_GC
 	{"gc",      GC_BUILTIN    },
-#endif
 	{"stderr",  EXPOSE_STDERR },
 	{"stdin",   EXPOSE_STDIN  },
 	{"stdio",   STDIO         },

@@ -13,22 +13,13 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  */
 
-/* not just GC_H, which conflicts with Boehm in case of USE_BOEHM_GC */
-#ifndef CHEAX_GC_H
-#define CHEAX_GC_H
+#ifndef GC_H
+#define GC_H
 
 #define GC_RUN_THRESHOLD 0x20000
 
 #include <cheax.h>
 #include "rbtree.h"
-
-#ifdef USE_BOEHM_GC
-
-struct gc_info {
-	int unused;
-};
-
-#else
 
 struct gc_header_node {
 	struct gc_header_node *prev, *next;
@@ -45,19 +36,17 @@ struct gc_info {
 	bool lock;
 };
 
-#endif
-
 typedef void (*chx_fin)(void *obj, void *info);
 
-void gcol_init(CHEAX *c);
-void gcol_destroy(CHEAX *c);
+void gc_init(CHEAX *c);
+void gc_cleanup(CHEAX *c);
 /*
  * Result must be treated as chx_value. Specifically, gc decisions will
  * be made depending on the value of chx_value::type.
  */
-void *gcol_alloc(CHEAX *c, size_t size, int type);
-void *gcol_alloc_with_fin(CHEAX *c, size_t size, int type, chx_fin fin, void *info);
-void gcol_free(CHEAX *c, void *obj);
+void *gc_alloc(CHEAX *c, size_t size, int type);
+void *gc_alloc_with_fin(CHEAX *c, size_t size, int type, chx_fin fin, void *info);
+void gc_free(CHEAX *c, void *obj);
 
 void cheax_gc(CHEAX *c);
 void cheax_force_gc(CHEAX *c);

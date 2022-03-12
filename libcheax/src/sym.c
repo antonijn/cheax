@@ -155,7 +155,7 @@ cheax_env(CHEAX *c)
 struct chx_env *
 cheax_push_env(CHEAX *c)
 {
-	struct chx_env *env = gcol_alloc_with_fin(c, sizeof(struct chx_env), CHEAX_ENV,
+	struct chx_env *env = gc_alloc_with_fin(c, sizeof(struct chx_env), CHEAX_ENV,
 	                                          norm_env_fin, NULL);
 	return (env == NULL) ? NULL : (c->env = norm_env_init(c, env, c->env));
 }
@@ -163,7 +163,7 @@ cheax_push_env(CHEAX *c)
 struct chx_env *
 cheax_enter_env(CHEAX *c, struct chx_env *main)
 {
-	struct chx_env *env = gcol_alloc(c, sizeof(struct chx_env), CHEAX_ENV);
+	struct chx_env *env = gc_alloc(c, sizeof(struct chx_env), CHEAX_ENV);
 	if (env != NULL) {
 		env->is_bif = true;
 		env->value.bif[0] = main;
@@ -189,7 +189,7 @@ cheax_pop_env(CHEAX *c)
 
 	/* dangerous, but worth it! */
 	if (has_flag(env->base.rtflags, NO_ESC_BIT))
-		gcol_free(c, env);
+		gc_free(c, env);
 }
 
 struct chx_sym *
@@ -480,7 +480,7 @@ defgetset(CHEAX *c, const char *name,
 		return;
 	}
 
-	struct chx_func *res = gcol_alloc(c, sizeof(struct chx_func), CHEAX_FUNC);
+	struct chx_func *res = gc_alloc(c, sizeof(struct chx_func), CHEAX_FUNC);
 	if (res != NULL) {
 		res->args = getset_args;
 		res->body = args;

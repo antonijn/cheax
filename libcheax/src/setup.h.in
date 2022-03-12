@@ -10,19 +10,12 @@
 #else
 #define SHARED_SUFFIX " static"
 #endif
-#cmakedefine USE_BOEHM_GC
-#ifdef USE_BOEHM_GC
-#define GC_SUFFIX " boehm"
-#else
-#define GC_SUFFIX ""
-#endif
 
 #cmakedefine HAVE_STRTOD_L
 #cmakedefine HAVE_NEWLOCALE
 #cmakedefine HAVE_STUPID_WINDOWS_STRTOD_L
 #cmakedefine HAVE_STUPID_WINDOWS_CREATE_LOCALE
 
-#define FEATURE_SUFFIX GC_SUFFIX SHARED_SUFFIX
-#define VERSION_STRING GIT_HASH FEATURE_SUFFIX
+#define VERSION_STRING GIT_HASH SHARED_SUFFIX
 
 #endif

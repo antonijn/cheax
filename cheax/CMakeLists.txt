@@ -1,8 +1,5 @@
 cmake_minimum_required (VERSION 3.10)
 add_executable(cheax cheax.c)
 target_link_libraries(cheax libcheax)
-if(USE_BOEHM_GC)
-	target_link_libraries(cheax gc)
-endif()
 install(TARGETS cheax DESTINATION bin)
 install(FILES COPYING DESTINATION share/licenses/cheax/)

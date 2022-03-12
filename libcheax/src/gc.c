@@ -24,118 +24,6 @@
 #include "setup.h"
 #include "unpack.h"
 
-chx_ref
-cheax_ref(CHEAX *c, void *restrict value)
-{
-	struct chx_value *obj = value;
-	if (obj != NULL) {
-		chx_ref res = has_flag(obj->rtflags, REF_BIT);
-		if (has_flag(obj->rtflags, GC_BIT))
-			obj->rtflags |= REF_BIT;
-		return res;
-	}
-	return false;
-}
-
-void
-cheax_unref(CHEAX *c, void *restrict value, chx_ref ref)
-{
-	struct chx_value *obj = value;
-	if (obj != NULL && has_flag(obj->rtflags, GC_BIT) && !ref)
-		obj->rtflags &= ~REF_BIT;
-}
-
-#ifdef USE_BOEHM_GC
-
-#include <gc/gc.h>
-
-void *
-cheax_malloc(CHEAX *c, size_t size)
-{
-	return malloc(size);
-}
-
-void *
-cheax_calloc(CHEAX *c, size_t nmemb, size_t size)
-{
-	return calloc(nmemb, size);
-}
-
-void *
-cheax_realloc(CHEAX *c, void *ptr, size_t size)
-{
-	return realloc(ptr, size);
-}
-
-void
-cheax_free(CHEAX *c, void *ptr)
-{
-	free(ptr);
-}
-
-void
-gcol_free(CHEAX *c, void *ptr)
-{
-	cheax_free(c, ptr);
-}
-
-void
-cheax_gc(CHEAX *c)
-{
-	/* empty */
-}
-
-void
-cheax_force_gc(CHEAX *c)
-{
-	/* empty */
-}
-
-void
-gcol_init(CHEAX *c)
-{
-	/* empty */
-}
-
-void
-gcol_destroy(CHEAX *c)
-{
-	/* empty */
-}
-
-void
-gcol_alloc(CHEAX *c, void *obj)
-{
-	GC_free(obj);
-}
-
-void *
-gcol_alloc(CHEAX *c, size_t size, int type)
-{
-	struct chx_value *res = GC_malloc(size);
-	res->type = type;
-	res->rtflags = GC_BIT;
-	return res;
-}
-
-void *
-gcol_alloc_with_fin(CHEAX *c, size_t size, int type, chx_fin fin, void *info)
-{
-	struct chx_value *res = GC_malloc(size);
-	res->type = type;
-	res->rtflags = GC_BIT | FIN_BIT;
-	GC_register_finalizer(res, fin, info, NULL, NULL);
-	return res;
-}
-
-void
-load_gc_feature(CHEAX *c, int bits)
-{
-	/* empty */
-}
-
-#else
-
 struct alloc_header {
 	size_t size;
 	long obj;
@@ -278,7 +166,7 @@ get_fin_footer(void *obj)
 }
 
 void
-gcol_init(CHEAX *c)
+gc_init(CHEAX *c)
 {
 	c->gc.objects.prev = c->gc.objects.next = &c->gc.objects;
 
@@ -288,11 +176,11 @@ gcol_init(CHEAX *c)
 
 /* sets GC_MARKED bit for all reachable objects */
 static void mark(CHEAX *c);
-/* locks GC and gcol_free()'s all non-GC_MARKED objects */
+/* locks GC and gc_free()'s all non-GC_MARKED objects */
 static void sweep(CHEAX *c);
 
 void
-gcol_destroy(CHEAX *c)
+gc_cleanup(CHEAX *c)
 {
 	if (c->gc.lock) {
 		/* give up*/
@@ -312,12 +200,12 @@ gcol_destroy(CHEAX *c)
 }
 
 void *
-gcol_alloc(CHEAX *c, size_t size, int type)
+gc_alloc(CHEAX *c, size_t size, int type)
 {
 	struct gc_header *hdr;
 	const size_t hdr_size = sizeof(*hdr) - sizeof(hdr->obj);
 	if (size > SIZE_MAX - hdr_size) {
-		cry(c, "gcol_alloc", CHEAX_ENOMEM, "not enough space for gc header");
+		cry(c, "gc_alloc", CHEAX_ENOMEM, "not enough space for gc header");
 		return NULL;
 	}
 
@@ -346,9 +234,9 @@ gcol_alloc(CHEAX *c, size_t size, int type)
 }
 
 void *
-gcol_alloc_with_fin(CHEAX *c, size_t size, int type, chx_fin fin, void *info)
+gc_alloc_with_fin(CHEAX *c, size_t size, int type, chx_fin fin, void *info)
 {
-	struct chx_value *obj = gcol_alloc(c, size + sizeof(struct gc_fin_footer), type);
+	struct chx_value *obj = gc_alloc(c, size + sizeof(struct gc_fin_footer), type);
 	if (obj != NULL) {
 		struct gc_fin_footer *ftr = get_fin_footer(obj);
 		ftr->fin = fin;
@@ -359,7 +247,7 @@ gcol_alloc_with_fin(CHEAX *c, size_t size, int type, chx_fin fin, void *info)
 }
 
 void
-gcol_free(CHEAX *c, void *obj)
+gc_free(CHEAX *c, void *obj)
 {
 	if (obj == NULL)
 		return;
@@ -489,7 +377,7 @@ sweep(CHEAX *c)
 		struct gc_header *hdr = (struct gc_header *)n;
 		struct chx_value *obj = &hdr->obj;
 		if (!has_flag(obj->rtflags, GC_MARKED))
-			gcol_free(c, obj);
+			gc_free(c, obj);
 		else
 			obj->rtflags &= ~GC_MARKED;
 	}
@@ -510,6 +398,27 @@ cheax_force_gc(CHEAX *c)
 
 	c->gc.prev_run = c->gc.all_mem;
 	c->gc.lock = false;
+}
+
+chx_ref
+cheax_ref(CHEAX *c, void *restrict value)
+{
+	struct chx_value *obj = value;
+	if (obj != NULL) {
+		chx_ref res = has_flag(obj->rtflags, REF_BIT);
+		if (has_flag(obj->rtflags, GC_BIT))
+			obj->rtflags |= REF_BIT;
+		return res;
+	}
+	return false;
+}
+
+void
+cheax_unref(CHEAX *c, void *restrict value, chx_ref ref)
+{
+	struct chx_value *obj = value;
+	if (obj != NULL && has_flag(obj->rtflags, GC_BIT) && !ref)
+		obj->rtflags &= ~REF_BIT;
 }
 
 /*
@@ -558,5 +467,3 @@ load_gc_feature(CHEAX *c, int bits)
 		cheax_defmacro(c, "get-used-memory", bltn_get_used_memory, NULL);
 	}
 }
-
-#endif
