@@ -51,6 +51,23 @@ set_allow_redef(CHEAX *c, bool value)
 	c->allow_redef = value;
 }
 
+static int
+get_bt_limit(CHEAX *c)
+{
+	return c->bt.limit;
+}
+static void
+set_bt_limit(CHEAX *c, int value)
+{
+	static const int max_bt_limit = 256;
+	if (value < 0)
+		cry(c, "bt-limit", CHEAX_EAPI, "backtrace limit must be non-negative");
+	else if (value > max_bt_limit)
+		cry(c, "bt-limit", CHEAX_EAPI, "backtrace limit must be at most %d", max_bt_limit);
+	else
+		bt_init(c, value);
+}
+
 static bool
 get_gen_debug_info(CHEAX *c)
 {
@@ -105,11 +122,17 @@ static struct config_info opts[] = {
 		"Allow symbol redefinition in global scope."
 	},
 	{
+		"bt-limit", CHEAX_INT, "N",
+		{ .get_int = get_bt_limit },
+		{ .set_int = set_bt_limit },
+		"Backtrace length limit."
+	},
+	{
 		"gen-debug-info", CHEAX_BOOL, "<true|false>",
 		{ .get_bool = get_gen_debug_info },
 		{ .set_bool = set_gen_debug_info },
 		"Generate debug info when reading S-expressions to "
-		"improve stack trace readability."
+		"improve backtrace readability."
 	},
 	{
 		"mem-limit", CHEAX_INT, "N",

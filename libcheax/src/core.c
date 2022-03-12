@@ -259,6 +259,7 @@ cheax_init(void)
 	res->error.code = 0;
 	res->error.msg = NULL;
 
+	res->bt.array = NULL;
 	bt_init(res, 32);
 
 	res->typestore.array = NULL;
@@ -293,12 +294,13 @@ cheax_destroy(CHEAX *c)
 		}
 	}
 
+	gcol_destroy(c);
+	norm_env_cleanup(&c->globals);
+
+	cheax_free(c, c->bt.array);
 	cheax_free(c, c->typestore.array);
 	cheax_free(c, c->user_error_names.array);
 	free(c->config_syms);
-
-	norm_env_cleanup(&c->globals);
-	gcol_destroy(c);
 
 	free(c);
 }

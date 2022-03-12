@@ -151,6 +151,7 @@ bt_init(CHEAX *c, size_t limit)
 	c->bt.last_call = NULL;
 	c->bt.truncated = false;
 
+	cheax_free(c, c->bt.array);
 	c->bt.array = cheax_calloc(c, limit, sizeof(c->bt.array[0]));
 	if (c->bt.array == NULL)
 		return -1;
