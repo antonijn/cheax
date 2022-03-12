@@ -65,7 +65,7 @@ set_bt_limit(CHEAX *c, int value)
 	else if (value > max_bt_limit)
 		cry(c, "bt-limit", CHEAX_EAPI, "backtrace limit must be at most %d", max_bt_limit);
 	else
-		bt_init(c, value);
+		bt_limit(c, value);
 }
 
 static bool

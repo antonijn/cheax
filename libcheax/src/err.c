@@ -107,6 +107,8 @@ cheax_throw(CHEAX *c, int code, struct chx_string *msg)
 	c->error.state = CHEAX_THROWN;
 	c->error.code = code;
 	c->error.msg = msg;
+	c->bt.len = 0;
+	c->bt.truncated = false;
 }
 int
 cheax_new_error_code(CHEAX *c, const char *name)
@@ -147,14 +149,27 @@ pad:
 int
 bt_init(CHEAX *c, size_t limit)
 {
+	c->bt.array = NULL;
 	c->bt.len = c->bt.limit = 0;
 	c->bt.last_call = NULL;
 	c->bt.truncated = false;
+	return bt_limit(c, limit);
+}
+
+int
+bt_limit(CHEAX *c, size_t limit)
+{
+	if (c->bt.len > 0) {
+		cry(c, "bt_limit", CHEAX_EEVAL, "backtrace limit locked");
+		return -1;
+	}
 
 	cheax_free(c, c->bt.array);
 	c->bt.array = cheax_calloc(c, limit, sizeof(c->bt.array[0]));
-	if (c->bt.array == NULL)
+	if (c->bt.array == NULL) {
+		c->bt.limit = 0;
 		return -1;
+	}
 
 	c->bt.limit = limit;
 	return 0;

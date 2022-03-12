@@ -19,6 +19,7 @@
 #include <cheax.h>
 
 int bt_init(CHEAX *c, size_t limit);
+int bt_limit(CHEAX *c, size_t limit);
 void bt_add(CHEAX *c);
 void bt_print(CHEAX *c);
 void cry(CHEAX *c, const char *name, int err, const char *frmt, ...);
