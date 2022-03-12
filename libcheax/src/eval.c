@@ -186,7 +186,13 @@ eval_bkquoted(CHEAX *c, struct chx_value *quoted, int nest)
 		struct chx_value *cdr = eval_bkquoted(c, &lst_quoted->next->base, nest);
 		cheax_unref(c, car, car_ref);
 		cheax_ft(c, pad);
-		res = &cheax_list(c, car, (struct chx_list *)cdr)->base;
+
+		if (has_flag(quoted->rtflags, DEBUG_LIST)) {
+			struct debug_info info = ((struct debug_list *)quoted)->info;
+			res = &debug_list(c, car, (struct chx_list *)cdr, info)->base.base;
+		} else {
+			res = &cheax_list(c, car, (struct chx_list *)cdr)->base;
+		}
 		break;
 
 	case CHEAX_QUOTE:
