@@ -71,14 +71,7 @@ cheax_perror(CHEAX *c, const char *s)
 	if (err == 0)
 		return;
 
-	fprintf(stderr, "Backtrace:\n");
-	for (size_t i = c->bt.len; i >= 1; --i) {
-		struct bt_entry ent = c->bt.array[i - 1];
-		fprintf(stderr, "  File \"%s\"", ent.info.file);
-		if (ent.info.line > 0)
-			fprintf(stderr, ", line %d", ent.info.line);
-		fprintf(stderr, ": %s\n", ent.msg);
-	}
+	bt_print(c);
 
 	if (s != NULL)
 		fprintf(stderr, "%s: ", s);
@@ -101,6 +94,7 @@ cheax_clear_errno(CHEAX *c)
 	c->error.code = 0;
 	c->error.msg = NULL;
 	c->bt.len = 0;
+	c->bt.truncated = false;
 }
 void
 cheax_throw(CHEAX *c, int code, struct chx_string *msg)
@@ -155,6 +149,7 @@ bt_init(CHEAX *c, size_t limit)
 {
 	c->bt.len = c->bt.limit = 0;
 	c->bt.last_call = NULL;
+	c->bt.truncated = false;
 
 	c->bt.array = cheax_calloc(c, limit, sizeof(c->bt.array[0]));
 	if (c->bt.array == NULL)
@@ -167,8 +162,13 @@ bt_init(CHEAX *c, size_t limit)
 void
 bt_add(CHEAX *c)
 {
-	if (c->bt.len >= c->bt.limit || c->bt.last_call == NULL)
+	if (c->bt.last_call == NULL)
 		return;
+
+	if (c->bt.len >= c->bt.limit) {
+		c->bt.truncated = true;
+		return;
+	}
 
 	struct chx_list *last_call = c->bt.last_call;
 	size_t idx = c->bt.len++;
@@ -185,6 +185,26 @@ bt_add(CHEAX *c)
 		c->bt.array[idx].info.file = "<filename unknown>";
 		c->bt.array[idx].info.pos = -1;
 		c->bt.array[idx].info.line = -1;
+	}
+}
+
+void
+bt_print(CHEAX *c)
+{
+	if (c->bt.len == 0)
+		return;
+
+	if (c->bt.truncated)
+		fprintf(stderr, "Backtrace (limited to last %zd calls):\n", c->bt.limit);
+	else
+		fprintf(stderr, "Backtrace:\n");
+
+	for (size_t i = c->bt.len; i >= 1; --i) {
+		struct bt_entry ent = c->bt.array[i - 1];
+		fprintf(stderr, "  File \"%s\"", ent.info.file);
+		if (ent.info.line > 0)
+			fprintf(stderr, ", line %d", ent.info.line);
+		fprintf(stderr, ": %s\n", ent.msg);
 	}
 }
 

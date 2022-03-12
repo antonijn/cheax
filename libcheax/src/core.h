@@ -96,6 +96,7 @@ struct cheax {
 			char msg[64];
 		} *array;
 		size_t len, limit;
+		bool truncated;
 		struct chx_list *last_call;
 	} bt; /* backtrace */
 
