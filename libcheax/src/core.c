@@ -255,7 +255,6 @@ cheax_init(void)
 	res->gen_debug_info = true;
 	res->mem_limit = 0;
 	res->stack_limit = 0;
-	res->error.state = CHEAX_RUNNING;
 	res->error.code = 0;
 	res->error.msg = NULL;
 

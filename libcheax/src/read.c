@@ -516,7 +516,7 @@ cheax_readstr_at(CHEAX *c, const char **str, const char *path, int *line, int *p
 	struct sistrm ss;
 	sistrm_init(&ss, *str);
 	struct chx_value *res = istrm_read_at(c, &ss.strm, path, line, pos);
-	if (cheax_errstate(c) == CHEAX_RUNNING)
+	if (cheax_errno(c) == 0)
 		*str = ss.str + ss.idx;
 	return res;
 }

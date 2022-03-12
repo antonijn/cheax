@@ -86,7 +86,7 @@ struct cheax {
 	int fhandle_type;
 
 	struct {
-		int state, code;
+		int code;
 		struct chx_string *msg;
 	} error;
 

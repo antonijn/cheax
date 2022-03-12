@@ -34,10 +34,7 @@ do_aop(CHEAX *c,
 		int li = ((struct chx_int *)l)->value;
 		int ri = ((struct chx_int *)r)->value;
 		int res = iop(c, li, ri);
-		if (cheax_errstate(c) == CHEAX_THROWN)
-			return NULL;
-
-		return &cheax_int(c, res)->base;
+		return (cheax_errno(c) == 0) ? &cheax_int(c, res)->base : NULL;
 	}
 
 	if (fop == NULL) {

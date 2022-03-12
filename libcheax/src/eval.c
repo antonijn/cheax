@@ -106,7 +106,7 @@ eval_sexpr(CHEAX *c, struct chx_list *input)
 		bool arg_match_ok = cheax_match(c, fn->args, &args->base, CHEAX_READONLY);
 
 		if (!arg_match_ok) {
-			if (cheax_errstate(c) == CHEAX_RUNNING)
+			if (cheax_errno(c) == 0)
 				cry(c, "eval", CHEAX_EMATCH, "invalid (number of) arguments");
 			goto fn_pad;
 		}
@@ -164,7 +164,7 @@ env_pad:
 pad:
 	cheax_unref(c, head, head_ref);
 
-	if (add_bt && cheax_errstate(c) == CHEAX_THROWN)
+	if (add_bt && cheax_errno(c) != 0)
 		bt_add(c);
 	return res;
 }
@@ -318,7 +318,7 @@ cheax_match(CHEAX *c, struct chx_value *pan, struct chx_value *match, int flags)
 
 	if (pan_ty == CHEAX_ID) {
 		cheax_def(c, ((struct chx_id *)pan)->id, match, flags);
-		return cheax_errstate(c) != CHEAX_THROWN; /* false if cheax_def() failed */
+		return cheax_errno(c) == 0; /* false if cheax_def() failed */
 	}
 
 	if (pan_ty != cheax_type_of(match))

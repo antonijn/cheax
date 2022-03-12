@@ -55,11 +55,6 @@ errname(CHEAX *c, int code)
 	return NULL;
 }
 int
-cheax_errstate(CHEAX *c)
-{
-	return c->error.state;
-}
-int
 cheax_errno(CHEAX *c)
 {
 	return c->error.code;
@@ -90,7 +85,6 @@ cheax_perror(CHEAX *c, const char *s)
 void
 cheax_clear_errno(CHEAX *c)
 {
-	c->error.state = CHEAX_RUNNING;
 	c->error.code = 0;
 	c->error.msg = NULL;
 	c->bt.len = 0;
@@ -104,7 +98,6 @@ cheax_throw(CHEAX *c, int code, struct chx_string *msg)
 		return;
 	}
 
-	c->error.state = CHEAX_THROWN;
 	c->error.code = code;
 	c->error.msg = msg;
 	c->bt.len = 0;
@@ -317,7 +310,10 @@ validate_catch_blocks(CHEAX *c, struct chx_list *catch_blocks, struct chx_list *
 }
 
 static struct chx_list *
-match_catch(CHEAX *c, struct chx_list *catch_blocks, struct chx_list *finally_block)
+match_catch(CHEAX *c,
+            struct chx_list *catch_blocks,
+            struct chx_list *finally_block,
+            int active_errno)
 {
 	struct chx_list *cb;
 	for (cb = catch_blocks; cb != finally_block; cb = cb->next) {
@@ -339,8 +335,10 @@ match_catch(CHEAX *c, struct chx_list *catch_blocks, struct chx_list *finally_bl
 		struct chx_value *errcodes = cheax_eval(c, cb_list->next->value);
 		cheax_ft(c, pad);
 
-		if (cheax_type_of(errcodes) != CHEAX_LIST)
+		if (cheax_type_of(errcodes) != CHEAX_LIST) {
 			errcodes = &cheax_list(c, errcodes, NULL)->base;
+			cheax_ft(c, pad);
+		}
 
 		struct chx_list *enode;
 		for (enode = (struct chx_list *)errcodes; enode != NULL; enode = enode->next) {
@@ -350,7 +348,7 @@ match_catch(CHEAX *c, struct chx_list *catch_blocks, struct chx_list *finally_bl
 				return NULL;
 			}
 
-			if (((struct chx_int *)code)->value == cheax_errno(c))
+			if (((struct chx_int *)code)->value == active_errno)
 				return cb_list;
 		}
 	}
@@ -367,15 +365,14 @@ run_catch(CHEAX *c, struct chx_list *match)
 	struct chx_list *run_blocks = match->next->next;
 	chx_ref run_blocks_ref = cheax_ref(c, run_blocks);
 
-	c->error.state = CHEAX_RUNNING;
+	cheax_clear_errno(c);
 
 	for (struct chx_list *cons = run_blocks; cons != NULL; cons = cons->next) {
 		retval = cheax_eval(c, cons->value);
-		cheax_ft(c, pad1); /* new error thrown */
+		cheax_ft(c, pad); /* new error thrown */
 	}
 
-	cheax_clear_errno(c); /* error taken care of */
-pad1:
+pad:
 	cheax_unref(c, run_blocks, run_blocks_ref);
 	return retval;
 }
@@ -388,18 +385,25 @@ run_finally(CHEAX *c, struct chx_list *finally_block)
 		return;
 	new_env->base.rtflags |= NO_ESC_BIT;
 
-	int prev_errstate = c->error.state;
-	c->error.state = CHEAX_RUNNING;
+	int active_errno = c->error.code;
+	struct chx_string *active_msg = c->error.msg;
+	chx_ref active_msg_ref = cheax_ref(c, active_msg);
+
+	/* Semi-clear-errno state; see warning comment in bltn_try(). */
+	c->error.code = 0;
+	c->error.msg = NULL;
 
 	/* types checked before, so this should all be safe */
 	struct chx_list *fb = (struct chx_list *)finally_block->value;
 	for (struct chx_list *cons = fb->next; cons != NULL; cons = cons->next) {
 		cheax_eval(c, cons->value);
-		cheax_ft(c, pad2);
+		cheax_ft(c, pad);
 	}
 
-	c->error.state = prev_errstate;
-pad2:
+	c->error.code = active_errno;
+	c->error.msg = active_msg;
+pad:
+	cheax_unref(c, active_msg, active_msg_ref);
 	cheax_pop_env(c);
 }
 
@@ -434,26 +438,45 @@ bltn_try(CHEAX *c, struct chx_list *args, void *info)
 
 	cheax_pop_env(c);
 
-	if (cheax_errstate(c) == CHEAX_THROWN) {
-		/* error caught */
-		c->error.state = CHEAX_RUNNING;
-
+	if (cheax_errno(c) != 0) {
 		/*
-		 * We set errno and errmsg here, to allow (catch errno ...),
-		 * which matches any error code.
+		 * We set errno and errmsg here rather than in run_catch(),
+		 * to allow (catch errno ...), which matches any error code.
 		 */
 		if (cheax_push_env(c) == NULL)
 			return NULL;
-		struct chx_int *code = errorcode(c, cheax_errno(c));
-		cheax_def(c, "errno",  &code->base,         CHEAX_READONLY);
-		cheax_def(c, "errmsg", &c->error.msg->base, CHEAX_READONLY);
 
-		struct chx_list *match = match_catch(c, catch_blocks, finally_block);
-		if (match == NULL)
-			c->error.state = CHEAX_THROWN; /* error falls through */
-		else
+		int active_errno = c->error.code;
+
+		/* protected against gc deletion by declaring it as a
+		 * symbol later on */
+		struct chx_string *active_msg = c->error.msg;
+
+		/*
+		 * We're now running a special semi-clear-errno state, where
+		 * cheax_errno(c) == 0, but there might still be an active
+		 * backtrace. Proceed with caution.
+		 */
+		c->error.code = 0;
+		c->error.msg = NULL;
+
+		cheax_def(c, "errno",  &errorcode(c, active_errno)->base, CHEAX_READONLY);
+		cheax_ft(c, pad);
+		cheax_def(c, "errmsg", &active_msg->base, CHEAX_READONLY);
+		cheax_ft(c, pad);
+
+		struct chx_list *match = match_catch(c, catch_blocks, finally_block, active_errno);
+		if (match == NULL) {
+			if (cheax_errno(c) == 0) {
+				/* error falls through */
+				c->error.code = active_errno;
+				c->error.msg = active_msg;
+			}
+		} else {
 			retval = run_catch(c, match);
+		}
 
+pad:
 		cheax_pop_env(c);
 	}
 
@@ -463,7 +486,7 @@ bltn_try(CHEAX *c, struct chx_list *args, void *info)
 		cheax_unref(c, retval, retval_ref);
 	}
 
-	return (cheax_errstate(c) == CHEAX_THROWN) ? NULL : retval;
+	return retval;
 }
 
 static struct chx_value *
