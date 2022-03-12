@@ -320,21 +320,17 @@ main(int argc, char **argv)
 	}
 
 	if (read_stdin) {
-		cheax_exec(c, stdin);
-		if (cheax_errno(c) != 0) {
-			cheax_perror(c, "-");
-			return EXIT_FAILURE;
+		int line = 1, pos = 0;
+		struct chx_value *v;
+		while ((v = cheax_read_at(c, stdin, "<stdin>", &line, &pos)) != NULL) {
+			cheax_ft(c, stdin_pad);
+			cheax_eval(c, v);
+			cheax_ft(c, stdin_pad);
 		}
 	}
 
 	for (size_t i = 0; i < num_input_files; ++i) {
-		FILE *f = fopen(input_files[i], "rb");
-		if (f == NULL) {
-			perror(argv[0]);
-			return EXIT_FAILURE;
-		}
-		cheax_exec(c, f);
-		fclose(f);
+		cheax_exec(c, input_files[i]);
 		if (cheax_errno(c) != 0) {
 			cheax_perror(c, input_files[i]);
 			return EXIT_FAILURE;
@@ -342,4 +338,7 @@ main(int argc, char **argv)
 	}
 
 	return 0;
+stdin_pad:
+	cheax_perror(c, "-");
+	return EXIT_FAILURE;
 }

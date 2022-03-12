@@ -21,8 +21,19 @@
 #include "unpack.h"
 
 void
-cheax_exec(CHEAX *c, FILE *f)
+cheax_exec(CHEAX *c, const char *path)
 {
+	if (path == NULL) {
+		cry(c, "exec", CHEAX_EAPI, "`path' cannot be NULL");
+		return;
+	}
+
+	FILE *f = fopen(path, "rb");
+	if (f == NULL) {
+		cry(c, "exec", CHEAX_EIO, "failed to open file \"%s\"", path);
+		return;
+	}
+
 	char shebang[2] = { 0 };
 	fread(shebang, 2, 1, f);
 	if (shebang[0] == '#' && shebang[1] == '!') {
@@ -33,15 +44,17 @@ cheax_exec(CHEAX *c, FILE *f)
 		ungetc(shebang[0], f);
 	}
 
+	int line = 1, pos = 0;
+
 	struct chx_value *v;
-	while ((v = cheax_read(c, f)) != NULL) {
+	while ((v = cheax_read_at(c, f, path, &line, &pos)) != NULL) {
 		cheax_ft(c, pad);
 		cheax_eval(c, v);
 		cheax_ft(c, pad);
 	}
 
 pad:
-	return;
+	fclose(f);
 }
 
 static struct chx_value *

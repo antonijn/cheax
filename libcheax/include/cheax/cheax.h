@@ -990,6 +990,11 @@ CHX_API int cheax_config_help(struct chx_config_help **help, size_t *num_opts);
  * \sa cheax_readstr(), cheax_eval(), cheax_print()
  */
 CHX_API struct chx_value *cheax_read(CHEAX *c, FILE *f);
+CHX_API struct chx_value *cheax_read_at(CHEAX *c,
+                                        FILE *f,
+                                        const char *path,
+                                        int *line,
+                                        int *pos);
 
 /*! \brief Reads cheax expression from string.
  *
@@ -1004,6 +1009,11 @@ CHX_API struct chx_value *cheax_read(CHEAX *c, FILE *f);
  * \sa cheax_read(), cheax_eval(), cheax_print()
  */
 CHX_API struct chx_value *cheax_readstr(CHEAX *c, const char *str);
+CHX_API struct chx_value *cheax_readstr_at(CHEAX *c,
+                                           const char **str,
+                                           const char *path,
+                                           int *line,
+                                           int *pos);
 
 /*! \brief Evaluates given cheax expression.
  *
@@ -1054,9 +1064,9 @@ CHX_API struct chx_string *cheax_format(CHEAX *c, struct chx_string *fmt, struct
 /*! \brief Reads a file and executes it.
  *
  * \param c Virtual machine instance.
- * \param f Input file handle.
+ * \param f Input file path.
  */
-CHX_API void cheax_exec(CHEAX *c, FILE *f);
+CHX_API void cheax_exec(CHEAX *c, const char *f);
 
 CHX_API void *cheax_malloc(CHEAX *c, size_t size);
 CHX_API void *cheax_calloc(CHEAX *c, size_t nmemb, size_t size);

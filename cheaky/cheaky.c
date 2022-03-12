@@ -63,13 +63,17 @@ show_c(CHEAX *c, struct chx_list *args, void *info)
 static bool quit = false;
 
 static struct chx_value *
-read_with_readline(CHEAX *c)
+read_with_readline(CHEAX *c, int *line, int *pos)
 {
 	char *prompt = "> ";
 	char *fullstr = NULL;
 	struct chx_value *res = NULL;
 
+	int out_line, out_pos;
+
 	do {
+		out_line = *line;
+		out_pos = *pos;
 		char *input = readline(prompt);
 		if (!input) {
 			quit = true;
@@ -91,13 +95,22 @@ read_with_readline(CHEAX *c)
 		free(input);
 
 		cheax_clear_errno(c);
-		res = cheax_readstr(c, fullstr);
+		const char *to_read = fullstr;
+		res = cheax_readstr_at(c, &to_read, "<stdin>", &out_line, &out_pos);
+
+		/* only one expression is read, but we should still
+		 * consider the remaining string for our line count
+		 * (bit hacky) */
+		for (; *to_read != '\0'; ++to_read)
+			out_line += (*to_read == '\n');
 
 		prompt = "… ";
 	} while (res == NULL && cheax_errno(c) == CHEAX_EEOF);
 
 stop:
 	free(fullstr);
+	*line = out_line;
+	*pos = out_pos;
 	return res;
 }
 
@@ -127,10 +140,12 @@ main(void)
 
 	cheax_config_bool(c, "allow-redef", true);
 
+	int line = 1, pos = 0;
+
 #ifdef HAVE_ISATTY
 	if (!isatty(1)) {
 		struct chx_value *v;
-		while ((v = cheax_read(c, stdin)) != NULL) {
+		while ((v = cheax_read_at(c, stdin, "<stdin>", &line, &pos)) != NULL) {
 			cheax_print(c, stdout, cheax_eval(c, v));
 			printf("\n");
 		}
@@ -146,7 +161,7 @@ main(void)
 
 	while (!quit) {
 		struct chx_value *v;
-		v = read_with_readline(c);
+		v = read_with_readline(c, &line, &pos);
 		cheax_ft(c, pad);
 		v = cheax_eval(c, v);
 		cheax_ft(c, pad);

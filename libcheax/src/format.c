@@ -283,7 +283,7 @@ cheax_format(CHEAX *c, struct chx_string *fmt, struct chx_list *args)
 	sistrm_initn(&ss, fmt->value, fmt->len);
 
 	struct scnr s;
-	scnr_init(&s, &ss.strm, 0, NULL);
+	scnr_init(&s, &ss.strm, 0, NULL, 1, 0);
 	return scnr_format(c, &s, args, ss.len + 1);
 }
 

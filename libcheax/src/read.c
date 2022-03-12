@@ -37,19 +37,26 @@
 struct read_info {
 	CHEAX *c;
 	int bkquote_stack, comma_stack;
-
 	int lah_buf[MAX_LOOKAHEAD];
+	const char *path;
 };
 
 static struct chx_value *read_value(struct read_info *ri, struct scnr *s, bool consume_final);
 
 static void
-read_init(struct read_info *ri, struct scnr *s, struct istrm *strm, CHEAX *c)
+read_init(struct read_info *ri,
+          struct scnr *s,
+          struct istrm *strm,
+          CHEAX *c,
+          const char *path,
+          int line,
+          int pos)
 {
 	ri->c = c;
 	ri->bkquote_stack = ri->comma_stack = 0;
+	ri->path = path;
 
-	scnr_init(s, strm, MAX_LOOKAHEAD, &ri->lah_buf[0]);
+	scnr_init(s, strm, MAX_LOOKAHEAD, &ri->lah_buf[0], line, pos);
 }
 
 static int
@@ -350,7 +357,7 @@ static struct chx_value *
 read_list(struct read_info *ri, struct scnr *s, bool consume_final)
 {
 	struct chx_list *lst = NULL;
-	struct debug_info info = { "<filename unknown>", s->pos, s->line };
+	struct debug_info info = { ri->path, s->pos, s->line };
 
 	scnr_adv(s);
 	if ((skip_space(s), s->ch) != ')') {
@@ -466,27 +473,50 @@ pad:
 	return NULL;
 }
 
-struct chx_value *
-cheax_read(CHEAX *c, FILE *infile)
+static struct chx_value *
+istrm_read_at(CHEAX *c, struct istrm *strm, const char *path, int *line, int *pos)
 {
-	struct fistrm fs;
-	fistrm_init(&fs, infile, c);
+	int ln = (line == NULL) ? 1 : *line;
+	int ps =  (pos == NULL) ? 0 : *pos;
 
 	struct read_info ri;
 	struct scnr s;
-	read_init(&ri, &s, &fs.strm, c);
+	read_init(&ri, &s, strm, c, path, ln, ps);
 
-	return read_value(&ri, &s, false);
+	struct chx_value *res = read_value(&ri, &s, false);
+
+	if (line != NULL)
+		*line = s.line;
+	if (pos != NULL)
+		*pos = s.pos;
+
+	return res;
+}
+
+struct chx_value *
+cheax_read(CHEAX *c, FILE *infile)
+{
+	return cheax_read_at(c, infile, "<filename unknown>", NULL, NULL);
+}
+struct chx_value *
+cheax_read_at(CHEAX *c, FILE *infile, const char *path, int *line, int *pos)
+{
+	struct fistrm fs;
+	fistrm_init(&fs, infile, c);
+	return istrm_read_at(c, &fs.strm, path, line, pos);
 }
 struct chx_value *
 cheax_readstr(CHEAX *c, const char *str)
 {
+	return cheax_readstr_at(c, &str, "<filename unknown>", NULL, NULL);
+}
+struct chx_value *
+cheax_readstr_at(CHEAX *c, const char **str, const char *path, int *line, int *pos)
+{
 	struct sistrm ss;
-	sistrm_init(&ss, str);
-
-	struct read_info ri;
-	struct scnr s;
-	read_init(&ri, &s, &ss.strm, c);
-
-	return read_value(&ri, &s, false);
+	sistrm_init(&ss, *str);
+	struct chx_value *res = istrm_read_at(c, &ss.strm, path, line, pos);
+	if (cheax_errstate(c) == CHEAX_RUNNING)
+		*str = ss.str + ss.idx;
+	return res;
 }

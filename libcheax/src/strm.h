@@ -206,14 +206,15 @@ int scnr_adv(struct scnr *s);
 int scnr_backup(struct scnr *s, int to);
 
 static inline void
-scnr_init(struct scnr *s, struct istrm *strm, size_t max_lah, int *lah_buf)
+scnr_init(struct scnr *s, struct istrm *strm, size_t max_lah, int *lah_buf, int line, int pos)
 {
 	s->ch = 0;
 	s->strm = strm;
 	s->max_lah = max_lah;
 	s->lah_buf = lah_buf;
-	s->lah = s->pos = 0;
-	s->line = 1;
+	s->lah = 0;
+	s->line = line;
+	s->pos = pos;
 	scnr_adv(s);
 }
 

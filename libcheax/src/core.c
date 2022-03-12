@@ -598,16 +598,8 @@ try_vtoi(struct chx_value *value, int *res)
 int
 cheax_load_prelude(CHEAX *c)
 {
-	const char *path = CMAKE_INSTALL_PREFIX "/share/cheax/prelude.chx";
-	FILE *f = fopen(path, "rb");
-	if (f == NULL) {
-		cry(c, "cheax_load_prelude", CHEAX_EAPI, "prelude not found at '%s'", path);
-		return -1;
-	}
-
-	cheax_exec(c, f);
-	fclose(f);
-
+	static const char path[] = CMAKE_INSTALL_PREFIX "/share/cheax/prelude.chx";
+	cheax_exec(c, path);
 	return (cheax_errno(c) == 0) ? 0 : -1;
 }
 
