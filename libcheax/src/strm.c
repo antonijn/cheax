@@ -128,8 +128,7 @@ sostrm_vprintf(void *info, const char *frmt, va_list ap)
 	return msg_len;
 
 msg_len_error:
-	cry(strm->c, "sostrm_vprintf", CHEAX_EEVAL,
-	    "internal error (vsnprintf returned %d)", msg_len);
+	cry(strm->c, "sostrm_vprintf", CHEAX_EEVAL, "internal error (vsnprintf returned %d)", msg_len);
 	return -1;
 }
 
@@ -139,6 +138,29 @@ sostrm_putc(void *info, int ch)
 	struct sostrm *strm = info;
 	if (sostrm_expand(strm, strm->idx + 1) < 0)
 		return -1;
+
+	strm->buf[strm->idx++] = ch;
+	return ch;
+}
+
+int
+snostrm_vprintf(void *info, const char *frmt, va_list ap)
+{
+	struct snostrm *strm = info;
+
+	size_t rem = strm->cap - strm->idx;
+	int msg_len = vsnprintf(strm->buf + strm->idx, rem, frmt, ap);
+	if (msg_len > 0)
+		strm->idx = (strm->idx + msg_len > strm->cap) ? strm->cap : strm->idx + msg_len;
+	return msg_len;
+}
+
+int
+snostrm_putc(void *info, int ch)
+{
+	struct snostrm *strm = info;
+	if (strm->idx + 1 >= strm->cap)
+		return EOF;
 
 	strm->buf[strm->idx++] = ch;
 	return ch;

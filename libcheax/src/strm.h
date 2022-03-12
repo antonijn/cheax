@@ -86,6 +86,30 @@ sostrm_init(struct sostrm *ss, CHEAX *c)
 	ss->strm.putchar = sostrm_putc;
 }
 
+/* buffer (string-n) output stream.
+ * or snowstorm, whichever you prefer. */
+struct snostrm {
+	struct ostrm strm;
+
+	char *buf;
+	size_t idx, cap;
+};
+
+int snostrm_vprintf(void *info, const char *frmt, va_list ap);
+int snostrm_putc(void *info, int ch);
+
+static inline void
+snostrm_init(struct snostrm *ss, char *buf, size_t cap)
+{
+	ss->buf = memset(buf, 0, cap);
+	ss->idx = 0;
+	ss->cap = cap;
+
+	ss->strm.info = ss;
+	ss->strm.vprintf = snostrm_vprintf;
+	ss->strm.putchar = snostrm_putc;
+}
+
 /* file output stream */
 struct fostrm {
 	struct ostrm strm;
