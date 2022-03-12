@@ -127,7 +127,7 @@ cheax_new_error_code(CHEAX *c, const char *name)
 		c->user_error_names.cap = new_cap;
 	}
 
-	char *store_name = cheax_malloc(c, strlen(name));
+	char *store_name = cheax_malloc(c, strlen(name) + 1);
 	cheax_ft(c, pad);
 	strcpy(store_name, name);
 
