@@ -258,6 +258,7 @@ cheax_init(void)
 	res->error.code = 0;
 	res->error.msg = NULL;
 
+	gc_init(res);
 	bt_init(res, 32);
 
 	res->typestore.array = NULL;
@@ -265,8 +266,6 @@ cheax_init(void)
 
 	res->user_error_names.array = NULL;
 	res->user_error_names.len = res->user_error_names.cap = 0;
-
-	gc_init(res);
 
 	/* This is a bit hacky; we declare the these types as aliases
 	 * in the typestore, while at the same time we have the
