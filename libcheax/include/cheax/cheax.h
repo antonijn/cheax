@@ -617,6 +617,18 @@ CHX_API void cheax_add_bt(CHEAX *c);
  */
 CHX_API int cheax_new_error_code(CHEAX *c, const char *name);
 
+/*! \brief Looks up the value of a named error code.
+ *
+ * Sets cheax_errno() to \ref CHEAX_EAPI if \a name is NULL.
+ *
+ * \param c    Virtual machine instance.
+ * \param name Error code name.
+ *
+ * \returns The error code carrying the given name, or -1 if
+ *          unsuccesful.
+ */
+CHX_API int cheax_find_error_code(CHEAX *c, const char *name);
+
 /*! @} */
 
 /*! \brief Initializes a new cheax virtual machine instance.

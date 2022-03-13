@@ -133,6 +133,11 @@ cheax_new_error_code(CHEAX *c, const char *name)
 		return -1;
 	}
 
+	if (cheax_find_error_code(c, name) >= 0) {
+		cheax_throwf(c, CHEAX_EAPI, "new_error_code(): error with name %s already exists", name);
+		return -1;
+	}
+
 	int code = CHEAX_EUSER0 + c->user_error_names.len;
 
 	if (c->user_error_names.len + 1 > c->user_error_names.cap) {
@@ -161,6 +166,26 @@ cheax_new_error_code(CHEAX *c, const char *name)
 
 	return code;
 pad:
+	return -1;
+}
+
+int
+cheax_find_error_code(CHEAX *c, const char *name)
+{
+	if (name == NULL) {
+		cheax_throwf(c, CHEAX_EAPI, "find_error_code(): `name' cannot be NULL");
+		return -1;
+	}
+
+	for (size_t i = 0; i < c->user_error_names.len; ++i)
+		if (0 == strcmp(name, c->user_error_names.array[i]))
+			return i + CHEAX_EUSER0;
+
+	size_t num_bltn = sizeof(bltn_error_names) / sizeof(bltn_error_names[0]);
+	for (size_t i = 0; i < num_bltn; ++i)
+		if (0 == strcmp(name, bltn_error_names[i].name))
+			return bltn_error_names[i].code;
+
 	return -1;
 }
 
@@ -495,9 +520,14 @@ static struct chx_value *
 bltn_new_error_code(CHEAX *c, struct chx_list *args, void *info)
 {
 	const char *errname;
-	return (0 == unpack(c, args, "N!", &errname))
-	     ? bt_wrap(c, (cheax_new_error_code(c, errname), NULL))
-	     : NULL;
+	if (unpack(c, args, "N!", &errname) < 0)
+		return NULL;
+
+	if (cheax_find_error_code(c, errname) >= 0)
+		cheax_throwf(c, CHEAX_EEXIST, "error with name %s already exists", errname);
+	else
+		cheax_new_error_code(c, errname);
+	return bt_wrap(c, NULL);
 }
 
 static void
