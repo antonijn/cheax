@@ -597,6 +597,8 @@ CHX_API void cheax_clear_errno(CHEAX *c);
  * \sa cheax_errno(), cheax_clear_errno()
  */
 CHX_API void cheax_throw(CHEAX *c, int code, struct chx_string *msg);
+CHX_API void cheax_throwf(CHEAX *c, int code, const char *fmt, ...);
+CHX_API void cheax_add_bt(CHEAX *c);
 
 /*! \brief Creates a new error code with a given name.
  *

@@ -18,9 +18,6 @@
 
 #include <cheax.h>
 
-/* like cheax_format(), except takes a chx_string */
-struct chx_value *format(CHEAX *c, struct chx_string *fmt, struct chx_list *args);
-
 void export_format_bltns(CHEAX *c);
 
 #endif

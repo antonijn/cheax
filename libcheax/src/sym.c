@@ -178,7 +178,7 @@ cheax_pop_env(CHEAX *c)
 {
 	struct chx_env *env = c->env;
 	if (env == NULL) {
-		cry(c, "cheax_pop_env", CHEAX_EAPI, "cannot pop NULL env");
+		cheax_throwf(c, CHEAX_EAPI, "pop_env(): cannot pop NULL env");
 		return;
 	}
 
@@ -198,12 +198,12 @@ cheax_defsym(CHEAX *c, const char *id,
              chx_finalizer fin, void *user_info)
 {
 	if (id == NULL) {
-		cry(c, "cheax_defsym", CHEAX_EAPI, "`id' cannot be NULL");
+		cheax_throwf(c, CHEAX_EAPI, "defsym(): `id' cannot be NULL");
 		return NULL;
 	}
 
 	if (get == NULL && set == NULL) {
-		cry(c, "cheax_defsym", CHEAX_EAPI, "`get' and `set' cannot both be NULL");
+		cheax_throwf(c, CHEAX_EAPI, "defsym(): `get' and `set' cannot both be NULL");
 		return NULL;
 	}
 
@@ -213,7 +213,7 @@ cheax_defsym(CHEAX *c, const char *id,
 
 	struct full_sym *prev_fs = find_sym_in(env, id);
 	if (prev_fs != NULL && !prev_fs->allow_redef) {
-		cry(c, "defsym", CHEAX_EEXIST, "symbol `%s' already exists", id);
+		cheax_throwf(c, CHEAX_EEXIST, "symbol `%s' already exists", id);
 		return NULL;
 	}
 
@@ -274,19 +274,19 @@ void
 cheax_set(CHEAX *c, const char *id, struct chx_value *value)
 {
 	if (id == NULL) {
-		cry(c, "set", CHEAX_EAPI, "`id' cannot be NULL");
+		cheax_throwf(c, CHEAX_EAPI, "set(): `id' cannot be NULL");
 		return;
 	}
 
 	struct full_sym *fs = find_sym(c, id);
 	if (fs == NULL) {
-		cry(c, "set", CHEAX_ENOSYM, "no such symbol `%s'", id);
+		cheax_throwf(c, CHEAX_ENOSYM, "no such symbol `%s'", id);
 		return;
 	}
 
 	struct chx_sym *sym = &fs->sym;
 	if (sym->set == NULL)
-		cry(c, "set", CHEAX_EREADONLY, "cannot write to read-only symbol");
+		cheax_throwf(c, CHEAX_EREADONLY, "cannot write to read-only symbol");
 	else
 		sym->set(c, sym, value);
 }
@@ -295,19 +295,19 @@ struct chx_value *
 cheax_get(CHEAX *c, const char *id)
 {
 	if (id == NULL) {
-		cry(c, "get", CHEAX_EAPI, "`id' cannot be NULL");
+		cheax_throwf(c, CHEAX_EAPI, "get(): `id' cannot be NULL");
 		return NULL;
 	}
 
 	struct full_sym *fs = find_sym(c, id);
 	if (fs == NULL) {
-		cry(c, "get", CHEAX_ENOSYM, "no such symbol `%s'", id);
+		cheax_throwf(c, CHEAX_ENOSYM, "no such symbol `%s'", id);
 		return NULL;
 	}
 
 	struct chx_sym *sym = &fs->sym;
 	if (sym->get == NULL) {
-		cry(c, "set", CHEAX_EWRITEONLY, "cannot read from write-only symbol");
+		cheax_throwf(c, CHEAX_EWRITEONLY, "cannot read from write-only symbol");
 		return NULL;
 	}
 
@@ -323,7 +323,7 @@ static void
 sync_int_set(CHEAX *c, struct chx_sym *sym, struct chx_value *value)
 {
 	if (!try_vtoi(value, sym->user_info))
-		cry(c, "set", CHEAX_ETYPE, "invalid type");
+		cheax_throwf(c, CHEAX_ETYPE, "invalid type");
 }
 
 void
@@ -345,7 +345,7 @@ sync_float_set(CHEAX *c, struct chx_sym *sym, struct chx_value *value)
 {
 	double d;
 	if (!try_vtod(value, &d))
-		cry(c, "set", CHEAX_ETYPE, "invalid type");
+		cheax_throwf(c, CHEAX_ETYPE, "invalid type");
 	else
 		*(float *)sym->user_info = d;
 }
@@ -368,7 +368,7 @@ static void
 sync_double_set(CHEAX *c, struct chx_sym *sym, struct chx_value *value)
 {
 	if (!try_vtod(value, sym->user_info))
-		cry(c, "set", CHEAX_ETYPE, "invalid type");
+		cheax_throwf(c, CHEAX_ETYPE, "invalid type");
 }
 
 void
@@ -395,14 +395,14 @@ static void
 sync_nstring_set(CHEAX *c, struct chx_sym *sym, struct chx_value *value)
 {
 	if (cheax_type_of(value) != CHEAX_STRING) {
-		cry(c, "set", CHEAX_ETYPE, "invalid type");
+		cheax_throwf(c, CHEAX_ETYPE, "invalid type");
 		return;
 	}
 
 	struct chx_string *str = (struct chx_string *)value;
 	struct sync_nstring_info *info = sym->user_info;
 	if (info->size - 1 < str->len) {
-		cry(c, "set", CHEAX_EVALUE, "string too big");
+		cheax_throwf(c, CHEAX_EVALUE, "string too big");
 		return;
 	}
 
@@ -419,12 +419,12 @@ void
 cheax_sync_nstring(CHEAX *c, const char *name, char *buf, size_t size, int flags)
 {
 	if (buf == NULL) {
-		cry(c, "cheax_sync_nstring", CHEAX_EAPI, "`buf' cannot be NULL");
+		cheax_throwf(c, CHEAX_EAPI, "sync_nstring(): `buf' cannot be NULL");
 		return;
 	}
 
 	if (size == 0) {
-		cry(c, "cheax_sync_nstring", CHEAX_EAPI, "`size' cannot be zero");
+		cheax_throwf(c, CHEAX_EAPI, "sync_nstring(): `size' cannot be zero");
 		return;
 	}
 
@@ -466,17 +466,17 @@ defgetset(CHEAX *c, const char *name,
           struct chx_func **out)
 {
 	if (info == NULL) {
-		cry(c, name, CHEAX_EEVAL, "out of symbol scope");
+		cheax_throwf(c, CHEAX_EEVAL, "out of symbol scope");
 		return;
 	}
 
 	if (args == NULL) {
-		cry(c, name, CHEAX_EMATCH, "expected body");
+		cheax_throwf(c, CHEAX_EMATCH, "expected body");
 		return;
 	}
 
 	if (*out != NULL) {
-		cry(c, name, CHEAX_EEXIST, "already called");
+		cheax_throwf(c, CHEAX_EEXIST, "already called");
 		return;
 	}
 
@@ -494,7 +494,7 @@ bltn_defget(CHEAX *c, struct chx_list *args, void *info)
 {
 	struct defsym_info *dinfo = info;
 	defgetset(c, "defget", NULL, args, dinfo, &dinfo->get);
-	return NULL;
+	return bt_wrap(c, NULL);
 }
 static struct chx_value *
 bltn_defset(CHEAX *c, struct chx_list *args, void *info)
@@ -504,7 +504,7 @@ bltn_defset(CHEAX *c, struct chx_list *args, void *info)
 
 	struct defsym_info *dinfo = info;
 	defgetset(c, "defset", &set_args.base, args, dinfo, &dinfo->set);
-	return NULL;
+	return bt_wrap(c, NULL);
 }
 
 static struct chx_value *
@@ -533,22 +533,22 @@ static struct chx_value *
 bltn_defsym(CHEAX *c, struct chx_list *args, void *info)
 {
 	if (args == NULL) {
-		cry(c, "defsym", CHEAX_EMATCH, "expected symbol name");
-		return NULL;
+		cheax_throwf(c, CHEAX_EMATCH, "expected symbol name");
+		return bt_wrap(c, NULL);
 	}
 
 	struct chx_value *idval = args->value;
 	if (cheax_type_of(idval) != CHEAX_ID) {
-		cry(c, "defsym", CHEAX_ETYPE, "expected identifier");
-		return NULL;
+		cheax_throwf(c, CHEAX_ETYPE, "expected identifier");
+		return bt_wrap(c, NULL);
 	}
 
 	struct chx_id *id = (struct chx_id *)idval;
-	bool body_ok = false;
+	bool body_ok = false, add_bt = true;
 
 	struct defsym_info *dinfo = cheax_malloc(c, sizeof(struct defsym_info));
 	if (dinfo == NULL)
-		return NULL;
+		return bt_wrap(c, NULL);
 	dinfo->get = dinfo->set = NULL;
 
 	struct chx_ext_func *defget, *defset;
@@ -565,12 +565,13 @@ bltn_defsym(CHEAX *c, struct chx_list *args, void *info)
 	cheax_def(c, "defset", &defset->base, CHEAX_READONLY);
 	cheax_ft(c, pad); /* alloc failure */
 
+	add_bt = false;
 	for (struct chx_list *cons = args->next; cons != NULL; cons = cons->next) {
 		cheax_eval(c, cons->value);
 		cheax_ft(c, pad);
 	}
 
-	body_ok = true;
+	body_ok = add_bt = true;
 pad:
 	defget->info = defset->info = NULL;
 	cheax_pop_env(c);
@@ -579,7 +580,7 @@ pad:
 		goto err_pad;
 
 	if (dinfo->get == NULL && dinfo->set == NULL) {
-		cry(c, "defsym", CHEAX_ENOSYM, "symbol must have getter or setter");
+		cheax_throwf(c, CHEAX_ENOSYM, "symbol must have getter or setter");
 		goto err_pad;
 	}
 
@@ -599,18 +600,19 @@ pad:
 	return NULL;
 err_pad:
 	cheax_free(c, dinfo);
-	return NULL;
+	return add_bt ? bt_wrap(c, NULL) : NULL;
 }
 
 static struct chx_value *
 bltn_def(CHEAX *c, struct chx_list *args, void *info)
 {
 	struct chx_value *idval, *setto;
-	if (0 == unpack(c, "def", args, "_.", &idval, &setto)
+	if (0 == unpack(c, args, "_.", &idval, &setto)
 	 && !cheax_match(c, idval, setto, CHEAX_READONLY)
 	 && cheax_errno(c) == 0)
 	{
-		cry(c, "def", CHEAX_EMATCH, "invalid pattern");
+		cheax_throwf(c, CHEAX_EMATCH, "invalid pattern");
+		cheax_add_bt(c);
 	}
 	return NULL;
 }
@@ -618,11 +620,12 @@ static struct chx_value *
 bltn_var(CHEAX *c, struct chx_list *args, void *info)
 {
 	struct chx_value *idval, *setto;
-	if (0 == unpack(c, "var", args, "_.?", &idval, &setto)
+	if (0 == unpack(c, args, "_.?", &idval, &setto)
 	 && !cheax_match(c, idval, setto, 0)
 	 && cheax_errno(c) == 0)
 	{
-		cry(c, "var", CHEAX_EMATCH, "invalid pattern");
+		cheax_throwf(c, CHEAX_EMATCH, "invalid pattern");
+		cheax_add_bt(c);
 	}
 	return NULL;
 }
@@ -633,19 +636,19 @@ bltn_let(CHEAX *c, struct chx_list *args, void *info)
 	struct chx_value *res = NULL;
 
 	if (args == NULL) {
-		cry(c, "let", CHEAX_EMATCH, "invalid let");
-		return NULL;
+		cheax_throwf(c, CHEAX_EMATCH, "invalid let");
+		return bt_wrap(c, NULL);
 	}
 
 	struct chx_value *pairsv = args->value;
 	if (cheax_type_of(pairsv) != CHEAX_LIST) {
-		cry(c, "let", CHEAX_ETYPE, "invalid let");
-		return NULL;
+		cheax_throwf(c, CHEAX_ETYPE, "invalid let");
+		return bt_wrap(c, NULL);
 	}
 
 	struct chx_env *new_env = cheax_push_env(c);
 	if (new_env == NULL)
-		return NULL;
+		return bt_wrap(c, NULL);
 	/* probably won't escape; major memory optimisation */
 	new_env->base.rtflags |= NO_ESC_BIT;
 
@@ -655,13 +658,15 @@ bltn_let(CHEAX *c, struct chx_list *args, void *info)
 	{
 		struct chx_value *pairv = pairs->value;
 		if (cheax_type_of(pairv) != CHEAX_LIST) {
-			cry(c, "let", CHEAX_ETYPE, "expected list of lists in first arg");
+			cheax_throwf(c, CHEAX_ETYPE, "expected list of lists in first arg");
+			cheax_add_bt(c);
 			goto pad;
 		}
 
 		struct chx_list *pair = (struct chx_list *)pairv;
 		if (pair->next == NULL || pair->next->next != NULL) {
-			cry(c, "let", CHEAX_EVALUE, "expected list of match pairs in first arg");
+			cheax_throwf(c, CHEAX_EVALUE, "expected list of match pairs in first arg");
+			cheax_add_bt(c);
 			goto pad;
 		}
 
@@ -670,13 +675,15 @@ bltn_let(CHEAX *c, struct chx_list *args, void *info)
 		cheax_ft(c, pad);
 
 		if (!cheax_match(c, pan, match, CHEAX_READONLY)) {
-			cry(c, "let", CHEAX_EMATCH, "failed match in match pair list");
+			cheax_throwf(c, CHEAX_EMATCH, "failed match in match pair list");
+			cheax_add_bt(c);
 			goto pad;
 		}
 	}
 
 	if (args->next == NULL) {
-		cry(c, "let", CHEAX_EMATCH, "expected body");
+		cheax_throwf(c, CHEAX_EMATCH, "expected body");
+		cheax_add_bt(c);
 		goto pad;
 	}
 
@@ -697,15 +704,17 @@ bltn_set(CHEAX *c, struct chx_list *args, void *info)
 {
 	const char *id;
 	struct chx_value *setto;
-	if (0 == unpack(c, "set", args, "N!.", &id, &setto))
-		cheax_set(c, id, setto);
-	return NULL;
+	if (unpack(c, args, "N!.", &id, &setto) < 0)
+		return NULL;
+
+	cheax_set(c, id, setto);
+	return bt_wrap(c, NULL);
 }
 
 static struct chx_value *
 bltn_env(CHEAX *c, struct chx_list *args, void *info)
 {
-	return (0 == unpack(c, "env", args, ""))
+	return (0 == unpack(c, args, ""))
 	     ? &cheax_env(c)->base
 	     : NULL;
 }

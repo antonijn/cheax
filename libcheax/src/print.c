@@ -165,7 +165,7 @@ ostrm_show_as(CHEAX *c, struct ostrm *s, struct chx_value *val, int ty)
 		ostrm_show_as(c, s, val, cheax_get_base_type(c, ty));
 		ostrm_printf(s, ")");
 	} else {
-		cry(c, "ostrm_show_as", CHEAX_EEVAL, "unable to resolve type");
+		cheax_throwf(c, CHEAX_EEVAL, "ostrm_show_as(): unable to resolve type");
 	}
 }
 

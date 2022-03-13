@@ -29,7 +29,7 @@ read_int(CHEAX *c, const char *desc, struct scnr *fmt, int *out)
 {
 	for (*out = 0; isdigit(fmt->ch); scnr_adv(fmt)) {
 		if (*out > INT_MAX / 10 || (*out * 10) > INT_MAX - (fmt->ch - '0')) {
-			cry(c, "format", CHEAX_EVALUE, "%s too big", desc);
+			cheax_throwf(c, CHEAX_EVALUE, "%s too big", desc);
 			return -1;
 		}
 		*out = (*out * 10) + (fmt->ch - '0');
@@ -73,7 +73,7 @@ read_fspec(CHEAX *c, struct scnr *fmt, struct fspec *sp)
 		if (fmt->ch == 's' || fmt->ch == 'r') {
 			sp->conv = (scnr_adv(fmt) == 's') ? CONV_S : CONV_R;
 		} else {
-			cry(c, "format", CHEAX_EVALUE, "expected `s' or `r' after `!'");
+			cheax_throwf(c, CHEAX_EVALUE, "expected `s' or `r' after `!'");
 			return -1;
 		}
 	}
@@ -89,7 +89,7 @@ read_fspec(CHEAX *c, struct scnr *fmt, struct fspec *sp)
 		if (fmt->ch == '.') {
 			scnr_adv(fmt);
 			if (!isdigit(fmt->ch)) {
-				cry(c, "format", CHEAX_EVALUE, "expected precision specifier");
+				cheax_throwf(c, CHEAX_EVALUE, "expected precision specifier");
 				return -1;
 			}
 
@@ -102,7 +102,7 @@ read_fspec(CHEAX *c, struct scnr *fmt, struct fspec *sp)
 	}
 
 	if (scnr_adv(fmt) != '}') {
-		cry(c, "format", CHEAX_EVALUE, "expected `}'");
+		cheax_throwf(c, CHEAX_EVALUE, "expected `}'");
 		return -1;
 	}
 
@@ -141,7 +141,7 @@ format_fspec(CHEAX *c, struct sostrm *ss, struct fspec *sp, struct chx_value *ar
 
 	if (sp->conv == CONV_NONE && ty == CHEAX_INT) {
 		if (!can_int) {
-			cry(c, "format", CHEAX_EVALUE, "invalid specifiers for integer");
+			cheax_throwf(c, CHEAX_EVALUE, "invalid specifiers for integer");
 			return -1;
 		}
 
@@ -149,7 +149,7 @@ format_fspec(CHEAX *c, struct sostrm *ss, struct fspec *sp, struct chx_value *ar
 
 		if (sp->misc_spec == 'c') {
 			if (num < 0 || num >= 256) {
-				cry(c, "format", CHEAX_EVALUE, "invalid character %d", num);
+				cheax_throwf(c, CHEAX_EVALUE, "invalid character %d", num);
 				return -1;
 			}
 
@@ -159,7 +159,7 @@ format_fspec(CHEAX *c, struct sostrm *ss, struct fspec *sp, struct chx_value *ar
 		}
 	} else if (sp->conv == CONV_NONE && ty == CHEAX_DOUBLE) {
 		if (!can_double) {
-			cry(c, "format", CHEAX_EVALUE, "invalid specifiers for double");
+			cheax_throwf(c, CHEAX_EVALUE, "invalid specifiers for double");
 			return -1;
 		}
 
@@ -175,7 +175,7 @@ format_fspec(CHEAX *c, struct sostrm *ss, struct fspec *sp, struct chx_value *ar
 		ostrm_printf(strm, fmt_buf, sp->field_width, sp->precision, num);
 	} else {
 		if (!can_other) {
-			cry(c, "format", CHEAX_EVALUE, "invalid specifiers for given value");
+			cheax_throwf(c, CHEAX_EVALUE, "invalid specifiers for given value");
 			return -1;
 		}
 
@@ -226,7 +226,7 @@ scnr_format(CHEAX *c, struct scnr *fmt, struct chx_list *args, size_t size_hint)
 		}
 
 		if (fmt->ch == '}' && (scnr_adv(fmt), fmt->ch) != '}') {
-			cry(c, "format", CHEAX_EVALUE, "encountered single `}' in format string");
+			cheax_throwf(c, CHEAX_EVALUE, "encountered single `}' in format string");
 			break;
 		}
 
@@ -244,12 +244,12 @@ scnr_format(CHEAX *c, struct scnr *fmt, struct chx_list *args, size_t size_hint)
 			break;
 
 		if (indexing == AUTO_IDX && spec.index != -1) {
-			cry(c, "format", CHEAX_EVALUE, "cannot switch from automatic indexing to manual indexing");
+			cheax_throwf(c, CHEAX_EVALUE, "cannot switch from automatic indexing to manual indexing");
 			break;
 		}
 
 		if (indexing == MAN_IDX && spec.index == -1) {
-			cry(c, "format", CHEAX_EVALUE, "expected index (cannot switch from manual indexing to automatic indexing)");
+			cheax_throwf(c, CHEAX_EVALUE, "expected index (cannot switch from manual indexing to automatic indexing)");
 			break;
 		}
 
@@ -258,7 +258,7 @@ scnr_format(CHEAX *c, struct scnr *fmt, struct chx_list *args, size_t size_hint)
 
 		size_t idx = (indexing == AUTO_IDX) ? auto_idx++ : (size_t)spec.index;
 		if (idx >= arg_count) {
-			cry(c, "format", CHEAX_EINDEX, "too few arguments");
+			cheax_throwf(c, CHEAX_EINDEX, "too few arguments");
 			break;
 		}
 
@@ -275,7 +275,7 @@ struct chx_string *
 cheax_format(CHEAX *c, struct chx_string *fmt, struct chx_list *args)
 {
 	if (fmt == NULL) {
-		cry(c, "format", CHEAX_EAPI, "`fmt' cannot be NULL");
+		cheax_throwf(c, CHEAX_EAPI, "format(): `fmt' cannot be NULL");
 		return NULL;
 	}
 
@@ -292,9 +292,10 @@ bltn_format(CHEAX *c, struct chx_list *args, void *info)
 {
 	struct chx_string *fmt;
 	struct chx_list *lst;
-	return (0 == unpack(c, "format", args, "s.*", &fmt, &lst))
-	     ? &cheax_format(c, fmt, lst)->base
-	     : NULL;
+	if (unpack(c, args, "s.*", &fmt, &lst) < 0)
+		return NULL;
+
+	return bt_wrap(c, &cheax_format(c, fmt, lst)->base);
 }
 
 void

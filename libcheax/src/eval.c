@@ -24,13 +24,13 @@ void
 cheax_exec(CHEAX *c, const char *path)
 {
 	if (path == NULL) {
-		cry(c, "exec", CHEAX_EAPI, "`path' cannot be NULL");
+		cheax_throwf(c, CHEAX_EAPI, "exec(): `path' cannot be NULL");
 		return;
 	}
 
 	FILE *f = fopen(path, "rb");
 	if (f == NULL) {
-		cry(c, "exec", CHEAX_EIO, "failed to open file \"%s\"", path);
+		cheax_throwf(c, CHEAX_EIO, "exec(): failed to open file \"%s\"", path);
 		return;
 	}
 
@@ -89,7 +89,7 @@ eval_sexpr(CHEAX *c, struct chx_list *input)
 
 		add_bt = false;
 		struct chx_list *old_args = args;
-		if (ty == CHEAX_FUNC && unpack(c, "eval", old_args, ".*", &args) < 0)
+		if (ty == CHEAX_FUNC && unpack(c, old_args, ".*", &args) < 0)
 			break;
 		add_bt = true;
 
@@ -107,7 +107,7 @@ eval_sexpr(CHEAX *c, struct chx_list *input)
 
 		if (!arg_match_ok) {
 			if (cheax_errno(c) == 0)
-				cry(c, "eval", CHEAX_EMATCH, "invalid (number of) arguments");
+				cheax_throwf(c, CHEAX_EMATCH, "invalid (number of) arguments");
 			goto fn_pad;
 		}
 
@@ -130,7 +130,7 @@ env_fail_pad:
 
 	case CHEAX_TYPECODE:
 		add_bt = false;
-		if (0 == unpack(c, "eval", args, ".", &cast_arg)) {
+		if (0 == unpack(c, args, ".", &cast_arg)) {
 			add_bt = true;
 			res = cheax_cast(c, cast_arg, ((struct chx_int *)head)->value);
 		}
@@ -157,7 +157,7 @@ env_pad:
 
 	default:
 		add_bt = true;
-		cry(c, "eval", CHEAX_ETYPE, "invalid function call");
+		cheax_throwf(c, CHEAX_ETYPE, "eval(): invalid function call");
 		break;
 	}
 
@@ -165,7 +165,7 @@ pad:
 	cheax_unref(c, head, head_ref);
 
 	if (add_bt && cheax_errno(c) != 0)
-		bt_add(c);
+		cheax_add_bt(c);
 	return res;
 }
 
@@ -233,6 +233,8 @@ cheax_eval(CHEAX *c, struct chx_value *input)
 {
 	struct chx_value *res = NULL;
 	chx_ref input_ref = cheax_ref(c, input);
+	int prev_stack_depth;
+	struct chx_list *was_last_call;
 
 	switch (cheax_type_of(input)) {
 	case CHEAX_ID:
@@ -240,16 +242,16 @@ cheax_eval(CHEAX *c, struct chx_value *input)
 		break;
 
 	case CHEAX_LIST:
-		if (c->stack_limit > 0 && c->stack_depth >= c->stack_limit) {
-			cry(c, "eval", CHEAX_ESTACK, "stack overflow! (stack limit %d)", c->stack_limit);
-			break;
-		}
-
-		int prev_stack_depth = c->stack_depth++;
-		struct chx_list *was_last_call = c->bt.last_call;
+		prev_stack_depth = c->stack_depth++;
+		was_last_call = c->bt.last_call;
 		c->bt.last_call = (struct chx_list *)input;
 
-		res = eval_sexpr(c, (struct chx_list *)input);
+		if (c->stack_limit > 0 && prev_stack_depth >= c->stack_limit) {
+			cheax_throwf(c, CHEAX_ESTACK, "eval(): stack overflow! (stack limit %d)", c->stack_limit);
+			cheax_add_bt(c);
+		} else {
+			res = eval_sexpr(c, (struct chx_list *)input);
+		}
 
 		c->stack_depth = prev_stack_depth;
 		c->bt.last_call = was_last_call;
@@ -264,7 +266,7 @@ cheax_eval(CHEAX *c, struct chx_value *input)
 		break;
 
 	case CHEAX_COMMA:
-		cry(c, "eval", CHEAX_EEVAL, "rogue comma");
+		cheax_throwf(c, CHEAX_EEVAL, "eval(): rogue comma");
 		break;
 
 	default:
@@ -395,17 +397,18 @@ static struct chx_value *
 bltn_eval(CHEAX *c, struct chx_list *args, void *info)
 {
 	struct chx_value *arg;
-	return (0 == unpack(c, "eval", args, ".", &arg))
-	     ? cheax_eval(c, arg)
-	     : NULL;
+	if (unpack(c, args, ".", &arg) < 0)
+		return NULL;
+
+	return bt_wrap(c, cheax_eval(c, arg));
 }
 
 static struct chx_value *
 bltn_case(CHEAX *c, struct chx_list *args, void *info)
 {
 	if (args == NULL) {
-		cry(c, "case", CHEAX_EMATCH, "invalid case");
-		return NULL;
+		cheax_throwf(c, CHEAX_EMATCH, "invalid case");
+		return bt_wrap(c, NULL);
 	}
 
 	struct chx_value *what = cheax_eval(c, args->value);
@@ -415,8 +418,8 @@ bltn_case(CHEAX *c, struct chx_list *args, void *info)
 	for (struct chx_list *pvp = args->next; pvp; pvp = pvp->next) {
 		struct chx_value *pair = pvp->value;
 		if (cheax_type_of(pair) != CHEAX_LIST) {
-			cry(c, "case", CHEAX_EMATCH, "pattern-value pair expected");
-			return NULL;
+			cheax_throwf(c, CHEAX_EMATCH, "pattern-value pair expected");
+			return bt_wrap(c, NULL);
 		}
 
 		struct chx_list *cons_pair = (struct chx_list *)pair;
@@ -445,7 +448,8 @@ pad2:
 		return retval;
 	}
 
-	cry(c, "case", CHEAX_EMATCH, "non-exhaustive pattern");
+	cheax_throwf(c, CHEAX_EMATCH, "non-exhaustive pattern");
+	cheax_add_bt(c);
 pad:
 	return NULL;
 }
@@ -454,18 +458,20 @@ static struct chx_value *
 bltn_eq(CHEAX *c, struct chx_list *args, void *info)
 {
 	struct chx_value *l, *r;
-	return (0 == unpack(c, "=", args, "..", &l, &r))
-	     ? &cheax_bool(c, cheax_eq(c, l, r))->base
-	     : NULL;
+	if (unpack(c, args, "..", &l, &r) < 0)
+		return NULL;
+
+	return bt_wrap(c, &cheax_bool(c, cheax_eq(c, l, r))->base);
 }
 
 static struct chx_value *
 bltn_ne(CHEAX *c, struct chx_list *args, void *info)
 {
 	struct chx_value *l, *r;
-	return (0 == unpack(c, "!=", args, "..", &l, &r))
-	     ? &cheax_bool(c, !cheax_eq(c, l, r))->base
-	     : NULL;
+	if (unpack(c, args, "..", &l, &r) < 0)
+		return NULL;
+
+	return bt_wrap(c, &cheax_bool(c, !cheax_eq(c, l, r))->base);
 }
 
 void

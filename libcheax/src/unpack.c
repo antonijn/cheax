@@ -246,7 +246,7 @@ unpack_arg(CHEAX *c,
 }
 
 int
-unpack(CHEAX *c, const char *fname, struct chx_list *args, const char *fmt, ...)
+unpack(CHEAX *c, struct chx_list *args, const char *fmt, ...)
 {
 	int argc = 0, res = 0;
 	struct valueref argv[16];
@@ -291,27 +291,20 @@ unpack(CHEAX *c, const char *fname, struct chx_list *args, const char *fmt, ...)
 
 	if (res == 0) {
 		if (args != NULL) {
-			cry(c, fname, CHEAX_EMATCH, "too many arguments");
-			return -1;
+			cheax_throwf(c, CHEAX_EMATCH, "too many arguments");
+			cheax_add_bt(c);
+			res = -CHEAX_EMATCH;
 		}
-
-		return 0;
+	} else if (res == -CHEAX_EMATCH) {
+		cheax_throwf(c, CHEAX_EMATCH, "too few arguments");
+		cheax_add_bt(c);
+	} else if (res == -CHEAX_ETYPE) {
+		cheax_throwf(c, CHEAX_ETYPE, "invalid argument type");
+		cheax_add_bt(c);
+	} else if (res == -CHEAX_EAPI) {
+		cheax_throwf(c, CHEAX_EAPI, "internal error");
+		cheax_add_bt(c);
 	}
 
-	if (res == -CHEAX_EMATCH) {
-		cry(c, fname, CHEAX_EMATCH, "too few arguments");
-		return -1;
-	}
-
-	if (res == -CHEAX_ETYPE) {
-		cry(c, fname, CHEAX_ETYPE, "invalid argument type");
-		return -1;
-	}
-
-	if (res == -CHEAX_EAPI) {
-		cry(c, fname, CHEAX_EAPI, "internal error");
-		return -1;
-	}
-
-	return -1; /* error msg already current */
+	return res;
 }

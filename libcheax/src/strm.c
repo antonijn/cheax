@@ -128,7 +128,7 @@ sostrm_vprintf(void *info, const char *frmt, va_list ap)
 	return msg_len;
 
 msg_len_error:
-	cry(strm->c, "sostrm_vprintf", CHEAX_EEVAL, "internal error (vsnprintf returned %d)", msg_len);
+	cheax_throwf(strm->c, CHEAX_EEVAL, "sostrm_printf(): internal error (vsnprintf returned %d)", msg_len);
 	return -1;
 }
 
@@ -172,7 +172,7 @@ fostrm_vprintf(void *info, const char *frmt, va_list ap)
 	struct fostrm *fs = info;
 	int res = vfprintf(fs->f, frmt, ap);
 	if (res < 0)
-		cry(fs->c, "fostrm_vprintf", CHEAX_EIO, "vfprintf() returned negative value");
+		cheax_throwf(fs->c, CHEAX_EIO, "fostrm_vprintf(): vfprintf() returned negative value");
 	return res;
 }
 
@@ -182,7 +182,7 @@ fostrm_putc(void *info, int ch)
 	struct fostrm *fs = info;
 	int res = fputc(ch, fs->f);
 	if (res < 0)
-		cry(fs->c, "fostrm_putc", CHEAX_EIO, "fputc() returned negative value");
+		cheax_throwf(fs->c, CHEAX_EIO, "fostrm_putc(): fputc() returned negative value");
 	return res;
 }
 

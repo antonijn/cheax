@@ -78,7 +78,7 @@ static struct chx_value *
 bltn_exit(CHEAX *c, struct chx_list *args, void *info)
 {
 	struct chx_value *code_val;
-	if (unpack(c, "exit", args, "i?", &code_val) < 0)
+	if (unpack(c, args, "i?", &code_val) < 0)
 		return NULL;
 
 	exit((code_val == NULL) ? 0 : ((struct chx_int *)code_val)->value);

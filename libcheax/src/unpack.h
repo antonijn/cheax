@@ -56,6 +56,6 @@
  *
  * Returns 0 on success, -1 on failure.
  */
-int unpack(CHEAX *c, const char *fname, struct chx_list *args, const char *fmt, ...);
+int unpack(CHEAX *c, struct chx_list *args, const char *fmt, ...);
 
 #endif

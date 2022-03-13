@@ -40,7 +40,7 @@ static int
 claim_mem(CHEAX *c, size_t size, size_t hdr_size)
 {
 	if (size > SIZE_MAX - hdr_size) {
-		cry(c, "claim_mem", CHEAX_ENOMEM, "not enough space for alloc header");
+		cheax_throwf(c, CHEAX_ENOMEM, "claim_mem(): not enough space for alloc header");
 		return -1;
 	}
 
@@ -50,7 +50,7 @@ claim_mem(CHEAX *c, size_t size, size_t hdr_size)
 	if (c->gc.all_mem > SIZE_MAX - size
 	 || (c->mem_limit > 0 && c->gc.all_mem + size > limit))
 	{
-		cry(c, "claim_mem", CHEAX_ENOMEM, "memory limit reached (%zd bytes)", limit);
+		cheax_throwf(c, CHEAX_ENOMEM, "claim_mem(): memory limit reached (%zd bytes)", limit);
 		return -1;
 	}
 
@@ -68,7 +68,7 @@ cheax_malloc(CHEAX *c, size_t size)
 
 	hdr = malloc(size + hdr_size);
 	if (hdr == NULL) {
-		cry(c, "cheax_malloc", CHEAX_ENOMEM, "malloc() failure");
+		cheax_throwf(c, CHEAX_ENOMEM, "malloc() failure");
 		return NULL;
 	}
 
@@ -83,7 +83,7 @@ cheax_calloc(CHEAX *c, size_t nmemb, size_t size)
 		return NULL;
 
 	if (nmemb > SIZE_MAX / size) {
-		cry(c, "cheax_calloc", CHEAX_ENOMEM, "nmemb * size overflow");
+		cheax_throwf(c, CHEAX_ENOMEM, "calloc(): nmemb * size overflow");
 		return NULL;
 	}
 
@@ -94,7 +94,7 @@ cheax_calloc(CHEAX *c, size_t nmemb, size_t size)
 
 	hdr = malloc(nmemb * size + hdr_size);
 	if (hdr == NULL) {
-		cry(c, "cheax_calloc", CHEAX_ENOMEM, "malloc() failure");
+		cheax_throwf(c, CHEAX_ENOMEM, "malloc() failure");
 		return NULL;
 	}
 
@@ -126,7 +126,7 @@ cheax_realloc(CHEAX *c, void *ptr, size_t size)
 
 	hdr = realloc(hdr, size + hdr_size);
 	if (hdr == NULL) {
-		cry(c, "cheax_realloc", CHEAX_ENOMEM, "realloc() failure");
+		cheax_throwf(c, CHEAX_ENOMEM, "realloc() failure");
 		return NULL;
 	}
 
@@ -205,7 +205,7 @@ gc_alloc(CHEAX *c, size_t size, int type)
 	struct gc_header *hdr;
 	const size_t hdr_size = sizeof(*hdr) - sizeof(hdr->obj);
 	if (size > SIZE_MAX - hdr_size) {
-		cry(c, "gc_alloc", CHEAX_ENOMEM, "not enough space for gc header");
+		cheax_throwf(c, CHEAX_ENOMEM, "gc_alloc(): not enough space for gc header");
 		return NULL;
 	}
 
@@ -433,7 +433,7 @@ cheax_unref(CHEAX *c, void *restrict value, chx_ref ref)
 static struct chx_value *
 bltn_gc(CHEAX *c, struct chx_list *args, void *info)
 {
-	if (unpack(c, "gc", args, "") < 0)
+	if (unpack(c, args, "") < 0)
 		return NULL;
 
 	static struct chx_id mem = { { CHEAX_ID, 0 }, "mem" },
@@ -448,14 +448,14 @@ bltn_gc(CHEAX *c, struct chx_list *args, void *info)
 		&mem.base, &cheax_int(c, mem_i)->base, &to.base, &cheax_int(c, mem_f)->base,
 		&obj.base, &cheax_int(c, obj_i)->base, &to.base, &cheax_int(c, obj_f)->base,
 	};
-	return &cheax_array_to_list(c, res, sizeof(res) / sizeof(res[0]))->base;
+	return bt_wrap(c, &cheax_array_to_list(c, res, sizeof(res) / sizeof(res[0]))->base);
 }
 
 static struct chx_value *
 bltn_get_used_memory(CHEAX *c, struct chx_list *args, void *info)
 {
-	return (0 == unpack(c, "get-used-memory", args, ""))
-	     ? &cheax_int(c, c->gc.all_mem)->base
+	return (0 == unpack(c, args, ""))
+	     ? bt_wrap(c, &cheax_int(c, c->gc.all_mem)->base)
 	     : NULL;
 }
 

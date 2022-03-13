@@ -61,9 +61,9 @@ set_bt_limit(CHEAX *c, int value)
 {
 	static const int max_bt_limit = 256;
 	if (value < 0)
-		cry(c, "bt-limit", CHEAX_EAPI, "backtrace limit must be non-negative");
+		cheax_throwf(c, CHEAX_EAPI, "backtrace limit must be non-negative");
 	else if (value > max_bt_limit)
-		cry(c, "bt-limit", CHEAX_EAPI, "backtrace limit must be at most %d", max_bt_limit);
+		cheax_throwf(c, CHEAX_EAPI, "backtrace limit must be at most %d", max_bt_limit);
 	else
 		bt_limit(c, value);
 }
@@ -88,12 +88,10 @@ static void
 set_stack_limit(CHEAX *c, int value)
 {
 	static const int min_stack_limit = 16;
-	if (value != 0 && value < min_stack_limit) {
-		cry(c, "stack-limit", CHEAX_EAPI,
-		    "stack limit must be zero or at least %d", min_stack_limit);
-	} else {
+	if (value != 0 && value < min_stack_limit)
+		cheax_throwf(c, CHEAX_EAPI, "stack limit must be zero or at least %d", min_stack_limit);
+	else
 		c->stack_limit = value;
-	}
 }
 
 static int
@@ -105,12 +103,10 @@ static void
 set_mem_limit(CHEAX *c, int value)
 {
 	static const int min_mem_limit = 0x40000;
-	if (value != 0 && value < min_mem_limit) {
-		cry(c, "mem-limit", CHEAX_EAPI,
-		    "memory limit must be zero or at least %d", min_mem_limit);
-	} else {
+	if (value != 0 && value < min_mem_limit)
+		cheax_throwf(c, CHEAX_EAPI, "memory limit must be zero or at least %d", min_mem_limit);
+	else
 		c->mem_limit = value;
-	}
 }
 
 /* sorted asciibetically for use in bsearch() */
@@ -175,7 +171,7 @@ config_sym_get(CHEAX *c, struct chx_sym *sym)
 	case CHEAX_BOOL:
 		return &cheax_bool(c, ci->get.get_bool(c))->base;
 	default:
-		cry(c, "config_sym_get", CHEAX_EEVAL, "internal error");
+		cheax_throwf(c, CHEAX_EEVAL, "config_sym_get(): internal error");
 		return NULL;
 	}
 }
@@ -190,16 +186,16 @@ config_sym_set(CHEAX *c, struct chx_sym *sym, struct chx_value *value)
 		if (try_vtoi(value, &i))
 			ci->set.set_int(c, i);
 		else
-			cry(c, "set", CHEAX_ETYPE, "invalid type");
+			cheax_throwf(c, CHEAX_ETYPE, "invalid type");
 		break;
 	case CHEAX_BOOL:
 		if (cheax_type_of(value) == CHEAX_BOOL)
 			ci->set.set_bool(c, ((struct chx_int *)value)->value);
 		else
-			cry(c, "set", CHEAX_ETYPE, "invalid type");
+			cheax_throwf(c, CHEAX_ETYPE, "invalid type");
 		break;
 	default:
-		cry(c, "config_sym_set", CHEAX_EEVAL, "internal error");
+		cheax_throwf(c, CHEAX_EEVAL, "config_sym_set(): internal error");
 		return;
 	}
 
@@ -267,12 +263,12 @@ cheax_config_get_int(CHEAX *c, const char *opt)
 {
 	struct config_info *ci = find_opt(opt);
 	if (ci == NULL) {
-		cry(c, "cheax_config_get_int", CHEAX_EAPI, "invalid option `%s'", opt);
+		cheax_throwf(c, CHEAX_EAPI, "config_get_int(): invalid option `%s'", opt);
 		return 0;
 	}
 
 	if (ci->type != CHEAX_INT) {
-		cry(c, "cheax_config_get_int", CHEAX_EAPI, "wrong option type for `%s'", opt);
+		cheax_throwf(c, CHEAX_EAPI, "config_get_int(): wrong option type for `%s'", opt);
 		return 0;
 	}
 
@@ -294,12 +290,12 @@ cheax_config_get_bool(CHEAX *c, const char *opt)
 {
 	struct config_info *ci = find_opt(opt);
 	if (ci == NULL) {
-		cry(c, "cheax_config_get_bool", CHEAX_EAPI, "invalid option `%s'", opt);
+		cheax_throwf(c, CHEAX_EAPI, "config_get_bool(): invalid option `%s'", opt);
 		return 0;
 	}
 
 	if (ci->type != CHEAX_BOOL) {
-		cry(c, "cheax_config_get_bool", CHEAX_EAPI, "wrong option type for `%s'", opt);
+		cheax_throwf(c, CHEAX_EAPI, "config_get_bool(): wrong option type for `%s'", opt);
 		return 0;
 	}
 

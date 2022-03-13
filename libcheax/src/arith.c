@@ -27,36 +27,36 @@ do_aop(CHEAX *c,
        double (*fop)(CHEAX *, double, double))
 {
 	struct chx_value *l, *r;
-	if (unpack(c, name, args, "[id][id]", &l, &r) < 0)
+	if (unpack(c, args, "[id][id]", &l, &r) < 0)
 		return NULL;
 
 	if (cheax_type_of(l) == CHEAX_INT && cheax_type_of(r) == CHEAX_INT) {
 		int li = ((struct chx_int *)l)->value;
 		int ri = ((struct chx_int *)r)->value;
 		int res = iop(c, li, ri);
-		return (cheax_errno(c) == 0) ? &cheax_int(c, res)->base : NULL;
+		return bt_wrap(c, &cheax_int(c, res)->base);
 	}
 
 	if (fop == NULL) {
-		cry(c, name, CHEAX_ETYPE, "invalid operation on floating point numbers");
-		return NULL;
+		cheax_throwf(c, CHEAX_ETYPE, "invalid operation on floating point numbers");
+		return bt_wrap(c, NULL);
 	}
 
 	double ld, rd;
 	try_vtod(l, &ld);
 	try_vtod(r, &rd);
-	return &cheax_double(c, fop(c, ld, rd))->base;
+	return bt_wrap(c, &cheax_double(c, fop(c, ld, rd))->base);
 }
 
 static int
 iop_add(CHEAX *c, int a, int b)
 {
 	if ((b > 0) && (a > INT_MAX - b)) {
-		cry(c, "+", CHEAX_EOVERFLOW, "integer overflow");
+		cheax_throwf(c, CHEAX_EOVERFLOW, "integer overflow");
 		return 0;
 	}
 	if ((b < 0) && (a < INT_MIN - b)) {
-		cry(c, "+", CHEAX_EOVERFLOW, "integer underflow");
+		cheax_throwf(c, CHEAX_EOVERFLOW, "integer underflow");
 		return 0;
 	}
 
@@ -71,11 +71,11 @@ static int
 iop_sub(CHEAX *c, int a, int b)
 {
 	if ((b > 0) && (a < INT_MIN + b)) {
-		cry(c, "+", CHEAX_EOVERFLOW, "integer underflow");
+		cheax_throwf(c, CHEAX_EOVERFLOW, "integer underflow");
 		return 0;
 	}
 	if ((b < 0) && (a > INT_MAX + b)) {
-		cry(c, "+", CHEAX_EOVERFLOW, "integer overflow");
+		cheax_throwf(c, CHEAX_EOVERFLOW, "integer overflow");
 		return 0;
 	}
 
@@ -92,17 +92,17 @@ iop_mul(CHEAX *c, int a, int b)
 	if (((a == -1) && (b == INT_MIN))
 	 || ((b == -1) && (a == INT_MIN)))
 	{
-		cry(c, "*", CHEAX_EOVERFLOW, "integer overflow");
+		cheax_throwf(c, CHEAX_EOVERFLOW, "integer overflow");
 		return 0;
 	}
 
 	if (b != 0) {
 		if (a > INT_MAX / b) {
-			cry(c, "*", CHEAX_EOVERFLOW, "integer overflow");
+			cheax_throwf(c, CHEAX_EOVERFLOW, "integer overflow");
 			return 0;
 		}
 		if (a < INT_MIN / b) {
-			cry(c, "+", CHEAX_EOVERFLOW, "integer underflow");
+			cheax_throwf(c, CHEAX_EOVERFLOW, "integer underflow");
 			return 0;
 		}
 	}
@@ -120,12 +120,12 @@ iop_div(CHEAX *c, int a, int b)
 	if (((a == -1) && (b == INT_MIN))
 	 || ((b == -1) && (a == INT_MIN)))
 	{
-		cry(c, "/", CHEAX_EOVERFLOW, "integer overflow");
+		cheax_throwf(c, CHEAX_EOVERFLOW, "integer overflow");
 		return 0;
 	}
 
 	if (b == 0) {
-		cry(c, "/", CHEAX_EDIVZERO, "division by zero");
+		cheax_throwf(c, CHEAX_EDIVZERO, "division by zero");
 		return 0;
 	}
 
@@ -142,12 +142,12 @@ iop_mod(CHEAX *c, int a, int b)
 	if (((a == -1) && (b == INT_MIN))
 	 || ((b == -1) && (a == INT_MIN)))
 	{
-		cry(c, "%", CHEAX_EOVERFLOW, "integer overflow");
+		cheax_throwf(c, CHEAX_EOVERFLOW, "integer overflow");
 		return 0;
 	}
 
 	if (b == 0) {
-		cry(c, "%", CHEAX_EDIVZERO, "division by zero");
+		cheax_throwf(c, CHEAX_EDIVZERO, "division by zero");
 		return 0;
 	}
 
@@ -187,7 +187,7 @@ do_cmp(CHEAX *c,
        bool lt, bool eq, bool gt)
 {
 	struct chx_value *l, *r;
-	if (unpack(c, name, args, "[id][id]", &l, &r) < 0)
+	if (unpack(c, args, "[id][id]", &l, &r) < 0)
 		return NULL;
 
 	bool is_lt, is_eq, is_gt;
@@ -207,7 +207,7 @@ do_cmp(CHEAX *c,
 		is_gt = ld > rd;
 	}
 
-	return &cheax_bool(c, ((lt && is_lt) || (eq && is_eq) || (gt && is_gt)))->base;
+	return bt_wrap(c, &cheax_bool(c, ((lt && is_lt) || (eq && is_eq) || (gt && is_gt)))->base);
 }
 
 static struct chx_value *

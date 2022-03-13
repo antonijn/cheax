@@ -103,7 +103,7 @@ struct chx_user_ptr *
 cheax_user_ptr(CHEAX *c, void *value, int type)
 {
 	if (cheax_is_basic_type(c, type) || cheax_resolve_type(c, type) != CHEAX_USER_PTR) {
-		cry(c, "cheax_user_ptr", CHEAX_EAPI, "invalid user pointer type");
+		cheax_throwf(c, CHEAX_EAPI, "user_ptr(): invalid user pointer type");
 		return NULL;
 	}
 	struct chx_user_ptr *res = gc_alloc(c, sizeof(struct chx_user_ptr), type);
@@ -172,7 +172,7 @@ struct chx_string *
 cheax_string(CHEAX *c, const char *value)
 {
 	if (value == NULL) {
-		cry(c, "cheax_string", CHEAX_EAPI, "`value' cannot be NULL");
+		cheax_throwf(c, CHEAX_EAPI, "string(): `value' cannot be NULL");
 		return NULL;
 	}
 
@@ -183,7 +183,7 @@ cheax_nstring(CHEAX *c, const char *value, size_t len)
 {
 	if (value == NULL) {
 		if (len != 0) {
-			cry(c, "cheax_nstring", CHEAX_EAPI, "`value' cannot be NULL");
+			cheax_throwf(c, CHEAX_EAPI, "nstring(): `value' cannot be NULL");
 			return NULL;
 		}
 
@@ -206,12 +206,12 @@ struct chx_string *
 cheax_substr(CHEAX *c, struct chx_string *str, size_t pos, size_t len)
 {
 	if (str == NULL) {
-		cry(c, "substr", CHEAX_EAPI, "`str' cannot be NULL");
+		cheax_throwf(c, CHEAX_EAPI, "substr(): `str' cannot be NULL");
 		return NULL;
 	}
 
 	if (pos > SIZE_MAX - len || pos + len > str->len) {
-		cry(c, "substr", CHEAX_EINDEX, "substring out of bounds");
+		cheax_throwf(c, CHEAX_EINDEX, "substr(): substring out of bounds");
 		return NULL;
 	}
 
@@ -321,12 +321,12 @@ cheax_list_to_array(CHEAX *c, struct chx_list *list, struct chx_value ***array_p
 	struct chx_value **res = NULL;
 
 	if (length == NULL) {
-		cry(c, "list_to_array", CHEAX_EAPI, "`length' cannot be NULL");
+		cheax_throwf(c, CHEAX_EAPI, "list_to_array(): `length' cannot be NULL");
 		return -1;
 	}
 
 	if (array_ptr == NULL) {
-		cry(c, "list_to_array", CHEAX_EAPI, "`array_ptr' cannot be NULL");
+		cheax_throwf(c, CHEAX_EAPI, "list_to_array(): `array_ptr' cannot be NULL");
 		return -1;
 	}
 
@@ -355,7 +355,7 @@ struct chx_list *
 cheax_array_to_list(CHEAX *c, struct chx_value **array, size_t length)
 {
 	if (array == NULL && length > 0) {
-		cry(c, "array_to_list", CHEAX_EAPI, "`array' cannot be NULL");
+		cheax_throwf(c, CHEAX_EAPI, "array_to_list(): `array' cannot be NULL");
 		return NULL;
 	}
 
@@ -439,7 +439,7 @@ struct chx_value *
 cheax_cast(CHEAX *c, struct chx_value *v, int type)
 {
 	if (!can_cast(c, v, type)) {
-		cry(c, "cast", CHEAX_ETYPE, "invalid cast");
+		cheax_throwf(c, CHEAX_ETYPE, "cast(): invalid cast");
 		return NULL;
 	}
 
@@ -458,24 +458,24 @@ int
 cheax_new_type(CHEAX *c, const char *name, int base_type)
 {
 	if (name == NULL) {
-		cry(c, "cheax_new_type", CHEAX_EAPI, "`name' cannot be NULL");
+		cheax_throwf(c, CHEAX_EAPI, "new_type(): `name' cannot be NULL");
 		return -1;
 	}
 
 	if (!cheax_is_valid_type(c, base_type)) {
-		cry(c, "cheax_new_type", CHEAX_EAPI, "`base_type' is not a valid type");
+		cheax_throwf(c, CHEAX_EAPI, "new_type(): `base_type' is not a valid type");
 		return -1;
 	}
 
 	if (cheax_find_type(c, name) != -1) {
-		cry(c, "cheax_new_type", CHEAX_EAPI, "`%s' already exists as a type", name);
+		cheax_throwf(c, CHEAX_EAPI, "new_type(): `%s' already exists as a type", name);
 		return -1;
 	}
 
 	int ts_idx = c->typestore.len;
 	int tycode = ts_idx + CHEAX_TYPESTORE_BIAS;
 	if (tycode > USHRT_MAX) {
-		cry(c, "cheax_new_type", CHEAX_EEVAL, "too many types in existence", name);
+		cheax_throwf(c, CHEAX_EEVAL, "new_type(): too many types in existence", name);
 		return -1;
 	}
 
@@ -517,7 +517,7 @@ int
 cheax_find_type(CHEAX *c, const char *name)
 {
 	if (name == NULL) {
-		cry(c, "cheax_find_type", CHEAX_EAPI, "`name' cannot be NULL");
+		cheax_throwf(c, CHEAX_EAPI, "find_type(): `name' cannot be NULL");
 		return -1;
 	}
 
@@ -549,7 +549,7 @@ cheax_get_base_type(CHEAX *c, int type)
 		return type;
 
 	if (!cheax_is_user_type(c, type)) {
-		cry(c, "cheax_get_base_type", CHEAX_EEVAL, "unable to resolve type");
+		cheax_throwf(c, CHEAX_EEVAL, "get_base_type(): unable to resolve type");
 		return -1;
 	}
 
@@ -565,7 +565,7 @@ cheax_resolve_type(CHEAX *c, int type)
 			return -1;
 
 		if (base_type == type) {
-			cry(c, "cheax_resolve_type", CHEAX_EEVAL, "unable to resolve type");
+			cheax_throwf(c, CHEAX_EEVAL, "resolve_type(): unable to resolve type");
 			return -1;
 		}
 
@@ -638,7 +638,7 @@ prepend(CHEAX *c, struct chx_list *args)
 	cheax_ft(c, pad);
 	int ty = cheax_type_of(res);
 	if (ty != CHEAX_LIST && ty != CHEAX_NIL) {
-		cry(c, ":", CHEAX_ETYPE, "improper list not allowed");
+		cheax_throwf(c, CHEAX_ETYPE, "improper list not allowed");
 		return NULL;
 	}
 
@@ -651,20 +651,21 @@ static struct chx_value *
 bltn_prepend(CHEAX *c, struct chx_list *args, void *info)
 {
 	if (args == NULL) {
-		cry(c, ":", CHEAX_EMATCH, "expected at least one argument");
-		return NULL;
+		cheax_throwf(c, CHEAX_EMATCH, "expected at least one argument");
+		return bt_wrap(c, NULL);
 	}
 
-	return &prepend(c, args)->base;
+	return bt_wrap(c, &prepend(c, args)->base);
 }
 
 static struct chx_value *
 bltn_type_of(CHEAX *c, struct chx_list *args, void *info)
 {
 	struct chx_value *val;
-	return (0 == unpack(c, "type-of", args, ".", &val))
-	     ? &typecode(c, cheax_type_of(val))->base
-	     : NULL;
+	if (unpack(c, args, ".", &val) < 0)
+		return NULL;
+
+	return bt_wrap(c, &typecode(c, cheax_type_of(val))->base);
 }
 
 static struct chx_value *
@@ -674,25 +675,27 @@ create_func(CHEAX *c,
             int type)
 {
 	if (args == NULL) {
-		cry(c, name, CHEAX_EMATCH, "expected arguments");
-		return NULL;
+		cheax_throwf(c, CHEAX_EMATCH, "expected arguments");
+		goto pad;
 	}
 
 	struct chx_value *arg_list = args->value;
 	struct chx_list *body = args->next;
 
 	if (body == NULL) {
-		cry(c, name, CHEAX_EMATCH, "expected body");
-		return NULL;
+		cheax_throwf(c, CHEAX_EMATCH, "expected body");
+		goto pad;
 	}
 
 	struct chx_func *res = gc_alloc(c, sizeof(struct chx_func), type);
-	if (res != NULL) {
-		res->args = arg_list;
-		res->body = body;
-		res->lexenv = c->env;
-	}
+	cheax_ft(c, pad);
+	res->args = arg_list;
+	res->body = body;
+	res->lexenv = c->env;
 	return &res->base;
+pad:
+	cheax_add_bt(c);
+	return NULL;
 }
 
 static struct chx_value *
@@ -711,22 +714,23 @@ static struct chx_value *
 bltn_strbytes(CHEAX *c, struct chx_list *args, void *info)
 {
 	struct chx_string *str;
-	if (unpack(c, "strbytes", args, "s", &str) < 0)
+	if (unpack(c, args, "s", &str) < 0)
 		return NULL;
 
 	struct chx_list *bytes = NULL;
 	for (int i = (int)str->len - 1; i >= 0; --i)
 		bytes = cheax_list(c, &cheax_int(c, (unsigned char)str->value[i])->base, bytes);
-	return &bytes->base;
+	return bt_wrap(c, &bytes->base);
 }
 
 static struct chx_value *
 bltn_strsize(CHEAX *c, struct chx_list *args, void *info)
 {
 	struct chx_string *str;
-	return (0 == unpack(c, "strsize", args, "s", &str))
-	     ? &cheax_int(c, (int)str->len)->base
-	     : NULL;
+	if (unpack(c, args, "s", &str) < 0)
+		return NULL;
+
+	return bt_wrap(c, &cheax_int(c, (int)str->len)->base);
 }
 
 static struct chx_value *
@@ -735,7 +739,7 @@ bltn_substr(CHEAX *c, struct chx_list *args, void *info)
 	struct chx_string *str;
 	int pos, len = 0;
 	struct chx_int *len_or_nil;
-	if (unpack(c, "substr", args, "si!i?", &str, &pos, &len_or_nil) < 0)
+	if (unpack(c, args, "si!i?", &str, &pos, &len_or_nil) < 0)
 		return NULL;
 
 	if (len_or_nil != NULL)
@@ -744,11 +748,11 @@ bltn_substr(CHEAX *c, struct chx_list *args, void *info)
 		len = str->len - (size_t)pos;
 
 	if (pos < 0 || len < 0) {
-		cry(c, "substr", CHEAX_EVALUE, "expected positive integer");
-		return NULL;
+		cheax_throwf(c, CHEAX_EVALUE, "expected positive integer");
+		return bt_wrap(c, NULL);
 	}
 
-	return &cheax_substr(c, str, pos, len)->base;
+	return bt_wrap(c, &cheax_substr(c, str, pos, len)->base);
 }
 
 void

@@ -31,7 +31,7 @@ errname(CHEAX *c, int code)
 	if (code >= CHEAX_EUSER0) {
 		size_t idx = code - CHEAX_EUSER0;
 		if (idx >= c->user_error_names.len) {
-			cry(c, "errname", CHEAX_EAPI, "invalid user error code");
+			cheax_throwf(c, CHEAX_EAPI, "errname(): invalid user error code");
 			return NULL;
 		}
 		return c->user_error_names.array[idx];
@@ -51,7 +51,7 @@ errname(CHEAX *c, int code)
 			hi = pivot - 1;
 	}
 
-	cry(c, "errname", CHEAX_EAPI, "invalid error code");
+	cheax_throwf(c, CHEAX_EAPI, "errname(): invalid error code");
 	return NULL;
 }
 int
@@ -94,7 +94,7 @@ void
 cheax_throw(CHEAX *c, int code, struct chx_string *msg)
 {
 	if (code == 0) {
-		cry(c, "throw", CHEAX_EAPI, "cannot throw error code 0");
+		cheax_throwf(c, CHEAX_EAPI, "throw(): cannot throw error code 0");
 		return;
 	}
 
@@ -103,11 +103,33 @@ cheax_throw(CHEAX *c, int code, struct chx_string *msg)
 	c->bt.len = 0;
 	c->bt.truncated = false;
 }
+
+void
+cheax_throwf(CHEAX *c, int code, const char *fmt, ...)
+{
+	va_list ap;
+	struct chx_string *msg = NULL;
+	char sbuf[128];
+
+	va_start(ap, fmt);
+	vsnprintf(sbuf, sizeof(sbuf), fmt, ap);
+	va_end(ap);
+
+	/* hack to avoid allocation failure */
+	int prev_mem_limit = c->mem_limit;
+	c->mem_limit = 0;
+
+	msg = cheax_string(c, sbuf);
+
+	c->mem_limit = prev_mem_limit;
+	cheax_throw(c, code, msg);
+}
+
 int
 cheax_new_error_code(CHEAX *c, const char *name)
 {
 	if (name == NULL) {
-		cry(c, "new_error_code", CHEAX_EAPI, "`name' cannot be NULL");
+		cheax_throwf(c, CHEAX_EAPI, "new_error_code(): `name' cannot be NULL");
 		return -1;
 	}
 
@@ -156,7 +178,7 @@ int
 bt_limit(CHEAX *c, size_t limit)
 {
 	if (c->bt.len > 0) {
-		cry(c, "bt_limit", CHEAX_EEVAL, "backtrace limit locked");
+		cheax_throwf(c, CHEAX_EEVAL, "bt_limit(): backtrace limit locked");
 		return -1;
 	}
 
@@ -172,7 +194,7 @@ bt_limit(CHEAX *c, size_t limit)
 }
 
 void
-bt_add(CHEAX *c)
+cheax_add_bt(CHEAX *c)
 {
 	if (c->bt.last_call == NULL)
 		return;
@@ -220,37 +242,6 @@ bt_print(CHEAX *c)
 	}
 }
 
-void
-cry(CHEAX *c, const char *name, int err, const char *frmt, ...)
-{
-	va_list ap;
-	size_t preamble_len = strlen(name) + 4;
-	struct chx_string *msg = NULL;
-
-	va_start(ap, frmt);
-	size_t msglen = preamble_len + vsnprintf(NULL, 0, frmt, ap);
-	va_end(ap);
-
-	char *buf = malloc(msglen + 1);
-	if (buf != NULL) {
-		sprintf(buf, "(%s): ", name);
-		va_start(ap, frmt);
-		vsnprintf(buf + preamble_len, msglen - preamble_len + 1, frmt, ap);
-		va_end(ap);
-
-		/* hack to avoid allocation failure */
-		int prev_mem_limit = c->mem_limit;
-		c->mem_limit = 0;
-
-		msg = cheax_nstring(c, buf, msglen);
-
-		c->mem_limit = prev_mem_limit;
-		free(buf);
-	}
-
-	cheax_throw(c, err, msg);
-}
-
 /*
  *  _           _ _ _   _
  * | |__  _   _(_) | |_(_)_ __  ___
@@ -265,16 +256,14 @@ bltn_throw(CHEAX *c, struct chx_list *args, void *info)
 {
 	int code;
 	struct chx_string *msg;
-	if (unpack(c, "throw", args, "x![s ]?", &code, &msg) < 0)
+	if (unpack(c, args, "x![s ]?", &code, &msg) < 0)
 		return NULL;
 
-	if (code == 0) {
-		cry(c, "throw", CHEAX_EVALUE, "cannot throw ENOERR");
-		return NULL;
-	}
-
-	cheax_throw(c, code, msg);
-	return NULL;
+	if (code == 0)
+		cheax_throwf(c, CHEAX_EVALUE, "cannot throw ENOERR");
+	else
+		cheax_throw(c, code, msg);
+	return bt_wrap(c, NULL);
 }
 
 static int
@@ -283,7 +272,8 @@ validate_catch_blocks(CHEAX *c, struct chx_list *catch_blocks, struct chx_list *
 	for (struct chx_list *cb = catch_blocks; cb != NULL; cb = cb->next) {
 		struct chx_value *cb_value = cb->value;
 		if (cheax_type_of(cb_value) != CHEAX_LIST) {
-			cry(c, "try", CHEAX_ETYPE, "catch/finally blocks must be s-expressions");
+			cheax_throwf(c, CHEAX_ETYPE, "catch/finally blocks must be s-expressions");
+			cheax_add_bt(c);
 			return -1;
 		}
 
@@ -293,18 +283,21 @@ validate_catch_blocks(CHEAX *c, struct chx_list *catch_blocks, struct chx_list *
 		struct chx_id *keyword = (struct chx_id *)cb_list->value;
 		if (is_id && 0 == strcmp("catch", keyword->id)) {
 			if (cb_list->next == NULL || cb_list->next->next == NULL) {
-				cry(c, "catch", CHEAX_EMATCH, "expected at least two arguments");
+				cheax_throwf(c, CHEAX_EMATCH, "expected at least two arguments");
+				cheax_add_bt(c);
 				return -1;
 			}
 		} else if (is_id && 0 == strcmp("finally", keyword->id)) {
 			if (cb->next != NULL) {
-				cry(c, "finally", CHEAX_EVALUE, "unexpected values after finally block");
+				cheax_throwf(c, CHEAX_EVALUE, "unexpected values after finally block");
+				cheax_add_bt(c);
 				return -1;
 			}
 
 			*finally_block = cb;
 		} else {
-			cry(c, "try", CHEAX_EMATCH, "expected `catch' or `finally' keyword");
+			cheax_throwf(c, CHEAX_EMATCH, "expected `catch' or `finally' keyword");
+			cheax_add_bt(c);
 			return -1;
 		}
 	}
@@ -347,7 +340,8 @@ match_catch(CHEAX *c,
 		for (enode = (struct chx_list *)errcodes; enode != NULL; enode = enode->next) {
 			struct chx_value *code = enode->value;
 			if (cheax_type_of(code) != CHEAX_ERRORCODE) {
-				cry(c, "catch", CHEAX_ETYPE, "expected error code or list thereof");
+				cheax_throwf(c, CHEAX_ETYPE, "expected error code or list thereof");
+				cheax_add_bt(c);
 				return NULL;
 			}
 
@@ -414,15 +408,15 @@ static struct chx_value *
 bltn_try(CHEAX *c, struct chx_list *args, void *info)
 {
 	if (args == NULL) {
-		cry(c, "try", CHEAX_EMATCH, "expected at least two arguments");
-		return NULL;
+		cheax_throwf(c, CHEAX_EMATCH, "expected at least two arguments");
+		return bt_wrap(c, NULL);
 	}
 
 	struct chx_value *block = args->value;
 	struct chx_list *catch_blocks = args->next;
 	if (catch_blocks == NULL) {
-		cry(c, "try", CHEAX_EMATCH, "expected at least one catch/finally block");
-		return NULL;
+		cheax_throwf(c, CHEAX_EMATCH, "expected at least one catch/finally block");
+		return bt_wrap(c, NULL);
 	}
 
 	/* The item such that for the final catch block cb, we have
@@ -496,9 +490,11 @@ static struct chx_value *
 bltn_new_error_code(CHEAX *c, struct chx_list *args, void *info)
 {
 	const char *errname;
-	if (0 == unpack(c, "new-error-code", args, "N!", &errname))
-		cheax_new_error_code(c, errname);
-	return NULL;
+	if (unpack(c, args, "N!", &errname) < 0)
+		return NULL;
+
+	cheax_new_error_code(c, errname);
+	return bt_wrap(c, NULL);
 }
 
 static void

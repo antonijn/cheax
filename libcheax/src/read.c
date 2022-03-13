@@ -101,7 +101,7 @@ read_id(struct read_info *ri, struct scnr *s) /* consume_final = true */
 		ostrm_putc(&ss.strm, scnr_adv(s));
 
 	if (s->ch != EOF && !isspace(s->ch) && s->ch != ')') {
-		cry(ri->c, "read", CHEAX_EREAD, "only whitespace or `)' may follow identifier");
+		cheax_throwf(ri->c, CHEAX_EREAD, "only whitespace or `)' may follow identifier");
 		goto done;
 	}
 
@@ -222,7 +222,7 @@ read_num(struct read_info *ri, struct scnr *s) /* consume_final = true */
 	}
 
 	if (s->ch != EOF && !isspace(s->ch) && s->ch != ')') {
-		cry(ri->c, "read", CHEAX_EREAD, "only whitespace or `)' may follow number");
+		cheax_throwf(ri->c, CHEAX_EREAD, "only whitespace or `)' may follow number");
 		goto done;
 	}
 
@@ -231,7 +231,7 @@ read_num(struct read_info *ri, struct scnr *s) /* consume_final = true */
 			pos_whole_value = -pos_whole_value;
 
 		if (too_big || pos_whole_value > INT_MAX || pos_whole_value < INT_MIN) {
-			cry(ri->c, "read", CHEAX_EREAD, "integer too big");
+			cheax_throwf(ri->c, CHEAX_EREAD, "integer too big");
 			goto done;
 		}
 
@@ -255,7 +255,7 @@ read_num(struct read_info *ri, struct scnr *s) /* consume_final = true */
 #endif
 
 	if (*endptr != '\0') {
-		cry(ri->c, "read", CHEAX_EREAD, "unexpected strtod() error");
+		cheax_throwf(ri->c, CHEAX_EREAD, "unexpected strtod() error");
 		goto done;
 	}
 
@@ -299,7 +299,7 @@ read_bslash(struct read_info *ri, struct scnr *s, struct ostrm *ostr) /* consume
 			} else if (s->ch >= 'a' && s->ch <= 'f') {
 				digits[i] = s->ch - 'a' + 10;
 			} else {
-				cry(ri->c, "read", CHEAX_EREAD, "expected two hex digits after `\\x'");
+				cheax_throwf(ri->c, CHEAX_EREAD, "expected two hex digits after `\\x'");
 				return;
 			}
 
@@ -312,7 +312,7 @@ read_bslash(struct read_info *ri, struct scnr *s, struct ostrm *ostr) /* consume
 
 	/* TODO maybe uXXXX expressions */
 
-	cry(ri->c, "read", CHEAX_EREAD, "unexpected character after `\\'");
+	cheax_throwf(ri->c, CHEAX_EREAD, "unexpected character after `\\'");
 }
 
 static struct chx_value *
@@ -331,7 +331,7 @@ read_string(struct read_info *ri, struct scnr *s, bool consume_final)
 		switch ((ch = scnr_adv(s))) {
 		case '\n':
 		case EOF:
-			cry(ri->c, "read", CHEAX_EREAD, "unexpected string termination");
+			cheax_throwf(ri->c, CHEAX_EREAD, "unexpected string termination");
 			goto done;
 
 		case '\\':
@@ -385,7 +385,7 @@ read_list(struct read_info *ri, struct scnr *s, bool consume_final)
 
 	return &lst->base;
 eof_pad:
-	cry(ri->c, "read", CHEAX_EEOF, "unexpected end-of-file in S-expression");
+	cheax_throwf(ri->c, CHEAX_EEOF, "unexpected end-of-file in S-expression");
 pad:
 	return NULL;
 }
@@ -447,12 +447,12 @@ read_value(struct read_info *ri, struct scnr *s, bool consume_final)
 
 	if (s->ch == ',') {
 		if (ri->bkquote_stack == 0) {
-			cry(ri->c, "read", CHEAX_EREAD, "comma is illegal outside of backquotes");
+			cheax_throwf(ri->c, CHEAX_EREAD, "comma is illegal outside of backquotes");
 			return NULL;
 		}
 		/* same error, different message */
 		if (ri->comma_stack >= ri->bkquote_stack) {
-			cry(ri->c, "read", CHEAX_EREAD, "more commas than backquotes");
+			cheax_throwf(ri->c, CHEAX_EREAD, "more commas than backquotes");
 			return NULL;
 		}
 
@@ -468,7 +468,7 @@ read_value(struct read_info *ri, struct scnr *s, bool consume_final)
 		return read_string(ri, s, consume_final);
 
 	if (s->ch != EOF)
-		cry(ri->c, "read", CHEAX_EREAD, "unexpected character `%c'", s->ch);
+		cheax_throwf(ri->c, CHEAX_EREAD, "unexpected character `%c'", s->ch);
 pad:
 	return NULL;
 }
