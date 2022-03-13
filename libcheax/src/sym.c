@@ -641,7 +641,7 @@ bltn_let(CHEAX *c, struct chx_list *args, void *info)
 	}
 
 	struct chx_value *pairsv = args->value;
-	if (cheax_type_of(pairsv) != CHEAX_LIST) {
+	if (pairsv != NULL && cheax_type_of(pairsv) != CHEAX_LIST) {
 		cheax_throwf(c, CHEAX_ETYPE, "invalid let");
 		return bt_wrap(c, NULL);
 	}
