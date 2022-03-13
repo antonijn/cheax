@@ -70,7 +70,6 @@
 
 (defun call (f args) (eval (: f args)))
 (defun list args args)
-(defun do args (last args))
 
 (defun unsafe-filter (p xs)
   (case xs

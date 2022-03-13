@@ -687,17 +687,40 @@ bltn_let(CHEAX *c, struct chx_list *args, void *info)
 		goto pad;
 	}
 
-	struct chx_value *retval;
 	for (struct chx_list *cons = args->next; cons != NULL; cons = cons->next) {
-		retval = cheax_eval(c, cons->value);
+		res = cheax_eval(c, cons->value);
 		cheax_ft(c, pad);
 	}
-
-	res = retval;
 pad:
 	cheax_pop_env(c);
 	return res;
 }
+
+static struct chx_value *
+bltn_do(CHEAX *c, struct chx_list *args, void *info)
+{
+	struct chx_value *res = NULL;
+
+	if (args == NULL) {
+		cheax_throwf(c, CHEAX_EMATCH, "expected body");
+		return bt_wrap(c, NULL);
+	}
+
+	struct chx_env *new_env = cheax_push_env(c);
+	if (new_env == NULL)
+		return bt_wrap(c, NULL);
+	/* probably won't escape; major memory optimisation */
+	new_env->base.rtflags |= NO_ESC_BIT;
+
+	for (struct chx_list *cons = args; cons != NULL; cons = cons->next) {
+		res = cheax_eval(c, cons->value);
+		cheax_ft(c, pad);
+	}
+pad:
+	cheax_pop_env(c);
+	return res;
+}
+
 
 static struct chx_value *
 bltn_set(CHEAX *c, struct chx_list *args, void *info)
@@ -726,6 +749,7 @@ export_sym_bltns(CHEAX *c)
 	cheax_defmacro(c, "var",    bltn_var,    NULL);
 	cheax_defmacro(c, "def",    bltn_def,    NULL);
 	cheax_defmacro(c, "let",    bltn_let,    NULL);
+	cheax_defmacro(c, "do",     bltn_do,     NULL);
 	cheax_defmacro(c, "set",    bltn_set,    NULL);
 	cheax_defmacro(c, "env",    bltn_env,    NULL);
 }
