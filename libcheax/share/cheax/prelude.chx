@@ -28,11 +28,12 @@
   (case types
     ((: ty tys) (or (= (type-of value) ty) (is-any-of value tys)))
     (()         false)))
-(defmacro type-assert (: sym types)
- `(let ((names ',types)
+(defmacro type-assert (: symbol types)
+ `(let ((sym   ,symbol)
+        (names ',types)
         (tys   (unsafe-map eval names)))
-    (unless (is-any-of ,sym tys)
-      (throw ETYPE (format "`{}' must have type {}" ',sym (join names " or "))))))
+    (unless (is-any-of sym tys)
+      (throw ETYPE (format "`{}' must have type {}" ',symbol (join names " or "))))))
 
 (def pi 3.1415926535897932384)
 (def nil ())
