@@ -272,6 +272,12 @@ bt_print(CHEAX *c)
 	}
 }
 
+struct chx_value *
+bt_wrap(CHEAX *c, struct chx_value *v)
+{
+	return (cheax_errno(c) == 0) ? v : (cheax_add_bt(c), NULL);
+}
+
 /*
  *  _           _ _ _   _
  * | |__  _   _(_) | |_(_)_ __  ___

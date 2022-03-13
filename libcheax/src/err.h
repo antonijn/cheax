@@ -22,15 +22,11 @@ int bt_init(CHEAX *c, size_t limit);
 int bt_limit(CHEAX *c, size_t limit);
 void bt_print(CHEAX *c);
 
-static inline struct chx_value *
-bt_wrap(CHEAX *c, struct chx_value *v)
-{
-	if (cheax_errno(c) != 0) {
-		cheax_add_bt(c);
-		return NULL;
-	}
-	return v;
-}
+/*
+ * Helper function: calls cheax_add_bt(c) and returns NULL if
+ * cheax_errno(c) is set, just returns `v' otherwise.
+ */
+struct chx_value *bt_wrap(CHEAX *c, struct chx_value *v);
 
 void export_err_bltns(CHEAX *c);
 
