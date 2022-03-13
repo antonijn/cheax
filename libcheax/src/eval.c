@@ -60,8 +60,6 @@ pad:
 static struct chx_value *
 eval_sexpr(CHEAX *c, struct chx_list *input)
 {
-	bool add_bt = true;
-
 	struct chx_value *res = NULL, *head = cheax_eval(c, input->value);
 	chx_ref head_ref = cheax_ref(c, head);
 	cheax_ft(c, pad);
@@ -77,7 +75,6 @@ eval_sexpr(CHEAX *c, struct chx_list *input)
 	int ty = cheax_type_of(head);
 	switch (ty) {
 	case CHEAX_EXT_FUNC:
-		add_bt = false;
 		extf = (struct chx_ext_func *)head;
 		res = extf->perform(c, input->next, extf->info);
 		break;
@@ -87,19 +84,19 @@ eval_sexpr(CHEAX *c, struct chx_list *input)
 		fn = (struct chx_func *)head;
 		bool call_ok = false;
 
-		add_bt = false;
 		struct chx_list *old_args = args;
 		if (ty == CHEAX_FUNC && unpack(c, old_args, ".*", &args) < 0)
 			break;
-		add_bt = true;
 
 		struct chx_env *prev_env = c->env;
 		chx_ref prev_env_ref = cheax_ref(c, prev_env);
 		c->env = fn->lexenv;
 
 		new_env = cheax_push_env(c);
-		if (new_env == NULL)
+		if (new_env == NULL) {
+			cheax_add_bt(c);
 			goto env_fail_pad;
+		}
 		/* probably won't escape; major memory optimisation */
 		new_env->base.rtflags |= NO_ESC_BIT;
 
@@ -108,64 +105,56 @@ eval_sexpr(CHEAX *c, struct chx_list *input)
 		if (!arg_match_ok) {
 			if (cheax_errno(c) == 0)
 				cheax_throwf(c, CHEAX_EMATCH, "invalid (number of) arguments");
+			cheax_add_bt(c);
 			goto fn_pad;
 		}
 
-		struct chx_value *retval = NULL;
 		for (struct chx_list *cons = fn->body; cons != NULL; cons = cons->next) {
-			retval = cheax_eval(c, cons->value);
+			res = bt_wrap(c, cheax_eval(c, cons->value));
 			cheax_ft(c, fn_pad);
 		}
 
 		call_ok = true;
-		res = retval;
 fn_pad:
 		cheax_pop_env(c);
 env_fail_pad:
 		cheax_unref(c, prev_env, prev_env_ref);
 		c->env = prev_env;
 		if (call_ok && ty == CHEAX_MACRO)
-			res = cheax_eval(c, res);
+			res = bt_wrap(c, cheax_eval(c, res));
 		break;
 
 	case CHEAX_TYPECODE:
-		add_bt = false;
-		if (0 == unpack(c, args, ".", &cast_arg)) {
-			add_bt = true;
-			res = cheax_cast(c, cast_arg, ((struct chx_int *)head)->value);
-		}
+		if (0 == unpack(c, args, ".", &cast_arg))
+			res = bt_wrap(c, cheax_cast(c, cast_arg, ((struct chx_int *)head)->value));
 		break;
 
 	case CHEAX_ENV:
 		env = (struct chx_env *)head;
 		new_env = cheax_enter_env(c, env);
-		if (new_env == NULL)
+		if (new_env == NULL) {
+			cheax_add_bt(c);
 			break;
+		}
 		/* probably won't escape; major memory optimisation */
 		new_env->base.rtflags |= NO_ESC_BIT;
 
-		struct chx_value *envval = NULL;
 		for (struct chx_list *cons = args; cons != NULL; cons = cons->next) {
-			envval = cheax_eval(c, cons->value);
+			res = bt_wrap(c, cheax_eval(c, cons->value));
 			cheax_ft(c, env_pad);
 		}
-
-		res = envval;
 env_pad:
 		cheax_pop_env(c);
 		break;
 
 	default:
-		add_bt = true;
 		cheax_throwf(c, CHEAX_ETYPE, "eval(): invalid function call");
+		cheax_add_bt(c);
 		break;
 	}
 
 pad:
 	cheax_unref(c, head, head_ref);
-
-	if (add_bt && cheax_errno(c) != 0)
-		cheax_add_bt(c);
 	return res;
 }
 
@@ -397,10 +386,9 @@ static struct chx_value *
 bltn_eval(CHEAX *c, struct chx_list *args, void *info)
 {
 	struct chx_value *arg;
-	if (unpack(c, args, ".", &arg) < 0)
-		return NULL;
-
-	return bt_wrap(c, cheax_eval(c, arg));
+	return (0 == unpack(c, args, ".", &arg))
+	     ? bt_wrap(c, cheax_eval(c, arg))
+	     : NULL;
 }
 
 static struct chx_value *
@@ -425,8 +413,10 @@ bltn_case(CHEAX *c, struct chx_list *args, void *info)
 		struct chx_list *cons_pair = (struct chx_list *)pair;
 		struct chx_value *pan = cons_pair->value;
 
-		if (cheax_push_env(c) == NULL)
+		if (cheax_push_env(c) == NULL) {
+			cheax_add_bt(c);
 			goto pad;
+		}
 
 		if (!cheax_match(c, pan, what, CHEAX_READONLY)) {
 			cheax_pop_env(c);
@@ -458,20 +448,18 @@ static struct chx_value *
 bltn_eq(CHEAX *c, struct chx_list *args, void *info)
 {
 	struct chx_value *l, *r;
-	if (unpack(c, args, "..", &l, &r) < 0)
-		return NULL;
-
-	return bt_wrap(c, &cheax_bool(c, cheax_eq(c, l, r))->base);
+	return (0 == unpack(c, args, "..", &l, &r))
+	     ? bt_wrap(c, &cheax_bool(c, cheax_eq(c, l, r))->base)
+	     : NULL;
 }
 
 static struct chx_value *
 bltn_ne(CHEAX *c, struct chx_list *args, void *info)
 {
 	struct chx_value *l, *r;
-	if (unpack(c, args, "..", &l, &r) < 0)
-		return NULL;
-
-	return bt_wrap(c, &cheax_bool(c, !cheax_eq(c, l, r))->base);
+	return (0 == unpack(c, args, "..", &l, &r))
+	     ? bt_wrap(c, &cheax_bool(c, !cheax_eq(c, l, r))->base)
+	     : NULL;
 }
 
 void

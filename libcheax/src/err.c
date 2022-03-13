@@ -196,6 +196,11 @@ bt_limit(CHEAX *c, size_t limit)
 void
 cheax_add_bt(CHEAX *c)
 {
+	if (cheax_errno(c) == 0) {
+		cheax_throwf(c, CHEAX_EAPI, "add_bt(): no error has been thrown");
+		return;
+	}
+
 	if (c->bt.last_call == NULL)
 		return;
 
@@ -490,11 +495,9 @@ static struct chx_value *
 bltn_new_error_code(CHEAX *c, struct chx_list *args, void *info)
 {
 	const char *errname;
-	if (unpack(c, args, "N!", &errname) < 0)
-		return NULL;
-
-	cheax_new_error_code(c, errname);
-	return bt_wrap(c, NULL);
+	return (0 == unpack(c, args, "N!", &errname))
+	     ? bt_wrap(c, (cheax_new_error_code(c, errname), NULL))
+	     : NULL;
 }
 
 static void

@@ -662,10 +662,9 @@ static struct chx_value *
 bltn_type_of(CHEAX *c, struct chx_list *args, void *info)
 {
 	struct chx_value *val;
-	if (unpack(c, args, ".", &val) < 0)
-		return NULL;
-
-	return bt_wrap(c, &typecode(c, cheax_type_of(val))->base);
+	return (0 == unpack(c, args, ".", &val))
+	     ? bt_wrap(c, &typecode(c, cheax_type_of(val))->base)
+	     : NULL;
 }
 
 static struct chx_value *
@@ -727,10 +726,9 @@ static struct chx_value *
 bltn_strsize(CHEAX *c, struct chx_list *args, void *info)
 {
 	struct chx_string *str;
-	if (unpack(c, args, "s", &str) < 0)
-		return NULL;
-
-	return bt_wrap(c, &cheax_int(c, (int)str->len)->base);
+	return (0 == unpack(c, args, "s", &str))
+	     ? bt_wrap(c, &cheax_int(c, (int)str->len)->base)
+	     : NULL;
 }
 
 static struct chx_value *
