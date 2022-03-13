@@ -295,6 +295,8 @@ cleanup(void)
 int
 main(int argc, char **argv)
 {
+	const char *errstr = argv[0];
+
 	c = cheax_init();
 	atexit(cleanup);
 
@@ -306,39 +308,33 @@ main(int argc, char **argv)
 
 	cheax_load_feature(c, "all");
 
-	if (use_prelude && cheax_load_prelude(c) < 0) {
-		cheax_perror(c, argv[0]);
-		return EXIT_FAILURE;
-	}
+	if (use_prelude && cheax_load_prelude(c) < 0)
+		goto pad;
 
 	if (cmd != NULL) {
 		cheax_eval(c, cheax_readstr(c, cmd));
-		if (cheax_errno(c) != 0) {
-			cheax_perror(c, argv[0]);
-			return EXIT_FAILURE;
-		}
+		cheax_ft(c, pad);
 	}
 
 	if (read_stdin) {
+		errstr = "-";
 		int line = 1, pos = 0;
 		struct chx_value *v;
 		while ((v = cheax_read_at(c, stdin, "<stdin>", &line, &pos)) != NULL) {
-			cheax_ft(c, stdin_pad);
+			cheax_ft(c, pad);
 			cheax_eval(c, v);
-			cheax_ft(c, stdin_pad);
+			cheax_ft(c, pad);
 		}
 	}
 
 	for (size_t i = 0; i < num_input_files; ++i) {
+		errstr = input_files[i];
 		cheax_exec(c, input_files[i]);
-		if (cheax_errno(c) != 0) {
-			cheax_perror(c, input_files[i]);
-			return EXIT_FAILURE;
-		}
+		cheax_ft(c, pad);
 	}
 
 	return 0;
-stdin_pad:
-	cheax_perror(c, "-");
+pad:
+	cheax_perror(c, errstr);
 	return EXIT_FAILURE;
 }
