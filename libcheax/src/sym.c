@@ -644,8 +644,7 @@ bltn_let(CHEAX *c, struct chx_list *args, void *info)
 	/* probably won't escape; major memory optimisation */
 	new_env->base.rtflags |= NO_ESC_BIT;
 
-	for (; pairs != NULL; pairs = pairs->next)
-	{
+	for (; pairs != NULL; pairs = pairs->next) {
 		struct chx_value *pairv = pairs->value;
 		if (cheax_type_of(pairv) != CHEAX_LIST) {
 			cheax_throwf(c, CHEAX_ETYPE, "expected list of lists in first arg");
@@ -653,22 +652,15 @@ bltn_let(CHEAX *c, struct chx_list *args, void *info)
 			goto pad;
 		}
 
-		struct chx_list *pair = (struct chx_list *)pairv;
-		if (pair->next == NULL || pair->next->next != NULL) {
-			cheax_throwf(c, CHEAX_EVALUE, "expected list of match pairs in first arg");
+		struct chx_value *idval, *setto;
+		if (0 == unpack(c, (struct chx_list *)pairv, "_.", &idval, &setto)
+		 && !cheax_match(c, idval, setto, CHEAX_READONLY)
+		 && cheax_errno(c) == 0)
+		{
+			cheax_throwf(c, CHEAX_EMATCH, "failed match in pair list");
 			cheax_add_bt(c);
-			goto pad;
 		}
-
-		struct chx_value *pan = pair->value, *match = pair->next->value;
-		match = cheax_eval(c, match);
 		cheax_ft(c, pad);
-
-		if (!cheax_match(c, pan, match, CHEAX_READONLY)) {
-			cheax_throwf(c, CHEAX_EMATCH, "failed match in match pair list");
-			cheax_add_bt(c);
-			goto pad;
-		}
 	}
 
 	for (; body != NULL; body = body->next) {
