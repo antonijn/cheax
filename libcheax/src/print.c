@@ -28,15 +28,10 @@ static void
 ostrm_show_sym(CHEAX *c, struct ostrm *s, struct full_sym *fs)
 {
 	struct chx_sym *sym = &fs->sym;
-	if (sym->get == NULL) {
+	if (sym->get == NULL)
 		ostrm_printf(s, ";%s", fs->name);
-		return;
-	}
-
-	const char *decl = (sym->set == NULL) ? "def" : "var";
-	ostrm_printf(s, "(%s %s ", decl, fs->name);
-	ostrm_show(c, s, sym->get(c, sym));
-	ostrm_putc(s, ')');
+	else
+		ostrm_printf(s, "(%s %s)", (sym->set == NULL) ? "def" : "var", fs->name);
 }
 
 static void

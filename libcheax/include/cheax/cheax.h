@@ -353,8 +353,8 @@ struct chx_env;
  *
  * \sa cheax_push_env(), cheax_enter_env(), cheax_pop_env()
  *
- * \returns Currently active chx_env, or \a NULL if currently running in
- *          the global scope.
+ * \returns Currently active \ref chx_env, or \a NULL if currently
+ *          running in the global scope.
  */
 CHX_API struct chx_env *cheax_env(CHEAX *c);
 
@@ -791,9 +791,26 @@ CHX_API void cheax_def(CHEAX *c, const char *id, struct chx_value *value, int fl
  * \returns The value of the given symbol. Always \a NULL in case of an
  *          error.
  *
- * \sa cheax_set()
+ * \sa cheax_get_from(), cheax_set()
  */
 CHX_API struct chx_value *cheax_get(CHEAX *c, const char *id);
+
+/*! \brief Retrieves the value of the given symbol, performing symbol
+ *         lookup only in the specified environment.
+ *
+ * Sets cheax_errno() to \ref CHEAX_EAPI if \a id is \a NULL, or to
+ * \ref CHEAX_ENOSYM if no symbol with name \a id could be found.
+ *
+ * \param c   Virtual machine instance.
+ * \param env Environment to look up identifier in.
+ * \param id  Identifier to look up.
+ *
+ * \returns The value of the given symbol. Always \a NULL in case of an
+ *          error.
+ *
+ * \sa cheax_get(), cheax_set()
+ */
+CHX_API struct chx_value *cheax_get_from(CHEAX *c, struct chx_env *env, const char *id);
 
 /*! \brief Sets the value of a symbol.
  *

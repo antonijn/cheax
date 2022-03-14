@@ -110,6 +110,36 @@ read_fspec(CHEAX *c, struct scnr *fmt, struct fspec *sp)
 }
 
 static int
+show_env(CHEAX *c, struct sostrm *ss, struct chx_env *env, const char *func)
+{
+	struct chx_value *showf = cheax_get_from(c, env, func);
+	cheax_ft(c, pad);
+
+	int ty = cheax_type_of(showf);
+	if (ty != CHEAX_FUNC && ty != CHEAX_EXT_FUNC) {
+		cheax_throwf(c, CHEAX_ETYPE, "env %s symbol must be function", func);
+		return -1;
+	}
+	if (cheax_enter_env(c, env) == NULL)
+		return -1;
+
+	struct chx_value *ret = cheax_eval(c, &cheax_list(c, showf, NULL)->base);
+	cheax_ft(c, pad);
+	if (cheax_type_of(ret) != CHEAX_STRING) {
+		cheax_throwf(c, CHEAX_ETYPE, "env (%s) function must return string", func);
+		return -1;
+	}
+
+	struct chx_string *str = (struct chx_string *)ret;
+	for (size_t i = 0; i < str->len; ++i)
+		ostrm_putc(&ss->strm, str->value[i]);
+
+	return 0;
+pad:
+	return -1;
+}
+
+static int
 format_fspec(CHEAX *c, struct sostrm *ss, struct fspec *sp, struct chx_value *arg)
 {
 	struct ostrm *strm = &ss->strm;
@@ -185,6 +215,10 @@ format_fspec(CHEAX *c, struct sostrm *ss, struct fspec *sp, struct chx_value *ar
 			struct chx_string *str = (struct chx_string *)arg;
 			for (size_t i = 0; i < str->len; ++i)
 				ostrm_putc(strm, str->value[i]);
+		} else if (ty == CHEAX_ENV && sp->conv != CONV_NONE) {
+			const char *func = (sp->conv == CONV_S) ? "show" : "repr";
+			if (show_env(c, ss, (struct chx_env *)arg, func) < 0)
+				return -1;
 		} else {
 			ostrm_show(c, strm, arg);
 		}
@@ -208,6 +242,8 @@ scnr_format(CHEAX *c, struct scnr *fmt, struct chx_list *args, size_t size_hint)
 	size_t arg_count;
 	if (0 != cheax_list_to_array(c, args, &arg_array, &arg_count))
 		return NULL;
+
+	chx_ref args_ref = cheax_ref(c, args);
 
 	struct sostrm ss;
 	sostrm_init(&ss, c);
@@ -266,6 +302,7 @@ scnr_format(CHEAX *c, struct scnr *fmt, struct chx_list *args, size_t size_hint)
 			break;
 	}
 
+	cheax_unref(c, args, args_ref);
 	cheax_free(c, arg_array);
 	cheax_free(c, ss.buf);
 	return res;

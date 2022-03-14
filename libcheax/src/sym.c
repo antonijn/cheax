@@ -316,6 +316,29 @@ cheax_get(CHEAX *c, const char *id)
 	return sym->get(c, sym);
 }
 
+struct chx_value *
+cheax_get_from(CHEAX *c, struct chx_env *env, const char *id)
+{
+	if (id == NULL) {
+		cheax_throwf(c, CHEAX_EAPI, "get_from(): `id' cannot be NULL");
+		return NULL;
+	}
+
+	struct full_sym *fs = find_sym_in(norm_env(env), id);
+	if (fs == NULL) {
+		cheax_throwf(c, CHEAX_ENOSYM, "no such symbol `%s'", id);
+		return NULL;
+	}
+
+	struct chx_sym *sym = &fs->sym;
+	if (sym->get == NULL) {
+		cheax_throwf(c, CHEAX_EWRITEONLY, "cannot read from write-only symbol");
+		return NULL;
+	}
+
+	return sym->get(c, sym);
+}
+
 static struct chx_value *
 sync_int_get(CHEAX *c, struct chx_sym *sym)
 {
