@@ -20,15 +20,12 @@
 #include "unpack.h"
 
 static struct chx_value *
-do_aop(CHEAX *c,
-       const char *name,
-       struct chx_list *args,
-       int (*iop)(CHEAX *, int, int),
-       double (*fop)(CHEAX *, double, double))
+do_aop_once(CHEAX *c,
+            struct chx_value *l,
+            struct chx_value *r,
+            int (*iop)(CHEAX *, int, int),
+            double (*fop)(CHEAX *, double, double))
 {
-	struct chx_value *l, *r;
-	if (unpack(c, args, "[id][id]", &l, &r) < 0)
-		return NULL;
 
 	if (cheax_type_of(l) == CHEAX_INT && cheax_type_of(r) == CHEAX_INT) {
 		int li = ((struct chx_int *)l)->value;
@@ -46,6 +43,38 @@ do_aop(CHEAX *c,
 	try_vtod(l, &ld);
 	try_vtod(r, &rd);
 	return bt_wrap(c, &cheax_double(c, fop(c, ld, rd))->base);
+}
+
+static struct chx_value *
+do_aop(CHEAX *c,
+       struct chx_list *args,
+       int (*iop)(CHEAX *, int, int),
+       double (*fop)(CHEAX *, double, double))
+{
+	struct chx_value *l, *r;
+	return (0 == unpack(c, args, "[id][id]", &l, &r))
+	     ? do_aop_once(c, l, r, iop, fop)
+	     : NULL;
+}
+
+static struct chx_value *
+do_assoc_aop(CHEAX *c,
+             struct chx_list *args,
+             int (*iop)(CHEAX *, int, int),
+             double (*fop)(CHEAX *, double, double))
+{
+	struct chx_value *accum;
+	if (unpack(c, args, "[id]_+", &accum, &args) < 0)
+		return NULL;
+
+	while (args != NULL) {
+		struct chx_value *val;
+		if (unpack(c, args, "[id]_*", &val, &args) < 0)
+			return NULL;
+		accum = do_aop_once(c, accum, val, iop, fop);
+	}
+
+	return accum;
 }
 
 static int
@@ -157,27 +186,27 @@ iop_mod(CHEAX *c, int a, int b)
 static struct chx_value *
 bltn_add(CHEAX *c, struct chx_list *args, void *info)
 {
-	return do_aop(c, "+", args, iop_add, fop_add);
+	return do_assoc_aop(c, args, iop_add, fop_add);
 }
 static struct chx_value *
 bltn_sub(CHEAX *c, struct chx_list *args, void *info)
 {
-	return do_aop(c, "-", args, iop_sub, fop_sub);
+	return do_aop(c, args, iop_sub, fop_sub);
 }
 static struct chx_value *
 bltn_mul(CHEAX *c, struct chx_list *args, void *info)
 {
-	return do_aop(c, "*", args, iop_mul, fop_mul);
+	return do_assoc_aop(c, args, iop_mul, fop_mul);
 }
 static struct chx_value *
 bltn_div(CHEAX *c, struct chx_list *args, void *info)
 {
-	return do_aop(c, "/", args, iop_div, fop_div);
+	return do_aop(c, args, iop_div, fop_div);
 }
 static struct chx_value *
 bltn_mod(CHEAX *c, struct chx_list *args, void *info)
 {
-	return do_aop(c, "%", args, iop_mod, NULL);
+	return do_aop(c, args, iop_mod, NULL);
 }
 
 static struct chx_value *
