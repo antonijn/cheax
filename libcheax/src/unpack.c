@@ -184,7 +184,7 @@ unpack_arg(CHEAX *c,
 	struct chx_value *v = NULL;
 	int res;
 
-	bool has_refd_list = false;
+	bool has_refd_list = false, needs_one = false;
 	chx_ref lst_ref;
 
 	switch (mod) {
@@ -204,34 +204,35 @@ unpack_arg(CHEAX *c,
 		return store_arg(c, argc, argv_out, v, ap);
 
 	case '+':
-		res = unpack_once(c, args, ufs_i, ufs_f, &v);
-		if (res < 0)
-			return res;
-
-		lst = cheax_list(c, v, NULL);
-		if (lst == NULL)
-			return -CHEAX_EEVAL;
-		lst_ref = cheax_ref(c, lst);
-		has_refd_list = true;
-		nxt = &lst->next;
+		needs_one = true;
+		/* fall through */
 	case '*':
-		while ((res = unpack_once(c, args, ufs_i, ufs_f, &v)) == 0) {
-			*nxt = cheax_list(c, v, NULL);
-			if (*nxt == NULL) {
-				res = -CHEAX_EEVAL;
-				break;
-			}
+		/* special case optimisation */
+		if (ufs_f - ufs_i == 1 && *ufs_i == '_') {
+			*nxt = *args;
+			*args = NULL;
+		} else {
+			while ((res = unpack_once(c, args, ufs_i, ufs_f, &v)) == 0) {
+				*nxt = cheax_list(c, v, NULL);
+				if (*nxt == NULL) {
+					res = -CHEAX_EEVAL;
+					break;
+				}
 
-			nxt = &(*nxt)->next;
+				nxt = &(*nxt)->next;
 
-			if (!has_refd_list) {
-				lst_ref = cheax_ref(c, lst);
-				has_refd_list = true;
+				if (!has_refd_list) {
+					lst_ref = cheax_ref(c, lst);
+					has_refd_list = true;
+				}
 			}
 		}
 
 		if (has_refd_list)
 			cheax_unref(c, lst, lst_ref);
+
+		if (needs_one && lst == NULL)
+			return -CHEAX_EMATCH;
 
 		return (res == -CHEAX_EEVAL)
 		     ? -CHEAX_EEVAL

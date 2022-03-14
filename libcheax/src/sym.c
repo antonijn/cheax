@@ -634,16 +634,9 @@ bltn_let(CHEAX *c, struct chx_list *args, void *info)
 {
 	struct chx_value *res = NULL;
 
-	if (args == NULL) {
-		cheax_throwf(c, CHEAX_EMATCH, "invalid let");
-		return bt_wrap(c, NULL);
-	}
-
-	struct chx_value *pairsv = args->value;
-	if (pairsv != NULL && cheax_type_of(pairsv) != CHEAX_LIST) {
-		cheax_throwf(c, CHEAX_ETYPE, "invalid let");
-		return bt_wrap(c, NULL);
-	}
+	struct chx_list *pairs, *body;
+	if (unpack(c, args, "[C-]_+", &pairs, &body) < 0)
+		return NULL;
 
 	struct chx_env *new_env = cheax_push_env(c);
 	if (new_env == NULL)
@@ -651,9 +644,7 @@ bltn_let(CHEAX *c, struct chx_list *args, void *info)
 	/* probably won't escape; major memory optimisation */
 	new_env->base.rtflags |= NO_ESC_BIT;
 
-	for (struct chx_list *pairs = (struct chx_list *)pairsv;
-	     pairs != NULL;
-	     pairs = pairs->next)
+	for (; pairs != NULL; pairs = pairs->next)
 	{
 		struct chx_value *pairv = pairs->value;
 		if (cheax_type_of(pairv) != CHEAX_LIST) {
@@ -680,14 +671,8 @@ bltn_let(CHEAX *c, struct chx_list *args, void *info)
 		}
 	}
 
-	if (args->next == NULL) {
-		cheax_throwf(c, CHEAX_EMATCH, "expected body");
-		cheax_add_bt(c);
-		goto pad;
-	}
-
-	for (struct chx_list *cons = args->next; cons != NULL; cons = cons->next) {
-		res = cheax_eval(c, cons->value);
+	for (; body != NULL; body = body->next) {
+		res = cheax_eval(c, body->value);
 		cheax_ft(c, pad);
 	}
 pad:
@@ -699,11 +684,9 @@ static struct chx_value *
 bltn_do(CHEAX *c, struct chx_list *args, void *info)
 {
 	struct chx_value *res = NULL;
-
-	if (args == NULL) {
-		cheax_throwf(c, CHEAX_EMATCH, "expected body");
-		return bt_wrap(c, NULL);
-	}
+	struct chx_list *body;
+	if (unpack(c, args, "_+", &body) < 0)
+		return NULL;
 
 	struct chx_env *new_env = cheax_push_env(c);
 	if (new_env == NULL)
@@ -711,8 +694,8 @@ bltn_do(CHEAX *c, struct chx_list *args, void *info)
 	/* probably won't escape; major memory optimisation */
 	new_env->base.rtflags |= NO_ESC_BIT;
 
-	for (struct chx_list *cons = args; cons != NULL; cons = cons->next) {
-		res = cheax_eval(c, cons->value);
+	for (; body != NULL; body = body->next) {
+		res = cheax_eval(c, body->value);
 		cheax_ft(c, pad);
 	}
 pad:

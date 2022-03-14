@@ -21,14 +21,13 @@
 /*
  * Unpack argument list into several variables, performing type checks
  * and argument evaluation according to a (somewhat) regular expression.
- * Perform error reporting on behalve of `fname'.
  *
- * Example foo:
+ * Example:
  *
  *   int i1;
  *   struct chx_int *i2;
  *   struct chx_value *i3;
- *   unpack(c, "foo", <arg-list>, "i!Ii?", &i1, &i2, &i3);
+ *   unpack(c, <arg-list>, "i!Ii?", &i1, &i2, &i3);
  *
  * Will unpack an argument list of two or three integers into i1, i2 and
  * i3, where the first argument gets evaluated (lowercase "i" specifier)
@@ -37,11 +36,11 @@
  * as a chx_int pointer in i2. The optional ("?" modifier) third
  * argument gets stored in i3 if present, otherwise i3 is set to NULL.
  *
- * Example bar:
+ * Example:
  *
  *   const char *id;
  *   struct chx_list *nums;
- *   unpack(c, "bar", <arg-list>, "N![id]+", &id, &nums);
+ *   unpack(c, <arg-list>, "N![id]+", &id, &nums);
  *
  * Will unpack an argument list of one identifier followed by at least
  * one integer or double. The identifier argument is not evaluated
