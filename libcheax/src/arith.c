@@ -183,6 +183,22 @@ iop_mod(CHEAX *c, int a, int b)
 	return a % b;
 }
 
+static int
+iop_bit_and(CHEAX *c, int a, int b)
+{
+	return (int)((unsigned)a & (unsigned)b);
+}
+static int
+iop_bit_or(CHEAX *c, int a, int b)
+{
+	return (int)((unsigned)a | (unsigned)b);
+}
+static int
+iop_bit_xor(CHEAX *c, int a, int b)
+{
+	return (int)((unsigned)a ^ (unsigned)b);
+}
+
 static struct chx_value *
 bltn_add(CHEAX *c, struct chx_list *args, void *info)
 {
@@ -207,6 +223,115 @@ static struct chx_value *
 bltn_mod(CHEAX *c, struct chx_list *args, void *info)
 {
 	return do_aop(c, args, iop_mod, NULL);
+}
+
+static struct chx_value *
+bltn_bit_and(CHEAX *c, struct chx_list *args, void *info)
+{
+	return do_assoc_aop(c, args, iop_bit_and, NULL);
+}
+static struct chx_value *
+bltn_bit_or(CHEAX *c, struct chx_list *args, void *info)
+{
+	return do_assoc_aop(c, args, iop_bit_or, NULL);
+}
+static struct chx_value *
+bltn_bit_xor(CHEAX *c, struct chx_list *args, void *info)
+{
+	return do_assoc_aop(c, args, iop_bit_xor, NULL);
+}
+
+static struct chx_value *
+bltn_bit_not(CHEAX *c, struct chx_list *args, void *info)
+{
+	int i;
+	return (0 == unpack(c, args, "i!", &i))
+	     ? bt_wrap(c, &cheax_int(c, ~i)->base)
+	     : NULL;
+}
+
+/* shift mode */
+enum {
+	BIT_SHIFT,
+	ARITH_SHIFT,
+	ROTATE
+};
+
+static struct chx_value *
+do_shift(CHEAX *c, struct chx_list *args, bool right, int mode)
+{
+	int i, j;
+	struct chx_int *jval;
+	if (unpack(c, args, "i!i?", &i, &jval) < 0)
+		return NULL;
+
+	j = (jval == NULL) ? 1 : jval->value;
+	if (j < 0) {
+		if (j == INT_MIN) {
+			cheax_throwf(c, CHEAX_EOVERFLOW, "integer overflow");
+			return bt_wrap(c, NULL);
+		}
+
+		j = -j;
+		right = !right;
+	}
+
+	const unsigned bits = sizeof(unsigned) * 8, hibit = 1U << (bits - 1);
+	unsigned ui = i, uj = j, res;
+
+	if (mode == ROTATE) {
+		uj %= bits;
+		if (right && uj > 0)
+			uj = bits - uj;
+
+		res = ui;
+		for (unsigned k = 0; k < uj; ++k)
+			res = (res << 1) | (((res & hibit) != 0) ? 1 : 0);
+	} else {
+		if (uj >= bits) {
+			uj = bits;
+			res = 0;
+		} else {
+			res = right ? ui >> uj : ui << uj;
+		}
+
+		if (right && mode == ARITH_SHIFT && (ui & hibit) != 0)
+			for (unsigned k = 0; k < uj; ++k)
+				res |= hibit >> k;
+	}
+
+	return bt_wrap(c, &cheax_int(c, res)->base);
+}
+
+static struct chx_value *
+bltn_bit_shl(CHEAX *c, struct chx_list *args, void *info)
+{
+	return do_shift(c, args, false, BIT_SHIFT);
+}
+static struct chx_value *
+bltn_bit_shr(CHEAX *c, struct chx_list *args, void *info)
+{
+	return do_shift(c, args, true, BIT_SHIFT);
+}
+static struct chx_value *
+bltn_bit_sal(CHEAX *c, struct chx_list *args, void *info)
+{
+	return do_shift(c, args, false, ARITH_SHIFT);
+}
+static struct chx_value *
+bltn_bit_sar(CHEAX *c, struct chx_list *args, void *info)
+{
+	return do_shift(c, args, true, ARITH_SHIFT);
+}
+static struct chx_value *
+bltn_bit_rol(CHEAX *c, struct chx_list *args, void *info)
+{
+	return do_shift(c, args, false, ROTATE);
+}
+static struct chx_value *
+bltn_bit_ror(CHEAX *c, struct chx_list *args, void *info)
+{
+	return do_shift(c, args, true, ROTATE);
 }
 
 static struct chx_value *
@@ -268,10 +393,22 @@ export_arith_bltns(CHEAX *c)
 	cheax_defmacro(c, "*",  bltn_mul, NULL);
 	cheax_defmacro(c, "/",  bltn_div, NULL);
 	cheax_defmacro(c, "%",  bltn_mod, NULL);
-	cheax_defmacro(c, "<",  bltn_lt,  NULL);
-	cheax_defmacro(c, "<=", bltn_le,  NULL);
-	cheax_defmacro(c, ">",  bltn_gt,  NULL);
-	cheax_defmacro(c, ">=", bltn_ge,  NULL);
+
+	cheax_defmacro(c, "bit-and", bltn_bit_and, NULL);
+	cheax_defmacro(c, "bit-or",  bltn_bit_or,  NULL);
+	cheax_defmacro(c, "bit-xor", bltn_bit_xor, NULL);
+	cheax_defmacro(c, "bit-not", bltn_bit_not, NULL);
+	cheax_defmacro(c, "bit-shl", bltn_bit_shl, NULL);
+	cheax_defmacro(c, "bit-shr", bltn_bit_shr, NULL);
+	cheax_defmacro(c, "bit-sal", bltn_bit_sal, NULL);
+	cheax_defmacro(c, "bit-sar", bltn_bit_sar, NULL);
+	cheax_defmacro(c, "bit-rol", bltn_bit_rol, NULL);
+	cheax_defmacro(c, "bit-ror", bltn_bit_ror, NULL);
+
+	cheax_defmacro(c, "<",  bltn_lt, NULL);
+	cheax_defmacro(c, "<=", bltn_le, NULL);
+	cheax_defmacro(c, ">",  bltn_gt, NULL);
+	cheax_defmacro(c, ">=", bltn_ge, NULL);
 
 	cheax_def(c, "int-max", &cheax_int(c, INT_MAX)->base, CHEAX_READONLY);
 	cheax_def(c, "int-min", &cheax_int(c, INT_MIN)->base, CHEAX_READONLY);
