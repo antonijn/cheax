@@ -84,10 +84,6 @@ eval_sexpr(CHEAX *c, struct chx_list *input)
 		fn = (struct chx_func *)head;
 		bool call_ok = false;
 
-		struct chx_list *old_args = args;
-		if (ty == CHEAX_FUNC && unpack(c, old_args, ".*", &args) < 0)
-			break;
-
 		struct chx_env *prev_env = c->env;
 		chx_ref prev_env_ref = cheax_ref(c, prev_env);
 		c->env = fn->lexenv;
@@ -100,7 +96,8 @@ eval_sexpr(CHEAX *c, struct chx_list *input)
 		/* probably won't escape; major memory optimisation */
 		new_env->base.rtflags |= NO_ESC_BIT;
 
-		bool arg_match_ok = cheax_match(c, fn->args, &args->base, CHEAX_READONLY);
+		int mflags = CHEAX_READONLY | ((ty == CHEAX_FUNC) ? CHEAX_EVAL_NODES : 0);
+		bool arg_match_ok = cheax_match_in(c, prev_env, fn->args, &args->base, mflags);
 
 		if (!arg_match_ok) {
 			if (cheax_errno(c) == 0)
@@ -272,27 +269,59 @@ cheax_eval(CHEAX *c, struct chx_value *input)
 }
 
 static bool
-match_colon(CHEAX *c, struct chx_list *pan, struct chx_list *match, int flags)
+match_node(CHEAX *c,
+           struct chx_env *env,
+           struct chx_value *pan_node,
+           struct chx_value *match_node,
+           int flags)
 {
-	if (pan->next == NULL)
-		return cheax_match(c, pan->value, &match->base, flags);
+	if (has_flag(flags, CHEAX_EVAL_NODES)) {
+		struct chx_env *prev_env = c->env;
+		chx_ref prev_env_ref = cheax_ref(c, prev_env);
+		c->env = env;
 
-	return match != NULL
-	    && cheax_match(c, pan->value, match->value, flags)
-	    && match_colon(c, pan->next, match->next, flags);
+		match_node = cheax_eval(c, match_node);
+
+		cheax_unref(c, prev_env, prev_env_ref);
+		c->env = prev_env;
+		cheax_ft(c, pad);
+	}
+
+	return cheax_match_in(c, env, pan_node, match_node, flags & ~CHEAX_EVAL_NODES);
+pad:
+	return false;
 }
 
 static bool
-match_list(CHEAX *c, struct chx_list *pan, struct chx_list *match, int flags)
+match_colon(CHEAX *c,
+            struct chx_env *env,
+            struct chx_list *pan,
+            struct chx_list *match,
+            int flags)
+{
+	if (pan->next == NULL)
+		return cheax_match_in(c, env, pan->value, &match->base, flags);
+
+	return match != NULL
+	    && match_node(c, env, pan->value, match->value, flags)
+	    && match_colon(c, env, pan->next, match->next, flags);
+}
+
+static bool
+match_list(CHEAX *c,
+           struct chx_env *env,
+           struct chx_list *pan,
+           struct chx_list *match,
+           int flags)
 {
 	if (cheax_type_of(pan->value) == CHEAX_ID
 	 && strcmp((((struct chx_id *)pan->value)->id), ":") == 0)
 	{
-		return match_colon(c, pan->next, match, flags);
+		return match_colon(c, env, pan->next, match, flags);
 	}
 
 	while (pan != NULL && match != NULL) {
-		if (!cheax_match(c, pan->value, match->value, flags))
+		if (!match_node(c, env, pan->value, match->value, flags))
 			return false;
 
 		pan = pan->next;
@@ -303,11 +332,30 @@ match_list(CHEAX *c, struct chx_list *pan, struct chx_list *match, int flags)
 }
 
 bool
-cheax_match(CHEAX *c, struct chx_value *pan, struct chx_value *match, int flags)
+cheax_match_in(CHEAX *c,
+               struct chx_env *env,
+               struct chx_value *pan,
+               struct chx_value *match,
+               int flags)
 {
 	int pan_ty = cheax_type_of(pan);
 
 	if (pan_ty == CHEAX_ID) {
+		if (has_flag(flags, CHEAX_EVAL_NODES)
+		 && (cheax_type_of(match) == CHEAX_LIST || match == NULL))
+		{
+			struct chx_env *prev_env = c->env;
+			chx_ref prev_env_ref = cheax_ref(c, prev_env);
+			c->env = env;
+
+			int res = unpack(c, (struct chx_list *)match, ".*", &match);
+
+			cheax_unref(c, prev_env, prev_env_ref);
+			c->env = prev_env;
+			if (res < 0)
+				return false;
+		}
+
 		cheax_def(c, ((struct chx_id *)pan)->id, match, flags);
 		return cheax_errno(c) == 0; /* false if cheax_def() failed */
 	}
@@ -317,7 +365,7 @@ cheax_match(CHEAX *c, struct chx_value *pan, struct chx_value *match, int flags)
 
 	switch (pan_ty) {
 	case CHEAX_LIST:
-		return match_list(c, (struct chx_list *)pan, (struct chx_list *)match, flags);
+		return match_list(c, env, (struct chx_list *)pan, (struct chx_list *)match, flags);
 	case CHEAX_NIL:
 	case CHEAX_INT:
 	case CHEAX_DOUBLE:
@@ -327,6 +375,12 @@ cheax_match(CHEAX *c, struct chx_value *pan, struct chx_value *match, int flags)
 	default:
 		return false;
 	}
+}
+
+bool
+cheax_match(CHEAX *c, struct chx_value *pan, struct chx_value *match, int flags)
+{
+	return cheax_match_in(c, c->env, pan, match, flags);
 }
 
 bool

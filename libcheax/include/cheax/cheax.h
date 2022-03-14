@@ -712,7 +712,7 @@ CHX_API struct chx_list *cheax_array_to_list(CHEAX *c,
                                              struct chx_value **array,
                                              size_t length);
 
-/*! \brief Options for symbol declaration.
+/*! \brief Options for symbol declaration and value matching.
  *
  * \sa cheax_def(), cheax_match(), cheax_sync_int(), cheax_sync_float(),
  *     cheax_sync_double()
@@ -721,6 +721,10 @@ enum {
 	CHEAX_SYNCED     = 0x01, /*!< Reserved. \note Unused. */
 	CHEAX_READONLY   = 0x02, /*!< Marks a symbol read-only. */
 	CHEAX_WRITEONLY  = 0x04, /*!< Marks a symbol write-only. */
+
+	/*! \brief For cheax_match() and cheax_match_in(): evaluate list
+	 *         nodes before matching them. */
+	CHEAX_EVAL_NODES = 0x08,
 };
 
 /*! \brief Pushes new empty environment to environment stack.
@@ -858,6 +862,30 @@ CHX_API void cheax_sync_double(CHEAX *c, const char *name, double *var, int flag
  * \param flags Symbol flags. Use 0 if there are no special needs.
  */
 CHX_API void cheax_sync_nstring(CHEAX *c, const char *name, char *buf, size_t size, int flags);
+
+/*! \brief Matches a cheax expression to a given pattern.
+ *
+ * May declare some symbols in currently active environment, regardless
+ * of return value, and does \em not set cheax_errno() to
+ * \ref CHEAX_EMATCH if the expression did not match the pattern.
+ * If \a flags contains \ref CHEAX_EVAL_NODES, evaluation of node values
+ * occurs in environment \a env.
+ *
+ * \param c     Virtual machine instance.
+ * \param env   Environment to evaluate nodes in.
+ * \param pan   Pattern to match against.
+ * \param match Expression to match against \a pan.
+ * \param flags Variable flags for newly defined matched symbols. Use 0
+ *              if there are no special needs, although you should
+ *              probably use \ref CHEAX_READONLY.
+ *
+ * \returns Whether \a match matched the pattern \a pan.
+ */
+CHX_API bool cheax_match_in(CHEAX *c,
+                            struct chx_env *env,
+                            struct chx_value *pan,
+                            struct chx_value *match,
+                            int flags);
 
 /*! \brief Matches a cheax expression to a given pattern.
  *
