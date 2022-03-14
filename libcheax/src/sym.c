@@ -148,15 +148,17 @@ escape(struct chx_env *env)
 struct chx_env *
 cheax_env(CHEAX *c)
 {
-	escape(c->env);
-	return (c->env == NULL) ? &c->globals : c->env;
+	return escape(c->env), c->env;
 }
 
 struct chx_env *
 cheax_push_env(CHEAX *c)
 {
-	struct chx_env *env = gc_alloc_with_fin(c, sizeof(struct chx_env), CHEAX_ENV,
-	                                          norm_env_fin, NULL);
+	struct chx_env *env = gc_alloc_with_fin(c,
+	                                        sizeof(struct chx_env),
+	                                        CHEAX_ENV,
+	                                        norm_env_fin,
+	                                        NULL);
 	return (env == NULL) ? NULL : (c->env = norm_env_init(c, env, c->env));
 }
 

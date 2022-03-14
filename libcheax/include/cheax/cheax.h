@@ -349,6 +349,13 @@ CHX_API struct chx_user_ptr *cheax_user_ptr(CHEAX *c, void *value, int type);
  */
 struct chx_env;
 
+/*! \brief Currently active \ref chx_env.
+ *
+ * \sa cheax_push_env(), cheax_enter_env(), cheax_pop_env()
+ *
+ * \returns Currently active chx_env, or \a NULL if currently running in
+ *          the global scope.
+ */
 CHX_API struct chx_env *cheax_env(CHEAX *c);
 
 #if __STDC_VERSION__ >= 201112L
