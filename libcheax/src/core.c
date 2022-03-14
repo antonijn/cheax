@@ -690,6 +690,8 @@ create_func(CHEAX *c,
 	cheax_ft(c, pad);
 	res->args = arg_list;
 	res->body = body;
+	if (c->env != NULL)
+		c->env->base.rtflags &= ~NO_ESC_BIT;
 	res->lexenv = c->env;
 	return &res->base;
 pad:

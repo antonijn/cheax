@@ -559,7 +559,6 @@ bltn_defsym(CHEAX *c, struct chx_list *args, void *info)
 	struct chx_env *new_env = cheax_push_env(c);
 	if (new_env == NULL)
 		goto err_pad;
-	new_env->base.rtflags |= NO_ESC_BIT;
 
 	cheax_def(c, "defget", &defget->base, CHEAX_READONLY);
 	cheax_def(c, "defset", &defset->base, CHEAX_READONLY);
