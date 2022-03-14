@@ -120,11 +120,14 @@ show_env(CHEAX *c, struct sostrm *ss, struct chx_env *env, const char *func)
 		cheax_throwf(c, CHEAX_ETYPE, "env %s symbol must be function", func);
 		return -1;
 	}
-	if (cheax_enter_env(c, env) == NULL)
-		return -1;
+
+	cheax_enter_env(c, env);
+	cheax_ft(c, pad);
 
 	struct chx_value *ret = cheax_eval(c, &cheax_list(c, showf, NULL)->base);
+	cheax_pop_env(c);
 	cheax_ft(c, pad);
+
 	if (cheax_type_of(ret) != CHEAX_STRING) {
 		cheax_throwf(c, CHEAX_ETYPE, "env (%s) function must return string", func);
 		return -1;

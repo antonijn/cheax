@@ -413,10 +413,8 @@ pad:
 static void
 run_finally(CHEAX *c, struct chx_list *finally_block)
 {
-	struct chx_env *new_env = cheax_push_env(c);
-	if (new_env == NULL)
-		return;
-	new_env->base.rtflags |= NO_ESC_BIT;
+	cheax_push_env(c);
+	cheax_ft(c, pad2);
 
 	int active_errno = c->error.code;
 	struct chx_string *active_msg = c->error.msg;
@@ -438,6 +436,8 @@ run_finally(CHEAX *c, struct chx_list *finally_block)
 pad:
 	cheax_unref(c, active_msg, active_msg_ref);
 	cheax_pop_env(c);
+pad2:
+	return;
 }
 
 static struct chx_value *
@@ -462,10 +462,8 @@ bltn_try(CHEAX *c, struct chx_list *args, void *info)
 	if (validate_catch_blocks(c, catch_blocks, &finally_block) < 0)
 		return NULL;
 
-	struct chx_env *new_env = cheax_push_env(c);
-	if (new_env == NULL)
-		return NULL;
-	new_env->base.rtflags |= NO_ESC_BIT;
+	cheax_push_env(c);
+	cheax_ft(c, pad2);
 
 	struct chx_value *retval = cheax_eval(c, block);
 
@@ -476,8 +474,8 @@ bltn_try(CHEAX *c, struct chx_list *args, void *info)
 		 * We set errno and errmsg here rather than in run_catch(),
 		 * to allow (catch errno ...), which matches any error code.
 		 */
-		if (cheax_push_env(c) == NULL)
-			return NULL;
+		cheax_push_env(c);
+		cheax_ft(c, pad2);
 
 		int active_errno = c->error.code;
 
@@ -518,7 +516,7 @@ pad:
 		run_finally(c, finally_block);
 		cheax_unref(c, retval, retval_ref);
 	}
-
+pad2:
 	return retval;
 }
 

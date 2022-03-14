@@ -737,10 +737,8 @@ enum {
 /*! \brief Pushes new empty environment to environment stack.
  *
  * \param c  Virtual machine instance.
- *
- * \returns New environment.
  */
-CHX_API struct chx_env *cheax_push_env(CHEAX *c);
+CHX_API void cheax_push_env(CHEAX *c);
 
 /*! \brief Pushes new bifurcated environment to environment stack.
  *
@@ -749,10 +747,8 @@ CHX_API struct chx_env *cheax_push_env(CHEAX *c);
  *
  * \param c     Virtual machine instance.
  * \param main  Main branch of bifurcated environment.
- *
- * \returns New bifurcated environment.
  */
-CHX_API struct chx_env *cheax_enter_env(CHEAX *c, struct chx_env *main);
+CHX_API void cheax_enter_env(CHEAX *c, struct chx_env *main);
 
 /*! \brief Pops environment off environment stack.
  *

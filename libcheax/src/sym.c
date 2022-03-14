@@ -151,7 +151,7 @@ cheax_env(CHEAX *c)
 	return escape(c->env), c->env;
 }
 
-struct chx_env *
+void
 cheax_push_env(CHEAX *c)
 {
 	struct chx_env *env = gc_alloc_with_fin(c,
@@ -159,20 +159,23 @@ cheax_push_env(CHEAX *c)
 	                                        CHEAX_ENV,
 	                                        norm_env_fin,
 	                                        NULL);
-	return (env == NULL) ? NULL : (c->env = norm_env_init(c, env, c->env));
+	if (env != NULL) {
+		env->base.rtflags |= NO_ESC_BIT;
+		c->env = norm_env_init(c, env, c->env);
+	}
 }
 
-struct chx_env *
+void
 cheax_enter_env(CHEAX *c, struct chx_env *main)
 {
 	struct chx_env *env = gc_alloc(c, sizeof(struct chx_env), CHEAX_ENV);
 	if (env != NULL) {
+		env->base.rtflags |= NO_ESC_BIT;
 		env->is_bif = true;
 		env->value.bif[0] = main;
 		env->value.bif[1] = c->env;
 		c->env = env;
 	}
-	return env;
 }
 
 void
@@ -509,7 +512,7 @@ defgetset(CHEAX *c, const char *name,
 	if (res != NULL) {
 		res->args = getset_args;
 		res->body = args;
-		res->lexenv = c->env;
+		res->lexenv = cheax_env(c);
 	}
 	*out = res;
 }
@@ -581,9 +584,8 @@ bltn_defsym(CHEAX *c, struct chx_list *args, void *info)
 	defset = cheax_ext_func(c, "defset", bltn_defset, dinfo);
 	cheax_ft(c, err_pad); /* alloc failure */
 
-	struct chx_env *new_env = cheax_push_env(c);
-	if (new_env == NULL)
-		goto err_pad;
+	cheax_push_env(c);
+	cheax_ft(c, err_pad);
 
 	cheax_def(c, "defget", &defget->base, CHEAX_READONLY);
 	cheax_def(c, "defset", &defset->base, CHEAX_READONLY);
@@ -663,11 +665,8 @@ bltn_let(CHEAX *c, struct chx_list *args, void *info)
 	if (unpack(c, args, "[C-]_+", &pairs, &body) < 0)
 		return NULL;
 
-	struct chx_env *new_env = cheax_push_env(c);
-	if (new_env == NULL)
-		return bt_wrap(c, NULL);
-	/* probably won't escape; major memory optimisation */
-	new_env->base.rtflags |= NO_ESC_BIT;
+	cheax_push_env(c);
+	cheax_ft(c, pad2);
 
 	for (; pairs != NULL; pairs = pairs->next) {
 		struct chx_value *pairv = pairs->value;
@@ -694,6 +693,7 @@ bltn_let(CHEAX *c, struct chx_list *args, void *info)
 	}
 pad:
 	cheax_pop_env(c);
+pad2:
 	return res;
 }
 
@@ -705,11 +705,8 @@ bltn_do(CHEAX *c, struct chx_list *args, void *info)
 	if (unpack(c, args, "_+", &body) < 0)
 		return NULL;
 
-	struct chx_env *new_env = cheax_push_env(c);
-	if (new_env == NULL)
-		return bt_wrap(c, NULL);
-	/* probably won't escape; major memory optimisation */
-	new_env->base.rtflags |= NO_ESC_BIT;
+	cheax_push_env(c);
+	cheax_ft(c, pad2);
 
 	for (; body != NULL; body = body->next) {
 		res = cheax_eval(c, body->value);
@@ -717,6 +714,7 @@ bltn_do(CHEAX *c, struct chx_list *args, void *info)
 	}
 pad:
 	cheax_pop_env(c);
+pad2:
 	return res;
 }
 

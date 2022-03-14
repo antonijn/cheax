@@ -70,7 +70,6 @@ eval_sexpr(CHEAX *c, struct chx_list *input)
 	struct chx_ext_func *extf;
 	struct chx_func *fn;
 	struct chx_env *env;
-	struct chx_env *new_env;
 
 	int ty = cheax_type_of(head);
 	switch (ty) {
@@ -88,15 +87,15 @@ eval_sexpr(CHEAX *c, struct chx_list *input)
 		chx_ref prev_env_ref = cheax_ref(c, prev_env);
 		c->env = fn->lexenv;
 
-		new_env = cheax_push_env(c);
-		if (new_env == NULL) {
+		cheax_push_env(c);
+		if (cheax_errno(c) != 0) {
 			cheax_add_bt(c);
 			goto env_fail_pad;
 		}
-		/* probably won't escape; major memory optimisation */
-		new_env->base.rtflags |= NO_ESC_BIT;
 
-		int mflags = CHEAX_READONLY | ((ty == CHEAX_FUNC) ? CHEAX_EVAL_NODES : 0);
+		int mflags = CHEAX_READONLY;
+		if (ty == CHEAX_FUNC)
+			mflags |= CHEAX_EVAL_NODES;
 		bool arg_match_ok = cheax_match_in(c, prev_env, fn->args, &args->base, mflags);
 
 		if (!arg_match_ok) {
@@ -128,13 +127,11 @@ env_fail_pad:
 
 	case CHEAX_ENV:
 		env = (struct chx_env *)head;
-		new_env = cheax_enter_env(c, env);
-		if (new_env == NULL) {
+		cheax_enter_env(c, env);
+		if (cheax_errno(c) != 0) {
 			cheax_add_bt(c);
 			break;
 		}
-		/* probably won't escape; major memory optimisation */
-		new_env->base.rtflags |= NO_ESC_BIT;
 
 		for (struct chx_list *cons = args; cons != NULL; cons = cons->next) {
 			res = bt_wrap(c, cheax_eval(c, cons->value));
@@ -467,10 +464,8 @@ bltn_case(CHEAX *c, struct chx_list *args, void *info)
 		struct chx_list *cons_pair = (struct chx_list *)pair;
 		struct chx_value *pan = cons_pair->value;
 
-		if (cheax_push_env(c) == NULL) {
-			cheax_add_bt(c);
-			goto pad;
-		}
+		cheax_push_env(c);
+		cheax_ft(c, pad);
 
 		if (!cheax_match(c, pan, what, CHEAX_READONLY)) {
 			cheax_pop_env(c);
