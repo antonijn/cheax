@@ -121,11 +121,7 @@ show_env(CHEAX *c, struct sostrm *ss, struct chx_env *env, const char *func)
 		return -1;
 	}
 
-	cheax_enter_env(c, env);
-	cheax_ft(c, pad);
-
 	struct chx_value *ret = cheax_eval(c, &cheax_list(c, showf, NULL)->base);
-	cheax_pop_env(c);
 	cheax_ft(c, pad);
 
 	if (cheax_type_of(ret) != CHEAX_STRING) {
