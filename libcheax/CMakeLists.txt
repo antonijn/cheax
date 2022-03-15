@@ -38,6 +38,7 @@ add_library (libcheax
 	src/gc.c
 	src/io.c
 	src/loc.c
+	src/maths.c
 	src/print.c
 	src/rbtree.c
 	src/read.c
@@ -45,6 +46,9 @@ add_library (libcheax
 	src/sym.c
 	src/unpack.c)
 add_dependencies (libcheax generate_version_header)
+if (NOT MSVC)
+	target_link_libraries (libcheax m)
+endif ()
 
 generate_export_header (libcheax
 	BASE_NAME          CHX

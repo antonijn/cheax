@@ -119,6 +119,7 @@ struct cheax {
 bool try_vtoi(struct chx_value *value, int *res);
 /* v-to-d: value to double */
 bool try_vtod(struct chx_value *value, double *res);
+double vtod(struct chx_value *value);
 
 struct chx_int *typecode(CHEAX *c, int value);
 struct chx_int *errorcode(CHEAX *c, int value);

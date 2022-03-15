@@ -35,7 +35,6 @@
     (unless (is-any-of sym tys)
       (throw ETYPE (format "`{}' must have type {}" ',symbol (join names " or "))))))
 
-(def pi 3.1415926535897932384)
 (def nil ())
 
 (def Nil       (type-of nil))

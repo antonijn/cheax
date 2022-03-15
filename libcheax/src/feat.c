@@ -24,6 +24,7 @@
 #include "feat.h"
 #include "format.h"
 #include "gc.h"
+#include "maths.h"
 #include "io.h"
 #include "sym.h"
 #include "unpack.h"
@@ -114,6 +115,7 @@ export_bltns(CHEAX *c)
 	export_eval_bltns(c);
 	export_format_bltns(c);
 	export_io_bltns(c);
+	export_math_bltns(c);
 	export_sym_bltns(c);
 
 	cheax_defsym(c, "features", get_features, NULL, NULL, NULL);

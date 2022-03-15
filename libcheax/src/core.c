@@ -576,7 +576,7 @@ cheax_resolve_type(CHEAX *c, int type)
 }
 
 bool
-try_vtod(struct chx_value *value, double *res)
+try_vtoi(struct chx_value *value, int *res)
 {
 	switch (cheax_type_of(value)) {
 	case CHEAX_INT:
@@ -590,7 +590,7 @@ try_vtod(struct chx_value *value, double *res)
 	}
 }
 bool
-try_vtoi(struct chx_value *value, int *res)
+try_vtod(struct chx_value *value, double *res)
 {
 	switch (cheax_type_of(value)) {
 	case CHEAX_INT:
@@ -602,6 +602,13 @@ try_vtoi(struct chx_value *value, int *res)
 	default:
 		return false;
 	}
+}
+double
+vtod(struct chx_value *value)
+{
+	double res = 0.0;
+	try_vtod(value, &res);
+	return res;
 }
 
 int
