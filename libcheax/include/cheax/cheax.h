@@ -389,13 +389,13 @@ typedef bool chx_ref;
  *         gc deletion when cheax_eval() is called.
  * \sa cheax_unref()
  */
-CHX_API chx_ref cheax_ref(CHEAX *c, void *restrict value);
+CHX_API chx_ref cheax_ref(CHEAX *c, void *value);
 
 /*! \brief Decrease reference count on cheax value, potentially allowing
  *         it to be deleted by gc when cheax_eval() is called.
  * \sa cheax_ref()
  */
-CHX_API void cheax_unref(CHEAX *c, void *restrict value, chx_ref ref);
+CHX_API void cheax_unref(CHEAX *c, void *value, chx_ref ref);
 
 /*! \brief Gets the type code of the given expression.
  *
