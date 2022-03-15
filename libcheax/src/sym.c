@@ -202,10 +202,7 @@ cheax_defsym(CHEAX *c, const char *id,
              chx_getter get, chx_setter set,
              chx_finalizer fin, void *user_info)
 {
-	if (id == NULL) {
-		cheax_throwf(c, CHEAX_EAPI, "defsym(): `id' cannot be NULL");
-		return NULL;
-	}
+	ASSERT_NOT_NULL("defsym", id, NULL);
 
 	if (get == NULL && set == NULL) {
 		cheax_throwf(c, CHEAX_EAPI, "defsym(): `get' and `set' cannot both be NULL");
@@ -278,10 +275,7 @@ cheax_defmacro(CHEAX *c, const char *id, chx_func_ptr perform, void *info)
 void
 cheax_set(CHEAX *c, const char *id, struct chx_value *value)
 {
-	if (id == NULL) {
-		cheax_throwf(c, CHEAX_EAPI, "set(): `id' cannot be NULL");
-		return;
-	}
+	ASSERT_NOT_NULL_VOID("set", id);
 
 	struct full_sym *fs = find_sym(c, id);
 	if (fs == NULL) {
@@ -299,10 +293,7 @@ cheax_set(CHEAX *c, const char *id, struct chx_value *value)
 struct chx_value *
 cheax_get(CHEAX *c, const char *id)
 {
-	if (id == NULL) {
-		cheax_throwf(c, CHEAX_EAPI, "get(): `id' cannot be NULL");
-		return NULL;
-	}
+	ASSERT_NOT_NULL("get", id, NULL);
 
 	struct full_sym *fs = find_sym(c, id);
 	if (fs == NULL) {
@@ -322,10 +313,7 @@ cheax_get(CHEAX *c, const char *id)
 struct chx_value *
 cheax_get_from(CHEAX *c, struct chx_env *env, const char *id)
 {
-	if (id == NULL) {
-		cheax_throwf(c, CHEAX_EAPI, "get_from(): `id' cannot be NULL");
-		return NULL;
-	}
+	ASSERT_NOT_NULL("get_from", id, NULL);
 
 	struct full_sym *fs = find_sym_in(norm_env(env), id);
 	if (fs == NULL) {
@@ -354,6 +342,16 @@ sync_int_set(CHEAX *c, struct chx_sym *sym, struct chx_value *value)
 		cheax_throwf(c, CHEAX_ETYPE, "invalid type");
 }
 
+void
+cheax_sync_int(CHEAX *c, const char *name, int *var, int flags)
+{
+	ASSERT_NOT_NULL_VOID("sync_int", var);
+	cheax_defsym(c, name,
+	             has_flag(flags, CHEAX_WRITEONLY) ? NULL : sync_int_get,
+	             has_flag(flags, CHEAX_READONLY)  ? NULL : sync_int_set,
+	             NULL, var);
+}
+
 static struct chx_value *
 sync_bool_get(CHEAX *c, struct chx_sym *sym)
 {
@@ -371,18 +369,10 @@ sync_bool_set(CHEAX *c, struct chx_sym *sym, struct chx_value *value)
 void
 cheax_sync_bool(CHEAX *c, const char *name, bool *var, int flags)
 {
+	ASSERT_NOT_NULL_VOID("sync_bool", var);
 	cheax_defsym(c, name,
 	             has_flag(flags, CHEAX_WRITEONLY) ? NULL : sync_bool_get,
 	             has_flag(flags, CHEAX_READONLY)  ? NULL : sync_bool_set,
-	             NULL, var);
-}
-
-void
-cheax_sync_int(CHEAX *c, const char *name, int *var, int flags)
-{
-	cheax_defsym(c, name,
-	             has_flag(flags, CHEAX_WRITEONLY) ? NULL : sync_int_get,
-	             has_flag(flags, CHEAX_READONLY)  ? NULL : sync_int_set,
 	             NULL, var);
 }
 
@@ -404,6 +394,7 @@ sync_float_set(CHEAX *c, struct chx_sym *sym, struct chx_value *value)
 void
 cheax_sync_float(CHEAX *c, const char *name, float *var, int flags)
 {
+	ASSERT_NOT_NULL_VOID("sync_float", var);
 	cheax_defsym(c, name,
 	             has_flag(flags, CHEAX_WRITEONLY) ? NULL : sync_float_get,
 	             has_flag(flags, CHEAX_READONLY)  ? NULL : sync_float_set,
@@ -425,6 +416,7 @@ sync_double_set(CHEAX *c, struct chx_sym *sym, struct chx_value *value)
 void
 cheax_sync_double(CHEAX *c, const char *name, double *var, int flags)
 {
+	ASSERT_NOT_NULL_VOID("sync_double", var);
 	cheax_defsym(c, name,
 	             has_flag(flags, CHEAX_WRITEONLY) ? NULL : sync_double_get,
 	             has_flag(flags, CHEAX_READONLY)  ? NULL : sync_double_set,
@@ -469,10 +461,7 @@ sync_nstring_finalizer(CHEAX *c, struct chx_sym *sym)
 void
 cheax_sync_nstring(CHEAX *c, const char *name, char *buf, size_t size, int flags)
 {
-	if (buf == NULL) {
-		cheax_throwf(c, CHEAX_EAPI, "sync_nstring(): `buf' cannot be NULL");
-		return;
-	}
+	ASSERT_NOT_NULL_VOID("sync_nstring", buf);
 
 	if (size == 0) {
 		cheax_throwf(c, CHEAX_EAPI, "sync_nstring(): `size' cannot be zero");

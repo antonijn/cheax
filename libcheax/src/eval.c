@@ -23,10 +23,7 @@
 void
 cheax_exec(CHEAX *c, const char *path)
 {
-	if (path == NULL) {
-		cheax_throwf(c, CHEAX_EAPI, "exec(): `path' cannot be NULL");
-		return;
-	}
+	ASSERT_NOT_NULL_VOID("exec", path);
 
 	FILE *f = fopen(path, "rb");
 	if (f == NULL) {

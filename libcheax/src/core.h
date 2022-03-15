@@ -19,6 +19,20 @@
 #include "gc.h"
 #include "sym.h"
 
+#define ASSERT_NOT_NULL(name, x, ret) do { \
+	if ((x) == NULL) {                 \
+		cheax_throwf(c, CHEAX_EAPI, name "(): `" #x "' cannot be NULL"); \
+		return (ret);              \
+	}                                  \
+} while (false)
+
+#define ASSERT_NOT_NULL_VOID(name, x) do { \
+	if ((x) == NULL) {                 \
+		cheax_throwf(c, CHEAX_EAPI, name "(): `" #x "' cannot be NULL"); \
+		return;                    \
+	}                                  \
+} while (false)
+
 /* for rtflags field in chx_value */
 enum {
 	GC_BIT      = 0x0001, /* allocated by gc */

@@ -171,24 +171,16 @@ cheax_strsize(CHEAX *c, struct chx_string *str)
 struct chx_string *
 cheax_string(CHEAX *c, const char *value)
 {
-	if (value == NULL) {
-		cheax_throwf(c, CHEAX_EAPI, "string(): `value' cannot be NULL");
-		return NULL;
-	}
-
+	ASSERT_NOT_NULL("string", value, NULL);
 	return cheax_nstring(c, value, strlen(value));
 }
 struct chx_string *
 cheax_nstring(CHEAX *c, const char *value, size_t len)
 {
-	if (value == NULL) {
-		if (len != 0) {
-			cheax_throwf(c, CHEAX_EAPI, "nstring(): `value' cannot be NULL");
-			return NULL;
-		}
-
+	if (value == NULL && len == 0)
 		value = "";
-	}
+
+	ASSERT_NOT_NULL("nstring", value, NULL);
 
 	struct chx_string *res = gc_alloc(c, sizeof(struct chx_string) + len + 1, CHEAX_STRING);
 	if (res != NULL) {
@@ -205,10 +197,7 @@ cheax_nstring(CHEAX *c, const char *value, size_t len)
 struct chx_string *
 cheax_substr(CHEAX *c, struct chx_string *str, size_t pos, size_t len)
 {
-	if (str == NULL) {
-		cheax_throwf(c, CHEAX_EAPI, "substr(): `str' cannot be NULL");
-		return NULL;
-	}
+	ASSERT_NOT_NULL("substr", str, NULL);
 
 	if (pos > SIZE_MAX - len || pos + len > str->len) {
 		cheax_throwf(c, CHEAX_EINDEX, "substr(): substring out of bounds");
@@ -320,15 +309,8 @@ cheax_list_to_array(CHEAX *c, struct chx_list *list, struct chx_value ***array_p
 	size_t len = 0, cap = 0;
 	struct chx_value **res = NULL;
 
-	if (length == NULL) {
-		cheax_throwf(c, CHEAX_EAPI, "list_to_array(): `length' cannot be NULL");
-		return -1;
-	}
-
-	if (array_ptr == NULL) {
-		cheax_throwf(c, CHEAX_EAPI, "list_to_array(): `array_ptr' cannot be NULL");
-		return -1;
-	}
+	ASSERT_NOT_NULL("list_to_array", length, -1);
+	ASSERT_NOT_NULL("list_to_array", array_ptr, -1);
 
 	for (; list != NULL; list = list->next) {
 		if (++len > cap) {
@@ -354,10 +336,7 @@ cheax_list_to_array(CHEAX *c, struct chx_list *list, struct chx_value ***array_p
 struct chx_list *
 cheax_array_to_list(CHEAX *c, struct chx_value **array, size_t length)
 {
-	if (array == NULL && length > 0) {
-		cheax_throwf(c, CHEAX_EAPI, "array_to_list(): `array' cannot be NULL");
-		return NULL;
-	}
+	ASSERT_NOT_NULL("array_to_list", array, NULL);
 
 	struct chx_list *res = NULL;
 	for (size_t i = length; i >= 1; --i) {
@@ -457,10 +436,7 @@ cheax_type_of(struct chx_value *v)
 int
 cheax_new_type(CHEAX *c, const char *name, int base_type)
 {
-	if (name == NULL) {
-		cheax_throwf(c, CHEAX_EAPI, "new_type(): `name' cannot be NULL");
-		return -1;
-	}
+	ASSERT_NOT_NULL("new_type", name, -1);
 
 	if (!cheax_is_valid_type(c, base_type)) {
 		cheax_throwf(c, CHEAX_EAPI, "new_type(): `base_type' is not a valid type");
@@ -516,10 +492,7 @@ pad:
 int
 cheax_find_type(CHEAX *c, const char *name)
 {
-	if (name == NULL) {
-		cheax_throwf(c, CHEAX_EAPI, "find_type(): `name' cannot be NULL");
-		return -1;
-	}
+	ASSERT_NOT_NULL("find_type", name, -1);
 
 	for (size_t i = 0; i < c->typestore.len; ++i)
 		if (0 == strcmp(name, c->typestore.array[i].name))

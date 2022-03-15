@@ -314,10 +314,7 @@ scnr_format(CHEAX *c, struct scnr *fmt, struct chx_list *args, size_t size_hint)
 struct chx_string *
 cheax_format(CHEAX *c, struct chx_string *fmt, struct chx_list *args)
 {
-	if (fmt == NULL) {
-		cheax_throwf(c, CHEAX_EAPI, "format(): `fmt' cannot be NULL");
-		return NULL;
-	}
+	ASSERT_NOT_NULL("format", fmt, NULL);
 
 	struct sistrm ss;
 	sistrm_initn(&ss, fmt->value, fmt->len);
