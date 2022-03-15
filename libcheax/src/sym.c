@@ -354,6 +354,29 @@ sync_int_set(CHEAX *c, struct chx_sym *sym, struct chx_value *value)
 		cheax_throwf(c, CHEAX_ETYPE, "invalid type");
 }
 
+static struct chx_value *
+sync_bool_get(CHEAX *c, struct chx_sym *sym)
+{
+	return &cheax_bool(c, *(bool *)sym->user_info)->base;
+}
+static void
+sync_bool_set(CHEAX *c, struct chx_sym *sym, struct chx_value *value)
+{
+	if (cheax_type_of(value) != CHEAX_BOOL)
+		cheax_throwf(c, CHEAX_ETYPE, "invalid type");
+	else
+		*(bool *)sym->user_info = ((struct chx_int *)value)->value != 0;
+}
+
+void
+cheax_sync_bool(CHEAX *c, const char *name, bool *var, int flags)
+{
+	cheax_defsym(c, name,
+	             has_flag(flags, CHEAX_WRITEONLY) ? NULL : sync_bool_get,
+	             has_flag(flags, CHEAX_READONLY)  ? NULL : sync_bool_set,
+	             NULL, var);
+}
+
 void
 cheax_sync_int(CHEAX *c, const char *name, int *var, int flags)
 {

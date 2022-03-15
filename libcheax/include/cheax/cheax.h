@@ -721,8 +721,8 @@ CHX_API struct chx_list *cheax_array_to_list(CHEAX *c,
 
 /*! \brief Options for symbol declaration and value matching.
  *
- * \sa cheax_def(), cheax_match(), cheax_sync_int(), cheax_sync_float(),
- *     cheax_sync_double()
+ * \sa cheax_def(), cheax_match(), cheax_sync_int(), cheax_sync_bool(),
+ *     cheax_sync_float(), cheax_sync_double()
  */
 enum {
 	CHEAX_SYNCED     = 0x01, /*!< Reserved. \note Unused. */
@@ -853,6 +853,15 @@ CHX_API void cheax_defmacro(CHEAX *c, const char *id, chx_func_ptr perform, void
  * \param flags Symbol flags. Use 0 if there are no special needs.
  */
 CHX_API void cheax_sync_int(CHEAX *c, const char *name, int *var, int flags);
+
+/*! \brief Synchronizes a variable from C with a symbol in the cheax environment.
+ *
+ * \param c     Virtual machine instance.
+ * \param name  Identifier for the symbol in the cheax environment.
+ * \param var   Reference to the C variable to synchronize.
+ * \param flags Symbol flags. Use 0 if there are no special needs.
+ */
+CHX_API void cheax_sync_bool(CHEAX *c, const char *name, bool *var, int flags);
 
 /*! \brief Synchronizes a variable from C with a symbol in the cheax environment.
  *
