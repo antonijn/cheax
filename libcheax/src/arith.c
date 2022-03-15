@@ -254,8 +254,42 @@ bltn_bit_not(CHEAX *c, struct chx_list *args, void *info)
 enum {
 	BIT_SHIFT,
 	ARITH_SHIFT,
-	ROTATE
+	ROTATE,
 };
+
+#define UINT_BIT (sizeof(unsigned) * CHAR_BIT)
+
+static unsigned
+shift(unsigned i, unsigned j, bool right, int mode)
+{
+	const unsigned hibit = 1U << (UINT_BIT - 1);
+
+	if (mode == ROTATE) {
+		j %= UINT_BIT;
+		if (j == 0)
+			return i;
+
+		return right
+		     ? (i >> j) | (i << (UINT_BIT - j))
+		     : (i << j) | (i >> (UINT_BIT - j));
+	}
+
+	if (j == 0)
+		return i;
+
+	unsigned res;
+	if (j >= UINT_BIT) {
+		j = UINT_BIT;
+		res = 0;
+	} else {
+		res = right ? i >> j : i << j;
+	}
+
+	if (right && mode == ARITH_SHIFT && (i & hibit) != 0)
+		res |= ~0U << (UINT_BIT - j);
+
+	return res;
+}
 
 static struct chx_value *
 do_shift(CHEAX *c, struct chx_list *args, bool right, int mode)
@@ -276,31 +310,7 @@ do_shift(CHEAX *c, struct chx_list *args, bool right, int mode)
 		right = !right;
 	}
 
-	const unsigned bits = sizeof(unsigned) * 8, hibit = 1U << (bits - 1);
-	unsigned ui = i, uj = j, res;
-
-	if (mode == ROTATE) {
-		uj %= bits;
-		if (right && uj > 0)
-			uj = bits - uj;
-
-		res = ui;
-		for (unsigned k = 0; k < uj; ++k)
-			res = (res << 1) | (((res & hibit) != 0) ? 1 : 0);
-	} else {
-		if (uj >= bits) {
-			uj = bits;
-			res = 0;
-		} else {
-			res = right ? ui >> uj : ui << uj;
-		}
-
-		if (right && mode == ARITH_SHIFT && (ui & hibit) != 0)
-			for (unsigned k = 0; k < uj; ++k)
-				res |= hibit >> k;
-	}
-
-	return bt_wrap(c, &cheax_int(c, res)->base);
+	return bt_wrap(c, &cheax_int(c, shift(i, j, right, mode))->base);
 }
 
 static struct chx_value *
@@ -361,7 +371,7 @@ do_cmp(CHEAX *c,
 		is_gt = ld > rd;
 	}
 
-	return bt_wrap(c, &cheax_bool(c, ((lt && is_lt) || (eq && is_eq) || (gt && is_gt)))->base);
+	return &cheax_bool(c, ((lt && is_lt) || (eq && is_eq) || (gt && is_gt)))->base;
 }
 
 static struct chx_value *

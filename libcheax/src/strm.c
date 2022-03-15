@@ -13,6 +13,8 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  */
 
+#include <limits.h>
+
 #include "err.h"
 #include "strm.h"
 
@@ -37,7 +39,7 @@ ostrm_printi(struct ostrm *strm, int num, char pad_char, int field_width, char m
 	if (pos_num < 0)
 		pos_num = -pos_num;
 
-	char buf[1 + sizeof(int) * 8 * 2];
+	char buf[1 + sizeof(int) * CHAR_BIT * 2];
 	int i = sizeof(buf) - 1;
 	buf[i--] = '\0';
 
