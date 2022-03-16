@@ -269,6 +269,26 @@ done:
 }
 
 static void
+put_cp(struct ostrm *ostr, unsigned cp)
+{
+	if (cp < 0x80) {
+		ostrm_putc(ostr, cp);
+	} else if (cp < 0x800) {
+		ostrm_putc(ostr, 0xC0 |  (cp >> 6));
+		ostrm_putc(ostr, 0x80 |  (cp & 0x3F));
+	} else if (cp < 0x10000) {
+		ostrm_putc(ostr, 0xE0 |  (cp >> 12));
+		ostrm_putc(ostr, 0x80 | ((cp >>  6) & 0x3F));
+		ostrm_putc(ostr, 0x80 |  (cp & 0x3F));
+	} else {
+		ostrm_putc(ostr, 0xF0 | ((cp >> 18) & 0x07));
+		ostrm_putc(ostr, 0x80 | ((cp >> 12) & 0x3F));
+		ostrm_putc(ostr, 0x80 | ((cp >>  6) & 0x3F));
+		ostrm_putc(ostr, 0x80 |  (cp & 0x3F));
+	}
+}
+
+static void
 read_bslash(struct read_info *ri, struct scnr *s, struct ostrm *ostr) /* consume_final = true */
 {
 	/* I expect the backslash itself to have been consumed */
@@ -312,7 +332,34 @@ read_bslash(struct read_info *ri, struct scnr *s, struct ostrm *ostr) /* consume
 		return;
 	}
 
-	/* TODO maybe uXXXX expressions */
+	if (s->ch == 'u') {
+		scnr_adv(s);
+		unsigned digits[4];
+		for (int i = 0; i < 4; ++i) {
+			if (s->ch >= '0' && s->ch <= '9') {
+				digits[i] = s->ch - '0';
+			} else if (s->ch >= 'A' && s->ch <= 'F') {
+				digits[i] = s->ch - 'A' + 10;
+			} else if (s->ch >= 'a' && s->ch <= 'f') {
+				digits[i] = s->ch - 'a' + 10;
+			} else {
+				cheax_throwf(ri->c, CHEAX_EREAD, "expected four hex digits after `\\u'");
+				return;
+			}
+
+			scnr_adv(s);
+		}
+
+		/* code point */
+		unsigned cp = (digits[0] << 12) | (digits[1] << 8) | (digits[2] << 4) | digits[3];
+		if (cp > 0x10FFFF) {
+			cheax_throwf(ri->c, CHEAX_EREAD, "code point out of bounds: %x", cp);
+			return;
+		}
+
+		put_cp(ostr, cp);
+		return;
+	}
 
 	cheax_throwf(ri->c, CHEAX_EREAD, "unexpected character after `\\'");
 }
