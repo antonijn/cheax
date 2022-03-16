@@ -185,8 +185,6 @@
   (rev-helper xs ()))
 
 (defun length (xs) (foldr (fn (_ l) (+ 1 l)) 0 xs))
-(defun sum (args) (foldr + 0 args))
-(defun product (args) (foldr * 1 args))
 
 (defun unsafe-!! (xs i orig-i)
   (case xs
@@ -198,19 +196,6 @@
   (when (< i 0)
     (throw EINDEX (format "expected non-negative index (got {})" i)))
   (unsafe-!! xs i i))
-
-(defun ~ (x) (- 0 x))
-
-(defun ..helper (from to step fin)
-  (if (fin from to)
-    ()
-    (: from (..helper (+ from step) to step fin))))
-(defun .. (from to)
-  (type-assert from Int)
-  (type-assert to Int)
-  (if (<= from to)
-    (..helper from to  1 >)
-    (..helper from to -1 <)))
 
 (defun list-starts-with (pfx arg)
   (case pfx
@@ -264,3 +249,42 @@
 (defun put (arg) (put-to stdout arg))
 (defun get-line () (get-line-from stdin))
 (defun get-byte () (get-byte-from stdin))
+
+(defun sum (args) (foldr + 0 args))
+(defun product (args) (foldr * 1 args))
+
+(defun ~ (x) (- 0 x))
+
+(defun ..helper (from to step fin)
+  (if (fin from to)
+    ()
+    (: from (..helper (+ from step) to step fin))))
+(defun .. (from to)
+  (type-assert from Int)
+  (type-assert to Int)
+  (if (<= from to)
+    (..helper from to  1 >)
+    (..helper from to -1 <)))
+
+(defun maximum ((: x xs))
+  (foldr (fn (a b) (if (> a b) a b)) x xs))
+(defun minimum ((: x xs))
+  (foldr (fn (a b) (if (< a b) a b)) x xs))
+
+(defun max args (maximum args))
+(defun min args (minimum args))
+
+(defun clamp (x a b)
+  (type-assert x Int Double)
+  (type-assert a Int Double)
+  (type-assert b Int Double)
+  (if (< x a)
+    a
+    (if (> x b)
+      b
+      x)))
+(defun lerp (a b t)
+  (type-assert a Int Double)
+  (type-assert b Int Double)
+  (type-assert t Int Double)
+  (+ a (* t (- b a))))
