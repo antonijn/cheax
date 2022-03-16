@@ -26,12 +26,12 @@
 
 (defmacro do body `(let () ,@body))
 
-(defun is-any-of (ty-in types)
+(defun any-of? (ty-in types)
   (case types
-    ((: ty tys) (or (= ty-in ty) (is-any-of ty-in tys)))
+    ((: ty tys) (or (= ty-in ty) (any-of? ty-in tys)))
     (()         false)))
 (defmacro type-assert (: symbol types)
- `(unless (is-any-of (type-of ,symbol) (list ,@types))
+ `(unless (any-of? (type-of ,symbol) (list ,@types))
     (throw ETYPE (format "`{}' must have type {}" ',symbol (join ',types " or ")))))
 
 (def nil ())
@@ -127,7 +127,7 @@
   (any (fn (x) (= e x)) xs))
 
 (defun unsafe-strfind (e s)
-  (if (starts-with e s)
+  (if (prefix? e s)
     0
     (if (= s "")
       nil
@@ -197,30 +197,30 @@
     (throw EINDEX (format "expected non-negative index (got {})" i)))
   (unsafe-!! xs i i))
 
-(defun list-starts-with (pfx arg)
+(defun list-prefix? (pfx arg)
   (case pfx
     ((: p ps)
       (case arg
-        ((: a as) (and (= p a) (list-starts-with ps as)))
+        ((: a as) (and (= p a) (list-prefix? ps as)))
         (()       false)))
     (() true)))
-(defun starts-with (pfx arg)
+(defun prefix? (pfx arg)
   (if (= (type-of pfx) String)
     (do (type-assert arg String)
-        (let ((n (strsize pfx)))
-          (and (<= n (strsize arg)) (= pfx (substr arg 0 n)))))
+        (let ((n (string-length pfx)))
+          (and (<= n (string-length arg)) (= pfx (substr arg 0 n)))))
     (do (type-assert pfx List Nil)
         (type-assert arg List Nil)
-        (list-starts-with pfx arg))))
+        (list-prefix? pfx arg))))
 
-(defun ends-with (sfx arg)
+(defun suffix? (sfx arg)
   (if (= (type-of sfx) String)
     (do (type-assert arg String)
-        (let ((n (strsize sfx)) (m (strsize arg)))
+        (let ((n (string-length sfx)) (m (string-length arg)))
           (and (<= n m) (= sfx (substr arg (- m n))))))
     (do (type-assert sfx List Nil)
         (type-assert arg List Nil)
-        (list-starts-with (reverse sfx) (reverse arg)))))
+        (list-prefix? (reverse sfx) (reverse arg)))))
 
 (defun show (arg) (format "{!s}" arg))
 (defun repr (arg) (format "{!r}" arg))
@@ -228,7 +228,7 @@
 (defun unsafe-split (s at)
   (case (find at s)
     (() s)
-    (n  (: (substr s 0 n) (unsafe-split (substr s (+ n (strsize at))) at)))))
+    (n  (: (substr s 0 n) (unsafe-split (substr s (+ n (string-length at))) at)))))
 (defun split (s at)
   (type-assert s String)
   (type-assert at String)

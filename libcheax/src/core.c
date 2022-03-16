@@ -172,7 +172,7 @@ cheax_ext_func(CHEAX *c, const char *name, chx_func_ptr perform, void *info)
 	return res;
 }
 size_t
-cheax_strsize(CHEAX *c, struct chx_string *str)
+cheax_strlen(CHEAX *c, struct chx_string *str)
 {
 	return (str == NULL) ? 0 : str->len;
 }
@@ -698,7 +698,7 @@ bltn_macro(CHEAX *c, struct chx_list *args, void *info)
 }
 
 static struct chx_value *
-bltn_strbytes(CHEAX *c, struct chx_list *args, void *info)
+bltn_string_bytes(CHEAX *c, struct chx_list *args, void *info)
 {
 	struct chx_string *str;
 	if (unpack(c, args, "s", &str) < 0)
@@ -711,7 +711,7 @@ bltn_strbytes(CHEAX *c, struct chx_list *args, void *info)
 }
 
 static struct chx_value *
-bltn_strsize(CHEAX *c, struct chx_list *args, void *info)
+bltn_string_length(CHEAX *c, struct chx_list *args, void *info)
 {
 	struct chx_string *str;
 	return (0 == unpack(c, args, "s", &str))
@@ -744,13 +744,13 @@ bltn_substr(CHEAX *c, struct chx_list *args, void *info)
 void
 export_core_bltns(CHEAX *c)
 {
-	cheax_defmacro(c, ":",        bltn_prepend,  NULL);
-	cheax_defmacro(c, "type-of",  bltn_type_of,  NULL);
-	cheax_defmacro(c, "fn",       bltn_fn,       NULL);
-	cheax_defmacro(c, "macro",    bltn_macro,    NULL);
-	cheax_defmacro(c, "strbytes", bltn_strbytes, NULL);
-	cheax_defmacro(c, "strsize",  bltn_strsize,  NULL);
-	cheax_defmacro(c, "substr",   bltn_substr,   NULL);
+	cheax_defmacro(c, ":",             bltn_prepend,       NULL);
+	cheax_defmacro(c, "type-of",       bltn_type_of,       NULL);
+	cheax_defmacro(c, "fn",            bltn_fn,            NULL);
+	cheax_defmacro(c, "macro",         bltn_macro,         NULL);
+	cheax_defmacro(c, "string-bytes",  bltn_string_bytes,  NULL);
+	cheax_defmacro(c, "string-length", bltn_string_length, NULL);
+	cheax_defmacro(c, "substr",        bltn_substr,        NULL);
 
 	cheax_def(c, "cheax-version", &cheax_string(c, cheax_version())->base, CHEAX_READONLY);
 }

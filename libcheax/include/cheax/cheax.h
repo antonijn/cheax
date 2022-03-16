@@ -273,19 +273,19 @@ CHX_API struct chx_quote *cheax_comma(CHEAX *c, struct chx_value *value);
 CHX_API struct chx_quote *cheax_splice(CHEAX *c, struct chx_value *value);
 
 /*! \brief Cheax string expression.
- * \sa cheax_string(), cheax_nstring(), CHEAX_STRING, cheax_strsize(),
+ * \sa cheax_string(), cheax_nstring(), CHEAX_STRING, cheax_strlen(),
  *     cheax_substr(), cheax_strdup()
  */
 struct chx_string;
 
-/*! \brief Returns size of string in number of bytes.
+/*! \brief Size of string in number of bytes.
  *
  * \param c   Virtual machine instance.
  * \param str String.
  *
  * \returns Size of given string, or zero if \a str is \a NULL.
  */
-CHX_API size_t cheax_strsize(CHEAX *c, struct chx_string *str);
+CHX_API size_t cheax_strlen(CHEAX *c, struct chx_string *str);
 
 /*! \brief Creates a cheax string expression.
  *
