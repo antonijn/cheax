@@ -542,6 +542,7 @@ cheax_eq(CHEAX *c, struct chx_value *l, struct chx_value *r)
 	case CHEAX_QUOTE:
 	case CHEAX_BACKQUOTE:
 	case CHEAX_COMMA:
+	case CHEAX_SPLICE:
 		return cheax_eq(c, ((struct chx_quote *)l)->value, ((struct chx_quote *)r)->value);
 	case CHEAX_STRING:
 		;
