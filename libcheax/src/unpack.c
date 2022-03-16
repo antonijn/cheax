@@ -184,8 +184,7 @@ unpack_arg(CHEAX *c,
 	struct chx_value *v = NULL;
 	int res;
 
-	bool has_refd_list = false, needs_one = false;
-	chx_ref lst_ref;
+	bool needs_one = false;
 
 	switch (mod) {
 	case '!':
@@ -213,24 +212,22 @@ unpack_arg(CHEAX *c,
 			*args = NULL;
 			res = 0;
 		} else {
-			while ((res = unpack_once(c, args, ufs_i, ufs_f, &v)) == 0) {
+			for (;;) {
+				chx_ref lst_ref = cheax_ref(c, lst);
+
+				if ((res = unpack_once(c, args, ufs_i, ufs_f, &v)) == 0)
+					break;
+
 				*nxt = cheax_list(c, v, NULL);
 				if (*nxt == NULL) {
 					res = -CHEAX_EEVAL;
 					break;
 				}
-
 				nxt = &(*nxt)->next;
 
-				if (!has_refd_list) {
-					lst_ref = cheax_ref(c, lst);
-					has_refd_list = true;
-				}
+				cheax_unref(c, lst, lst_ref);
 			}
 		}
-
-		if (has_refd_list)
-			cheax_unref(c, lst, lst_ref);
 
 		if (needs_one && lst == NULL)
 			return -CHEAX_EMATCH;
