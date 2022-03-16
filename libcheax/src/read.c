@@ -37,6 +37,7 @@
 struct read_info {
 	CHEAX *c;
 	int bkquote_stack, comma_stack;
+	bool allow_splice;
 	int lah_buf[MAX_LOOKAHEAD];
 	const char *path;
 };
@@ -54,6 +55,7 @@ read_init(struct read_info *ri,
 {
 	ri->c = c;
 	ri->bkquote_stack = ri->comma_stack = 0;
+	ri->allow_splice = false;
 	ri->path = path;
 
 	scnr_init(s, strm, MAX_LOOKAHEAD, &ri->lah_buf[0], line, pos);
@@ -359,6 +361,10 @@ read_list(struct read_info *ri, struct scnr *s, bool consume_final)
 	struct chx_list *lst = NULL;
 	struct debug_info info = { ri->path, s->pos, s->line };
 
+	bool did_allow_splice = ri->allow_splice;
+	if (ri->bkquote_stack - ri->comma_stack > 0)
+		ri->allow_splice = true;
+
 	scnr_adv(s);
 	if ((skip_space(s), s->ch) != ')') {
 		if (s->ch == EOF)
@@ -379,6 +385,8 @@ read_list(struct read_info *ri, struct scnr *s, bool consume_final)
 			next = &(*next)->next;
 		}
 	}
+
+	ri->allow_splice = did_allow_splice;
 
 	if (consume_final)
 		scnr_adv(s);
@@ -430,17 +438,32 @@ read_value(struct read_info *ri, struct scnr *s, bool consume_final)
 		return read_list(ri, s, consume_final);
 
 	if (s->ch == '\'') {
+		/* Technically, quote is supposed to be syntactic sugar
+		 * for a special form of the kind (quote ...), which is
+		 * an S-expression. Therefore, we _technically_ need to
+		 * allow splicing. */
+		bool did_allow_splice = ri->allow_splice;
+		if (ri->bkquote_stack - ri->comma_stack > 0)
+			ri->allow_splice = true;
+
 		scnr_adv(s);
 		struct chx_value *to_quote = read_value(ri, s, consume_final);
+		ri->allow_splice = did_allow_splice;
 		cheax_ft(ri->c, pad);
 		return &cheax_quote(ri->c, to_quote)->base;
 	}
 
 	if (s->ch == '`') {
+		/* See comment above */
+		bool did_allow_splice = ri->allow_splice;
+		if (ri->bkquote_stack - ri->comma_stack > 0)
+			ri->allow_splice = true;
+
 		scnr_adv(s);
 		++ri->bkquote_stack;
 		struct chx_value *to_quote = read_value(ri, s, consume_final);
 		--ri->bkquote_stack;
+		ri->allow_splice = did_allow_splice;
 		cheax_ft(ri->c, pad);
 		return &cheax_backquote(ri->c, to_quote)->base;
 	}
@@ -457,11 +480,21 @@ read_value(struct read_info *ri, struct scnr *s, bool consume_final)
 		}
 
 		scnr_adv(s);
+		bool splice = false;
+		if (s->ch == '@') {
+			if (!ri->allow_splice) {
+				cheax_throwf(ri->c, CHEAX_EREAD, "invalid splice");
+				return NULL;
+			}
+
+			splice = true;
+			scnr_adv(s);
+		}
 		++ri->comma_stack;
 		struct chx_value *to_comma = read_value(ri, s, consume_final);
 		--ri->comma_stack;
 		cheax_ft(ri->c, pad);
-		return &cheax_comma(ri->c, to_comma)->base;
+		return &(splice ? cheax_splice : cheax_comma)(ri->c, to_comma)->base;
 	}
 
 	if (s->ch == '"')

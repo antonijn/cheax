@@ -78,6 +78,10 @@ ostrm_show_basic(CHEAX *c, struct ostrm *s, struct chx_value *val)
 		ostrm_putc(s, ',');
 		ostrm_show(c, s, ((struct chx_quote *)val)->value);
 		break;
+	case CHEAX_SPLICE:
+		ostrm_printf(s, ",@");
+		ostrm_show(c, s, ((struct chx_quote *)val)->value);
+		break;
 	case CHEAX_FUNC:
 	case CHEAX_MACRO:
 		ostrm_putc(s, '(');

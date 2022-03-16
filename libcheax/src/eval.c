@@ -20,6 +20,22 @@
 #include "gc.h"
 #include "unpack.h"
 
+typedef struct chx_value *(*value_op)(CHEAX *c, struct chx_value *in);
+static struct chx_list *list_map(CHEAX *c, value_op fn, struct chx_list *lst);
+static struct chx_list *list_concat(CHEAX *c, struct chx_list *a, struct chx_list *b);
+
+enum {
+	BKQ_ERROR = -1,
+	BKQ_VALUE,
+	BKQ_SPLICED,
+};
+
+static int eval_bkquoted(CHEAX *c,
+                         struct chx_value **value,
+                         struct chx_list **spliced,
+                         struct chx_value *quoted,
+                         int nest);
+
 void
 cheax_exec(CHEAX *c, const char *path)
 {
@@ -149,63 +165,178 @@ pad:
 	return res;
 }
 
-static struct chx_value *
-eval_bkquoted(CHEAX *c, struct chx_value *quoted, int nest)
+static struct chx_list *
+list_map(CHEAX *c, value_op fn, struct chx_list *lst)
 {
-	struct chx_value *res = NULL;
-
-	struct chx_list *lst_quoted = NULL;
-	struct chx_quote *qt_quoted = NULL;
-
-	switch (cheax_type_of(quoted)) {
-	case CHEAX_LIST:
-		lst_quoted = (struct chx_list *)quoted;
-		struct chx_value *car = eval_bkquoted(c, lst_quoted->value, nest);
+	struct chx_list *res = NULL, **nxt = &res;
+	for (; lst !=  NULL; lst = lst->next) {
+		*nxt = cheax_list(c, fn(c, lst->value), NULL);
+		nxt = &(*nxt)->next;
 		cheax_ft(c, pad);
-		chx_ref car_ref = cheax_ref(c, car);
-		struct chx_value *cdr = eval_bkquoted(c, &lst_quoted->next->base, nest);
+	}
+	return res;
+pad:
+	return NULL;
+}
+
+static struct chx_list *
+list_concat(CHEAX *c, struct chx_list *a, struct chx_list *b)
+{
+	if (a == NULL)
+		return b;
+
+	struct chx_list *cdr = list_concat(c, a->next, b);
+	cheax_ft(c, pad);
+	return cheax_list(c, a->value, cdr);
+pad:
+	return NULL;
+}
+
+static struct chx_list *
+eval_bkquoted_list(CHEAX *c, struct chx_list *quoted, int nest)
+{
+	if (quoted == NULL)
+		return NULL;
+
+	struct chx_value *car;
+	struct chx_list *spl_list, *cdr;
+	chx_ref car_ref, spl_list_ref;
+	switch (eval_bkquoted(c, &car, &spl_list, quoted->value, nest)) {
+	case BKQ_VALUE:
+		car_ref = cheax_ref(c, car);
+		cdr = eval_bkquoted_list(c, quoted->next, nest);
 		cheax_unref(c, car, car_ref);
 		cheax_ft(c, pad);
 
-		if (has_flag(quoted->rtflags, DEBUG_LIST)) {
+		if (has_flag(quoted->base.rtflags, DEBUG_LIST)) {
 			struct debug_info info = ((struct debug_list *)quoted)->info;
-			res = &debug_list(c, car, (struct chx_list *)cdr, info)->base.base;
-		} else {
-			res = &cheax_list(c, car, (struct chx_list *)cdr)->base;
+			return &debug_list(c, car, (struct chx_list *)cdr, info)->base;
 		}
-		break;
 
+		return cheax_list(c, car, (struct chx_list *)cdr);
+
+	case BKQ_SPLICED:
+		spl_list_ref = cheax_ref(c, spl_list);
+		cdr = eval_bkquoted_list(c, quoted->next, nest);
+		cheax_unref(c, spl_list, spl_list_ref);
+		cheax_ft(c, pad);
+
+		return (cdr == NULL) ? spl_list : list_concat(c, spl_list, cdr);
+	}
+pad:
+	return NULL;
+}
+
+static int
+expand_comma(CHEAX *c,
+             struct chx_value **value,
+             struct chx_list **spliced,
+             struct chx_quote *quoted)
+{
+	int ty = cheax_type_of(&quoted->base);
+	struct chx_value *evald = cheax_eval(c, quoted->value);
+	cheax_ft(c, pad);
+
+	switch (ty) {
+	case CHEAX_COMMA:
+		*value = evald;
+		return BKQ_VALUE;
+
+	case CHEAX_SPLICE:
+		if (evald != NULL && cheax_type_of(evald) != CHEAX_LIST) {
+			cheax_throwf(c, CHEAX_EEVAL, "expected list after ,@");
+			return BKQ_ERROR;
+		}
+
+		if (spliced != NULL)
+			*spliced = (struct chx_list *)evald;
+		return BKQ_SPLICED;
+	}
+pad:
+	return BKQ_ERROR;
+}
+
+static int
+eval_bkquoted_comma(CHEAX *c,
+                    struct chx_value **value,
+                    struct chx_list **spliced,
+                    struct chx_quote *quoted,
+                    int nest)
+{
+	if (nest <= 0)
+		return expand_comma(c, value, spliced, quoted);
+
+	struct chx_value *to_comma;
+	struct chx_list *splice_to_comma;
+	value_op comma = (cheax_type_of(&quoted->base) == CHEAX_COMMA)
+	               ? (value_op)cheax_comma
+		       : (value_op)cheax_splice;
+	switch (eval_bkquoted(c, &to_comma, &splice_to_comma, quoted->value, nest - 1)) {
+	case BKQ_VALUE:
+		*value = comma(c, to_comma);
+		cheax_ft(c, pad);
+		return BKQ_VALUE;
+
+	case BKQ_SPLICED:
+		if (spliced != NULL) {
+			*spliced = list_map(c, comma, splice_to_comma);
+			cheax_ft(c, pad);
+		}
+
+		return BKQ_SPLICED;
+	}
+pad:
+	return BKQ_ERROR;
+}
+
+static int
+eval_bkquoted(CHEAX *c,
+              struct chx_value **value,
+              struct chx_list **spliced,
+              struct chx_value *quoted,
+              int nest)
+{
+	struct chx_quote *qt_quoted = NULL;
+	int code, ty = cheax_type_of(quoted);
+	bool bkquote = false;
+
+	switch (ty) {
+	case CHEAX_LIST:
+		*value = &eval_bkquoted_list(c, (struct chx_list *)quoted, nest)->base;
+		return BKQ_VALUE;
+
+	case CHEAX_BACKQUOTE:
+		bkquote = true;
+		/* fall through */
 	case CHEAX_QUOTE:
 		qt_quoted = (struct chx_quote *)quoted;
-		struct chx_value *to_quote = eval_bkquoted(c, qt_quoted->value, nest);
+		struct chx_value *to_quote;
+
+		code = eval_bkquoted(c, &to_quote, NULL, qt_quoted->value, nest + bkquote);
+		if (code != BKQ_VALUE) {
+			if (code == BKQ_SPLICED) {
+				cheax_throwf(c,
+				             CHEAX_EEVAL,
+				             "%s expects one argument",
+				             bkquote ? "backquote" : "quote");
+			}
+			return BKQ_ERROR;
+		}
+
+		*value = &(bkquote ? cheax_backquote : cheax_quote)(c, to_quote)->base;
 		cheax_ft(c, pad);
-		res = &cheax_quote(c, to_quote)->base;
-		break;
-	case CHEAX_BACKQUOTE:
-		qt_quoted = (struct chx_quote *)quoted;
-		struct chx_value *to_bkquote = eval_bkquoted(c, qt_quoted->value, nest + 1);
-		cheax_ft(c, pad);
-		res = &cheax_backquote(c, to_bkquote)->base;
-		break;
+		return BKQ_VALUE;
 
 	case CHEAX_COMMA:
-		qt_quoted = (struct chx_quote *)quoted;
-		if (nest <= 0) {
-			res = cheax_eval(c, qt_quoted->value);
-		} else {
-			struct chx_value *to_comma = eval_bkquoted(c, qt_quoted->value, nest - 1);
-			cheax_ft(c, pad);
-			res = &cheax_comma(c, to_comma)->base;
-		}
-		break;
+	case CHEAX_SPLICE:
+		return eval_bkquoted_comma(c, value, spliced, (struct chx_quote *)quoted, nest);
 
 	default:
-		res = quoted;
-		break;
+		*value = quoted;
+		return BKQ_VALUE;
 	}
-
 pad:
-	return res;
+	return BKQ_ERROR;
 }
 
 struct chx_value *
@@ -213,7 +344,7 @@ cheax_eval(CHEAX *c, struct chx_value *input)
 {
 	struct chx_value *res = NULL;
 	chx_ref input_ref = cheax_ref(c, input);
-	int prev_stack_depth;
+	int prev_stack_depth, code;
 	struct chx_list *was_last_call;
 
 	switch (cheax_type_of(input)) {
@@ -227,7 +358,7 @@ cheax_eval(CHEAX *c, struct chx_value *input)
 		c->bt.last_call = (struct chx_list *)input;
 
 		if (c->stack_limit > 0 && prev_stack_depth >= c->stack_limit) {
-			cheax_throwf(c, CHEAX_ESTACK, "eval(): stack overflow! (stack limit %d)", c->stack_limit);
+			cheax_throwf(c, CHEAX_ESTACK, "stack overflow! (stack limit %d)", c->stack_limit);
 			cheax_add_bt(c);
 		} else {
 			res = eval_sexpr(c, (struct chx_list *)input);
@@ -235,18 +366,22 @@ cheax_eval(CHEAX *c, struct chx_value *input)
 
 		c->stack_depth = prev_stack_depth;
 		c->bt.last_call = was_last_call;
-
 		break;
 
 	case CHEAX_QUOTE:
 		res = ((struct chx_quote *)input)->value;
 		break;
 	case CHEAX_BACKQUOTE:
-		res = eval_bkquoted(c, ((struct chx_quote *)input)->value, 0);
+		code = eval_bkquoted(c, &res, NULL, ((struct chx_quote *)input)->value, 0);
+		if (code == BKQ_SPLICED)
+			cheax_throwf(c, CHEAX_EEVAL, "internal splice error");
 		break;
 
 	case CHEAX_COMMA:
-		cheax_throwf(c, CHEAX_EEVAL, "eval(): rogue comma");
+		cheax_throwf(c, CHEAX_EEVAL, "rogue comma");
+		break;
+	case CHEAX_SPLICE:
+		cheax_throwf(c, CHEAX_EEVAL, "rogue ,@");
 		break;
 
 	default:

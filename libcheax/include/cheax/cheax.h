@@ -49,6 +49,7 @@ enum {
 	CHEAX_QUOTE,      /*!< Type of quoted expressions. */
 	CHEAX_BACKQUOTE,  /*!< Type of backquoted expressions. */
 	CHEAX_COMMA,      /*!< Type of comma expressions. */
+	CHEAX_SPLICE,     /*!< Type of comma splice (i.e. ,@) expressions. */
 	CHEAX_STRING,     /*!< String type. */
 	CHEAX_ENV,        /*!< Environment type. */
 
@@ -228,7 +229,7 @@ CHX_API struct chx_ext_func *cheax_ext_func(CHEAX *c,
 
 /*! \brief Quoted cheax expression.
  * \sa cheax_quote(), CHEAX_QUOTE, cheax_backquote(), CHEAX_BACKQUOTE,
- *     cheax_comma(), CHEAX_COMMA
+ *     cheax_comma(), CHEAX_COMMA, cheax_splice(), CHEAX_SPLICE
  */
 struct chx_quote {
 	struct chx_value base;   /*!< Base. */
@@ -261,6 +262,15 @@ CHX_API struct chx_quote *cheax_backquote(CHEAX *c, struct chx_value *value);
  * \sa chx_quote, CHEAX_COMMA
  */
 CHX_API struct chx_quote *cheax_comma(CHEAX *c, struct chx_value *value);
+
+/*! \brief Creates a cheax comma splice expression.
+ *
+ * \param c     Virtual machine instance.
+ * \param value Expression following comma splice.
+ *
+ * \sa chx_quote, CHEAX_SPLICE
+ */
+CHX_API struct chx_quote *cheax_splice(CHEAX *c, struct chx_value *value);
 
 /*! \brief Cheax string expression.
  * \sa cheax_string(), cheax_nstring(), CHEAX_STRING, cheax_strsize(),

@@ -12,8 +12,8 @@
 ; ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF
 ; OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
 
-(def defmacro (macro (: name args body) `(def ,name ,(: macro args body))))
-(defmacro defun      (: name args body) `(def ,name ,(: fn    args body)))
+(def defmacro (macro (: name args body) `(def ,name (macro ,args ,@body))))
+(defmacro defun      (: name args body) `(def ,name (fn    ,args ,@body)))
 
 (defun bool-err () (throw ETYPE "expected boolean"))
 
@@ -24,16 +24,13 @@
 (defmacro and    (a b) `(if ,a   ,b false))
 (defmacro or     (a b) `(if ,a true    ,b))
 
-(defun is-any-of (value types)
+(defun is-any-of (ty-in types)
   (case types
-    ((: ty tys) (or (= (type-of value) ty) (is-any-of value tys)))
+    ((: ty tys) (or (= ty-in ty) (is-any-of ty-in tys)))
     (()         false)))
 (defmacro type-assert (: symbol types)
- `(let ((sym   ,symbol)
-        (names ',types)
-        (tys   (unsafe-map eval names)))
-    (unless (is-any-of sym tys)
-      (throw ETYPE (format "`{}' must have type {}" ',symbol (join names " or "))))))
+ `(unless (is-any-of (type-of ,symbol) (list ,@types))
+    (throw ETYPE (format "`{}' must have type {}" ',symbol (join ',types " or ")))))
 
 (def nil ())
 

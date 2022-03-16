@@ -321,6 +321,7 @@ mark_obj(CHEAX *c, struct chx_value *used)
 	case CHEAX_QUOTE:
 	case CHEAX_BACKQUOTE:
 	case CHEAX_COMMA:
+	case CHEAX_SPLICE:
 		quote = (struct chx_quote *)used;
 		mark_obj(c, quote->value);
 		break;

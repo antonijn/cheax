@@ -50,6 +50,14 @@ cheax_comma(CHEAX *c, struct chx_value *value)
 		res->value = value;
 	return res;
 }
+struct chx_quote *
+cheax_splice(CHEAX *c, struct chx_value *value)
+{
+	struct chx_quote *res = gc_alloc(c, sizeof(struct chx_quote), CHEAX_SPLICE);
+	if (res != NULL)
+		res->value = value;
+	return res;
+}
 struct chx_int *
 cheax_int(CHEAX *c, int value)
 {
