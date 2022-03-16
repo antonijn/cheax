@@ -268,9 +268,9 @@ eval_bkquoted_comma(CHEAX *c,
 
 	struct chx_value *to_comma;
 	struct chx_list *splice_to_comma;
-	value_op comma = (cheax_type_of(&quoted->base) == CHEAX_COMMA)
-	               ? (value_op)cheax_comma
-		       : (value_op)cheax_splice;
+	value_op comma = (value_op)((cheax_type_of(&quoted->base) == CHEAX_COMMA)
+	                          ? cheax_comma
+				  : cheax_splice);
 	switch (eval_bkquoted(c, &to_comma, &splice_to_comma, quoted->value, nest - 1)) {
 	case BKQ_VALUE:
 		*value = comma(c, to_comma);
