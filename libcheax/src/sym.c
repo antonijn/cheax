@@ -710,28 +710,6 @@ pad2:
 }
 
 static struct chx_value *
-bltn_do(CHEAX *c, struct chx_list *args, void *info)
-{
-	struct chx_value *res = NULL;
-	struct chx_list *body;
-	if (unpack(c, args, "_+", &body) < 0)
-		return NULL;
-
-	cheax_push_env(c);
-	cheax_ft(c, pad2);
-
-	for (; body != NULL; body = body->next) {
-		res = cheax_eval(c, body->value);
-		cheax_ft(c, pad);
-	}
-pad:
-	cheax_pop_env(c);
-pad2:
-	return res;
-}
-
-
-static struct chx_value *
 bltn_set(CHEAX *c, struct chx_list *args, void *info)
 {
 	const char *id;
@@ -758,7 +736,6 @@ export_sym_bltns(CHEAX *c)
 	cheax_defmacro(c, "var",    bltn_var,    NULL);
 	cheax_defmacro(c, "def",    bltn_def,    NULL);
 	cheax_defmacro(c, "let",    bltn_let,    NULL);
-	cheax_defmacro(c, "do",     bltn_do,     NULL);
 	cheax_defmacro(c, "set",    bltn_set,    NULL);
 	cheax_defmacro(c, "env",    bltn_env,    NULL);
 }

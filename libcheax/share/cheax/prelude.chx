@@ -24,6 +24,8 @@
 (defmacro and    (a b) `(if ,a   ,b false))
 (defmacro or     (a b) `(if ,a true    ,b))
 
+(defmacro do body `(let () ,@body))
+
 (defun is-any-of (ty-in types)
   (case types
     ((: ty tys) (or (= ty-in ty) (is-any-of ty-in tys)))
@@ -121,7 +123,7 @@
   (type-assert lst List Nil)
   (unsafe-foldl f start lst))
 
-(defun contains (e xs)
+(defun element? (e xs)
   (any (fn (x) (= e x)) xs))
 
 (defun unsafe-strfind (e s)
@@ -145,7 +147,8 @@
   (if (= (type-of xs) String)
     (do (type-assert e String)
         (unsafe-strfind e xs))
-    (unsafe-find e xs)))
+    (do (type-assert xs List)
+        (unsafe-find e xs))))
 
 (defun zip-with (: op args)
   (case args
