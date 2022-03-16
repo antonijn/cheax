@@ -215,7 +215,7 @@ unpack_arg(CHEAX *c,
 			for (;;) {
 				chx_ref lst_ref = cheax_ref(c, lst);
 
-				if ((res = unpack_once(c, args, ufs_i, ufs_f, &v)) == 0)
+				if (0 != (res = unpack_once(c, args, ufs_i, ufs_f, &v)))
 					break;
 
 				*nxt = cheax_list(c, v, NULL);
