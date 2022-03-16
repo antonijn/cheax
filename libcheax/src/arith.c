@@ -26,7 +26,6 @@ do_aop_once(CHEAX *c,
             int (*iop)(CHEAX *, int, int),
             double (*fop)(CHEAX *, double, double))
 {
-
 	if (cheax_type_of(l) == CHEAX_INT && cheax_type_of(r) == CHEAX_INT) {
 		int li = ((struct chx_int *)l)->value;
 		int ri = ((struct chx_int *)r)->value;

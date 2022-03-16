@@ -211,6 +211,7 @@ unpack_arg(CHEAX *c,
 		if (ufs_f - ufs_i == 1 && *ufs_i == '_') {
 			*nxt = *args;
 			*args = NULL;
+			res = 0;
 		} else {
 			while ((res = unpack_once(c, args, ufs_i, ufs_f, &v)) == 0) {
 				*nxt = cheax_list(c, v, NULL);
