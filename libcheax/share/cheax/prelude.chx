@@ -87,23 +87,23 @@
   (type-assert xs List Nil)
   (unsafe-filter p xs))
 
-(defun unsafe-any (p xs)
+(defun unsafe-any? (p xs)
   (case xs
     (() false)
-    ((: y ys) (if (p y) true (unsafe-any p ys)))))
-(defun any (p xs)
+    ((: y ys) (if (p y) true (unsafe-any? p ys)))))
+(defun any? (p xs)
   (type-assert p Func ExtFunc)
   (type-assert xs List Nil)
-  (unsafe-any p xs))
+  (unsafe-any? p xs))
 
-(defun unsafe-all (p xs)
+(defun unsafe-all? (p xs)
   (case xs
     (() true)
-    ((: y ys) (and (p y) (unsafe-all p ys)))))
-(defun all (p xs)
+    ((: y ys) (and (p y) (unsafe-all? p ys)))))
+(defun all? (p xs)
   (type-assert p Func ExtFunc)
   (type-assert xs List Nil)
-  (unsafe-all p xs))
+  (unsafe-all? p xs))
 
 (defun unsafe-foldr (f start lst)
   (case lst
@@ -124,7 +124,7 @@
   (unsafe-foldl f start lst))
 
 (defun element? (e xs)
-  (any (fn (x) (= e x)) xs))
+  (any? (fn (x) (= e x)) xs))
 
 (defun unsafe-strfind (e s)
   (if (prefix? e s)
@@ -147,7 +147,7 @@
   (if (= (type-of xs) String)
     (do (type-assert e String)
         (unsafe-strfind e xs))
-    (do (type-assert xs List)
+    (do (type-assert xs List Nil)
         (unsafe-find e xs))))
 
 (defun zip-with (: op args)

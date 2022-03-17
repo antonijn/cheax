@@ -55,7 +55,6 @@ bltn_fopen(CHEAX *c, struct chx_list *args, void *info)
 	return bt_wrap(c, &cheax_user_ptr(c, f, c->fhandle_type)->base);
 pad:
 	return bt_wrap(c, NULL);
-
 }
 
 static struct chx_value *
@@ -74,6 +73,21 @@ bltn_read_from(CHEAX *c, struct chx_list *args, void *info)
 	return (0 == unpack(c, args, "f!", &f))
 	     ? bt_wrap(c, cheax_read(c, f))
 	     : NULL;
+}
+
+static struct chx_value *
+bltn_read_string(CHEAX *c, struct chx_list *args, void *info)
+{
+	struct chx_string *s;
+	if (unpack(c, args, "s", &s) < 0)
+		return NULL;
+
+	char *cstr = cheax_strdup(s);
+	if (cstr == NULL)
+		return NULL;
+	struct chx_value *res = cheax_readstr(c, cstr);
+	free(cstr);
+	return bt_wrap(c, res);
 }
 
 static struct chx_value *
@@ -172,6 +186,7 @@ export_io_bltns(CHEAX *c)
 	c->fhandle_type = cheax_new_type(c, "FileHandle", CHEAX_USER_PTR);
 
 	cheax_defmacro(c, "read-from",     bltn_read_from,     NULL);
+	cheax_defmacro(c, "read-string",   bltn_read_string,   NULL);
 	cheax_defmacro(c, "print-to",      bltn_print_to,      NULL);
 	cheax_defmacro(c, "put-to",        bltn_put_to,        NULL);
 	cheax_defmacro(c, "get-byte-from", bltn_get_byte_from, NULL);
