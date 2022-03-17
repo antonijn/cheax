@@ -24,6 +24,12 @@
 #include "setup.h"
 #include "unpack.h"
 
+/* values for chx_ref */
+enum {
+	DO_NOTHING,
+	PLEASE_UNREF,
+};
+
 struct alloc_header {
 	size_t size;
 	long obj;
@@ -405,21 +411,20 @@ chx_ref
 cheax_ref(CHEAX *c, void *restrict value)
 {
 	struct chx_value *obj = value;
-	if (obj != NULL) {
-		chx_ref res = has_flag(obj->rtflags, REF_BIT);
-		if (has_flag(obj->rtflags, GC_BIT))
-			obj->rtflags |= REF_BIT;
-		return res;
+	if (obj != NULL && has_flag(obj->rtflags, GC_BIT) && !has_flag(obj->rtflags, REF_BIT)) {
+		obj->rtflags |= REF_BIT;
+		return PLEASE_UNREF;
 	}
-	return false;
+	return DO_NOTHING;
 }
 
 void
 cheax_unref(CHEAX *c, void *restrict value, chx_ref ref)
 {
-	struct chx_value *obj = value;
-	if (obj != NULL && has_flag(obj->rtflags, GC_BIT) && !ref)
+	if (ref == PLEASE_UNREF) {
+		struct chx_value *obj = value;
 		obj->rtflags &= ~REF_BIT;
+	}
 }
 
 /*

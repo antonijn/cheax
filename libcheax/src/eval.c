@@ -71,97 +71,139 @@ pad:
 }
 
 static struct chx_value *
+eval_func_call(CHEAX *c, struct chx_func *fn, struct chx_list *args)
+{
+	struct chx_value *res = NULL;
+
+	bool call_ok = false;
+	int ty = cheax_type_of(&fn->base);
+
+	struct chx_env *prev_env = c->env;
+	c->env = fn->lexenv;
+
+	cheax_push_env(c);
+	if (cheax_errno(c) != 0) {
+		cheax_add_bt(c);
+		goto env_fail_pad;
+	}
+
+	chx_ref prev_env_ref = cheax_ref(c, prev_env);
+
+	int mflags = CHEAX_READONLY;
+	if (ty == CHEAX_FUNC)
+		mflags |= CHEAX_EVAL_NODES;
+	bool arg_match_ok = cheax_match_in(c, prev_env, fn->args, &args->base, mflags);
+
+	if (!arg_match_ok) {
+		if (cheax_errno(c) == 0)
+			cheax_throwf(c, CHEAX_EMATCH, "invalid (number of) arguments");
+		cheax_add_bt(c);
+		goto pad;
+	}
+
+	for (struct chx_list *cons = fn->body; cons != NULL; cons = cons->next) {
+		res = bt_wrap(c, cheax_eval(c, cons->value));
+		cheax_ft(c, pad);
+	}
+
+	call_ok = true;
+pad:
+	cheax_pop_env(c);
+	cheax_unref(c, prev_env, prev_env_ref);
+env_fail_pad:
+	c->env = prev_env;
+	if (call_ok && ty == CHEAX_MACRO)
+		res = bt_wrap(c, cheax_eval(c, res));
+	return res;
+}
+
+static struct chx_value *
+eval_env_call(CHEAX *c, struct chx_env *env, struct chx_list *args)
+{
+	cheax_enter_env(c, env);
+	if (cheax_errno(c) != 0) {
+		cheax_add_bt(c);
+		return NULL;
+	}
+
+	struct chx_value *res = NULL;
+	for (struct chx_list *cons = args; cons != NULL; cons = cons->next) {
+		res = bt_wrap(c, cheax_eval(c, cons->value));
+		cheax_ft(c, env_pad);
+	}
+env_pad:
+	cheax_pop_env(c);
+	return res;
+}
+
+static struct chx_value *
+eval_cast(CHEAX *c, struct chx_int *head, struct chx_list *args)
+{
+	struct chx_value *cast_arg;
+	return (0 == unpack(c, args, ".", &cast_arg))
+	     ? bt_wrap(c, cheax_cast(c, cast_arg, head->value))
+	     : NULL;
+}
+
+static struct chx_value *
 eval_sexpr(CHEAX *c, struct chx_list *input)
 {
-	struct chx_value *res = NULL, *head = cheax_eval(c, input->value);
-	chx_ref head_ref = cheax_ref(c, head);
-	cheax_ft(c, pad);
+	struct chx_value *res = NULL;
+	int prev_stack_depth = c->stack_depth++;
 
-	struct chx_list *args = input->next;
+	if (c->stack_limit > 0 && prev_stack_depth >= c->stack_limit) {
+		cheax_throwf(c, CHEAX_ESTACK, "stack overflow! (stack limit %d)", c->stack_limit);
+	} else {
+		chx_ref input_ref = cheax_ref(c, input);
 
-	struct chx_value *cast_arg;
-	struct chx_ext_func *extf;
-	struct chx_func *fn;
-	struct chx_env *env;
+		struct chx_value *head = cheax_eval(c, input->value);
+		cheax_ft(c, pad);
+		chx_ref head_ref = cheax_ref(c, head);
 
-	int ty = cheax_type_of(head);
-	switch (ty) {
-	case CHEAX_EXT_FUNC:
-		extf = (struct chx_ext_func *)head;
-		res = extf->perform(c, input->next, extf->info);
-		break;
+		/* should already be cheax_ref()'d further up the
+		 * call chain; no need here */
+		struct chx_list *was_last_call = c->bt.last_call;
+		c->bt.last_call = input;
 
-	case CHEAX_FUNC:
-	case CHEAX_MACRO:
-		fn = (struct chx_func *)head;
-		bool call_ok = false;
+		struct chx_list *args = input->next;
+		struct chx_ext_func *extf;
 
-		struct chx_env *prev_env = c->env;
-		chx_ref prev_env_ref = cheax_ref(c, prev_env);
-		c->env = fn->lexenv;
+		switch (cheax_type_of(head)) {
+		case CHEAX_EXT_FUNC:
+			extf = (struct chx_ext_func *)head;
+			res = extf->perform(c, args, extf->info);
+			break;
 
-		cheax_push_env(c);
-		if (cheax_errno(c) != 0) {
-			cheax_add_bt(c);
-			goto env_fail_pad;
-		}
+		case CHEAX_FUNC:
+		case CHEAX_MACRO:
+			res = eval_func_call(c, (struct chx_func *)head, args);
+			break;
 
-		int mflags = CHEAX_READONLY;
-		if (ty == CHEAX_FUNC)
-			mflags |= CHEAX_EVAL_NODES;
-		bool arg_match_ok = cheax_match_in(c, prev_env, fn->args, &args->base, mflags);
+		case CHEAX_TYPECODE:
+			res = eval_cast(c, (struct chx_int *)head, args);
+			break;
 
-		if (!arg_match_ok) {
-			if (cheax_errno(c) == 0)
-				cheax_throwf(c, CHEAX_EMATCH, "invalid (number of) arguments");
-			cheax_add_bt(c);
-			goto fn_pad;
-		}
+		case CHEAX_ENV:
+			res = eval_env_call(c, (struct chx_env *)head, args);
+			break;
 
-		for (struct chx_list *cons = fn->body; cons != NULL; cons = cons->next) {
-			res = bt_wrap(c, cheax_eval(c, cons->value));
-			cheax_ft(c, fn_pad);
-		}
-
-		call_ok = true;
-fn_pad:
-		cheax_pop_env(c);
-env_fail_pad:
-		cheax_unref(c, prev_env, prev_env_ref);
-		c->env = prev_env;
-		if (call_ok && ty == CHEAX_MACRO)
-			res = bt_wrap(c, cheax_eval(c, res));
-		break;
-
-	case CHEAX_TYPECODE:
-		if (0 == unpack(c, args, ".", &cast_arg))
-			res = bt_wrap(c, cheax_cast(c, cast_arg, ((struct chx_int *)head)->value));
-		break;
-
-	case CHEAX_ENV:
-		env = (struct chx_env *)head;
-		cheax_enter_env(c, env);
-		if (cheax_errno(c) != 0) {
+		default:
+			cheax_throwf(c, CHEAX_ETYPE, "invalid function call");
 			cheax_add_bt(c);
 			break;
 		}
 
-		for (struct chx_list *cons = args; cons != NULL; cons = cons->next) {
-			res = bt_wrap(c, cheax_eval(c, cons->value));
-			cheax_ft(c, env_pad);
-		}
-env_pad:
-		cheax_pop_env(c);
-		break;
+		cheax_unref(c, head, head_ref);
+		c->bt.last_call = was_last_call;
 
-	default:
-		cheax_throwf(c, CHEAX_ETYPE, "invalid function call");
-		cheax_add_bt(c);
-		break;
+		chx_ref res_ref = cheax_ref(c, res);
+		cheax_gc(c);
+		cheax_unref(c, res, res_ref);
+pad:
+		cheax_unref(c, input, input_ref);
 	}
 
-pad:
-	cheax_unref(c, head, head_ref);
+	c->stack_depth = prev_stack_depth;
 	return res;
 }
 
@@ -343,39 +385,29 @@ struct chx_value *
 cheax_eval(CHEAX *c, struct chx_value *input)
 {
 	struct chx_value *res = NULL;
-	chx_ref input_ref = cheax_ref(c, input);
-	int prev_stack_depth, code;
-	struct chx_list *was_last_call;
+	chx_ref input_ref;
+	int code;
 
 	switch (cheax_type_of(input)) {
 	case CHEAX_ID:
-		res = cheax_get(c, ((struct chx_id *)input)->id);
-		break;
+		return cheax_get(c, ((struct chx_id *)input)->id);
 
 	case CHEAX_LIST:
-		prev_stack_depth = c->stack_depth++;
-		was_last_call = c->bt.last_call;
-		c->bt.last_call = (struct chx_list *)input;
-
-		if (c->stack_limit > 0 && prev_stack_depth >= c->stack_limit) {
-			cheax_throwf(c, CHEAX_ESTACK, "stack overflow! (stack limit %d)", c->stack_limit);
-			cheax_add_bt(c);
-		} else {
-			res = eval_sexpr(c, (struct chx_list *)input);
-		}
-
-		c->stack_depth = prev_stack_depth;
-		c->bt.last_call = was_last_call;
-		break;
+		return eval_sexpr(c, (struct chx_list *)input);
 
 	case CHEAX_QUOTE:
-		res = ((struct chx_quote *)input)->value;
-		break;
+		return ((struct chx_quote *)input)->value;
 	case CHEAX_BACKQUOTE:
+		input_ref = cheax_ref(c, input);
 		code = eval_bkquoted(c, &res, NULL, ((struct chx_quote *)input)->value, 0);
 		if (code == BKQ_SPLICED)
 			cheax_throwf(c, CHEAX_EEVAL, "internal splice error");
-		break;
+		cheax_unref(c, input, input_ref);
+
+		chx_ref res_ref = cheax_ref(c, res);
+		cheax_gc(c);
+		cheax_unref(c, res, res_ref);
+		return res;
 
 	case CHEAX_COMMA:
 		cheax_throwf(c, CHEAX_EEVAL, "rogue comma");
@@ -383,18 +415,9 @@ cheax_eval(CHEAX *c, struct chx_value *input)
 	case CHEAX_SPLICE:
 		cheax_throwf(c, CHEAX_EEVAL, "rogue ,@");
 		break;
-
-	default:
-		res = input;
-		break;
 	}
 
-	cheax_unref(c, input, input_ref);
-
-	chx_ref res_ref = cheax_ref(c, res);
-	cheax_gc(c);
-	cheax_unref(c, res, res_ref);
-	return res;
+	return input;
 }
 
 static bool

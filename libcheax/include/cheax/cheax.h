@@ -393,7 +393,7 @@ struct chx_sym {
 	struct chx_value *protect;
 };
 
-typedef bool chx_ref;
+typedef int chx_ref;
 
 /*! \brief Increase reference count on cheax value, preventing it from
  *         gc deletion when cheax_eval() is called.
