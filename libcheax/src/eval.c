@@ -155,7 +155,7 @@ env_pad:
 		break;
 
 	default:
-		cheax_throwf(c, CHEAX_ETYPE, "eval(): invalid function call");
+		cheax_throwf(c, CHEAX_ETYPE, "invalid function call");
 		cheax_add_bt(c);
 		break;
 	}
