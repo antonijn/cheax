@@ -286,13 +286,20 @@ read_bslash(struct read_info *ri, struct scnr *s, struct ostrm *ostr) /* consume
 		return;
 	}
 
-	if (s->ch == 'u') {
+	if (s->ch == 'u' || s->ch == 'U') {
+		int spec = s->ch;
+		unsigned digits[8];
+		size_t num_digits = (spec == 'u') ? 4 : 8;
+
 		scnr_adv(s);
-		unsigned digits[4];
-		for (int i = 0; i < 4; ++i) {
+		for (size_t i = 0; i < num_digits; ++i) {
 			int x = c_todigit(s->ch, 16);
 			if (x < 0) {
-				cheax_throwf(ri->c, CHEAX_EREAD, "expected four hex digits after `\\u'");
+				cheax_throwf(ri->c,
+				             CHEAX_EREAD,
+				             "expected %zd hex digits after `\\%c'",
+				             num_digits,
+				             spec);
 				return;
 			}
 
@@ -301,9 +308,12 @@ read_bslash(struct read_info *ri, struct scnr *s, struct ostrm *ostr) /* consume
 		}
 
 		/* code point */
-		unsigned cp = (digits[0] << 12) | (digits[1] << 8) | (digits[2] << 4) | digits[3];
+		unsigned cp = 0;
+		for (size_t i = 0; i < num_digits; ++i)
+			cp = (cp << 4) | digits[i];
+
 		if (cp > 0x10FFFF) {
-			cheax_throwf(ri->c, CHEAX_EREAD, "code point out of bounds: %x", cp);
+			cheax_throwf(ri->c, CHEAX_EREAD, "code point out of bounds: U+%08X", cp);
 			return;
 		}
 
