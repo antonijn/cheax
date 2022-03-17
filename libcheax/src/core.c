@@ -389,6 +389,7 @@ cheax_shallow_copy(CHEAX *c, struct chx_value *v)
 	case CHEAX_QUOTE:
 	case CHEAX_BACKQUOTE:
 	case CHEAX_COMMA:
+	case CHEAX_SPLICE:
 		size = sizeof(struct chx_quote);
 		break;
 	case CHEAX_STRING:
@@ -400,6 +401,9 @@ cheax_shallow_copy(CHEAX *c, struct chx_value *v)
 	case CHEAX_ENV:
 		size = sizeof(struct chx_env);
 		break;
+	default:
+		cheax_throwf(c, CHEAX_EEVAL, "shallow_copy(): internal error");
+		return NULL;
 	}
 
 	struct chx_value *cpy = gc_alloc(c, size, act_type);
