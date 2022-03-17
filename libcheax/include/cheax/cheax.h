@@ -368,7 +368,7 @@ struct chx_env;
  */
 CHX_API struct chx_env *cheax_env(CHEAX *c);
 
-#if __STDC_VERSION__ >= 201112L
+#if __STDC_VERSION__ + 0 >= 201112L
 #define cheax_val(c, v)                      \
 	((struct chx_value *)_Generic((0,v), \
 		int:          cheax_int,     \
