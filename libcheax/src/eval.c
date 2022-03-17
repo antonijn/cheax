@@ -148,61 +148,61 @@ eval_cast(CHEAX *c, struct chx_int *head, struct chx_list *args)
 static struct chx_value *
 eval_sexpr(CHEAX *c, struct chx_list *input)
 {
+	if (c->stack_limit > 0 && c->stack_depth >= c->stack_limit) {
+		cheax_throwf(c, CHEAX_ESTACK, "stack overflow! (stack limit %d)", c->stack_limit);
+		return NULL;
+	}
+
 	struct chx_value *res = NULL;
 	int prev_stack_depth = c->stack_depth++;
 
-	if (c->stack_limit > 0 && prev_stack_depth >= c->stack_limit) {
-		cheax_throwf(c, CHEAX_ESTACK, "stack overflow! (stack limit %d)", c->stack_limit);
-	} else {
-		chx_ref input_ref = cheax_ref(c, input);
+	chx_ref input_ref = cheax_ref(c, input);
 
-		struct chx_value *head = cheax_eval(c, input->value);
-		cheax_ft(c, pad);
-		chx_ref head_ref = cheax_ref(c, head);
+	struct chx_value *head = cheax_eval(c, input->value);
+	cheax_ft(c, pad);
+	chx_ref head_ref = cheax_ref(c, head);
 
-		/* should already be cheax_ref()'d further up the
-		 * call chain; no need here */
-		struct chx_list *was_last_call = c->bt.last_call;
-		c->bt.last_call = input;
+	/* should already be cheax_ref()'d further up the
+	 * call chain; no need here */
+	struct chx_list *was_last_call = c->bt.last_call;
+	c->bt.last_call = input;
 
-		struct chx_list *args = input->next;
-		struct chx_ext_func *extf;
+	struct chx_list *args = input->next;
+	struct chx_ext_func *extf;
 
-		switch (cheax_type_of(head)) {
-		case CHEAX_EXT_FUNC:
-			extf = (struct chx_ext_func *)head;
-			res = extf->perform(c, args, extf->info);
-			break;
+	switch (cheax_type_of(head)) {
+	case CHEAX_EXT_FUNC:
+		extf = (struct chx_ext_func *)head;
+		res = extf->perform(c, args, extf->info);
+		break;
 
-		case CHEAX_FUNC:
-		case CHEAX_MACRO:
-			res = eval_func_call(c, (struct chx_func *)head, args);
-			break;
+	case CHEAX_FUNC:
+	case CHEAX_MACRO:
+		res = eval_func_call(c, (struct chx_func *)head, args);
+		break;
 
-		case CHEAX_TYPECODE:
-			res = eval_cast(c, (struct chx_int *)head, args);
-			break;
+	case CHEAX_TYPECODE:
+		res = eval_cast(c, (struct chx_int *)head, args);
+		break;
 
-		case CHEAX_ENV:
-			res = eval_env_call(c, (struct chx_env *)head, args);
-			break;
+	case CHEAX_ENV:
+		res = eval_env_call(c, (struct chx_env *)head, args);
+		break;
 
-		default:
-			cheax_throwf(c, CHEAX_ETYPE, "invalid function call");
-			cheax_add_bt(c);
-			break;
-		}
-
-		cheax_unref(c, head, head_ref);
-		c->bt.last_call = was_last_call;
-
-		chx_ref res_ref = cheax_ref(c, res);
-		cheax_gc(c);
-		cheax_unref(c, res, res_ref);
-pad:
-		cheax_unref(c, input, input_ref);
+	default:
+		cheax_throwf(c, CHEAX_ETYPE, "invalid function call");
+		cheax_add_bt(c);
+		break;
 	}
 
+	cheax_unref(c, head, head_ref);
+	c->bt.last_call = was_last_call;
+
+	chx_ref res_ref = cheax_ref(c, res);
+	cheax_gc(c);
+	cheax_unref(c, res, res_ref);
+pad:
+	cheax_unref(c, input, input_ref);
 	c->stack_depth = prev_stack_depth;
 	return res;
 }
