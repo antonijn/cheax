@@ -71,9 +71,6 @@ claim_mem(CHEAX *c, size_t size, size_t hdr_size)
 		return -1;
 	}
 
-#ifndef MSIZE
-	c->gc.all_mem += size;
-#endif
 	return 0;
 }
 
@@ -98,6 +95,7 @@ cheax_malloc(CHEAX *c, size_t size)
 
 #ifndef MSIZE
 	hdr->size = size + hdr_size;
+	c->gc.alloc += hdr->size;
 	return &hdr->obj;
 #else
 	c->gc.all_mem += MSIZE(hdr);
@@ -134,6 +132,7 @@ cheax_calloc(CHEAX *c, size_t nmemb, size_t size)
 
 #ifndef MSIZE
 	hdr->size = nmemb * size + hdr_size;
+	c->gc.alloc += hdr->size;
 	return memset(&hdr->obj, 0, nmemb * size);
 #else
 	c->gc.all_mem += MSIZE(hdr);
@@ -144,25 +143,25 @@ cheax_calloc(CHEAX *c, size_t nmemb, size_t size)
 void *
 cheax_realloc(CHEAX *c, void *ptr, size_t size)
 {
-#ifndef MSIZE
-	if (size == 0) {
-		if (ptr != NULL)
-			free(ptr);
-		return NULL;
-	}
-
 	if (ptr == NULL)
 		return cheax_malloc(c, size);
 
-	struct alloc_header *hdr = get_alloc_header(ptr);
-	const size_t hdr_size = sizeof(*hdr) - sizeof(hdr->obj);
-	size_t prev_size = hdr->size;
-	c->gc.all_mem -= prev_size;
-
-	if (claim_mem(c, size, hdr_size) < 0) {
-		c->gc.all_mem += prev_size;
+	if (size == 0) {
+		cheax_free(c, ptr);
 		return NULL;
 	}
+
+#ifndef MSIZE
+	struct alloc_header *hdr = get_alloc_header(ptr);
+	const size_t hdr_size = offsetof(struct alloc_header, obj);
+	size_t prev_size = hdr->size;
+
+	c->gc.all_mem -= prev_size;
+	int cmem = claim_mem(c, size, hdr_size);
+	c->gc.all_mem += prev_size;
+
+	if (cmem < 0)
+		return NULL;
 
 	hdr = realloc(hdr, size + hdr_size);
 	if (hdr == NULL) {
@@ -171,20 +170,24 @@ cheax_realloc(CHEAX *c, void *ptr, size_t size)
 	}
 
 	hdr->size = size + hdr_size;
+	c->gc.all_mem = c->gc.all_mem - prev_size + hdr->size;
 	return &hdr->obj;
 #else
 	size_t prev_size = MSIZE(ptr);
 	c->gc.all_mem -= prev_size;
-	if (size > 0 && claim_mem(c, size, 0) < 0) {
-		c->gc.all_mem += prev_size;
+	int cmem = claim_mem(c, size, 0);
+	c->gc.all_mem += prev_size;
+
+	if (cmem < 0)
+		return NULL;
+
+	ptr = realloc(ptr, size);
+	if (ptr == NULL) {
+		cheax_throwf(c, CHEAX_ENOMEM, "realloc() failure");
 		return NULL;
 	}
 
-	ptr = realloc(ptr, size);
-	if (ptr == NULL)
-		cheax_throwf(c, CHEAX_ENOMEM, "realloc() failure");
-	else
-		c->gc.all_mem += MSIZE(ptr);
+	c->gc.all_mem = c->gc.all_mem - prev_size + MSIZE(ptr);
 	return ptr;
 #endif
 }
@@ -212,8 +215,7 @@ struct gc_fin_footer {
 static struct gc_header *
 get_header(void *obj)
 {
-	char *m = obj;
-	return (struct gc_header *)(m - offsetof(struct gc_header, obj));
+	return (struct gc_header *)((char *)obj - offsetof(struct gc_header, obj));
 }
 
 static struct gc_fin_footer *
@@ -222,14 +224,12 @@ get_fin_footer(void *obj)
 #ifndef MSIZE
 	struct alloc_header *hdr = get_alloc_header(get_header(obj));
 	size_t mem_size = hdr->size;
-	char *m = (char *)hdr;
 #else
 	struct gc_header *hdr = get_header(obj);
 	size_t mem_size = MSIZE(hdr);
-	char *m = (char *)hdr;
 #endif
 	size_t ftr_ofs = mem_size - sizeof(struct gc_fin_footer);
-	return (struct gc_fin_footer *)(m + ftr_ofs);
+	return (struct gc_fin_footer *)((char *)hdr + ftr_ofs);
 }
 
 void
@@ -269,7 +269,6 @@ gc_cleanup(CHEAX *c)
 void *
 gc_alloc(CHEAX *c, size_t size, int type)
 {
-	struct gc_header *hdr;
 	const size_t hdr_size = offsetof(struct gc_header, obj);
 	if (size > SIZE_MAX - hdr_size) {
 		cheax_throwf(c, CHEAX_ENOMEM, "gc_alloc(): not enough space for gc header");
@@ -277,7 +276,7 @@ gc_alloc(CHEAX *c, size_t size, int type)
 	}
 
 	size_t total_size = size + hdr_size;
-	hdr = cheax_malloc(c, total_size);
+	struct gc_header *hdr = cheax_malloc(c, total_size);
 	if (hdr == NULL)
 		return NULL;
 
