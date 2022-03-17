@@ -284,7 +284,6 @@ mark_env(CHEAX *c, struct rb_node *root)
 		return;
 
 	struct full_sym *sym = root->value;
-
 	mark_obj(c, sym->sym.protect);
 
 	for (int i = 0; i < 2; ++i)
@@ -294,7 +293,7 @@ mark_env(CHEAX *c, struct rb_node *root)
 static void
 mark_obj(CHEAX *c, struct chx_value *used)
 {
-	if (used == NULL || !has_flag(used->rtflags, GC_BIT) || has_flag(used->rtflags, GC_MARKED))
+	if (used == NULL || (used->rtflags & (GC_BIT | GC_MARKED)) != GC_BIT)
 		return;
 
 	used->rtflags |= GC_MARKED;
@@ -411,7 +410,7 @@ chx_ref
 cheax_ref(CHEAX *c, void *restrict value)
 {
 	struct chx_value *obj = value;
-	if (obj != NULL && has_flag(obj->rtflags, GC_BIT) && !has_flag(obj->rtflags, REF_BIT)) {
+	if (obj != NULL && (obj->rtflags & (GC_BIT | REF_BIT)) == GC_BIT) {
 		obj->rtflags |= REF_BIT;
 		return PLEASE_UNREF;
 	}
