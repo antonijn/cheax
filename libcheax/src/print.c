@@ -13,12 +13,11 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  */
 
-#include <ctype.h>
-#include <limits.h>
 #include <stdarg.h>
 #include <stdlib.h>
 #include <string.h>
 
+#include "cinfo.h"
 #include "core.h"
 #include "err.h"
 #include "print.h"
@@ -105,7 +104,7 @@ ostrm_show_basic(CHEAX *c, struct ostrm *s, struct chx_value *val)
 			char ch = string->value[i];
 			if (ch == '"')
 				ostrm_printf(s, "\\\"");
-			else if (isprint(ch))
+			else if (c_isprint(ch))
 				ostrm_putc(s, ch);
 			else
 				ostrm_printf(s, "\\x%02x", (unsigned)ch & 0xFFu);

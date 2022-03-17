@@ -16,7 +16,28 @@
 #include <limits.h>
 
 #include "err.h"
+#include "loc.h"
 #include "strm.h"
+
+void
+ostrm_put_utf8(struct ostrm *ostr, unsigned cp)
+{
+	if (cp < 0x80) {
+		ostrm_putc(ostr, cp);
+	} else if (cp < 0x800) {
+		ostrm_putc(ostr, 0xC0 |  (cp >> 6));
+		ostrm_putc(ostr, 0x80 |  (cp & 0x3F));
+	} else if (cp < 0x10000) {
+		ostrm_putc(ostr, 0xE0 |  (cp >> 12));
+		ostrm_putc(ostr, 0x80 | ((cp >>  6) & 0x3F));
+		ostrm_putc(ostr, 0x80 |  (cp & 0x3F));
+	} else {
+		ostrm_putc(ostr, 0xF0 | ((cp >> 18) & 0x07));
+		ostrm_putc(ostr, 0x80 | ((cp >> 12) & 0x3F));
+		ostrm_putc(ostr, 0x80 | ((cp >>  6) & 0x3F));
+		ostrm_putc(ostr, 0x80 |  (cp & 0x3F));
+	}
+}
 
 void
 ostrm_printi(struct ostrm *strm, int num, char pad_char, int field_width, char misc_spec)
@@ -109,7 +130,15 @@ sostrm_vprintf(void *info, const char *frmt, va_list ap)
 	size_t rem = strm->cap - strm->idx;
 
 	va_copy(len_ap, ap);
+#if defined(HAVE_VSNPRINTF_L)
+	int msg_len = vsnprintf_l(strm->buf + strm->idx, rem, get_c_locale(), frmt, len_ap);
+#elif defined(HAVE_WINDOWS_VSNPRINTF_L)
+	int msg_len = _vsnprintf_l(strm->buf + strm->idx, rem, frmt, get_c_locale(), len_ap);
+#else
+#define SHOULD_RESTORE_LOCALE
+	locale_t prev_locale = uselocale(get_c_locale());
 	int msg_len = vsnprintf(strm->buf + strm->idx, rem, frmt, len_ap);
+#endif
 	va_end(len_ap);
 
 	if (msg_len < 0)
@@ -120,16 +149,28 @@ sostrm_vprintf(void *info, const char *frmt, va_list ap)
 		if (sostrm_expand(strm, req_buf) < 0)
 			return -1;
 
+#if defined(HAVE_VSNPRINTF_L)
+		msg_len = vsnprintf_l(strm->buf + strm->idx, msg_len + 1, get_c_locale(), frmt, ap);
+#elif defined(HAVE_WINDOWS_VSNPRINTF_L)
+		msg_len = _vsnprintf_l(strm->buf + strm->idx, msg_len + 1, frmt, get_c_locale(), ap);
+#else
 		msg_len = vsnprintf(strm->buf + strm->idx, msg_len + 1, frmt, ap);
+#endif
 		if (msg_len < 0)
 			goto msg_len_error;
 	}
 
+#ifdef SHOULD_RESTORE_LOCALE
+	uselocale(prev_locale);
+#endif
 	strm->idx += msg_len;
-
 	return msg_len;
 
 msg_len_error:
+#ifdef SHOULD_RESTORE_LOCALE
+#undef SHOULD_RESTORE_LOCALE
+	uselocale(prev_locale);
+#endif
 	cheax_throwf(strm->c, CHEAX_EEVAL, "sostrm_printf(): internal error (vsnprintf returned %d)", msg_len);
 	return -1;
 }
@@ -172,7 +213,15 @@ int
 fostrm_vprintf(void *info, const char *frmt, va_list ap)
 {
 	struct fostrm *fs = info;
+#if defined(HAVE_VFPRINTF_L)
+	int res = vfprintf_l(fs->f, get_c_locale(), frmt, ap);
+#elif defined(HAVE_WINDOWS_VFPRINTF_L)
+	int res = _vfprintf_l(fs->f, frmt, get_c_locale(), ap);
+#else
+	locale_t prev_locale = uselocale(get_c_locale());
 	int res = vfprintf(fs->f, frmt, ap);
+	uselocale(prev_locale);
+#endif
 	if (res < 0)
 		cheax_throwf(fs->c, CHEAX_EIO, "fostrm_vprintf(): vfprintf() returned negative value");
 	return res;

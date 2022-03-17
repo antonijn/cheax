@@ -13,20 +13,25 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  */
 
-#ifndef LOC_H
-#define LOC_H
+#ifndef CINFO_H
+#define CINFO_H
 
-#include <locale.h>
-#ifdef HAVE_XLOCALE_H
-#include <xlocale.h>
-#endif
+#include <stdbool.h>
 
-#include "setup.h"
+/* ascii-only, locale-invariant, portable versions of ctype.h functions */
 
-#if defined(HAVE_NEWLOCALE)
-locale_t get_c_locale(void);
-#elif defined(HAVE_WINDOWS_CREATE_LOCALE)
-_locale_t get_c_locale(void);
-#endif
+bool c_isdigit(int c);
+bool c_isspace(int c);
+bool c_isgraph(int c);
+bool c_isprint(int c);
+
+/* whether c is valid character in identifier */
+bool c_isid(int c);
+
+/* whether c is valid character for starting an identifier */
+bool c_isid_initial(int c);
+
+/* ascii character to integer digit */
+int c_todigit(int c, int base);
 
 #endif

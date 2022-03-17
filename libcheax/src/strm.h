@@ -45,6 +45,9 @@ ostrm_putc(struct ostrm *strm, int ch)
 	return strm->putchar(strm->info, ch);
 }
 
+/* Write unicode code point `cp' to output stream in UTF-8 encoding. */
+void ostrm_put_utf8(struct ostrm *ostr, unsigned cp);
+
 /* Print integer `num' to ostrm `strm', padding it to length
  * `field_width' using padding character `pad_char' if necessary.
  * `misc_spec' can be:

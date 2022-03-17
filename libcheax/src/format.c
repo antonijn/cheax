@@ -13,10 +13,10 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  */
 
-#include <ctype.h>
 #include <limits.h>
 #include <string.h>
 
+#include "cinfo.h"
 #include "core.h"
 #include "err.h"
 #include "format.h"
@@ -27,7 +27,7 @@
 static int
 read_int(CHEAX *c, const char *desc, struct scnr *fmt, int *out)
 {
-	for (*out = 0; isdigit(fmt->ch); scnr_adv(fmt)) {
+	for (*out = 0; c_isdigit(fmt->ch); scnr_adv(fmt)) {
 		if (*out > INT_MAX / 10 || (*out * 10) > INT_MAX - (fmt->ch - '0')) {
 			cheax_throwf(c, CHEAX_EVALUE, "%s too big", desc);
 			return -1;
@@ -65,7 +65,7 @@ read_fspec(CHEAX *c, struct scnr *fmt, struct fspec *sp)
 	sp->precision = -1;
 	sp->misc_spec = '\0';
 
-	if (isdigit(fmt->ch) && read_int(c, "index", fmt, &sp->index) < 0)
+	if (c_isdigit(fmt->ch) && read_int(c, "index", fmt, &sp->index) < 0)
 		return -1;
 
 	if (fmt->ch == '!') {
@@ -83,12 +83,12 @@ read_fspec(CHEAX *c, struct scnr *fmt, struct fspec *sp)
 		if (fmt->ch == ' ' || fmt->ch == '0')
 			sp->pad_char = scnr_adv(fmt);
 
-		if (isdigit(fmt->ch) && read_int(c, "field width", fmt, &sp->field_width) < 0)
+		if (c_isdigit(fmt->ch) && read_int(c, "field width", fmt, &sp->field_width) < 0)
 			return -1;
 
 		if (fmt->ch == '.') {
 			scnr_adv(fmt);
-			if (!isdigit(fmt->ch)) {
+			if (!c_isdigit(fmt->ch)) {
 				cheax_throwf(c, CHEAX_EVALUE, "expected precision specifier");
 				return -1;
 			}

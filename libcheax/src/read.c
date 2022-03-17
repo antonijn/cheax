@@ -1,9 +1,9 @@
 /* Copyright (c) 2022, Antonie Blom
- * 
+ *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
  * copyright notice and this permission notice appear in all copies.
- * 
+ *
  * THE SOFTWARE IS PROVIDED "AS IS" AND THE AUTHOR DISCLAIMS ALL WARRANTIES
  * WITH REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED WARRANTIES OF
  * MERCHANTABILITY AND FITNESS. IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR
@@ -16,11 +16,9 @@
 #include <errno.h>
 #include <limits.h>
 #include <stdlib.h>
-#include <stdio.h>
-#include <stdint.h>
 #include <string.h>
-#include <ctype.h>
 
+#include "cinfo.h"
 #include "core.h"
 #include "err.h"
 #include "loc.h"
@@ -61,30 +59,17 @@ read_init(struct read_info *ri,
 	scnr_init(s, strm, MAX_LOOKAHEAD, &ri->lah_buf[0], line, pos);
 }
 
-static int
-is_id(int ch)
-{
-	return ch != '(' && ch != ')'
-	    && !isspace(ch) && isprint(ch)
-	    && ch != '\'' && ch != '`' && ch != ',' && ch != '"' && ch != ';';
-}
-
-static int
-is_initial_id(int ch)
-{
-	return is_id(ch) && !isdigit(ch);
-}
-
 static void
 skip_space(struct scnr *s)
 {
 	for (;;) {
-		while (isspace(s->ch))
+		while (c_isspace(s->ch))
 			scnr_adv(s);
 
 		if (s->ch != ';')
 			break;
 
+		/* skip comment line */
 		scnr_adv(s);
 		while (s->ch != '\n' && s->ch != EOF)
 			scnr_adv(s);
@@ -99,10 +84,10 @@ read_id(struct read_info *ri, struct scnr *s) /* consume_final = true */
 
 	struct chx_value *res = NULL;
 
-	while (is_id(s->ch))
+	while (c_isid(s->ch))
 		ostrm_putc(&ss.strm, scnr_adv(s));
 
-	if (s->ch != EOF && !isspace(s->ch) && s->ch != ')') {
+	if (s->ch != EOF && !c_isspace(s->ch) && s->ch != ')') {
 		cheax_throwf(ri->c, CHEAX_EREAD, "only whitespace or `)' may follow identifier");
 		goto done;
 	}
@@ -121,34 +106,27 @@ done:
 	return res;
 }
 
-static int_least64_t
+static long long
 read_digits(struct scnr *s, struct ostrm *ostr, int base, bool *too_big)
 {
-	int_least64_t value = 0;
-	char max_digit = (base <= 10) ? '0' + base - 1 : '9';
+	long long value = 0;
 	bool overflow = false;
 
 	for (;;) {
-		int digit;
-		if (s->ch >= '0' && s->ch <= max_digit)
-			digit = s->ch - '0';
-		else if (base == 16 && s->ch >= 'A' && s->ch <= 'F')
-			digit = s->ch - 'A' + 10;
-		else if (base == 16 && s->ch >= 'a' && s->ch <= 'f')
-			digit = s->ch - 'a' + 10;
-		else
+		int digit = c_todigit(s->ch, base);
+		if (digit < 0)
 			break;
 
 		ostrm_putc(ostr, scnr_adv(s));
 
-		if (overflow || value > INT_LEAST64_MAX / base) {
+		if (overflow || value > LLONG_MAX / base) {
 			overflow = true;
 			continue;
 		}
 
 		value *= base;
 
-		if (value > INT_LEAST64_MAX - digit) {
+		if (value > LLONG_MAX - digit) {
 			overflow = true;
 			continue;
 		}
@@ -180,7 +158,7 @@ read_num(struct read_info *ri, struct scnr *s) /* consume_final = true */
 	 * "0b"-prefixed binary numbers.
 	 */
 
-	int_least64_t pos_whole_value = 0; /* Value of positive whole part */
+	long long pos_whole_value = 0; /* Value of positive whole part */
 	bool negative = false, too_big = false, is_double = false;
 	int base = 10;
 
@@ -199,7 +177,7 @@ read_num(struct read_info *ri, struct scnr *s) /* consume_final = true */
 		} else if (s->ch == 'b' || s->ch == 'B') {
 			base = 2;
 			ostrm_putc(&ss.strm, scnr_adv(s));
-		} else if (isdigit(s->ch)) {
+		} else if (c_isdigit(s->ch)) {
 			base = 8;
 		}
 	}
@@ -223,7 +201,7 @@ read_num(struct read_info *ri, struct scnr *s) /* consume_final = true */
 		read_digits(s, &ss.strm, base, NULL);
 	}
 
-	if (s->ch != EOF && !isspace(s->ch) && s->ch != ')') {
+	if (s->ch != EOF && !c_isspace(s->ch) && s->ch != ')') {
 		cheax_throwf(ri->c, CHEAX_EREAD, "only whitespace or `)' may follow number");
 		goto done;
 	}
@@ -246,9 +224,9 @@ read_num(struct read_info *ri, struct scnr *s) /* consume_final = true */
 	double dval;
 	char *endptr;
 
-#if defined(HAS_STRTOD_L)
+#if defined(HAVE_STRTOD_L)
 	dval = strtod_l(ss.buf, &endptr, get_c_locale());
-#elif defined(HAS_STUPID_WINDOWS_STRTOD_L)
+#elif defined(HAVE_WINDOWS_STRTOD_L)
 	dval = _strtod_l(ss.buf, &endptr, get_c_locale());
 #else
 	locale_t prev_locale = uselocale(get_c_locale());
@@ -269,29 +247,9 @@ done:
 }
 
 static void
-put_cp(struct ostrm *ostr, unsigned cp)
-{
-	if (cp < 0x80) {
-		ostrm_putc(ostr, cp);
-	} else if (cp < 0x800) {
-		ostrm_putc(ostr, 0xC0 |  (cp >> 6));
-		ostrm_putc(ostr, 0x80 |  (cp & 0x3F));
-	} else if (cp < 0x10000) {
-		ostrm_putc(ostr, 0xE0 |  (cp >> 12));
-		ostrm_putc(ostr, 0x80 | ((cp >>  6) & 0x3F));
-		ostrm_putc(ostr, 0x80 |  (cp & 0x3F));
-	} else {
-		ostrm_putc(ostr, 0xF0 | ((cp >> 18) & 0x07));
-		ostrm_putc(ostr, 0x80 | ((cp >> 12) & 0x3F));
-		ostrm_putc(ostr, 0x80 | ((cp >>  6) & 0x3F));
-		ostrm_putc(ostr, 0x80 |  (cp & 0x3F));
-	}
-}
-
-static void
 read_bslash(struct read_info *ri, struct scnr *s, struct ostrm *ostr) /* consume_final = true */
 {
-	/* I expect the backslash itself to have been consumed */
+	/* function expects the backslash itself to have been consumed */
 
 	int ch = -1;
 	switch (s->ch) {
@@ -312,19 +270,15 @@ read_bslash(struct read_info *ri, struct scnr *s, struct ostrm *ostr) /* consume
 
 	if (s->ch == 'x' || s->ch == 'X') {
 		scnr_adv(s);
-		int digits[2];
+		unsigned digits[2];
 		for (int i = 0; i < 2; ++i) {
-			if (s->ch >= '0' && s->ch <= '9') {
-				digits[i] = s->ch - '0';
-			} else if (s->ch >= 'A' && s->ch <= 'F') {
-				digits[i] = s->ch - 'A' + 10;
-			} else if (s->ch >= 'a' && s->ch <= 'f') {
-				digits[i] = s->ch - 'a' + 10;
-			} else {
+			int x = c_todigit(s->ch, 16);
+			if (x < 0) {
 				cheax_throwf(ri->c, CHEAX_EREAD, "expected two hex digits after `\\x'");
 				return;
 			}
 
+			digits[i] = x;
 			scnr_adv(s);
 		}
 
@@ -336,17 +290,13 @@ read_bslash(struct read_info *ri, struct scnr *s, struct ostrm *ostr) /* consume
 		scnr_adv(s);
 		unsigned digits[4];
 		for (int i = 0; i < 4; ++i) {
-			if (s->ch >= '0' && s->ch <= '9') {
-				digits[i] = s->ch - '0';
-			} else if (s->ch >= 'A' && s->ch <= 'F') {
-				digits[i] = s->ch - 'A' + 10;
-			} else if (s->ch >= 'a' && s->ch <= 'f') {
-				digits[i] = s->ch - 'a' + 10;
-			} else {
+			int x = c_todigit(s->ch, 16);
+			if (x < 0) {
 				cheax_throwf(ri->c, CHEAX_EREAD, "expected four hex digits after `\\u'");
 				return;
 			}
 
+			digits[i] = x;
 			scnr_adv(s);
 		}
 
@@ -357,7 +307,7 @@ read_bslash(struct read_info *ri, struct scnr *s, struct ostrm *ostr) /* consume
 			return;
 		}
 
-		put_cp(ostr, cp);
+		ostrm_put_utf8(ostr, cp);
 		return;
 	}
 
@@ -454,11 +404,11 @@ read_value(struct read_info *ri, struct scnr *s, bool consume_final)
 		scnr_adv(s);
 		bool is_num = false;
 
-		if (isdigit(s->ch)) {
+		if (c_isdigit(s->ch)) {
 			is_num = true;
 		} else if (s->ch == '.') {
 			scnr_adv(s);
-			is_num = isdigit(s->ch);
+			is_num = c_isdigit(s->ch);
 			scnr_backup(s, '.');
 		}
 
@@ -469,16 +419,16 @@ read_value(struct read_info *ri, struct scnr *s, bool consume_final)
 
 	if (s->ch == '.') {
 		scnr_adv(s);
-		bool is_num = isdigit(s->ch);
+		bool is_num = c_isdigit(s->ch);
 		scnr_backup(s, '.');
 
 		return is_num ? read_num(ri, s) : read_id(ri, s);
 	}
 
-	if (is_initial_id(s->ch))
+	if (c_isid_initial(s->ch))
 		return read_id(ri, s);
 
-	if (isdigit(s->ch))
+	if (c_isdigit(s->ch))
 		return read_num(ri, s);
 
 	if (s->ch == '(')

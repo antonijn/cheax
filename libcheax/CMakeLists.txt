@@ -10,16 +10,37 @@ add_custom_target (
 		${CMAKE_SOURCE_DIR}
 )
 
+
+include (CheckSymbolExists)
+check_symbol_exists (__GNU_LIBRARY__ "features.h" _GNU_SOURCE)
+if (_GNU_SOURCE)
+	string (APPEND CMAKE_C_FLAGS "-D_GNU_SOURCE")
+endif ()
+
+include (CheckIncludeFiles)
+check_include_files ("xlocale.h" HAVE_XLOCALE_H)
+
 include(CheckFunctionExists)
-check_function_exists(strtod_l       HAVE_STRTOD_L)
-check_function_exists(newlocale      HAVE_NEWLOCALE)
-check_function_exists(_strtod_l      HAVE_STUPID_WINDOWS_STRTOD_L)
-check_function_exists(_create_locale HAVE_STUPID_WINDOWS_CREATE_LOCALE)
-if (NOT (HAVE_NEWLOCALE OR HAVE_STUPID_WINDOWS_CREATE_LOCALE))
+check_function_exists (strtod_l       HAVE_STRTOD_L)
+check_function_exists (vfprintf_l     HAVE_VFPRINTF_L)
+check_function_exists (vsnprintf_l    HAVE_VSNPRINTF_L)
+check_function_exists (newlocale      HAVE_NEWLOCALE)
+check_function_exists (_strtod_l      HAVE_WINDOWS_STRTOD_L)
+check_function_exists (_vfprintf_l    HAVE_WINDOWS_VFPRINTF_L)
+check_function_exists (_vsnprintf_l   HAVE_WINDOWS_VSNPRINTF_L)
+check_function_exists (_strtod_l      HAVE_WINDOWS_STRTOD_L)
+check_function_exists (_create_locale HAVE_WINDOWS_CREATE_LOCALE)
+if (NOT (HAVE_NEWLOCALE OR HAVE_WINDOWS_CREATE_LOCALE))
 	message(SEND_ERROR "Target platform must support newlocale() or _create_locale().")
 endif()
-if (NOT (HAVE_STRTOD_L OR HAVE_NEWLOCALE OR (HAVE_STUPID_WINDOWS_STRTOD_L AND HAVE_STUPID_WINDOWS_CREATE_LOCALE)))
+if (NOT (HAVE_STRTOD_L OR HAVE_NEWLOCALE OR (HAVE_WINDOWS_STRTOD_L AND HAVE_WINDOWS_CREATE_LOCALE)))
 	message(SEND_ERROR "Target platform must support strtod_l(), uselocale(), or both _strtod_l() and _create_locale().")
+endif()
+if (NOT (HAVE_VFPRINTF_L OR HAVE_NEWLOCALE OR (HAVE_WINDOWS_VFPRINTF_L AND HAVE_WINDOWS_CREATE_LOCALE)))
+	message(SEND_ERROR "Target platform must support vfprintf_l(), uselocale(), or both _vfprintf_l() and _create_locale().")
+endif()
+if (NOT (HAVE_VSNPRINTF_L OR HAVE_NEWLOCALE OR (HAVE_WINDOWS_VSNPRINTF_L AND HAVE_WINDOWS_CREATE_LOCALE)))
+	message(SEND_ERROR "Target platform must support vsnprintf_l(), uselocale(), or both _vsnprintf_l() and _create_locale().")
 endif()
 
 configure_file (src/setup.h.in src/setup.h)
@@ -29,6 +50,7 @@ set(CMAKE_C_VISIBILITY_PRESET hidden)
 
 add_library (libcheax
 	src/arith.c
+	src/cinfo.c
 	src/config.c
 	src/core.c
 	src/err.c
