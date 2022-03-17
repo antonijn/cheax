@@ -23,10 +23,9 @@
 static struct chx_value *
 bltn_acos(CHEAX *c, struct chx_list *args, void *info)
 {
-	struct chx_value *xval;
-	if (unpack(c, args, "[id]", &xval) < 0)
+	double x;
+	if (unpack(c, args, "#!", &x) < 0)
 		return NULL;
-	double x = vtod(xval);
 
 	if (x < -1.0 || x > 1.0) {
 		cheax_throwf(c, CHEAX_EVALUE, "domain error");
@@ -39,10 +38,9 @@ bltn_acos(CHEAX *c, struct chx_list *args, void *info)
 static struct chx_value *
 bltn_acosh(CHEAX *c, struct chx_list *args, void *info)
 {
-	struct chx_value *xval;
-	if (unpack(c, args, "[id]", &xval) < 0)
+	double x;
+	if (unpack(c, args, "#!", &x) < 0)
 		return NULL;
-	double x = vtod(xval);
 
 	if (x < 1.0) {
 		cheax_throwf(c, CHEAX_EVALUE, "domain error");
@@ -55,10 +53,9 @@ bltn_acosh(CHEAX *c, struct chx_list *args, void *info)
 static struct chx_value *
 bltn_asin(CHEAX *c, struct chx_list *args, void *info)
 {
-	struct chx_value *xval;
-	if (unpack(c, args, "[id]", &xval) < 0)
+	double x;
+	if (unpack(c, args, "#!", &x) < 0)
 		return NULL;
-	double x = vtod(xval);
 
 	if (x < -1.0 || x > 1.0) {
 		cheax_throwf(c, CHEAX_EVALUE, "domain error");
@@ -71,10 +68,9 @@ bltn_asin(CHEAX *c, struct chx_list *args, void *info)
 static struct chx_value *
 bltn_asinh(CHEAX *c, struct chx_list *args, void *info)
 {
-	struct chx_value *xval;
-	if (unpack(c, args, "[id]", &xval) < 0)
+	double x;
+	if (unpack(c, args, "#!", &x) < 0)
 		return NULL;
-	double x = vtod(xval);
 
 	return bt_wrap(c, &cheax_double(c, asinh(x))->base);
 }
@@ -82,10 +78,9 @@ bltn_asinh(CHEAX *c, struct chx_list *args, void *info)
 static struct chx_value *
 bltn_atan(CHEAX *c, struct chx_list *args, void *info)
 {
-	struct chx_value *xval;
-	if (unpack(c, args, "[id]", &xval) < 0)
+	double x;
+	if (unpack(c, args, "#!", &x) < 0)
 		return NULL;
-	double x = vtod(xval);
 
 	return bt_wrap(c, &cheax_double(c, atan(x))->base);
 }
@@ -93,10 +88,9 @@ bltn_atan(CHEAX *c, struct chx_list *args, void *info)
 static struct chx_value *
 bltn_atan2(CHEAX *c, struct chx_list *args, void *info)
 {
-	struct chx_value *xval, *yval;
-	if (unpack(c, args, "[id][id]", &xval, &yval) < 0)
+	double x, y;
+	if (unpack(c, args, "#!#!", &x, &y) < 0)
 		return NULL;
-	double x = vtod(xval), y = vtod(yval);
 
 	return bt_wrap(c, &cheax_double(c, atan2(x, y))->base);
 }
@@ -104,10 +98,9 @@ bltn_atan2(CHEAX *c, struct chx_list *args, void *info)
 static struct chx_value *
 bltn_atanh(CHEAX *c, struct chx_list *args, void *info)
 {
-	struct chx_value *xval;
-	if (unpack(c, args, "[id]", &xval) < 0)
+	double x;
+	if (unpack(c, args, "#!", &x) < 0)
 		return NULL;
-	double x = vtod(xval);
 
 	if (x < -1.0 || x > 1.0) {
 		cheax_throwf(c, CHEAX_EVALUE, "domain error");
@@ -124,10 +117,9 @@ bltn_atanh(CHEAX *c, struct chx_list *args, void *info)
 static struct chx_value *
 bltn_cbrt(CHEAX *c, struct chx_list *args, void *info)
 {
-	struct chx_value *xval;
-	if (unpack(c, args, "[id]", &xval) < 0)
+	double x;
+	if (unpack(c, args, "#!", &x) < 0)
 		return NULL;
-	double x = vtod(xval);
 
 	return bt_wrap(c, &cheax_double(c, cbrt(x))->base);
 }
@@ -135,10 +127,9 @@ bltn_cbrt(CHEAX *c, struct chx_list *args, void *info)
 static struct chx_value *
 bltn_ceil(CHEAX *c, struct chx_list *args, void *info)
 {
-	struct chx_value *xval;
-	if (unpack(c, args, "[id]", &xval) < 0)
+	double x;
+	if (unpack(c, args, "#!", &x) < 0)
 		return NULL;
-	double x = vtod(xval);
 
 	return bt_wrap(c, &cheax_int(c, ceil(x))->base);
 }
@@ -146,10 +137,9 @@ bltn_ceil(CHEAX *c, struct chx_list *args, void *info)
 static struct chx_value *
 bltn_cos(CHEAX *c, struct chx_list *args, void *info)
 {
-	struct chx_value *xval;
-	if (unpack(c, args, "[id]", &xval) < 0)
+	double x;
+	if (unpack(c, args, "#!", &x) < 0)
 		return NULL;
-	double x = vtod(xval);
 
 	return bt_wrap(c, &cheax_double(c, cos(x))->base);
 }
@@ -157,10 +147,9 @@ bltn_cos(CHEAX *c, struct chx_list *args, void *info)
 static struct chx_value *
 bltn_cosh(CHEAX *c, struct chx_list *args, void *info)
 {
-	struct chx_value *xval;
-	if (unpack(c, args, "[id]", &xval) < 0)
+	double x;
+	if (unpack(c, args, "#!", &x) < 0)
 		return NULL;
-	double x = vtod(xval);
 
 	/* TODO deal with ERANGE? */
 
@@ -170,10 +159,9 @@ bltn_cosh(CHEAX *c, struct chx_list *args, void *info)
 static struct chx_value *
 bltn_erf(CHEAX *c, struct chx_list *args, void *info)
 {
-	struct chx_value *xval;
-	if (unpack(c, args, "[id]", &xval) < 0)
+	double x;
+	if (unpack(c, args, "#!", &x) < 0)
 		return NULL;
-	double x = vtod(xval);
 
 	if (x != 0.0 && !isnormal(x)) {
 		cheax_throwf(c, CHEAX_EVALUE, "floating point underflow");
@@ -186,10 +174,9 @@ bltn_erf(CHEAX *c, struct chx_list *args, void *info)
 static struct chx_value *
 bltn_exp(CHEAX *c, struct chx_list *args, void *info)
 {
-	struct chx_value *xval;
-	if (unpack(c, args, "[id]", &xval) < 0)
+	double x;
+	if (unpack(c, args, "#!", &x) < 0)
 		return NULL;
-	double x = vtod(xval);
 
 	/* TODO deal with ERANGE? */
 
@@ -199,10 +186,9 @@ bltn_exp(CHEAX *c, struct chx_list *args, void *info)
 static struct chx_value *
 bltn_expm1(CHEAX *c, struct chx_list *args, void *info)
 {
-	struct chx_value *xval;
-	if (unpack(c, args, "[id]", &xval) < 0)
+	double x;
+	if (unpack(c, args, "#!", &x) < 0)
 		return NULL;
-	double x = vtod(xval);
 
 	/* TODO deal with ERANGE? */
 
@@ -212,10 +198,9 @@ bltn_expm1(CHEAX *c, struct chx_list *args, void *info)
 static struct chx_value *
 bltn_floor(CHEAX *c, struct chx_list *args, void *info)
 {
-	struct chx_value *xval;
-	if (unpack(c, args, "[id]", &xval) < 0)
+	double x;
+	if (unpack(c, args, "#!", &x) < 0)
 		return NULL;
-	double x = vtod(xval);
 
 	return bt_wrap(c, &cheax_int(c, floor(x))->base);
 }
@@ -223,11 +208,10 @@ bltn_floor(CHEAX *c, struct chx_list *args, void *info)
 static struct chx_value *
 bltn_ldexp(CHEAX *c, struct chx_list *args, void *info)
 {
-	struct chx_value *xval;
+	double x;
 	int e;
-	if (unpack(c, args, "[id]i!", &xval, &e) < 0)
+	if (unpack(c, args, "#!i!", &x, &e) < 0)
 		return NULL;
-	double x = vtod(xval);
 
 	/* TODO deal with ERANGE? */
 
@@ -237,10 +221,9 @@ bltn_ldexp(CHEAX *c, struct chx_list *args, void *info)
 static struct chx_value *
 bltn_lgamma(CHEAX *c, struct chx_list *args, void *info)
 {
-	struct chx_value *xval;
-	if (unpack(c, args, "[id]", &xval) < 0)
+	double x;
+	if (unpack(c, args, "#!", &x) < 0)
 		return NULL;
-	double x = vtod(xval);
 
 	if (x <= 0.0 && (int)x == x) {
 		cheax_throwf(c, CHEAX_EVALUE, "pole error");
@@ -253,10 +236,9 @@ bltn_lgamma(CHEAX *c, struct chx_list *args, void *info)
 static struct chx_value *
 bltn_log(CHEAX *c, struct chx_list *args, void *info)
 {
-	struct chx_value *xval;
-	if (unpack(c, args, "[id]", &xval) < 0)
+	double x;
+	if (unpack(c, args, "#!", &x) < 0)
 		return NULL;
-	double x = vtod(xval);
 
 	if (x < 0.0) {
 		cheax_throwf(c, CHEAX_EVALUE, "domain error");
@@ -273,10 +255,9 @@ bltn_log(CHEAX *c, struct chx_list *args, void *info)
 static struct chx_value *
 bltn_log10(CHEAX *c, struct chx_list *args, void *info)
 {
-	struct chx_value *xval;
-	if (unpack(c, args, "[id]", &xval) < 0)
+	double x;
+	if (unpack(c, args, "#!", &x) < 0)
 		return NULL;
-	double x = vtod(xval);
 
 	if (x < 0.0) {
 		cheax_throwf(c, CHEAX_EVALUE, "domain error");
@@ -293,10 +274,9 @@ bltn_log10(CHEAX *c, struct chx_list *args, void *info)
 static struct chx_value *
 bltn_log1p(CHEAX *c, struct chx_list *args, void *info)
 {
-	struct chx_value *xval;
-	if (unpack(c, args, "[id]", &xval) < 0)
+	double x;
+	if (unpack(c, args, "#!", &x) < 0)
 		return NULL;
-	double x = vtod(xval);
 
 	if (x < 1.0) {
 		cheax_throwf(c, CHEAX_EVALUE, "domain error");
@@ -313,10 +293,9 @@ bltn_log1p(CHEAX *c, struct chx_list *args, void *info)
 static struct chx_value *
 bltn_log2(CHEAX *c, struct chx_list *args, void *info)
 {
-	struct chx_value *xval;
-	if (unpack(c, args, "[id]", &xval) < 0)
+	double x;
+	if (unpack(c, args, "#!", &x) < 0)
 		return NULL;
-	double x = vtod(xval);
 
 	if (x < 0.0) {
 		cheax_throwf(c, CHEAX_EVALUE, "domain error");
@@ -333,10 +312,9 @@ bltn_log2(CHEAX *c, struct chx_list *args, void *info)
 static struct chx_value *
 bltn_nextafter(CHEAX *c, struct chx_list *args, void *info)
 {
-	struct chx_value *xval, *yval;
-	if (unpack(c, args, "[id][id]", &xval, &yval) < 0)
+	double x, y;
+	if (unpack(c, args, "#!#!", &x, &y) < 0)
 		return NULL;
-	double x = vtod(xval), y = vtod(yval);
 
 	return bt_wrap(c, &cheax_double(c, nextafter(x, y))->base);
 }
@@ -344,10 +322,9 @@ bltn_nextafter(CHEAX *c, struct chx_list *args, void *info)
 static struct chx_value *
 bltn_pow(CHEAX *c, struct chx_list *args, void *info)
 {
-	struct chx_value *xval, *yval;
-	if (unpack(c, args, "[id][id]", &xval, &yval) < 0)
+	double x, y;
+	if (unpack(c, args, "#!#!", &x, &y) < 0)
 		return NULL;
-	double x = vtod(xval), y = vtod(yval);
 
 	if (x < 0.0 && isfinite(y) && (int)y != y) {
 		cheax_throwf(c, CHEAX_EVALUE, "domain error");
@@ -364,10 +341,9 @@ bltn_pow(CHEAX *c, struct chx_list *args, void *info)
 static struct chx_value *
 bltn_round(CHEAX *c, struct chx_list *args, void *info)
 {
-	struct chx_value *xval;
-	if (unpack(c, args, "[id]", &xval) < 0)
+	double x;
+	if (unpack(c, args, "#!", &x) < 0)
 		return NULL;
-	double x = vtod(xval);
 
 	return bt_wrap(c, &cheax_int(c, round(x))->base);
 }
@@ -375,10 +351,9 @@ bltn_round(CHEAX *c, struct chx_list *args, void *info)
 static struct chx_value *
 bltn_sin(CHEAX *c, struct chx_list *args, void *info)
 {
-	struct chx_value *xval;
-	if (unpack(c, args, "[id]", &xval) < 0)
+	double x;
+	if (unpack(c, args, "#!", &x) < 0)
 		return NULL;
-	double x = vtod(xval);
 
 	return bt_wrap(c, &cheax_double(c, sin(x))->base);
 }
@@ -386,10 +361,9 @@ bltn_sin(CHEAX *c, struct chx_list *args, void *info)
 static struct chx_value *
 bltn_sinh(CHEAX *c, struct chx_list *args, void *info)
 {
-	struct chx_value *xval;
-	if (unpack(c, args, "[id]", &xval) < 0)
+	double x;
+	if (unpack(c, args, "#!", &x) < 0)
 		return NULL;
-	double x = vtod(xval);
 
 	return bt_wrap(c, &cheax_double(c, sinh(x))->base);
 }
@@ -397,10 +371,9 @@ bltn_sinh(CHEAX *c, struct chx_list *args, void *info)
 static struct chx_value *
 bltn_sqrt(CHEAX *c, struct chx_list *args, void *info)
 {
-	struct chx_value *xval;
-	if (unpack(c, args, "[id]", &xval) < 0)
+	double x;
+	if (unpack(c, args, "#!", &x) < 0)
 		return NULL;
-	double x = vtod(xval);
 
 	if (x < 0.0) {
 		cheax_throwf(c, CHEAX_EVALUE, "domain error");
@@ -413,10 +386,9 @@ bltn_sqrt(CHEAX *c, struct chx_list *args, void *info)
 static struct chx_value *
 bltn_tan(CHEAX *c, struct chx_list *args, void *info)
 {
-	struct chx_value *xval;
-	if (unpack(c, args, "[id]", &xval) < 0)
+	double x;
+	if (unpack(c, args, "#!", &x) < 0)
 		return NULL;
-	double x = vtod(xval);
 
 	if (isinf(x)) {
 		cheax_throwf(c, CHEAX_EVALUE, "domain error");
@@ -429,10 +401,9 @@ bltn_tan(CHEAX *c, struct chx_list *args, void *info)
 static struct chx_value *
 bltn_tanh(CHEAX *c, struct chx_list *args, void *info)
 {
-	struct chx_value *xval;
-	if (unpack(c, args, "[id]", &xval) < 0)
+	double x;
+	if (unpack(c, args, "#!", &x) < 0)
 		return NULL;
-	double x = vtod(xval);
 
 	return bt_wrap(c, &cheax_double(c, tanh(x))->base);
 }
@@ -440,10 +411,9 @@ bltn_tanh(CHEAX *c, struct chx_list *args, void *info)
 static struct chx_value *
 bltn_tgamma(CHEAX *c, struct chx_list *args, void *info)
 {
-	struct chx_value *xval;
-	if (unpack(c, args, "[id]", &xval) < 0)
+	double x;
+	if (unpack(c, args, "#!", &x) < 0)
 		return NULL;
-	double x = vtod(xval);
 
 	if (x < 0.0 && isinf(x)) {
 		cheax_throwf(c, CHEAX_EVALUE, "domain error");
@@ -460,10 +430,9 @@ bltn_tgamma(CHEAX *c, struct chx_list *args, void *info)
 static struct chx_value *
 bltn_trunc(CHEAX *c, struct chx_list *args, void *info)
 {
-	struct chx_value *xval;
-	if (unpack(c, args, "[id]", &xval) < 0)
+	double x;
+	if (unpack(c, args, "#!", &x) < 0)
 		return NULL;
-	double x = vtod(xval);
 
 	return bt_wrap(c, &cheax_int(c, trunc(x))->base);
 }

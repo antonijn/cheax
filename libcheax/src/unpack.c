@@ -29,11 +29,13 @@ struct unpack_field {
 enum {
 	ANY_TYPE  = -1,
 	FILE_TYPE = -2,
+	NUM_TYPE  = -3,
 };
 
 /* in ascii order according to field specifier */
 static const struct unpack_field unpack_fields[] = {
 	{ ' ', CHEAX_NIL,       true  },
+	{ '#', NUM_TYPE,        true  },
 	{ '-', CHEAX_NIL,       false },
 	{ '.', ANY_TYPE,        true  },
 	{ 'B', CHEAX_BOOL,      false },
@@ -83,10 +85,11 @@ unpack_once(CHEAX *c,
             struct chx_list **args,
             const char *ufs_i,
             const char *ufs_f,
+	    int *fty_out,
 	    struct chx_value **out)
 {
 	bool has_evald = false;
-	int res = 0;
+	int res = 0, fty;
 
 	struct chx_list *arg_cons = *args;
 	if (arg_cons == NULL)
@@ -102,19 +105,26 @@ unpack_once(CHEAX *c,
 			has_evald = true;
 		}
 
-		if (cheax_type_of(v) == uf->t) {
+		fty = uf->t;
+		int vty = cheax_type_of(v);
+
+		if (vty == fty) {
 			*out = v;
 			goto done;
 		}
 
-		if (uf->t >= 0)
+		if (fty >= 0)
 			continue;
 
-		if (uf->t == ANY_TYPE) {
+		if (fty == ANY_TYPE) {
 			*out = v;
 			goto done;
 		}
-		if (uf->t == FILE_TYPE && cheax_type_of(v) == c->fhandle_type) {
+		if (fty == FILE_TYPE && vty == c->fhandle_type) {
+			*out = v;
+			goto done;
+		}
+		if (fty == NUM_TYPE && (vty == CHEAX_INT || vty == CHEAX_DOUBLE)) {
 			*out = v;
 			goto done;
 		}
@@ -122,17 +132,20 @@ unpack_once(CHEAX *c,
 
 	res = -CHEAX_ETYPE;
 done:
-	if (res == 0)
+	if (res == 0) {
 		*args = arg_cons->next;
+		if (fty_out != NULL)
+			*fty_out = fty;
+	}
 	return res;
 pad:
 	return -CHEAX_EEVAL;
 }
 
 static int
-store_value(CHEAX *c, struct chx_value *v, va_list ap)
+store_value(CHEAX *c, struct chx_value *v, int ty, va_list ap)
 {
-	switch (cheax_type_of(v)) {
+	switch (ty) {
 	case CHEAX_INT:
 	case CHEAX_ERRORCODE:
 		*va_arg(ap, int *) = ((struct chx_int *)v)->value;
@@ -146,11 +159,11 @@ store_value(CHEAX *c, struct chx_value *v, va_list ap)
 	case CHEAX_ID:
 		*va_arg(ap, const char **) = ((struct chx_id *)v)->id;
 		return 0;
-	}
-
-	if (cheax_type_of(v) == c->fhandle_type) {
+	case FILE_TYPE:
 		*va_arg(ap, FILE **) = ((struct chx_user_ptr *)v)->value;
 		return 0;
+	case NUM_TYPE:
+		return try_vtod(v, va_arg(ap, double *)) ? 0 : -1;
 	}
 
 	return -1;
@@ -191,13 +204,14 @@ unpack_arg(CHEAX *c,
 		if (ufs_f - ufs_i > 1)
 			return -CHEAX_EAPI;
 
-		res = unpack_once(c, args, ufs_i, ufs_f, &v);
-		if (res == 0 && store_value(c, v, ap) < 0)
+		int fty;
+		res = unpack_once(c, args, ufs_i, ufs_f, &fty, &v);
+		if (res == 0 && store_value(c, v, fty, ap) < 0)
 			return -CHEAX_EAPI;
 		return res;
 
 	case '?':
-		res = unpack_once(c, args, ufs_i, ufs_f, &v);
+		res = unpack_once(c, args, ufs_i, ufs_f, NULL, &v);
 		if (res == -CHEAX_EEVAL)
 			return -CHEAX_EEVAL;
 		return store_arg(c, argc, argv_out, v, ap);
@@ -214,7 +228,7 @@ unpack_arg(CHEAX *c,
 		} else {
 			for (;;) {
 				chx_ref lst_ref = cheax_ref(c, lst);
-				res = unpack_once(c, args, ufs_i, ufs_f, &v);
+				res = unpack_once(c, args, ufs_i, ufs_f, NULL, &v);
 				cheax_unref(c, lst, lst_ref);
 				if (res != 0)
 					break;
@@ -236,7 +250,7 @@ unpack_arg(CHEAX *c,
 		     : store_arg(c, argc, argv_out, &lst->base, ap);
 
 	default:
-		res = unpack_once(c, args, ufs_i, ufs_f, &v);
+		res = unpack_once(c, args, ufs_i, ufs_f, NULL, &v);
 		if (res < 0)
 			return res;
 		return store_arg(c, argc, argv_out, v, ap);
