@@ -462,10 +462,12 @@ bltn_try(CHEAX *c, struct chx_list *args, void *info)
 	if (validate_catch_blocks(c, catch_blocks, &finally_block) < 0)
 		return NULL;
 
+	struct chx_value *retval = NULL;
+
 	cheax_push_env(c);
 	cheax_ft(c, pad2);
 
-	struct chx_value *retval = cheax_eval(c, block);
+	retval = cheax_eval(c, block);
 
 	cheax_pop_env(c);
 
