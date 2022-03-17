@@ -95,7 +95,7 @@ cheax_malloc(CHEAX *c, size_t size)
 
 #ifndef MSIZE
 	hdr->size = size + hdr_size;
-	c->gc.alloc += hdr->size;
+	c->gc.all_mem += hdr->size;
 	return &hdr->obj;
 #else
 	c->gc.all_mem += MSIZE(hdr);
@@ -132,7 +132,7 @@ cheax_calloc(CHEAX *c, size_t nmemb, size_t size)
 
 #ifndef MSIZE
 	hdr->size = nmemb * size + hdr_size;
-	c->gc.alloc += hdr->size;
+	c->gc.all_mem += hdr->size;
 	return memset(&hdr->obj, 0, nmemb * size);
 #else
 	c->gc.all_mem += MSIZE(hdr);
