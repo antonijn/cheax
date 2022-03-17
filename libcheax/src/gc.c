@@ -21,7 +21,7 @@
 #define MSIZE _msize
 #endif
 
-#ifdef HAVE_MALLOC_H
+#if defined(MSIZE) && defined(HAVE_MALLOC_H)
 #include <malloc.h>
 #endif
 #include <stdlib.h>
@@ -40,7 +40,7 @@ enum {
 	PLEASE_UNREF,
 };
 
-#ifndef HAVE_MALLOC_USABLE_SIZE
+#ifndef MSIZE
 struct alloc_header {
 	size_t size;
 	long obj;
@@ -71,7 +71,7 @@ claim_mem(CHEAX *c, size_t size, size_t hdr_size)
 		return -1;
 	}
 
-#ifndef HAVE_MALLOC_USABLE_SIZE
+#ifndef MSIZE
 	c->gc.all_mem += size;
 #endif
 	return 0;
@@ -80,7 +80,7 @@ claim_mem(CHEAX *c, size_t size, size_t hdr_size)
 void *
 cheax_malloc(CHEAX *c, size_t size)
 {
-#ifndef HAVE_MALLOC_USABLE_SIZE
+#ifndef MSIZE
 	struct alloc_header *hdr;
 	const size_t hdr_size = offsetof(struct alloc_header, obj);
 #else
@@ -96,7 +96,7 @@ cheax_malloc(CHEAX *c, size_t size)
 		return NULL;
 	}
 
-#ifndef HAVE_MALLOC_USABLE_SIZE
+#ifndef MSIZE
 	hdr->size = size + hdr_size;
 	return &hdr->obj;
 #else
@@ -116,7 +116,7 @@ cheax_calloc(CHEAX *c, size_t nmemb, size_t size)
 		return NULL;
 	}
 
-#ifndef HAVE_MALLOC_USABLE_SIZE
+#ifndef MSIZE
 	struct alloc_header *hdr;
 	const size_t hdr_size = offsetof(struct alloc_header, obj);
 #else
@@ -132,7 +132,7 @@ cheax_calloc(CHEAX *c, size_t nmemb, size_t size)
 		return NULL;
 	}
 
-#ifndef HAVE_MALLOC_USABLE_SIZE
+#ifndef MSIZE
 	hdr->size = nmemb * size + hdr_size;
 	return memset(&hdr->obj, 0, nmemb * size);
 #else
@@ -144,7 +144,7 @@ cheax_calloc(CHEAX *c, size_t nmemb, size_t size)
 void *
 cheax_realloc(CHEAX *c, void *ptr, size_t size)
 {
-#ifndef HAVE_MALLOC_USABLE_SIZE
+#ifndef MSIZE
 	if (size == 0) {
 		if (ptr != NULL)
 			free(ptr);
@@ -183,6 +183,8 @@ cheax_realloc(CHEAX *c, void *ptr, size_t size)
 	ptr = realloc(ptr, size);
 	if (ptr == NULL)
 		cheax_throwf(c, CHEAX_ENOMEM, "realloc() failure");
+	else
+		c->gc.all_mem += MSIZE(ptr);
 	return ptr;
 #endif
 }
@@ -191,7 +193,7 @@ void
 cheax_free(CHEAX *c, void *ptr)
 {
 	if (ptr != NULL) {
-#ifndef HAVE_MALLOC_USABLE_SIZE
+#ifndef MSIZE
 		struct alloc_header *hdr = get_alloc_header(ptr);
 		c->gc.all_mem -= hdr->size;
 		free(hdr);
@@ -217,7 +219,7 @@ get_header(void *obj)
 static struct gc_fin_footer *
 get_fin_footer(void *obj)
 {
-#ifndef HAVE_MALLOC_USABLE_SIZE
+#ifndef MSIZE
 	struct alloc_header *hdr = get_alloc_header(get_header(obj));
 	size_t mem_size = hdr->size;
 	char *m = (char *)hdr;
