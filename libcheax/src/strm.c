@@ -192,7 +192,15 @@ snostrm_vprintf(void *info, const char *frmt, va_list ap)
 	struct snostrm *strm = info;
 
 	size_t rem = strm->cap - strm->idx;
+#if defined(HAVE_VFPRINTF_L)
+	int msg_len = vsnprintf_l(strm->buf + strm->idx, rem, get_c_locale(), frmt, ap);
+#elif defined(HAVE_WINDOWS_VFPRINTF_L)
+	int msg_len = _vsnprintf_l(strm->buf + strm->idx, rem, frmt, get_c_locale(), ap);
+#else
+	locale_t prev_locale = uselocale(get_c_locale());
 	int msg_len = vsnprintf(strm->buf + strm->idx, rem, frmt, ap);
+	uselocale(prev_locale);
+#endif
 	if (msg_len > 0)
 		strm->idx = (strm->idx + msg_len > strm->cap) ? strm->cap : strm->idx + msg_len;
 	return msg_len;
