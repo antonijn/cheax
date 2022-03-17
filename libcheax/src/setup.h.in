@@ -25,12 +25,6 @@
 #cmakedefine HAVE_MALLOC_USABLE_SIZE
 #cmakedefine HAVE_WINDOWS_MSIZE
 
-#if defined(HAVE_MALLOC_USABLE_SIZE)
-#define MSIZE malloc_usable_size
-#elif defined(HAVE_WINDOWS_MSIZE)
-#define MSIZE _msize
-#endif
-
 #define VERSION_STRING GIT_HASH SHARED_SUFFIX
 
 #endif
