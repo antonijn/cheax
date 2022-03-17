@@ -13,6 +13,17 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  */
 
+#include "setup.h"
+
+#if defined(HAVE_MALLOC_USABLE_SIZE)
+#define MSIZE malloc_usable_size
+#elif defined(HAVE_WINDOWS_MSIZE)
+#define MSIZE _msize
+#endif
+
+#ifdef HAVE_MALLOC_H
+#include <malloc.h>
+#endif
 #include <stdlib.h>
 #include <string.h>
 
@@ -21,7 +32,6 @@
 #include "feat.h"
 #include "gc.h"
 #include "rbtree.h"
-#include "setup.h"
 #include "unpack.h"
 
 /* values for chx_ref */
@@ -30,6 +40,7 @@ enum {
 	PLEASE_UNREF,
 };
 
+#ifndef HAVE_MALLOC_USABLE_SIZE
 struct alloc_header {
 	size_t size;
 	long obj;
@@ -38,9 +49,9 @@ struct alloc_header {
 static struct alloc_header *
 get_alloc_header(void *ptr)
 {
-	char *m = ptr;
-	return (struct alloc_header *)(m - offsetof(struct alloc_header, obj));
+	return (struct alloc_header *)((char *)ptr - offsetof(struct alloc_header, obj));
 }
+#endif
 
 static int
 claim_mem(CHEAX *c, size_t size, size_t hdr_size)
@@ -60,15 +71,22 @@ claim_mem(CHEAX *c, size_t size, size_t hdr_size)
 		return -1;
 	}
 
+#ifndef HAVE_MALLOC_USABLE_SIZE
 	c->gc.all_mem += size;
+#endif
 	return 0;
 }
 
 void *
 cheax_malloc(CHEAX *c, size_t size)
 {
+#ifndef HAVE_MALLOC_USABLE_SIZE
 	struct alloc_header *hdr;
-	const size_t hdr_size = sizeof(*hdr) - sizeof(hdr->obj);
+	const size_t hdr_size = offsetof(struct alloc_header, obj);
+#else
+	void *hdr;
+	const size_t hdr_size = 0;
+#endif
 	if (size == 0 || claim_mem(c, size, hdr_size) < 0)
 		return NULL;
 
@@ -78,8 +96,13 @@ cheax_malloc(CHEAX *c, size_t size)
 		return NULL;
 	}
 
+#ifndef HAVE_MALLOC_USABLE_SIZE
 	hdr->size = size + hdr_size;
 	return &hdr->obj;
+#else
+	c->gc.all_mem += MSIZE(hdr);
+	return hdr;
+#endif
 }
 
 void *
@@ -93,8 +116,13 @@ cheax_calloc(CHEAX *c, size_t nmemb, size_t size)
 		return NULL;
 	}
 
+#ifndef HAVE_MALLOC_USABLE_SIZE
 	struct alloc_header *hdr;
-	const size_t hdr_size = sizeof(*hdr) - sizeof(hdr->obj);
+	const size_t hdr_size = offsetof(struct alloc_header, obj);
+#else
+	void *hdr;
+	const size_t hdr_size = 0;
+#endif
 	if (claim_mem(c, nmemb * size, hdr_size) < 0)
 		return NULL;
 
@@ -104,13 +132,19 @@ cheax_calloc(CHEAX *c, size_t nmemb, size_t size)
 		return NULL;
 	}
 
-	hdr->size = size + hdr_size;
-	return memset(&hdr->obj, 0, size);
+#ifndef HAVE_MALLOC_USABLE_SIZE
+	hdr->size = nmemb * size + hdr_size;
+	return memset(&hdr->obj, 0, nmemb * size);
+#else
+	c->gc.all_mem += MSIZE(hdr);
+	return memset(hdr, 0, nmemb * size);
+#endif
 }
 
 void *
 cheax_realloc(CHEAX *c, void *ptr, size_t size)
 {
+#ifndef HAVE_MALLOC_USABLE_SIZE
 	if (size == 0) {
 		if (ptr != NULL)
 			free(ptr);
@@ -138,15 +172,33 @@ cheax_realloc(CHEAX *c, void *ptr, size_t size)
 
 	hdr->size = size + hdr_size;
 	return &hdr->obj;
+#else
+	size_t prev_size = MSIZE(ptr);
+	c->gc.all_mem -= prev_size;
+	if (size > 0 && claim_mem(c, size, 0) < 0) {
+		c->gc.all_mem += prev_size;
+		return NULL;
+	}
+
+	ptr = realloc(ptr, size);
+	if (ptr == NULL)
+		cheax_throwf(c, CHEAX_ENOMEM, "realloc() failure");
+	return ptr;
+#endif
 }
 
 void
 cheax_free(CHEAX *c, void *ptr)
 {
 	if (ptr != NULL) {
+#ifndef HAVE_MALLOC_USABLE_SIZE
 		struct alloc_header *hdr = get_alloc_header(ptr);
 		c->gc.all_mem -= hdr->size;
 		free(hdr);
+#else
+		c->gc.all_mem -= MSIZE(ptr);
+		free(ptr);
+#endif
 	}
 }
 
@@ -165,9 +217,16 @@ get_header(void *obj)
 static struct gc_fin_footer *
 get_fin_footer(void *obj)
 {
+#ifndef HAVE_MALLOC_USABLE_SIZE
 	struct alloc_header *hdr = get_alloc_header(get_header(obj));
+	size_t mem_size = hdr->size;
 	char *m = (char *)hdr;
-	size_t ftr_ofs = hdr->size - sizeof(struct gc_fin_footer);
+#else
+	struct gc_header *hdr = get_header(obj);
+	size_t mem_size = MSIZE(hdr);
+	char *m = (char *)hdr;
+#endif
+	size_t ftr_ofs = mem_size - sizeof(struct gc_fin_footer);
 	return (struct gc_fin_footer *)(m + ftr_ofs);
 }
 
@@ -209,7 +268,7 @@ void *
 gc_alloc(CHEAX *c, size_t size, int type)
 {
 	struct gc_header *hdr;
-	const size_t hdr_size = sizeof(*hdr) - sizeof(hdr->obj);
+	const size_t hdr_size = offsetof(struct gc_header, obj);
 	if (size > SIZE_MAX - hdr_size) {
 		cheax_throwf(c, CHEAX_ENOMEM, "gc_alloc(): not enough space for gc header");
 		return NULL;

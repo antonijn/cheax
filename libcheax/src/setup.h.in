@@ -12,6 +12,7 @@
 #endif
 
 #cmakedefine HAVE_XLOCALE_H
+#cmakedefine HAVE_MALLOC_H
 
 #cmakedefine HAVE_STRTOD_L
 #cmakedefine HAVE_VFPRINTF_L
@@ -21,6 +22,14 @@
 #cmakedefine HAVE_WINDOWS_VFPRINTF_L
 #cmakedefine HAVE_WINDOWS_VSNPRINTF_L
 #cmakedefine HAVE_WINDOWS_CREATE_LOCALE
+#cmakedefine HAVE_MALLOC_USABLE_SIZE
+#cmakedefine HAVE_WINDOWS_MSIZE
+
+#if defined(HAVE_MALLOC_USABLE_SIZE)
+#define MSIZE malloc_usable_size
+#elif defined(HAVE_WINDOWS_MSIZE)
+#define MSIZE _msize
+#endif
 
 #define VERSION_STRING GIT_HASH SHARED_SUFFIX
 

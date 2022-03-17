@@ -16,12 +16,12 @@
 #ifndef LOC_H
 #define LOC_H
 
+#include "setup.h"
+
 #include <locale.h>
 #ifdef HAVE_XLOCALE_H
 #include <xlocale.h>
 #endif
-
-#include "setup.h"
 
 #if defined(HAVE_NEWLOCALE)
 locale_t get_c_locale(void);
