@@ -102,12 +102,12 @@ ostrm_show_basic(CHEAX *c, struct ostrm *s, struct chx_value *val)
 		struct chx_string *string = (struct chx_string *)val;
 		for (size_t i = 0; i < string->len; ++i) {
 			char ch = string->value[i];
-			if (ch == '"')
-				ostrm_printf(s, "\\\"");
-			else if (c_isprint(ch))
+			if (ch == '"' || ch == '\\')
+				ostrm_printf(s, "\\%c", ch);
+			else if (c_isgraph(ch) || ch == ' ')
 				ostrm_putc(s, ch);
 			else
-				ostrm_printf(s, "\\x%02x", (unsigned)ch & 0xFFu);
+				ostrm_printf(s, "\\x%02X", (unsigned)ch & 0xFFu);
 		}
 		ostrm_putc(s, '"');
 		break;
