@@ -95,7 +95,8 @@ print_usage(void)
 		"Options:\n"
 		"  -c CMD                Read and evaluate command CMD.\n"
 		"  -p                    Don't load prelude.\n"
-		"  --help                Show this message.";
+		"  --help                Show this message.\n"
+		"  --version             Show cheax version information.";
 
 	puts(usage);
 
@@ -110,6 +111,12 @@ print_usage(void)
 	}
 
 	putchar('\n');
+}
+
+static void
+print_version(void)
+{
+	printf("libcheax %s\n", cheax_version());
 }
 
 static int
@@ -183,6 +190,11 @@ handle_string_option(const char *arg, int *arg_idx, int argc, char **argv)
 {
 	if (0 == strcmp(arg, "--help")) {
 		print_usage();
+		exit(0);
+	}
+
+	if (0 == strcmp(arg, "--version")) {
+		print_version();
 		exit(0);
 	}
 
