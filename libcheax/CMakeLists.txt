@@ -35,11 +35,11 @@ check_platform_func (newlocale          HAVE_NEWLOCALE)
 check_platform_func (strtod_l           HAVE_STRTOD_L)
 check_platform_func (vfprintf_l         HAVE_VFPRINTF_L)
 check_platform_func (vsnprintf_l        HAVE_VSNPRINTF_L)
+check_platform_func (malloc_usable_size HAVE_MALLOC_USABLE_SIZE)
 check_platform_func (_create_locale     HAVE_WINDOWS_CREATE_LOCALE)
 check_platform_func (_strtod_l          HAVE_WINDOWS_STRTOD_L)
 check_platform_func (_vfprintf_l        HAVE_WINDOWS_VFPRINTF_L)
 check_platform_func (_vsnprintf_l       HAVE_WINDOWS_VSNPRINTF_L)
-check_platform_func (malloc_usable_size HAVE_MALLOC_USABLE_SIZE)
 check_platform_func (_msize             HAVE_WINDOWS_MSIZE)
 
 if (NOT (HAVE_NEWLOCALE OR HAVE_WINDOWS_CREATE_LOCALE))
@@ -55,12 +55,12 @@ if (NOT (HAVE_VSNPRINTF_L OR HAVE_NEWLOCALE OR (HAVE_WINDOWS_VSNPRINTF_L AND HAV
 	message(SEND_ERROR "Target platform must support vsnprintf_l(), uselocale(), or both _vsnprintf_l() and _create_locale().")
 endif()
 
-list (JOIN FEATURES " " FEATURE_STRING)
 if (BUILD_SHARED_LIBS)
-	set (VERSION_SUFFIX " shared ${FEATURE_STRING}")
+	list (APPEND FEATURES "shared")
 else ()
-	set (VERSION_SUFFIX " static ${FEATURE_STRING}")
+	list (APPEND FEATURES "static")
 endif ()
+list (JOIN FEATURES " " VERSION_SUFFIX)
 
 configure_file (src/setup.h.in src/setup.h)
 

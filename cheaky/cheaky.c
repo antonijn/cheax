@@ -39,10 +39,10 @@ show_file(const char *path)
 		return;
 	}
 
-	const size_t bsize = 1024;
-	char buf[bsize];
+	enum { BSIZE = 1024 };
+	char buf[BSIZE];
 	size_t ln;
-	while ((ln = fread(buf, 1, bsize, f)) > 0)
+	while ((ln = fread(buf, 1, BSIZE, f)) > 0)
 		fwrite(buf, ln, 1, stdout);
 	fflush(stdout);
 	fclose(f);

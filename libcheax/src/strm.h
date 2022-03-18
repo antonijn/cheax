@@ -27,7 +27,7 @@ struct ostrm {
 	void *info;
 	int (*vprintf)(void *info, const char *frmt, va_list ap);
 	/* can't use identifier putc; might be macro */
-	int (*putchar)(void *info, int ch);
+	int (*sputc)(void *info, int ch);
 };
 
 static inline int
@@ -42,7 +42,7 @@ ostrm_printf(struct ostrm *strm, const char *frmt, ...)
 static inline int
 ostrm_putc(struct ostrm *strm, int ch)
 {
-	return strm->putchar(strm->info, ch);
+	return strm->sputc(strm->info, ch);
 }
 
 /* Write unicode code point `cp' to output stream in UTF-8 encoding. */
@@ -86,7 +86,7 @@ sostrm_init(struct sostrm *ss, CHEAX *c)
 
 	ss->strm.info = ss;
 	ss->strm.vprintf = sostrm_vprintf;
-	ss->strm.putchar = sostrm_putc;
+	ss->strm.sputc = sostrm_putc;
 }
 
 /* buffer (string-n) output stream.
@@ -110,7 +110,7 @@ snostrm_init(struct snostrm *ss, char *buf, size_t cap)
 
 	ss->strm.info = ss;
 	ss->strm.vprintf = snostrm_vprintf;
-	ss->strm.putchar = snostrm_putc;
+	ss->strm.sputc = snostrm_putc;
 }
 
 /* file output stream */
@@ -132,20 +132,20 @@ fostrm_init(struct fostrm *fs, FILE *f, CHEAX *c)
 
 	fs->strm.info = fs;
 	fs->strm.vprintf = fostrm_vprintf;
-	fs->strm.putchar = fostrm_putc;
+	fs->strm.sputc = fostrm_putc;
 }
 
 /* input stream */
 struct istrm {
 	void *info;
 	/* can't use identifier getc; might be macro */
-	int (*getchar)(void *info);
+	int (*sgetc)(void *info);
 };
 
 static inline int
 istrm_getc(struct istrm *strm)
 {
-	return strm->getchar(strm->info);
+	return strm->sgetc(strm->info);
 }
 
 /* string input stream */
@@ -166,7 +166,7 @@ sistrm_initn(struct sistrm *ss, const char *str, size_t len)
 	ss->idx = 0;
 
 	ss->strm.info = ss;
-	ss->strm.getchar = sistrm_getc;
+	ss->strm.sgetc = sistrm_getc;
 }
 
 static inline void
@@ -192,7 +192,7 @@ fistrm_init(struct fistrm *fs, FILE *f, CHEAX *c)
 	fs->f = f;
 
 	fs->strm.info = fs;
-	fs->strm.getchar = fistrm_getc;
+	fs->strm.sgetc = fistrm_getc;
 }
 
 /* scanner */
