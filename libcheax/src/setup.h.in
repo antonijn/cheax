@@ -13,6 +13,7 @@
 
 #cmakedefine HAVE_XLOCALE_H
 #cmakedefine HAVE_MALLOC_H
+#cmakedefine HAVE_MALLOC_NP_H
 
 #cmakedefine HAVE_STRTOD_L
 #cmakedefine HAVE_VFPRINTF_L

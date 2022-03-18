@@ -16,13 +16,17 @@
 #include "setup.h"
 
 #if defined(HAVE_MALLOC_USABLE_SIZE)
-#define MSIZE malloc_usable_size
+#  define MSIZE malloc_usable_size
 #elif defined(HAVE_WINDOWS_MSIZE)
-#define MSIZE _msize
+#  define MSIZE _msize
 #endif
 
-#if defined(MSIZE) && defined(HAVE_MALLOC_H)
-#include <malloc.h>
+#ifdef MSIZE
+#  if defined(HAVE_MALLOC_H)
+#    include <malloc.h>
+#  elif defined(HAVE_MALLOC_NP_H)
+#    include <malloc_np.h>
+#  endif
 #endif
 #include <stdlib.h>
 #include <string.h>
