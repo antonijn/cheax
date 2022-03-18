@@ -1,7 +1,8 @@
 cmake_minimum_required (VERSION 3.10)
 
 include(CheckFunctionExists)
-check_function_exists(isatty HAVE_ISATTY)
+check_function_exists(isatty  HAVE_ISATTY)
+check_function_exists(_isatty HAVE_WINDOWS_ISATTY)
 configure_file(config.h.in config.h)
 
 add_executable(cheaky cheaky.c)

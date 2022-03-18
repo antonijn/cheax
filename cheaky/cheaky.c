@@ -26,8 +26,12 @@
 #include <readline/readline.h>
 #include <readline/history.h>
 
-#ifdef HAVE_ISATTY
-#include <unistd.h>
+#if defined(HAVE_ISATTY)
+#  include <unistd.h>
+#  define ISATTY isatty
+#elif defined(HAVE_WINDOWS_ISATTY)
+#  include <io.h>
+#  define ISATTY _isatty
 #endif
 
 static void
@@ -142,8 +146,8 @@ main(void)
 
 	int line = 1, pos = 0;
 
-#ifdef HAVE_ISATTY
-	if (!isatty(1)) {
+#ifdef ISATTY
+	if (!ISATTY(1)) {
 		struct chx_value *v;
 		while ((v = cheax_read_at(c, stdin, "<stdin>", &line, &pos)) != NULL) {
 			cheax_print(c, stdout, cheax_eval(c, v));
