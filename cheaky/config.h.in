@@ -1,4 +1,0 @@
-#ifndef CONFIG_H
-#cmakedefine HAVE_ISATTY
-#cmakedefine HAVE_WINDOWS_ISATTY
-#endif

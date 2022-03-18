@@ -17,8 +17,6 @@
  * 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
  */
 
-#include "config.h"
-
 #include <cheax.h>
 #include <stdbool.h>
 #include <stdio.h>
@@ -26,19 +24,11 @@
 #include <readline/readline.h>
 #include <readline/history.h>
 
-#if defined(HAVE_ISATTY)
-#  include <unistd.h>
-#  define ISATTY isatty
-#elif defined(HAVE_WINDOWS_ISATTY)
-#  include <io.h>
-#  define ISATTY _isatty
-#endif
-
 static void
 show_file(const char *path)
 {
 	FILE *f = fopen(path, "rb");
-	if (!f) {
+	if (f == NULL) {
 		perror("failed to find license file!");
 		return;
 	}
@@ -146,18 +136,6 @@ main(void)
 
 	int line = 1, pos = 0;
 
-#ifdef ISATTY
-	if (!ISATTY(1)) {
-		struct chx_value *v;
-		while ((v = cheax_read_at(c, stdin, "<stdin>", &line, &pos)) != NULL) {
-			cheax_print(c, stdout, cheax_eval(c, v));
-			printf("\n");
-		}
-		cheax_destroy(c);
-		return 0;
-	}
-#endif
-
 	fputs("cheaky, Copyright (C) 2022 Antonie Blom\n", stderr);
 	fputs("cheaky comes with ABSOLUTELY NO WARRANTY; for details type `(show-w)'.\n", stderr);
 	fputs("This is free software, and you are welcome to redistribute it\n", stderr);
@@ -167,8 +145,13 @@ main(void)
 		struct chx_value *v;
 		v = read_with_readline(c, &line, &pos);
 		cheax_ft(c, pad);
+		if (quit)
+			break;
+
 		v = cheax_eval(c, v);
 		cheax_ft(c, pad);
+		if (quit)
+			break;
 
 		cheax_print(c, stdout, v);
 		printf("\n");
