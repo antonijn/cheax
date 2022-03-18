@@ -4,12 +4,6 @@
 #include "version.h"
 
 #define CMAKE_INSTALL_PREFIX "@CMAKE_INSTALL_PREFIX@"
-#cmakedefine BUILD_SHARED_LIBS
-#ifdef BUILD_SHARED_LIBS
-#define SHARED_SUFFIX " shared"
-#else
-#define SHARED_SUFFIX " static"
-#endif
 
 #cmakedefine HAVE_XLOCALE_H
 #cmakedefine HAVE_MALLOC_H
@@ -26,6 +20,6 @@
 #cmakedefine HAVE_MALLOC_USABLE_SIZE
 #cmakedefine HAVE_WINDOWS_MSIZE
 
-#define VERSION_STRING GIT_HASH SHARED_SUFFIX
+#define VERSION_STRING GIT_HASH "@VERSION_SUFFIX@"
 
 #endif

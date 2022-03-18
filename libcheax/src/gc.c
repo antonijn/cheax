@@ -22,9 +22,10 @@
 #endif
 
 #ifdef MSIZE
-#  if defined(HAVE_MALLOC_H)
+#  ifdef HAVE_MALLOC_H
 #    include <malloc.h>
-#  elif defined(HAVE_MALLOC_NP_H)
+#  endif
+#  ifdef HAVE_MALLOC_NP_H
 #    include <malloc_np.h>
 #  endif
 #endif
