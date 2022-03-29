@@ -51,28 +51,67 @@ struct alloc_header {
 	long obj;
 };
 
-static struct alloc_header *
-get_alloc_header(void *ptr)
+#  define HDR_SIZE (offsetof(struct alloc_header, obj))
+typedef struct alloc_header *alloc_ptr;
+
+static alloc_ptr
+get_alloc_ptr(void *obj)
 {
-	return (struct alloc_header *)((char *)ptr - offsetof(struct alloc_header, obj));
+	return (alloc_ptr)((char *)obj - HDR_SIZE);
+}
+
+static size_t
+obj_size(void *obj)
+{
+	return get_alloc_ptr(obj)->size;
+}
+
+static void *
+claim_mem(CHEAX *c, alloc_ptr ptr, size_t total_size, size_t unclaim)
+{
+	ptr->size = total_size;
+	c->gc.all_mem = c->gc.all_mem - unclaim + total_size;
+	return &ptr->obj;
+}
+
+#else
+#  define HDR_SIZE 0
+typedef void *alloc_ptr;
+
+static alloc_ptr
+get_alloc_ptr(void *ptr)
+{
+	return ptr;
+}
+
+static size_t
+obj_size(void *obj)
+{
+	return MSIZE(obj);
+}
+
+static void *
+claim_mem(CHEAX *c, alloc_ptr ptr, size_t total_size, size_t unclaim)
+{
+	c->gc.all_mem = c->gc.all_mem - unclaim + MSIZE(ptr);
+	return ptr;
 }
 #endif
 
 static int
-claim_mem(CHEAX *c, size_t size, size_t hdr_size)
+check_mem(CHEAX *c, size_t size)
 {
-	if (size > SIZE_MAX - hdr_size) {
-		cheax_throwf(c, CHEAX_ENOMEM, "claim_mem(): not enough space for alloc header");
+#if HDR_SIZE > 0
+	if (size > SIZE_MAX - HDR_SIZE) {
+		cheax_throwf(c, CHEAX_ENOMEM, "check_mem(): not enough space for alloc header");
 		return -1;
 	}
 
-	size += hdr_size;
-
+	size += HDR_SIZE;
+#endif
 	size_t limit = c->mem_limit;
-	if (c->gc.all_mem > SIZE_MAX - size
-	 || (c->mem_limit > 0 && c->gc.all_mem + size > limit))
-	{
-		cheax_throwf(c, CHEAX_ENOMEM, "claim_mem(): memory limit reached (%zd bytes)", limit);
+	if (c->gc.all_mem > SIZE_MAX - size || (c->mem_limit > 0 && c->gc.all_mem + size > limit)) {
+		cheax_throwf(c, CHEAX_ENOMEM, "check_mem(): memory limit reached (%zd bytes)", limit);
 		return -1;
 	}
 
@@ -82,30 +121,16 @@ claim_mem(CHEAX *c, size_t size, size_t hdr_size)
 void *
 cheax_malloc(CHEAX *c, size_t size)
 {
-#ifndef MSIZE
-	struct alloc_header *hdr;
-	const size_t hdr_size = offsetof(struct alloc_header, obj);
-#else
-	void *hdr;
-	const size_t hdr_size = 0;
-#endif
-	if (size == 0 || claim_mem(c, size, hdr_size) < 0)
+	if (size == 0 || check_mem(c, size) < 0)
 		return NULL;
 
-	hdr = malloc(size + hdr_size);
-	if (hdr == NULL) {
+	alloc_ptr ptr = malloc(size + HDR_SIZE);
+	if (ptr == NULL) {
 		cheax_throwf(c, CHEAX_ENOMEM, "malloc() failure");
 		return NULL;
 	}
 
-#ifndef MSIZE
-	hdr->size = size + hdr_size;
-	c->gc.all_mem += hdr->size;
-	return &hdr->obj;
-#else
-	c->gc.all_mem += MSIZE(hdr);
-	return hdr;
-#endif
+	return claim_mem(c, ptr, size, 0);
 }
 
 void *
@@ -119,96 +144,54 @@ cheax_calloc(CHEAX *c, size_t nmemb, size_t size)
 		return NULL;
 	}
 
-#ifndef MSIZE
-	struct alloc_header *hdr;
-	const size_t hdr_size = offsetof(struct alloc_header, obj);
-#else
-	void *hdr;
-	const size_t hdr_size = 0;
-#endif
-	if (claim_mem(c, nmemb * size, hdr_size) < 0)
+	if (check_mem(c, nmemb * size) < 0)
 		return NULL;
 
-	hdr = malloc(nmemb * size + hdr_size);
-	if (hdr == NULL) {
+	alloc_ptr ptr = malloc(nmemb * size + HDR_SIZE);
+	if (ptr == NULL) {
 		cheax_throwf(c, CHEAX_ENOMEM, "malloc() failure");
 		return NULL;
 	}
 
-#ifndef MSIZE
-	hdr->size = nmemb * size + hdr_size;
-	c->gc.all_mem += hdr->size;
-	return memset(&hdr->obj, 0, nmemb * size);
-#else
-	c->gc.all_mem += MSIZE(hdr);
-	return memset(hdr, 0, nmemb * size);
-#endif
+	return memset(claim_mem(c, ptr, nmemb * size + HDR_SIZE, 0), 0, nmemb * size);
 }
 
 void *
-cheax_realloc(CHEAX *c, void *ptr, size_t size)
+cheax_realloc(CHEAX *c, void *obj, size_t size)
 {
-	if (ptr == NULL)
+	if (obj == NULL)
 		return cheax_malloc(c, size);
 
 	if (size == 0) {
-		cheax_free(c, ptr);
+		cheax_free(c, obj);
 		return NULL;
 	}
 
-#ifndef MSIZE
-	struct alloc_header *hdr = get_alloc_header(ptr);
-	const size_t hdr_size = offsetof(struct alloc_header, obj);
-	size_t prev_size = hdr->size;
+	alloc_ptr ptr = get_alloc_ptr(obj);
+	size_t prev_size = obj_size(obj);
 
 	c->gc.all_mem -= prev_size;
-	int cmem = claim_mem(c, size, hdr_size);
+	int cmem = check_mem(c, size);
 	c->gc.all_mem += prev_size;
 
 	if (cmem < 0)
 		return NULL;
 
-	hdr = realloc(hdr, size + hdr_size);
-	if (hdr == NULL) {
-		cheax_throwf(c, CHEAX_ENOMEM, "realloc() failure");
-		return NULL;
-	}
-
-	hdr->size = size + hdr_size;
-	c->gc.all_mem = c->gc.all_mem - prev_size + hdr->size;
-	return &hdr->obj;
-#else
-	size_t prev_size = MSIZE(ptr);
-	c->gc.all_mem -= prev_size;
-	int cmem = claim_mem(c, size, 0);
-	c->gc.all_mem += prev_size;
-
-	if (cmem < 0)
-		return NULL;
-
-	ptr = realloc(ptr, size);
+	ptr = realloc(ptr, size + HDR_SIZE);
 	if (ptr == NULL) {
 		cheax_throwf(c, CHEAX_ENOMEM, "realloc() failure");
 		return NULL;
 	}
 
-	c->gc.all_mem = c->gc.all_mem - prev_size + MSIZE(ptr);
-	return ptr;
-#endif
+	return claim_mem(c, ptr, size + HDR_SIZE, prev_size);
 }
 
 void
-cheax_free(CHEAX *c, void *ptr)
+cheax_free(CHEAX *c, void *obj)
 {
-	if (ptr != NULL) {
-#ifndef MSIZE
-		struct alloc_header *hdr = get_alloc_header(ptr);
-		c->gc.all_mem -= hdr->size;
-		free(hdr);
-#else
-		c->gc.all_mem -= MSIZE(ptr);
-		free(ptr);
-#endif
+	if (obj != NULL) {
+		c->gc.all_mem -= obj_size(obj);
+		free(get_alloc_ptr(obj));
 	}
 }
 
