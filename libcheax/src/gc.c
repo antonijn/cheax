@@ -209,15 +209,9 @@ get_header(void *obj)
 static struct gc_fin_footer *
 get_fin_footer(void *obj)
 {
-#ifndef MSIZE
-	struct alloc_header *hdr = get_alloc_header(get_header(obj));
-	size_t mem_size = hdr->size;
-#else
 	struct gc_header *hdr = get_header(obj);
-	size_t mem_size = MSIZE(hdr);
-#endif
-	size_t ftr_ofs = mem_size - sizeof(struct gc_fin_footer);
-	return (struct gc_fin_footer *)((char *)hdr + ftr_ofs);
+	char *mem_ptr = (char *)get_alloc_ptr(hdr);
+	return (struct gc_fin_footer *)(mem_ptr + obj_size(hdr) - sizeof(struct gc_fin_footer));
 }
 
 void
