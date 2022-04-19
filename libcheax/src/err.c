@@ -413,9 +413,6 @@ pad:
 static void
 run_finally(CHEAX *c, struct chx_list *finally_block)
 {
-	cheax_push_env(c);
-	cheax_ft(c, pad2);
-
 	int active_errno = c->error.code;
 	struct chx_string *active_msg = c->error.msg;
 	chx_ref active_msg_ref = cheax_ref(c, active_msg);
@@ -423,6 +420,9 @@ run_finally(CHEAX *c, struct chx_list *finally_block)
 	/* Semi-clear-errno state; see warning comment in bltn_try(). */
 	c->error.code = 0;
 	c->error.msg = NULL;
+
+	cheax_push_env(c);
+	cheax_ft(c, pad2);
 
 	/* types checked before, so this should all be safe */
 	struct chx_list *fb = (struct chx_list *)finally_block->value;
@@ -434,9 +434,9 @@ run_finally(CHEAX *c, struct chx_list *finally_block)
 	c->error.code = active_errno;
 	c->error.msg = active_msg;
 pad:
-	cheax_unref(c, active_msg, active_msg_ref);
 	cheax_pop_env(c);
 pad2:
+	cheax_unref(c, active_msg, active_msg_ref);
 	return;
 }
 
@@ -476,9 +476,6 @@ bltn_try(CHEAX *c, struct chx_list *args, void *info)
 		 * We set errno and errmsg here rather than in run_catch(),
 		 * to allow (catch errno ...), which matches any error code.
 		 */
-		cheax_push_env(c);
-		cheax_ft(c, pad2);
-
 		int active_errno = c->error.code;
 
 		/* protected against gc deletion by declaring it as a
@@ -492,6 +489,9 @@ bltn_try(CHEAX *c, struct chx_list *args, void *info)
 		 */
 		c->error.code = 0;
 		c->error.msg = NULL;
+
+		cheax_push_env(c);
+		cheax_ft(c, pad2);
 
 		cheax_def(c, "errno",  &errorcode(c, active_errno)->base, CHEAX_READONLY);
 		cheax_ft(c, pad);
