@@ -67,6 +67,15 @@ bltn_fclose(CHEAX *c, struct chx_list *args, void *info)
 }
 
 static struct chx_value *
+bltn_eof(CHEAX *c, struct chx_list *args, void *info)
+{
+	FILE *f;
+	return (0 == unpack(c, args, "f!", &f))
+	     ? &cheax_bool(c, feof(f))->base
+	     : NULL;
+}
+
+static struct chx_value *
 bltn_read_from(CHEAX *c, struct chx_list *args, void *info)
 {
 	FILE *f;
@@ -185,6 +194,7 @@ export_io_bltns(CHEAX *c)
 {
 	c->fhandle_type = cheax_new_type(c, "FileHandle", CHEAX_USER_PTR);
 
+	cheax_defmacro(c, "eof?",          bltn_eof,           NULL);
 	cheax_defmacro(c, "read-from",     bltn_read_from,     NULL);
 	cheax_defmacro(c, "read-string",   bltn_read_string,   NULL);
 	cheax_defmacro(c, "print-to",      bltn_print_to,      NULL);
