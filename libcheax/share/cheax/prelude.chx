@@ -182,6 +182,40 @@
   (type-assert xs List Nil)
   (rev-helper xs ()))
 
+(defun tree-insert (x tree cmp)
+  (case tree
+    (() (list nil x nil))
+    ((l v r)
+      (if (< (cmp x v) 0)
+        (list (tree-insert x l cmp) v r)
+        (list l v (tree-insert x r cmp))))))
+
+(defun list-to-tree (lst cmp)
+  (case lst
+    (()       ())
+    ((: x xs) (tree-insert x (list-to-tree xs cmp) cmp))))
+
+(defun tree-to-list (tree res)
+  (case tree
+    (()      res)
+    ((l v r) (tree-to-list l (: v (tree-to-list r res))))))
+
+(defun compare (a b)
+  (cond
+    ((< a b) -1)
+    ((> a b)  1)
+    (true     0)))
+
+(defun sort-by (lst cmp)
+  (type-assert lst List Nil)
+  (type-assert cmp Func ExtFunc)
+  (tree-to-list (list-to-tree lst cmp) ()))
+(defun sort (xs) (sort-by xs compare))
+(defun sort-as (xs key)
+  (type-assert key Func ExtFunc)
+  (let ((tups (map (fn (x) (list x (key x))) xs)))
+    (map (fn ((a b)) b) (sort-by tups (fn ((al bl) (ar br)) (compare bl br))))))
+
 (defun length (xs) (foldr (fn (_ l) (+ 1 l)) 0 xs))
 
 (defun unsafe-!! (xs i orig-i)
