@@ -650,6 +650,51 @@ pad:
 }
 
 static struct chx_value *
+bltn_cond(CHEAX *c, struct chx_list *args, void *info)
+{
+	/* test-value-pair */
+	for (struct chx_list *tvp = args; tvp; tvp = tvp->next) {
+		struct chx_value *pair = tvp->value;
+		if (cheax_type_of(pair) != CHEAX_LIST) {
+			cheax_throwf(c, CHEAX_EMATCH, "test-value pair expected");
+			return bt_wrap(c, NULL);
+		}
+
+		struct chx_list *cons_pair = (struct chx_list *)pair;
+		struct chx_value *test = cons_pair->value, *retval = NULL;
+
+		cheax_push_env(c);
+		cheax_ft(c, pad);
+
+		test = cheax_eval(c, test);
+		cheax_ft(c, pad2);
+		if (cheax_type_of(test) != CHEAX_BOOL) {
+			cheax_throwf(c, CHEAX_ETYPE, "test must have boolean value");
+			cheax_add_bt(c);
+			goto pad2;
+		}
+
+		if (((struct chx_int *)test)->value == 0) {
+			cheax_pop_env(c);
+			continue;
+		}
+
+		/* condition met! */
+		for (struct chx_list *val = cons_pair->next; val != NULL; val = val->next) {
+			retval = cheax_eval(c, val->value);
+			cheax_ft(c, pad2);
+		}
+
+pad2:
+		cheax_pop_env(c);
+		return retval;
+	}
+
+pad:
+	return NULL;
+}
+
+static struct chx_value *
 bltn_eq(CHEAX *c, struct chx_list *args, void *info)
 {
 	struct chx_value *l, *r;
@@ -672,6 +717,7 @@ export_eval_bltns(CHEAX *c)
 {
 	cheax_defmacro(c, "eval", bltn_eval, NULL);
 	cheax_defmacro(c, "case", bltn_case, NULL);
+	cheax_defmacro(c, "cond", bltn_cond, NULL);
 	cheax_defmacro(c, "=",    bltn_eq,   NULL);
 	cheax_defmacro(c, "!=",   bltn_ne,   NULL);
 }

@@ -15,12 +15,10 @@
 (def defmacro (macro (: name args body) `(def ,name (macro ,args ,@body))))
 (defmacro defun      (: name args body) `(def ,name (fn    ,args ,@body)))
 
-(defun bool-err () (throw ETYPE "expected boolean"))
-
-(defmacro if   (c t e) `(case ,c (true    ,t) (false   ,e) (_ (bool-err))))
-(defmacro when   (c t) `(case ,c (true    ,t) (false   ()) (_ (bool-err))))
-(defmacro unless (c t) `(case ,c (false   ,t) (true    ()) (_ (bool-err))))
-(defun    not      (x)  (case  x (false true) (true false) (_ (bool-err))))
+(defmacro if   (c t e) `(cond (,c ,t) (true ,e)))
+(defmacro when   (c t) `(cond (,c ,t)))
+(defmacro unless (c t) `(cond (,c ()) (true ,t)))
+(defun    not      (x)  (cond (x false) (true true)))
 (defmacro and    (a b) `(if ,a   ,b false))
 (defmacro or     (a b) `(if ,a true    ,b))
 
@@ -73,15 +71,15 @@
     (() x)
     (_  (last xs))))
 
-(defun call (f args) (eval (: f args)))
 (defun list args args)
 
 (defun unsafe-filter (p xs)
   (case xs
     (() ())
-    ((: z zs) (if (p z)
-                (: z (unsafe-filter p zs))
-                (unsafe-filter p zs)))))
+    ((: z zs)
+      (if (p z)
+        (: z (unsafe-filter p zs))
+        (unsafe-filter p zs)))))
 (defun filter (p xs)
   (type-assert p Func ExtFunc)
   (type-assert xs List Nil)
@@ -278,11 +276,10 @@
   (type-assert x Int Double)
   (type-assert a Int Double)
   (type-assert b Int Double)
-  (if (< x a)
-    a
-    (if (> x b)
-      b
-      x)))
+  (cond
+    ((< x a) a)
+    ((> x b) b)
+    (true    x)))
 (defun lerp (a b t)
   (type-assert a Int Double)
   (type-assert b Int Double)
