@@ -191,9 +191,7 @@
         (list l v (tree-insert x r cmp))))))
 
 (defun list-to-tree (lst cmp)
-  (case lst
-    (()       ())
-    ((: x xs) (tree-insert x (list-to-tree xs cmp) cmp))))
+  (foldr (fn (a b) (tree-insert a b cmp)) () lst))
 
 (defun tree-to-list (tree res)
   (case tree
@@ -259,7 +257,7 @@
 
 (defun unsafe-split (s at)
   (case (find at s)
-    (() s)
+    (() (list s))
     (n  (: (substr s 0 n) (unsafe-split (substr s (+ n (string-length at))) at)))))
 (defun split (s at)
   (type-assert s String)
