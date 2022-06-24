@@ -55,14 +55,14 @@ feature_list(CHEAX *c, struct chx_list *base)
 	int len = sizeof(named_feats) / sizeof(named_feats[0]);
 	for (int i = len - 1; i >= 0; --i)
 		if (has_flag(c->features, named_feats[i].feat))
-			list = cheax_list(c, &cheax_string(c, named_feats[i].name)->base, list);
+			list = cheax_list(c, cheax_string(c, named_feats[i].name), list).data.as_list;
 	return list;
 }
 
-static struct chx_value *
+static struct chx_value
 get_features(CHEAX *c, struct chx_sym *sym)
 {
-	return &feature_list(c, config_feature_list(c, NULL))->base;
+	return cheax_list_value(feature_list(c, config_feature_list(c, NULL)));
 }
 
 static int
@@ -75,14 +75,14 @@ find_feature(const char *feat)
 	return (res == NULL) ? 0 : res->feat;
 }
 
-static struct chx_value *
+static struct chx_value
 bltn_exit(CHEAX *c, struct chx_list *args, void *info)
 {
-	struct chx_value *code_val;
+	struct chx_value code_val;
 	if (unpack(c, args, "i?", &code_val) < 0)
-		return NULL;
+		return cheax_nil();
 
-	exit((code_val == NULL) ? 0 : ((struct chx_int *)code_val)->value);
+	exit(cheax_is_nil(code_val) ? 0 : (int)code_val.data.as_int);
 }
 
 int

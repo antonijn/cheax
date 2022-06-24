@@ -34,31 +34,28 @@ ostrm_show_sym(CHEAX *c, struct ostrm *s, struct full_sym *fs)
 }
 
 static void
-ostrm_show_basic(CHEAX *c, struct ostrm *s, struct chx_value *val)
+ostrm_show_basic(CHEAX *c, struct ostrm *s, struct chx_value val)
 {
 	struct chx_env *env;
 	struct chx_ext_func *macro;
 
-	int ty = cheax_resolve_type(c, cheax_type_of(val));
+	int ty = cheax_resolve_type(c, val.type);
 	switch (ty) {
-	case CHEAX_NIL:
-		ostrm_printf(s, "()");
-		break;
 	case CHEAX_INT:
-		ostrm_printi(s, ((struct chx_int *)val)->value, 0, 0, 'd');
+		ostrm_printi(s, val.data.as_int, 0, 0, 'd');
 		break;
 	case CHEAX_DOUBLE:
-		ostrm_printf(s, "%f", ((struct chx_double *)val)->value);
+		ostrm_printf(s, "%f", val.data.as_double);
 		break;
 	case CHEAX_BOOL:
-		ostrm_printf(s, "%s", ((struct chx_int *)val)->value ? "true" : "false");
+		ostrm_printf(s, "%s", val.data.as_int ? "true" : "false");
 		break;
 	case CHEAX_ID:
-		ostrm_printf(s, "%s", ((struct chx_id *)val)->id);
+		ostrm_printf(s, "%s", val.data.as_id->value);
 		break;
 	case CHEAX_LIST:
 		ostrm_putc(s, '(');
-		for (struct chx_list *list = (struct chx_list *)val; list; list = list->next) {
+		for (struct chx_list *list = val.data.as_list; list != NULL; list = list->next) {
 			ostrm_show(c, s, list->value);
 			if (list->next)
 				ostrm_putc(s, ' ');
@@ -67,31 +64,30 @@ ostrm_show_basic(CHEAX *c, struct ostrm *s, struct chx_value *val)
 		break;
 	case CHEAX_QUOTE:
 		ostrm_putc(s, '\'');
-		ostrm_show(c, s, ((struct chx_quote *)val)->value);
+		ostrm_show(c, s, val.data.as_quote->value);
 		break;
 	case CHEAX_BACKQUOTE:
 		ostrm_putc(s, '`');
-		ostrm_show(c, s, ((struct chx_quote *)val)->value);
+		ostrm_show(c, s, val.data.as_quote->value);
 		break;
 	case CHEAX_COMMA:
 		ostrm_putc(s, ',');
-		ostrm_show(c, s, ((struct chx_quote *)val)->value);
+		ostrm_show(c, s, val.data.as_quote->value);
 		break;
 	case CHEAX_SPLICE:
 		ostrm_printf(s, ",@");
-		ostrm_show(c, s, ((struct chx_quote *)val)->value);
+		ostrm_show(c, s, val.data.as_quote->value);
 		break;
 	case CHEAX_FUNC:
 	case CHEAX_MACRO:
 		ostrm_putc(s, '(');
-		struct chx_func *func = (struct chx_func *)val;
+		struct chx_func *func = val.data.as_func;
 		if (ty == CHEAX_FUNC)
 			ostrm_printf(s, "fn ");
 		else
 			ostrm_printf(s, "macro ");
 		ostrm_show(c, s, func->args);
-		struct chx_list *body = func->body;
-		for (; body; body = body->next) {
+		for (struct chx_list *body = func->body; body != NULL; body = body->next) {
 			ostrm_printf(s, "\n  ");
 			ostrm_show(c, s, body->value);
 		}
@@ -99,7 +95,7 @@ ostrm_show_basic(CHEAX *c, struct ostrm *s, struct chx_value *val)
 		break;
 	case CHEAX_STRING:
 		ostrm_putc(s, '"');
-		struct chx_string *string = (struct chx_string *)val;
+		struct chx_string *string = val.data.as_string;
 		for (size_t i = 0; i < string->len; ++i) {
 			char ch = string->value[i];
 			if (ch == '"' || ch == '\\')
@@ -112,17 +108,17 @@ ostrm_show_basic(CHEAX *c, struct ostrm *s, struct chx_value *val)
 		ostrm_putc(s, '"');
 		break;
 	case CHEAX_EXT_FUNC:
-		macro = (struct chx_ext_func *)val;
+		macro = val.data.as_ext_func;
 		if (macro->name == NULL)
 			ostrm_printf(s, "[built-in function]");
 		else
 			ostrm_printf(s, "%s", macro->name);
 		break;
 	case CHEAX_USER_PTR:
-		ostrm_printf(s, "%p", ((struct chx_user_ptr *)val)->value);
+		ostrm_printf(s, "%p", val.data.user_ptr);
 		break;
 	case CHEAX_ENV:
-		env = (struct chx_env *)val;
+		env = val.data.as_env;
 		while (env->is_bif) {
 			if (env->value.bif[1] == NULL) {
 				env = env->value.bif[0];
@@ -130,9 +126,9 @@ ostrm_show_basic(CHEAX *c, struct ostrm *s, struct chx_value *val)
 			}
 
 			ostrm_putc(s, '(');
-			ostrm_show(c, s, &env->value.bif[1]->base);
+			ostrm_show(c, s, cheax_env_value(env->value.bif[1]));
 			ostrm_printf(s, "\n");
-			ostrm_show(c, s, &env->value.bif[0]->base);
+			ostrm_show(c, s, cheax_env_value(env->value.bif[0]));
 			ostrm_putc(s, ')');
 			return;
 		}
@@ -154,7 +150,7 @@ ostrm_show_basic(CHEAX *c, struct ostrm *s, struct chx_value *val)
 }
 
 static void
-ostrm_show_as(CHEAX *c, struct ostrm *s, struct chx_value *val, int ty)
+ostrm_show_as(CHEAX *c, struct ostrm *s, struct chx_value val, int ty)
 {
 	if (cheax_is_basic_type(c, ty)) {
 		ostrm_show_basic(c, s, val);
@@ -168,13 +164,13 @@ ostrm_show_as(CHEAX *c, struct ostrm *s, struct chx_value *val, int ty)
 }
 
 void
-ostrm_show(CHEAX *c, struct ostrm *s, struct chx_value *val)
+ostrm_show(CHEAX *c, struct ostrm *s, struct chx_value val)
 {
-	ostrm_show_as(c, s, val, cheax_type_of(val));
+	ostrm_show_as(c, s, val, val.type);
 }
 
 void
-cheax_print(CHEAX *c, FILE *f, struct chx_value *val)
+cheax_print(CHEAX *c, FILE *f, struct chx_value val)
 {
 	struct fostrm fs;
 	fostrm_init(&fs, f, c);

@@ -41,27 +41,27 @@ show_file(const char *path)
 	fflush(stdout);
 	fclose(f);
 }
-static struct chx_value *
+static struct chx_value
 show_w(CHEAX *c, struct chx_list *args, void *info)
 {
 	show_file(CMAKE_INSTALL_PREFIX "/share/licenses/cheaky/WARRANTY");
-	return NULL;
+	return cheax_nil();
 }
-static struct chx_value *
+static struct chx_value
 show_c(CHEAX *c, struct chx_list *args, void *info)
 {
 	show_file(CMAKE_INSTALL_PREFIX "/share/licenses/cheaky/CONDITIONS");
-	return NULL;
+	return cheax_nil();
 }
 
 static bool quit = false;
 
-static struct chx_value *
+static struct chx_value
 read_with_readline(CHEAX *c, int *line, int *pos)
 {
 	char *prompt = "> ";
 	char *fullstr = NULL;
-	struct chx_value *res = NULL;
+	struct chx_value res = cheax_nil();
 
 	int out_line, out_pos;
 
@@ -99,7 +99,7 @@ read_with_readline(CHEAX *c, int *line, int *pos)
 			out_line += (*to_read == '\n');
 
 		prompt = "… ";
-	} while (res == NULL && cheax_errno(c) == CHEAX_EEOF);
+	} while (cheax_is_nil(res) && cheax_errno(c) == CHEAX_EEOF);
 
 stop:
 	free(fullstr);
@@ -108,11 +108,10 @@ stop:
 	return res;
 }
 
-static struct chx_value *
+static struct chx_value
 quit_fun(CHEAX *c, struct chx_list *args, void *info)
 {
-	quit = true;
-	return NULL;
+	return quit = true, cheax_nil();
 }
 
 int
@@ -142,8 +141,7 @@ main(void)
 	fputs("under certain conditions; type `(show-c)' for details.\n", stderr);
 
 	while (!quit) {
-		struct chx_value *v;
-		v = read_with_readline(c, &line, &pos);
+		struct chx_value v = read_with_readline(c, &line, &pos);
 		cheax_ft(c, pad);
 		if (quit)
 			break;

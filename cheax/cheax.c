@@ -331,8 +331,8 @@ main(int argc, char **argv)
 	if (read_stdin) {
 		errstr = "-";
 		int line = 1, pos = 0;
-		struct chx_value *v;
-		while ((v = cheax_read_at(c, stdin, "<stdin>", &line, &pos)) != NULL) {
+		struct chx_value v;
+		while (!cheax_is_nil(v = cheax_read_at(c, stdin, "<stdin>", &line, &pos))) {
 			cheax_ft(c, pad);
 			cheax_eval(c, v);
 			cheax_ft(c, pad);

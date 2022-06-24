@@ -20,7 +20,7 @@
 #include "gc.h"
 #include "unpack.h"
 
-typedef struct chx_value *(*value_op)(CHEAX *c, struct chx_value *in);
+typedef struct chx_value (*value_op)(CHEAX *c, struct chx_value in);
 static struct chx_list *list_map(CHEAX *c, value_op fn, struct chx_list *lst);
 static struct chx_list *list_concat(CHEAX *c, struct chx_list *a, struct chx_list *b);
 
@@ -31,9 +31,9 @@ enum {
 };
 
 static int eval_bkquoted(CHEAX *c,
-                         struct chx_value **value,
+                         struct chx_value *value,
                          struct chx_list **spliced,
-                         struct chx_value *quoted,
+                         struct chx_value quoted,
                          int nest);
 
 void
@@ -59,8 +59,8 @@ cheax_exec(CHEAX *c, const char *path)
 
 	int line = 1, pos = 0;
 
-	struct chx_value *v;
-	while ((v = cheax_read_at(c, f, path, &line, &pos)) != NULL) {
+	struct chx_value v;
+	while (!cheax_is_nil(v = cheax_read_at(c, f, path, &line, &pos))) {
 		cheax_ft(c, pad);
 		cheax_eval(c, v);
 		cheax_ft(c, pad);
@@ -70,13 +70,14 @@ pad:
 	fclose(f);
 }
 
-static struct chx_value *
-eval_func_call(CHEAX *c, struct chx_func *fn, struct chx_list *args)
+static struct chx_value
+eval_func_call(CHEAX *c, struct chx_value fn_value, struct chx_list *args)
 {
-	struct chx_value *res = NULL;
+	struct chx_func *fn = fn_value.data.as_func;
+	struct chx_value res = cheax_nil(), args_val = cheax_list_value(args);
 
 	bool call_ok = false;
-	int ty = cheax_type_of(&fn->base);
+	int ty = fn_value.type;
 
 	struct chx_env *prev_env = c->env;
 	c->env = fn->lexenv;
@@ -87,12 +88,12 @@ eval_func_call(CHEAX *c, struct chx_func *fn, struct chx_list *args)
 		goto env_fail_pad;
 	}
 
-	chx_ref prev_env_ref = cheax_ref(c, prev_env);
+	chx_ref prev_env_ref = cheax_ref_ptr(c, prev_env);
 
 	int mflags = CHEAX_READONLY;
 	if (ty == CHEAX_FUNC)
 		mflags |= CHEAX_EVAL_NODES;
-	bool arg_match_ok = cheax_match_in(c, prev_env, fn->args, &args->base, mflags);
+	bool arg_match_ok = cheax_match_in(c, prev_env, fn->args, args_val, mflags);
 
 	if (!arg_match_ok) {
 		if (cheax_errno(c) == 0)
@@ -109,7 +110,7 @@ eval_func_call(CHEAX *c, struct chx_func *fn, struct chx_list *args)
 	call_ok = true;
 pad:
 	cheax_pop_env(c);
-	cheax_unref(c, prev_env, prev_env_ref);
+	cheax_unref_ptr(c, prev_env, prev_env_ref);
 env_fail_pad:
 	c->env = prev_env;
 	if (call_ok && ty == CHEAX_MACRO)
@@ -117,16 +118,14 @@ env_fail_pad:
 	return res;
 }
 
-static struct chx_value *
+static struct chx_value
 eval_env_call(CHEAX *c, struct chx_env *env, struct chx_list *args)
 {
 	cheax_enter_env(c, env);
-	if (cheax_errno(c) != 0) {
-		cheax_add_bt(c);
-		return NULL;
-	}
+	if (cheax_errno(c) != 0)
+		return bt_wrap(c, cheax_nil());
 
-	struct chx_value *res = NULL;
+	struct chx_value res = cheax_nil();
 	for (struct chx_list *cons = args; cons != NULL; cons = cons->next) {
 		res = bt_wrap(c, cheax_eval(c, cons->value));
 		cheax_ft(c, env_pad);
@@ -136,29 +135,29 @@ env_pad:
 	return res;
 }
 
-static struct chx_value *
-eval_cast(CHEAX *c, struct chx_int *head, struct chx_list *args)
+static struct chx_value
+eval_cast(CHEAX *c, chx_int head, struct chx_list *args)
 {
-	struct chx_value *cast_arg;
+	struct chx_value cast_arg;
 	return (0 == unpack(c, args, ".", &cast_arg))
-	     ? bt_wrap(c, cheax_cast(c, cast_arg, head->value))
-	     : NULL;
+	     ? bt_wrap(c, cheax_cast(c, cast_arg, head))
+	     : cheax_nil();
 }
 
-static struct chx_value *
+static struct chx_value
 eval_sexpr(CHEAX *c, struct chx_list *input)
 {
 	if (c->stack_limit > 0 && c->stack_depth >= c->stack_limit) {
 		cheax_throwf(c, CHEAX_ESTACK, "stack overflow! (stack limit %d)", c->stack_limit);
-		return NULL;
+		return cheax_nil();
 	}
 
-	struct chx_value *res = NULL;
+	struct chx_value res = cheax_nil();
 	int prev_stack_depth = c->stack_depth++;
 
-	chx_ref input_ref = cheax_ref(c, input);
+	chx_ref input_ref = cheax_ref_ptr(c, input);
 
-	struct chx_value *head = cheax_eval(c, input->value);
+	struct chx_value head = cheax_eval(c, input->value);
 	cheax_ft(c, pad);
 	chx_ref head_ref = cheax_ref(c, head);
 
@@ -168,25 +167,23 @@ eval_sexpr(CHEAX *c, struct chx_list *input)
 	c->bt.last_call = input;
 
 	struct chx_list *args = input->next;
-	struct chx_ext_func *extf;
 
-	switch (cheax_type_of(head)) {
+	switch (head.type) {
 	case CHEAX_EXT_FUNC:
-		extf = (struct chx_ext_func *)head;
-		res = extf->perform(c, args, extf->info);
+		res = head.data.as_ext_func->perform(c, args, head.data.as_ext_func->info);
 		break;
 
 	case CHEAX_FUNC:
 	case CHEAX_MACRO:
-		res = eval_func_call(c, (struct chx_func *)head, args);
+		res = eval_func_call(c, head, args);
 		break;
 
 	case CHEAX_TYPECODE:
-		res = eval_cast(c, (struct chx_int *)head, args);
+		res = eval_cast(c, head.data.as_int, args);
 		break;
 
 	case CHEAX_ENV:
-		res = eval_env_call(c, (struct chx_env *)head, args);
+		res = eval_env_call(c, head.data.as_env, args);
 		break;
 
 	default:
@@ -202,7 +199,7 @@ eval_sexpr(CHEAX *c, struct chx_list *input)
 	cheax_gc(c);
 	cheax_unref(c, res, res_ref);
 pad:
-	cheax_unref(c, input, input_ref);
+	cheax_unref_ptr(c, input, input_ref);
 	c->stack_depth = prev_stack_depth;
 	return res;
 }
@@ -212,9 +209,9 @@ list_map(CHEAX *c, value_op fn, struct chx_list *lst)
 {
 	struct chx_list *res = NULL, **nxt = &res;
 	for (; lst !=  NULL; lst = lst->next) {
-		*nxt = cheax_list(c, fn(c, lst->value), NULL);
-		nxt = &(*nxt)->next;
+		*nxt = cheax_list(c, fn(c, lst->value), NULL).data.as_list;
 		cheax_ft(c, pad);
+		nxt = &(*nxt)->next;
 	}
 	return res;
 pad:
@@ -229,7 +226,7 @@ list_concat(CHEAX *c, struct chx_list *a, struct chx_list *b)
 
 	struct chx_list *cdr = list_concat(c, a->next, b);
 	cheax_ft(c, pad);
-	return cheax_list(c, a->value, cdr);
+	return cheax_list(c, a->value, cdr).data.as_list;
 pad:
 	return NULL;
 }
@@ -240,8 +237,9 @@ eval_bkquoted_list(CHEAX *c, struct chx_list *quoted, int nest)
 	if (quoted == NULL)
 		return NULL;
 
-	struct chx_value *car;
+	struct chx_value car;
 	struct chx_list *spl_list, *cdr;
+	struct chx_value spl_list_value;
 	chx_ref car_ref, spl_list_ref;
 	switch (eval_bkquoted(c, &car, &spl_list, quoted->value, nest)) {
 	case BKQ_VALUE:
@@ -250,17 +248,18 @@ eval_bkquoted_list(CHEAX *c, struct chx_list *quoted, int nest)
 		cheax_unref(c, car, car_ref);
 		cheax_ft(c, pad);
 
-		if (has_flag(quoted->base.rtflags, DEBUG_LIST)) {
+		if (has_flag(quoted->rtflags, DEBUG_LIST)) {
 			struct debug_info info = ((struct debug_list *)quoted)->info;
 			return &debug_list(c, car, (struct chx_list *)cdr, info)->base;
 		}
 
-		return cheax_list(c, car, (struct chx_list *)cdr);
+		return cheax_list(c, car, (struct chx_list *)cdr).data.as_list;
 
 	case BKQ_SPLICED:
-		spl_list_ref = cheax_ref(c, spl_list);
+		spl_list_value = cheax_list_value(spl_list);
+		spl_list_ref = cheax_ref(c, spl_list_value);
 		cdr = eval_bkquoted_list(c, quoted->next, nest);
-		cheax_unref(c, spl_list, spl_list_ref);
+		cheax_unref(c, spl_list_value, spl_list_ref);
 		cheax_ft(c, pad);
 
 		return (cdr == NULL) ? spl_list : list_concat(c, spl_list, cdr);
@@ -271,27 +270,26 @@ pad:
 
 static int
 expand_comma(CHEAX *c,
-             struct chx_value **value,
+             struct chx_value *value,
              struct chx_list **spliced,
-             struct chx_quote *quoted)
+             struct chx_value quoted)
 {
-	int ty = cheax_type_of(&quoted->base);
-	struct chx_value *evald = cheax_eval(c, quoted->value);
+	struct chx_value evald = cheax_eval(c, quoted.data.as_quote->value);
 	cheax_ft(c, pad);
 
-	switch (ty) {
+	switch (quoted.type) {
 	case CHEAX_COMMA:
 		*value = evald;
 		return BKQ_VALUE;
 
 	case CHEAX_SPLICE:
-		if (evald != NULL && cheax_type_of(evald) != CHEAX_LIST) {
+		if (!cheax_is_nil(evald) && evald.type != CHEAX_LIST) {
 			cheax_throwf(c, CHEAX_EEVAL, "expected list after ,@");
 			return BKQ_ERROR;
 		}
 
 		if (spliced != NULL)
-			*spliced = (struct chx_list *)evald;
+			*spliced = evald.data.as_list;
 		return BKQ_SPLICED;
 	}
 pad:
@@ -300,20 +298,18 @@ pad:
 
 static int
 eval_bkquoted_comma(CHEAX *c,
-                    struct chx_value **value,
+                    struct chx_value *value,
                     struct chx_list **spliced,
-                    struct chx_quote *quoted,
+                    struct chx_value quoted,
                     int nest)
 {
 	if (nest <= 0)
 		return expand_comma(c, value, spliced, quoted);
 
-	struct chx_value *to_comma;
+	struct chx_value to_comma;
 	struct chx_list *splice_to_comma;
-	value_op comma = (value_op)((cheax_type_of(&quoted->base) == CHEAX_COMMA)
-	                          ? cheax_comma
-				  : cheax_splice);
-	switch (eval_bkquoted(c, &to_comma, &splice_to_comma, quoted->value, nest - 1)) {
+	value_op comma = (value_op)((quoted.type == CHEAX_COMMA) ? cheax_comma : cheax_splice);
+	switch (eval_bkquoted(c, &to_comma, &splice_to_comma, quoted.data.as_quote->value, nest - 1)) {
 	case BKQ_VALUE:
 		*value = comma(c, to_comma);
 		cheax_ft(c, pad);
@@ -333,26 +329,26 @@ pad:
 
 static int
 eval_bkquoted(CHEAX *c,
-              struct chx_value **value,
+              struct chx_value *value,
               struct chx_list **spliced,
-              struct chx_value *quoted,
+              struct chx_value quoted,
               int nest)
 {
 	struct chx_quote *qt_quoted = NULL;
-	int code, ty = cheax_type_of(quoted);
+	int code;
 	bool bkquote = false;
 
-	switch (ty) {
+	switch (quoted.type) {
 	case CHEAX_LIST:
-		*value = &eval_bkquoted_list(c, (struct chx_list *)quoted, nest)->base;
+		*value = cheax_list_value(eval_bkquoted_list(c, quoted.data.as_list, nest));
 		return BKQ_VALUE;
 
 	case CHEAX_BACKQUOTE:
 		bkquote = true;
 		/* fall through */
 	case CHEAX_QUOTE:
-		qt_quoted = (struct chx_quote *)quoted;
-		struct chx_value *to_quote;
+		qt_quoted = (struct chx_quote *)quoted.data.as_quote;
+		struct chx_value to_quote;
 
 		code = eval_bkquoted(c, &to_quote, NULL, qt_quoted->value, nest + bkquote);
 		if (code != BKQ_VALUE) {
@@ -365,13 +361,13 @@ eval_bkquoted(CHEAX *c,
 			return BKQ_ERROR;
 		}
 
-		*value = &(bkquote ? cheax_backquote : cheax_quote)(c, to_quote)->base;
+		*value = (bkquote ? cheax_backquote : cheax_quote)(c, to_quote);
 		cheax_ft(c, pad);
 		return BKQ_VALUE;
 
 	case CHEAX_COMMA:
 	case CHEAX_SPLICE:
-		return eval_bkquoted_comma(c, value, spliced, (struct chx_quote *)quoted, nest);
+		return eval_bkquoted_comma(c, value, spliced, quoted, nest);
 
 	default:
 		*value = quoted;
@@ -381,25 +377,27 @@ pad:
 	return BKQ_ERROR;
 }
 
-struct chx_value *
-cheax_eval(CHEAX *c, struct chx_value *input)
+struct chx_value
+cheax_eval(CHEAX *c, struct chx_value input)
 {
-	struct chx_value *res = NULL;
+	struct chx_value res = cheax_nil();
 	chx_ref input_ref;
 	int code;
 
-	switch (cheax_type_of(input)) {
+	switch (input.type) {
 	case CHEAX_ID:
-		return cheax_get(c, ((struct chx_id *)input)->id);
+		return cheax_get(c, input.data.as_id->value);
 
 	case CHEAX_LIST:
-		return eval_sexpr(c, (struct chx_list *)input);
+		return (input.data.as_list == NULL)
+		     ? input
+		     : eval_sexpr(c, input.data.as_list);
 
 	case CHEAX_QUOTE:
-		return ((struct chx_quote *)input)->value;
+		return input.data.as_quote->value;
 	case CHEAX_BACKQUOTE:
 		input_ref = cheax_ref(c, input);
-		code = eval_bkquoted(c, &res, NULL, ((struct chx_quote *)input)->value, 0);
+		code = eval_bkquoted(c, &res, NULL, input.data.as_quote->value, 0);
 		if (code == BKQ_SPLICED)
 			cheax_throwf(c, CHEAX_EEVAL, "internal splice error");
 		cheax_unref(c, input, input_ref);
@@ -423,18 +421,18 @@ cheax_eval(CHEAX *c, struct chx_value *input)
 static bool
 match_node(CHEAX *c,
            struct chx_env *env,
-           struct chx_value *pan_node,
-           struct chx_value *match_node,
+           struct chx_value pan_node,
+           struct chx_value match_node,
            int flags)
 {
 	if (has_flag(flags, CHEAX_EVAL_NODES)) {
 		struct chx_env *prev_env = c->env;
-		chx_ref prev_env_ref = cheax_ref(c, prev_env);
+		chx_ref prev_env_ref = cheax_ref_ptr(c, prev_env);
 		c->env = env;
 
 		match_node = cheax_eval(c, match_node);
 
-		cheax_unref(c, prev_env, prev_env_ref);
+		cheax_unref_ptr(c, prev_env, prev_env_ref);
 		c->env = prev_env;
 		cheax_ft(c, pad);
 	}
@@ -452,7 +450,7 @@ match_colon(CHEAX *c,
             int flags)
 {
 	if (pan->next == NULL)
-		return cheax_match_in(c, env, pan->value, &match->base, flags);
+		return cheax_match_in(c, env, pan->value, cheax_list_value(match), flags);
 
 	return match != NULL
 	    && match_node(c, env, pan->value, match->value, flags)
@@ -460,14 +458,10 @@ match_colon(CHEAX *c,
 }
 
 static bool
-match_list(CHEAX *c,
-           struct chx_env *env,
-           struct chx_list *pan,
-           struct chx_list *match,
-           int flags)
+match_list(CHEAX *c, struct chx_env *env, struct chx_list *pan, struct chx_list *match, int flags)
 {
-	if (cheax_type_of(pan->value) == CHEAX_ID
-	 && strcmp((((struct chx_id *)pan->value)->id), ":") == 0)
+	if (pan != NULL && pan->value.type == CHEAX_ID
+	 && strcmp(pan->value.data.as_id->value, ":") == 0)
 	{
 		return match_colon(c, env, pan->next, match, flags);
 	}
@@ -486,39 +480,36 @@ match_list(CHEAX *c,
 bool
 cheax_match_in(CHEAX *c,
                struct chx_env *env,
-               struct chx_value *pan,
-               struct chx_value *match,
+               struct chx_value pan,
+               struct chx_value match,
                int flags)
 {
-	int pan_ty = cheax_type_of(pan);
-
-	if (pan_ty == CHEAX_ID) {
-		if (has_flag(flags, CHEAX_EVAL_NODES)
-		 && (cheax_type_of(match) == CHEAX_LIST || match == NULL))
-		{
+	if (pan.type == CHEAX_ID) {
+		if (has_flag(flags, CHEAX_EVAL_NODES) && match.type == CHEAX_LIST) {
 			struct chx_env *prev_env = c->env;
-			chx_ref prev_env_ref = cheax_ref(c, prev_env);
+			chx_ref prev_env_ref = cheax_ref_ptr(c, prev_env);
 			c->env = env;
 
-			int res = unpack(c, (struct chx_list *)match, ".*", &match);
+			struct chx_list *evald_match;
+			int res = unpack(c, match.data.as_list, ".*", &evald_match);
+			match = cheax_list_value(evald_match);
 
-			cheax_unref(c, prev_env, prev_env_ref);
+			cheax_unref_ptr(c, prev_env, prev_env_ref);
 			c->env = prev_env;
 			if (res < 0)
 				return false;
 		}
 
-		cheax_def(c, ((struct chx_id *)pan)->id, match, flags);
+		cheax_def(c, pan.data.as_id->value, match, flags);
 		return cheax_errno(c) == 0; /* false if cheax_def() failed */
 	}
 
-	if (pan_ty != cheax_type_of(match))
+	if (pan.type != match.type)
 		return false;
 
-	switch (pan_ty) {
+	switch (pan.type) {
 	case CHEAX_LIST:
-		return match_list(c, env, (struct chx_list *)pan, (struct chx_list *)match, flags);
-	case CHEAX_NIL:
+		return match_list(c, env, pan.data.as_list, match.data.as_list, flags);
 	case CHEAX_INT:
 	case CHEAX_DOUBLE:
 	case CHEAX_BOOL:
@@ -530,53 +521,58 @@ cheax_match_in(CHEAX *c,
 }
 
 bool
-cheax_match(CHEAX *c, struct chx_value *pan, struct chx_value *match, int flags)
+cheax_match(CHEAX *c, struct chx_value pan, struct chx_value match, int flags)
 {
 	return cheax_match_in(c, c->env, pan, match, flags);
 }
 
-bool
-cheax_eq(CHEAX *c, struct chx_value *l, struct chx_value *r)
+static bool
+list_eq(CHEAX *c, struct chx_list *l, struct chx_list *r)
 {
-	if (cheax_type_of(l) != cheax_type_of(r))
+	while ((l != NULL) && (r != NULL)) {
+		if (!cheax_eq(c, l->value, r->value))
+			return false;
+
+		l = l->next;
+		r = r->next;
+	}
+
+	return (l == NULL) && (r == NULL);
+}
+
+bool
+cheax_eq(CHEAX *c, struct chx_value l, struct chx_value r)
+{
+	if (l.type != r.type)
 		return false;
 
-	switch (cheax_resolve_type(c, cheax_type_of(l))) {
-	case CHEAX_NIL:
-		return true;
+	switch (cheax_resolve_type(c, l.type)) {
 	case CHEAX_ID:
-		return strcmp(((struct chx_id *)l)->id, ((struct chx_id *)r)->id) == 0;
+		return 0 == strcmp(l.data.as_id->value, r.data.as_id->value);
 	case CHEAX_INT:
+		return l.data.as_int == r.data.as_int;
 	case CHEAX_BOOL:
-		return ((struct chx_int *)l)->value == ((struct chx_int *)r)->value;
+		return (l.data.as_int != 0) == (r.data.as_int != 0);
 	case CHEAX_DOUBLE:
-		return ((struct chx_double *)l)->value == ((struct chx_double *)r)->value;
+		return l.data.as_double == r.data.as_double;
 	case CHEAX_LIST:
-		;
-		struct chx_list *llist = (struct chx_list *)l;
-		struct chx_list *rlist = (struct chx_list *)r;
-		return cheax_eq(c, llist->value, rlist->value)
-		    && cheax_eq(c, &llist->next->base, &rlist->next->base);
+		return list_eq(c, l.data.as_list, r.data.as_list);
 	case CHEAX_EXT_FUNC:
-		;
-		struct chx_ext_func *extfl = (struct chx_ext_func *)l;
-		struct chx_ext_func *extfr = (struct chx_ext_func *)r;
-		return extfl->perform == extfr->perform && extfl->info == extfr->info;
+		return (l.data.as_ext_func->perform == r.data.as_ext_func->perform)
+		    && (l.data.as_ext_func->info == r.data.as_ext_func->info);
 	case CHEAX_QUOTE:
 	case CHEAX_BACKQUOTE:
 	case CHEAX_COMMA:
 	case CHEAX_SPLICE:
-		return cheax_eq(c, ((struct chx_quote *)l)->value, ((struct chx_quote *)r)->value);
+		return cheax_eq(c, l.data.as_quote->value, l.data.as_quote->value);
 	case CHEAX_STRING:
-		;
-		struct chx_string *lstring = (struct chx_string *)l;
-		struct chx_string *rstring = (struct chx_string *)r;
-		return (lstring->len == rstring->len)
-		    && memcmp(lstring->value, rstring->value, lstring->len) == 0;
+		return (l.data.as_string->len == r.data.as_string->len)
+		    && (0 == memcmp(l.data.as_string->value,
+		                    r.data.as_string->value,
+		                    r.data.as_string->len));
 	case CHEAX_USER_PTR:
-		return ((struct chx_user_ptr *)l)->value == ((struct chx_user_ptr *)r)->value;
 	default:
-		return l == r;
+		return l.data.user_ptr == r.data.user_ptr;
 	}
 }
 
@@ -589,36 +585,36 @@ cheax_eq(CHEAX *c, struct chx_value *l, struct chx_value *r)
  *
  */
 
-static struct chx_value *
+static struct chx_value
 bltn_eval(CHEAX *c, struct chx_list *args, void *info)
 {
-	struct chx_value *arg;
+	struct chx_value arg;
 	return (0 == unpack(c, args, ".", &arg))
 	     ? bt_wrap(c, cheax_eval(c, arg))
-	     : NULL;
+	     : cheax_nil();
 }
 
-static struct chx_value *
+static struct chx_value
 bltn_case(CHEAX *c, struct chx_list *args, void *info)
 {
 	if (args == NULL) {
 		cheax_throwf(c, CHEAX_EMATCH, "invalid case");
-		return bt_wrap(c, NULL);
+		return bt_wrap(c, cheax_nil());
 	}
 
-	struct chx_value *what = cheax_eval(c, args->value);
+	struct chx_value what = cheax_eval(c, args->value);
 	cheax_ft(c, pad);
 
 	/* pattern-value-pair */
-	for (struct chx_list *pvp = args->next; pvp; pvp = pvp->next) {
-		struct chx_value *pair = pvp->value;
-		if (cheax_type_of(pair) != CHEAX_LIST) {
+	for (struct chx_list *pvp = args->next; pvp != NULL; pvp = pvp->next) {
+		struct chx_value pair = pvp->value;
+		if (pair.type != CHEAX_LIST || pair.data.as_list == NULL) {
 			cheax_throwf(c, CHEAX_EMATCH, "pattern-value pair expected");
-			return bt_wrap(c, NULL);
+			return bt_wrap(c, cheax_nil());
 		}
 
-		struct chx_list *cons_pair = (struct chx_list *)pair;
-		struct chx_value *pan = cons_pair->value;
+		struct chx_list *cons_pair = pair.data.as_list;
+		struct chx_value pan = cons_pair->value;
 
 		cheax_push_env(c);
 		cheax_ft(c, pad);
@@ -631,7 +627,7 @@ bltn_case(CHEAX *c, struct chx_list *args, void *info)
 		/* pattern matches! */
 		chx_ref what_ref = cheax_ref(c, what);
 
-		struct chx_value *retval = NULL;
+		struct chx_value retval = cheax_nil();
 		for (struct chx_list *val = cons_pair->next; val != NULL; val = val->next) {
 			retval = cheax_eval(c, val->value);
 			cheax_ft(c, pad2);
@@ -646,35 +642,35 @@ pad2:
 	cheax_throwf(c, CHEAX_EMATCH, "non-exhaustive pattern");
 	cheax_add_bt(c);
 pad:
-	return NULL;
+	return cheax_nil();
 }
 
-static struct chx_value *
+static struct chx_value
 bltn_cond(CHEAX *c, struct chx_list *args, void *info)
 {
 	/* test-value-pair */
-	for (struct chx_list *tvp = args; tvp; tvp = tvp->next) {
-		struct chx_value *pair = tvp->value;
-		if (cheax_type_of(pair) != CHEAX_LIST) {
+	for (struct chx_list *tvp = args; tvp != NULL; tvp = tvp->next) {
+		struct chx_value pair = tvp->value;
+		if (pair.type != CHEAX_LIST || pair.data.as_list == NULL) {
 			cheax_throwf(c, CHEAX_EMATCH, "test-value pair expected");
-			return bt_wrap(c, NULL);
+			return bt_wrap(c, cheax_nil());
 		}
 
-		struct chx_list *cons_pair = (struct chx_list *)pair;
-		struct chx_value *test = cons_pair->value, *retval = NULL;
+		struct chx_list *cons_pair = pair.data.as_list;
+		struct chx_value test = cons_pair->value, retval = cheax_nil();
 
 		cheax_push_env(c);
 		cheax_ft(c, pad);
 
 		test = cheax_eval(c, test);
 		cheax_ft(c, pad2);
-		if (cheax_type_of(test) != CHEAX_BOOL) {
+		if (test.type != CHEAX_BOOL) {
 			cheax_throwf(c, CHEAX_ETYPE, "test must have boolean value");
 			cheax_add_bt(c);
 			goto pad2;
 		}
 
-		if (((struct chx_int *)test)->value == 0) {
+		if (test.data.as_int == 0) {
 			cheax_pop_env(c);
 			continue;
 		}
@@ -691,25 +687,25 @@ pad2:
 	}
 
 pad:
-	return NULL;
+	return cheax_nil();
 }
 
-static struct chx_value *
+static struct chx_value
 bltn_eq(CHEAX *c, struct chx_list *args, void *info)
 {
-	struct chx_value *l, *r;
+	struct chx_value l, r;
 	return (0 == unpack(c, args, "..", &l, &r))
-	     ? bt_wrap(c, &cheax_bool(c, cheax_eq(c, l, r))->base)
-	     : NULL;
+	     ? bt_wrap(c, cheax_bool(cheax_eq(c, l, r)))
+	     : cheax_nil();
 }
 
-static struct chx_value *
+static struct chx_value
 bltn_ne(CHEAX *c, struct chx_list *args, void *info)
 {
-	struct chx_value *l, *r;
+	struct chx_value l, r;
 	return (0 == unpack(c, args, "..", &l, &r))
-	     ? bt_wrap(c, &cheax_bool(c, !cheax_eq(c, l, r))->base)
-	     : NULL;
+	     ? bt_wrap(c, cheax_bool(!cheax_eq(c, l, r)))
+	     : cheax_nil();
 }
 
 void

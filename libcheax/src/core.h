@@ -50,7 +50,7 @@ has_flag(int i, int f)
 }
 
 struct chx_string {
-	struct chx_value base;
+	unsigned rtflags;
 	char *value;
 	size_t len;
 	struct chx_string *orig;
@@ -67,7 +67,7 @@ struct debug_list {
 };
 
 struct debug_list *debug_list(CHEAX *c,
-                              struct chx_value *car,
+                              struct chx_value car,
                               struct chx_list *cdr,
                               struct debug_info info);
 
@@ -130,13 +130,13 @@ struct cheax {
 };
 
 /* v-to-i: value to int */
-bool try_vtoi(struct chx_value *value, int *res);
+bool try_vtoi(struct chx_value value, chx_int *res);
 /* v-to-d: value to double */
-bool try_vtod(struct chx_value *value, double *res);
-double vtod(struct chx_value *value);
+bool try_vtod(struct chx_value value, chx_double *res);
+double vtod(struct chx_value value);
 
-struct chx_int *typecode(CHEAX *c, int value);
-struct chx_int *errorcode(CHEAX *c, int value);
+#define typecode(X)  ((struct chx_value){ .type = CHEAX_TYPECODE,  .data.as_int = (X) })
+#define errorcode(X) ((struct chx_value){ .type = CHEAX_ERRORCODE, .data.as_int = (X) })
 
 void export_core_bltns(CHEAX *c);
 

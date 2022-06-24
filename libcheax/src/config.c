@@ -161,25 +161,25 @@ find_opt(const char *name)
 	               (int (*)(const void *, const void *))config_info_compar);
 }
 
-static struct chx_value *
+static struct chx_value
 config_sym_get(CHEAX *c, struct chx_sym *sym)
 {
 	struct config_info *ci = sym->user_info;
 	switch (ci->type) {
 	case CHEAX_INT:
-		return &cheax_int(c, ci->get.get_int(c))->base;
+		return cheax_int(ci->get.get_int(c));
 	case CHEAX_BOOL:
-		return &cheax_bool(c, ci->get.get_bool(c))->base;
+		return cheax_bool(ci->get.get_bool(c));
 	default:
 		cheax_throwf(c, CHEAX_EEVAL, "config_sym_get(): internal error");
-		return NULL;
+		return cheax_nil();
 	}
 }
 static void
-config_sym_set(CHEAX *c, struct chx_sym *sym, struct chx_value *value)
+config_sym_set(CHEAX *c, struct chx_sym *sym, struct chx_value value)
 {
 	struct config_info *ci = sym->user_info;
-	int i;
+	chx_int i;
 
 	switch (ci->type) {
 	case CHEAX_INT:
@@ -189,8 +189,8 @@ config_sym_set(CHEAX *c, struct chx_sym *sym, struct chx_value *value)
 			cheax_throwf(c, CHEAX_ETYPE, "invalid type");
 		break;
 	case CHEAX_BOOL:
-		if (cheax_type_of(value) == CHEAX_BOOL)
-			ci->set.set_bool(c, ((struct chx_int *)value)->value);
+		if (value.type == CHEAX_BOOL)
+			ci->set.set_bool(c, value.data.as_int);
 		else
 			cheax_throwf(c, CHEAX_ETYPE, "invalid type");
 		break;
@@ -252,7 +252,7 @@ config_feature_list(CHEAX *c, struct chx_list *base)
 		if (has_flag(c->features, CONFIG_FEAT_BIT << i)) {
 			char buf[128];
 			sprintf(buf, "set-%s", opts[i].name);
-			list = cheax_list(c, &cheax_string(c, buf)->base, list);
+			list = cheax_list(c, cheax_string(c, buf), list).data.as_list;
 		}
 	}
 	return list;

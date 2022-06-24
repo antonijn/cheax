@@ -62,7 +62,7 @@ void ostrm_put_utf8(struct ostrm *ostr, unsigned cp);
  * data types (unsigned int for 'x', for instance). This one just
  * handles int, and handles it well.
  */
-void ostrm_printi(struct ostrm *strm, int num, char pad_char, int field_width, char misc_spec);
+void ostrm_printi(struct ostrm *strm, chx_int num, char pad_char, int field_width, char misc_spec);
 
 /* string output stream */
 struct sostrm {

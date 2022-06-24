@@ -40,7 +40,7 @@ ostrm_put_utf8(struct ostrm *ostr, unsigned cp)
 }
 
 void
-ostrm_printi(struct ostrm *strm, int num, char pad_char, int field_width, char misc_spec)
+ostrm_printi(struct ostrm *strm, chx_int num, char pad_char, int field_width, char misc_spec)
 {
 	if (field_width < 0)
 		field_width = 0;
@@ -56,16 +56,29 @@ ostrm_printi(struct ostrm *strm, int num, char pad_char, int field_width, char m
 	default:  base = 10; break;
 	}
 
-	long pos_num = num;
-	if (pos_num < 0)
-		pos_num = -pos_num;
+	chx_int carry = 0, pos_num = num;
+	if (pos_num < 0) {
+		if (pos_num == CHX_INT_MIN) {
+			pos_num = CHX_INT_MAX;
+			carry = 1;
+		} else {
+			pos_num = -pos_num;
+		}
+	}
 
-	char buf[1 + sizeof(int) * CHAR_BIT * 2];
+	char buf[1 + sizeof(chx_int) * CHAR_BIT * 2];
 	int i = sizeof(buf) - 1;
 	buf[i--] = '\0';
 
 	for (; i >= 0; --i) {
-		int digit = pos_num % base;
+		int digit = pos_num % base + carry;
+		if (digit >= base) {
+			carry = digit / base;
+			digit = digit % base;
+		} else {
+			carry = 0;
+		}
+
 		if (digit < 10)
 			buf[i] = digit + '0';
 		else if (upper)

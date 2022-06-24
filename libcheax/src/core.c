@@ -26,198 +26,224 @@
 #include "setup.h"
 #include "unpack.h"
 
-struct chx_quote *
-cheax_quote(CHEAX *c, struct chx_value *value)
+bool
+cheax_is_nil(struct chx_value v)
 {
-	struct chx_quote *res = gc_alloc(c, sizeof(struct chx_quote), CHEAX_QUOTE);
-	if (res != NULL)
-		res->value = value;
+	return v.type == CHEAX_LIST && v.data.as_list == NULL;
+}
+
+struct chx_value
+cheax_quote(CHEAX *c, struct chx_value value)
+{
+	struct chx_value res = cheax_quote_value(gc_alloc(c, sizeof(struct chx_quote), CHEAX_QUOTE));
+	if (res.data.as_quote == NULL)
+		return cheax_nil();
+	res.data.as_quote->value = value;
 	return res;
 }
-struct chx_quote *
-cheax_backquote(CHEAX *c, struct chx_value *value)
+struct chx_value
+cheax_quote_value_proc(struct chx_quote *quote)
 {
-	struct chx_quote *res = gc_alloc(c, sizeof(struct chx_quote), CHEAX_BACKQUOTE);
-	if (res != NULL)
-		res->value = value;
+	return cheax_quote_value(quote);
+}
+
+struct chx_value
+cheax_backquote(CHEAX *c, struct chx_value value)
+{
+	struct chx_value res = cheax_backquote_value(gc_alloc(c, sizeof(struct chx_quote), CHEAX_BACKQUOTE));
+	if (res.data.as_quote == NULL)
+		return cheax_nil();
+	res.data.as_quote->value = value;
 	return res;
 }
-struct chx_quote *
-cheax_comma(CHEAX *c, struct chx_value *value)
+struct chx_value
+cheax_backquote_value_proc(struct chx_quote *backquote)
 {
-	struct chx_quote *res = gc_alloc(c, sizeof(struct chx_quote), CHEAX_COMMA);
-	if (res != NULL)
-		res->value = value;
+	return cheax_backquote_value(backquote);
+}
+
+struct chx_value
+cheax_comma(CHEAX *c, struct chx_value value)
+{
+	struct chx_value res = cheax_comma_value(gc_alloc(c, sizeof(struct chx_quote), CHEAX_COMMA));
+	if (res.data.as_quote == NULL)
+		return cheax_nil();
+	res.data.as_quote->value = value;
 	return res;
 }
-struct chx_quote *
-cheax_splice(CHEAX *c, struct chx_value *value)
+struct chx_value
+cheax_comma_value_proc(struct chx_quote *comma)
 {
-	struct chx_quote *res = gc_alloc(c, sizeof(struct chx_quote), CHEAX_SPLICE);
-	if (res != NULL)
-		res->value = value;
+	return cheax_comma_value(comma);
+}
+
+struct chx_value
+cheax_splice(CHEAX *c, struct chx_value value)
+{
+	struct chx_value res = cheax_splice_value(gc_alloc(c, sizeof(struct chx_quote), CHEAX_SPLICE));
+	if (res.data.as_quote == NULL)
+		return cheax_nil();
+	res.data.as_quote->value = value;
 	return res;
 }
-struct chx_int *
-cheax_int(CHEAX *c, int value)
+struct chx_value
+cheax_splice_value_proc(struct chx_quote *splice)
 {
-	struct chx_int *res = gc_alloc(c, sizeof(struct chx_int), CHEAX_INT);
-	if (res != NULL)
-		res->value = value;
-	return res;
+	return cheax_splice_value(splice);
 }
-struct chx_int *
-typecode(CHEAX *c, int value)
+
+struct chx_value
+cheax_int_proc(chx_int value)
 {
-	struct chx_int *res = cheax_int(c, value);
-	if (res != NULL)
-		res->base.type = CHEAX_TYPECODE;
-	return res;
+	return cheax_int(value);
 }
-struct chx_int *
-errorcode(CHEAX *c, int value)
+struct chx_value
+cheax_bool_proc(bool value)
 {
-	struct chx_int *res = cheax_int(c, value);
-	if (res != NULL)
-		res->base.type = CHEAX_ERRORCODE;
-	return res;
+	return cheax_bool(value);
 }
-struct chx_int *
-cheax_true(CHEAX *c)
+struct chx_value
+cheax_double_proc(chx_double value)
 {
-	static struct chx_int yes = { { CHEAX_BOOL, 0 }, 1 };
-	return &yes;
+	return cheax_double(value);
 }
-struct chx_int *
-cheax_false(CHEAX *c)
-{
-	static struct chx_int no = { { CHEAX_BOOL, 0 }, 0 };
-	return &no;
-}
-struct chx_int *
-cheax_bool(CHEAX *c, bool value)
-{
-	return value ? cheax_true(c) : cheax_false(c);
-}
-struct chx_double *
-cheax_double(CHEAX *c, double value)
-{
-	struct chx_double *res = gc_alloc(c, sizeof(struct chx_double), CHEAX_DOUBLE);
-	if (res != NULL)
-		res->value = value;
-	return res;
-}
-struct chx_user_ptr *
+
+struct chx_value
 cheax_user_ptr(CHEAX *c, void *value, int type)
 {
 	if (cheax_is_basic_type(c, type) || cheax_resolve_type(c, type) != CHEAX_USER_PTR) {
 		cheax_throwf(c, CHEAX_EAPI, "user_ptr(): invalid user pointer type");
-		return NULL;
+		return cheax_nil();
 	}
-	struct chx_user_ptr *res = gc_alloc(c, sizeof(struct chx_user_ptr), type);
-	if (res != NULL)
-		res->value = value;
-	return res;
+	return ((struct chx_value){ .type = type, .data.user_ptr = value });
 }
-struct chx_id *
+
+struct chx_value
 cheax_id(CHEAX *c, const char *id)
 {
 	if (id == NULL)
+		return cheax_nil();
+
+	size_t len = strlen(id) + 1;
+	struct chx_value res = cheax_id_value(gc_alloc(c, sizeof(struct chx_id) + len, CHEAX_ID));
+	if (res.data.as_id == NULL)
+		return cheax_nil();
+	char *buf = ((char *)res.data.as_id) + sizeof(struct chx_id);
+	memcpy(buf, id, len);
+	res.data.as_id->value = buf;
+	return res;
+}
+struct chx_value
+cheax_id_value_proc(struct chx_id *id)
+{
+	return cheax_id_value(id);
+}
+
+struct chx_value
+cheax_list(CHEAX *c, struct chx_value car, struct chx_list *cdr)
+{
+	struct chx_value res = cheax_list_value(gc_alloc(c, sizeof(struct chx_list), CHEAX_LIST));
+	if (res.data.as_list == NULL)
+		return cheax_nil();
+	res.data.as_list->value = car;
+	res.data.as_list->next = cdr;
+	return res;
+}
+struct chx_value
+cheax_list_value_proc(struct chx_list *list)
+{
+	return cheax_list_value(list);
+}
+
+struct debug_list *
+debug_list(CHEAX *c, struct chx_value car, struct chx_list *cdr, struct debug_info info)
+{
+	struct debug_list *res = gc_alloc(c, sizeof(struct debug_list), CHEAX_LIST);
+	if (res == NULL)
 		return NULL;
+	res->base.rtflags |= DEBUG_LIST;
+	res->base.value = car;
+	res->base.next = cdr;
+	res->info = info;
+	return res;
+}
 
-	struct chx_id *res = gc_alloc(c, sizeof(struct chx_id) + strlen(id) + 1, CHEAX_ID);
-	if (res != NULL) {
-		char *buf = ((char *)res) + sizeof(struct chx_id);
-		strcpy(buf, id);
-
-		res->id = buf;
-	}
-	return res;
-}
-struct chx_list *
-cheax_list(CHEAX *c, struct chx_value *car, struct chx_list *cdr)
-{
-	struct chx_list *res = gc_alloc(c, sizeof(struct chx_list), CHEAX_LIST);
-	if (res != NULL) {
-		res->value = car;
-		res->next = cdr;
-	}
-	return res;
-}
-struct debug_list*
-debug_list(CHEAX *c, struct chx_value *car, struct chx_list *cdr, struct debug_info info)
-{
-	struct debug_list *res;
-	res = gc_alloc(c, sizeof(struct debug_list), CHEAX_LIST);
-	if (res != NULL) {
-		res->base.base.rtflags |= DEBUG_LIST;
-		res->base.value = car;
-		res->base.next = cdr;
-		res->info = info;
-	}
-	return res;
-}
-struct chx_ext_func *
+struct chx_value
 cheax_ext_func(CHEAX *c, const char *name, chx_func_ptr perform, void *info)
 {
 	if (perform == NULL || name == NULL)
-		return NULL;
+		return cheax_nil();
 
-	struct chx_ext_func *res = gc_alloc(c, sizeof(struct chx_ext_func), CHEAX_EXT_FUNC);
-	if (res != NULL) {
-		res->name = name;
-		res->perform = perform;
-		res->info = info;
-	}
+	struct chx_value res = cheax_ext_func_value(gc_alloc(c, sizeof(struct chx_ext_func), CHEAX_EXT_FUNC));
+	if (res.data.as_ext_func == NULL)
+		return cheax_nil();
+	res.data.as_ext_func->name = name;
+	res.data.as_ext_func->perform = perform;
+	res.data.as_ext_func->info = info;
 	return res;
 }
+struct chx_value
+cheax_ext_func_value_proc(struct chx_ext_func *extf)
+{
+	return cheax_ext_func_value(extf);
+}
+
 size_t
 cheax_strlen(CHEAX *c, struct chx_string *str)
 {
 	return (str == NULL) ? 0 : str->len;
 }
-struct chx_string *
+struct chx_value
 cheax_string(CHEAX *c, const char *value)
 {
-	ASSERT_NOT_NULL("string", value, NULL);
+	ASSERT_NOT_NULL("string", value, cheax_nil());
 	return cheax_nstring(c, value, strlen(value));
 }
-struct chx_string *
+struct chx_value
 cheax_nstring(CHEAX *c, const char *value, size_t len)
 {
 	if (value == NULL && len == 0)
 		value = "";
 
-	ASSERT_NOT_NULL("nstring", value, NULL);
+	ASSERT_NOT_NULL("nstring", value, cheax_nil());
 
-	struct chx_string *res = gc_alloc(c, sizeof(struct chx_string) + len + 1, CHEAX_STRING);
-	if (res != NULL) {
-		char *buf = ((char *)res) + sizeof(struct chx_string);
-		memcpy(buf, value, len);
-		buf[len] = '\0';
+	struct chx_value res = cheax_string_value(gc_alloc(c, sizeof(struct chx_string) + len + 1, CHEAX_STRING));
+	if (res.data.as_string == NULL)
+		return cheax_nil();
 
-		res->value = buf;
-		res->len = len;
-		res->orig = res;
-	}
+	char *buf = ((char *)res.data.as_string) + sizeof(struct chx_string);
+	memcpy(buf, value, len);
+	buf[len] = '\0';
+
+	res.data.as_string->value = buf;
+	res.data.as_string->len = len;
+	res.data.as_string->orig = res.data.as_string;
 	return res;
 }
-struct chx_string *
+struct chx_value
+cheax_string_value_proc(struct chx_string *string)
+{
+	return cheax_string_value(string);
+}
+struct chx_value
 cheax_substr(CHEAX *c, struct chx_string *str, size_t pos, size_t len)
 {
-	ASSERT_NOT_NULL("substr", str, NULL);
+	ASSERT_NOT_NULL("substr", str, cheax_nil());
 
 	if (pos > SIZE_MAX - len || pos + len > str->len) {
 		cheax_throwf(c, CHEAX_EINDEX, "substr(): substring out of bounds");
-		return NULL;
+		return cheax_nil();
 	}
 
-	struct chx_string *res = gc_alloc(c, sizeof(struct chx_string), CHEAX_STRING);
-	if (res != NULL) {
-		res->value = str->value + pos;
-		res->len = len;
-		res->orig = str->orig;
-	}
+	struct chx_value res;
+	res.type = CHEAX_STRING;
+	res.data.as_string = gc_alloc(c, sizeof(struct chx_string), CHEAX_STRING);
+	if (res.data.as_string == NULL)
+		return cheax_nil();
+
+	res.data.as_string->value = str->value + pos;
+	res.data.as_string->len = len;
+	res.data.as_string->orig = str->orig;
 	return res;
 }
 char *
@@ -234,6 +260,23 @@ cheax_strdup(struct chx_string *str)
 	return res;
 }
 
+struct chx_value
+cheax_func_value_proc(struct chx_func *fn)
+{
+	return cheax_func_value(fn);
+}
+struct chx_value
+cheax_macro_value_proc(struct chx_func *macro)
+{
+	return cheax_macro_value(macro);
+}
+
+struct chx_value
+cheax_env_value_proc(struct chx_env *env)
+{
+	return cheax_env_value(env);
+}
+
 CHEAX *
 cheax_init(void)
 {
@@ -241,8 +284,7 @@ cheax_init(void)
 	if (res == NULL)
 		return NULL;
 
-	res->globals.base.type = CHEAX_ENV;
-	res->globals.base.rtflags = 0;
+	res->globals.rtflags = 0;
 	norm_env_init(res, &res->globals, NULL);
 	res->env = NULL;
 	res->stack_depth = 0;
@@ -312,10 +354,10 @@ cheax_version(void)
 }
 
 int
-cheax_list_to_array(CHEAX *c, struct chx_list *list, struct chx_value ***array_ptr, size_t *length)
+cheax_list_to_array(CHEAX *c, struct chx_list *list, struct chx_value **array_ptr, size_t *length)
 {
 	size_t len = 0, cap = 0;
-	struct chx_value **res = NULL;
+	struct chx_value *res = NULL;
 
 	ASSERT_NOT_NULL("list_to_array", length, -1);
 	ASSERT_NOT_NULL("list_to_array", array_ptr, -1);
@@ -323,7 +365,7 @@ cheax_list_to_array(CHEAX *c, struct chx_list *list, struct chx_value ***array_p
 	for (; list != NULL; list = list->next) {
 		if (++len > cap) {
 			cap = len + len / 2;
-			struct chx_value **new_res = cheax_realloc(c, res, sizeof(*res) * cap);
+			struct chx_value *new_res = cheax_realloc(c, res, sizeof(*res) * cap);
 			if (new_res == NULL) {
 				cheax_free(c, res);
 				*length = 0;
@@ -341,110 +383,44 @@ cheax_list_to_array(CHEAX *c, struct chx_list *list, struct chx_value ***array_p
 	return 0;
 }
 
-struct chx_list *
-cheax_array_to_list(CHEAX *c, struct chx_value **array, size_t length)
+struct chx_value
+cheax_array_to_list(CHEAX *c, struct chx_value *array, size_t length)
 {
-	ASSERT_NOT_NULL("array_to_list", array, NULL);
+	ASSERT_NOT_NULL("array_to_list", array, cheax_nil());
 
-	struct chx_list *res = NULL;
+	struct chx_value res = cheax_nil();
 	for (size_t i = length; i >= 1; --i) {
-		res = cheax_list(c, array[i - 1], res);
+		res = cheax_list(c, array[i - 1], res.data.as_list);
 		cheax_ft(c, pad);
 	}
 
 	return res;
 pad:
-	return NULL;
-}
-
-struct chx_value *
-cheax_shallow_copy(CHEAX *c, struct chx_value *v)
-{
-	int act_type = cheax_type_of(v);
-
-	size_t size;
-	switch (cheax_resolve_type(c, act_type)) {
-	case CHEAX_NIL:
-		return NULL;
-	case CHEAX_ID:
-		size = sizeof(struct chx_id);
-		break;
-	case CHEAX_INT:
-	case CHEAX_BOOL:
-		size = sizeof(struct chx_int);
-		break;
-	case CHEAX_DOUBLE:
-		size = sizeof(struct chx_double);
-		break;
-	case CHEAX_LIST:
-		size = sizeof(struct chx_list);
-		break;
-	case CHEAX_FUNC:
-	case CHEAX_MACRO:
-		size = sizeof(struct chx_func);
-		break;
-	case CHEAX_EXT_FUNC:
-		size = sizeof(struct chx_ext_func);
-		break;
-	case CHEAX_QUOTE:
-	case CHEAX_BACKQUOTE:
-	case CHEAX_COMMA:
-	case CHEAX_SPLICE:
-		size = sizeof(struct chx_quote);
-		break;
-	case CHEAX_STRING:
-		size = sizeof(struct chx_string);
-		break;
-	case CHEAX_USER_PTR:
-		size = sizeof(struct chx_user_ptr);
-		break;
-	case CHEAX_ENV:
-		size = sizeof(struct chx_env);
-		break;
-	default:
-		cheax_throwf(c, CHEAX_EEVAL, "shallow_copy(): internal error");
-		return NULL;
-	}
-
-	struct chx_value *cpy = gc_alloc(c, size, act_type);
-	if (cpy != NULL) {
-		unsigned short prev_rtflags = cpy->rtflags;
-		memcpy(cpy, v, size);
-		cpy->rtflags = prev_rtflags;
-	}
-	return cpy;
+	return cheax_nil();
 }
 
 static bool
-can_cast(CHEAX *c, struct chx_value *v, int type)
+can_cast(CHEAX *c, struct chx_value v, int type)
 {
 	if (!cheax_is_valid_type(c, type))
 		return false;
 
-	int vtype = cheax_type_of(v);
-	return vtype == type
-	    || cheax_get_base_type(c, vtype) == type;
+	return v.type == type
+	    || cheax_get_base_type(c, v.type) == type;
 }
 
-struct chx_value *
-cheax_cast(CHEAX *c, struct chx_value *v, int type)
+struct chx_value
+cheax_cast(CHEAX *c, struct chx_value v, int type)
 {
 	if (!can_cast(c, v, type)) {
 		cheax_throwf(c, CHEAX_ETYPE, "cast(): invalid cast");
-		return NULL;
+		return cheax_nil();
 	}
 
-	struct chx_value *res = cheax_shallow_copy(c, v);
-	if (res != NULL)
-		res->type = type;
-	return res;
+	v.type = type;
+	return v;
 }
 
-int
-cheax_type_of(struct chx_value *v)
-{
-	return (v == NULL) ? CHEAX_NIL : v->type;
-}
 int
 cheax_new_type(CHEAX *c, const char *name, int base_type)
 {
@@ -486,7 +462,7 @@ cheax_new_type(CHEAX *c, const char *name, int base_type)
 	cheax_ft(c, pad);
 	strcpy(store_name, name);
 
-	cheax_def(c, name, &typecode(c, tycode)->base, CHEAX_READONLY);
+	cheax_def(c, name, typecode(tycode), CHEAX_READONLY);
 	cheax_ft(c, pad);
 
 	struct type_alias alias = { 0 };
@@ -561,35 +537,35 @@ cheax_resolve_type(CHEAX *c, int type)
 }
 
 bool
-try_vtoi(struct chx_value *value, int *res)
+try_vtoi(struct chx_value value, chx_int *res)
 {
-	switch (cheax_type_of(value)) {
+	switch (value.type) {
 	case CHEAX_INT:
-		*res = ((struct chx_int *)value)->value;
+		*res = value.data.as_int;
 		return true;
 	case CHEAX_DOUBLE:
-		*res = ((struct chx_double *)value)->value;
+		*res = value.data.as_double;
 		return true;
 	default:
 		return false;
 	}
 }
 bool
-try_vtod(struct chx_value *value, double *res)
+try_vtod(struct chx_value value, chx_double *res)
 {
-	switch (cheax_type_of(value)) {
+	switch (value.type) {
 	case CHEAX_INT:
-		*res = ((struct chx_int *)value)->value;
+		*res = value.data.as_int;
 		return true;
 	case CHEAX_DOUBLE:
-		*res = ((struct chx_double *)value)->value;
+		*res = value.data.as_double;
 		return true;
 	default:
 		return false;
 	}
 }
 double
-vtod(struct chx_value *value)
+vtod(struct chx_value value)
 {
 	double res = 0.0;
 	try_vtod(value, &res);
@@ -613,53 +589,52 @@ cheax_load_prelude(CHEAX *c)
  *
  */
 
-static struct chx_list *
+static struct chx_value
 prepend(CHEAX *c, struct chx_list *args)
 {
 	if (args->next != NULL) {
-		struct chx_value *head = cheax_eval(c, args->value);
+		struct chx_value head = cheax_eval(c, args->value);
 		cheax_ft(c, pad);
 		chx_ref head_ref = cheax_ref(c, head);
-		struct chx_list *tail = prepend(c, args->next);
+		struct chx_value tail = prepend(c, args->next);
 		cheax_unref(c, head, head_ref);
 		cheax_ft(c, pad);
-		return cheax_list(c, head, tail);
+		return cheax_list(c, head, tail.data.as_list);
 	}
 
-	struct chx_value *res = cheax_eval(c, args->value);
+	struct chx_value res = cheax_eval(c, args->value);
 	cheax_ft(c, pad);
-	int ty = cheax_type_of(res);
-	if (ty != CHEAX_LIST && ty != CHEAX_NIL) {
+	if (res.type != CHEAX_LIST) {
 		cheax_throwf(c, CHEAX_ETYPE, "improper list not allowed");
-		return NULL;
+		return cheax_nil();
 	}
 
-	return (struct chx_list *)res;
+	return res;
 pad:
-	return NULL;
+	return cheax_nil();
 }
 
-static struct chx_value *
+static struct chx_value
 bltn_prepend(CHEAX *c, struct chx_list *args, void *info)
 {
 	if (args == NULL) {
 		cheax_throwf(c, CHEAX_EMATCH, "expected at least one argument");
-		return bt_wrap(c, NULL);
+		return bt_wrap(c, cheax_nil());
 	}
 
-	return bt_wrap(c, &prepend(c, args)->base);
+	return bt_wrap(c, prepend(c, args));
 }
 
-static struct chx_value *
+static struct chx_value
 bltn_type_of(CHEAX *c, struct chx_list *args, void *info)
 {
-	struct chx_value *val;
+	struct chx_value val;
 	return (0 == unpack(c, args, ".", &val))
-	     ? bt_wrap(c, &typecode(c, cheax_type_of(val))->base)
-	     : NULL;
+	     ? bt_wrap(c, typecode(val.type))
+	     : cheax_nil();
 }
 
-static struct chx_value *
+static struct chx_value
 create_func(CHEAX *c,
             const char *name,
             struct chx_list *args,
@@ -667,82 +642,83 @@ create_func(CHEAX *c,
 {
 	if (args == NULL) {
 		cheax_throwf(c, CHEAX_EMATCH, "expected arguments");
-		goto pad;
+		return cheax_nil();
 	}
 
-	struct chx_value *arg_list = args->value;
+	struct chx_value arg_list = args->value;
 	struct chx_list *body = args->next;
 
 	if (body == NULL) {
 		cheax_throwf(c, CHEAX_EMATCH, "expected body");
-		goto pad;
+		return cheax_nil();
 	}
 
-	struct chx_func *res = gc_alloc(c, sizeof(struct chx_func), type);
-	cheax_ft(c, pad);
-	res->args = arg_list;
-	res->body = body;
-	res->lexenv = cheax_env(c);
-	return &res->base;
-pad:
-	cheax_add_bt(c);
-	return NULL;
+	struct chx_value res;
+	res.type = type;
+	res.data.as_func = gc_alloc(c, sizeof(struct chx_func), type);
+	if (res.data.as_func == NULL)
+		return cheax_nil();
+
+	res.data.as_func->args = arg_list;
+	res.data.as_func->body = body;
+	res.data.as_func->lexenv = cheax_env(c).data.as_env;
+	return res;
 }
 
-static struct chx_value *
+static struct chx_value
 bltn_fn(CHEAX *c, struct chx_list *args, void *info)
 {
-	return create_func(c, "fn", args, CHEAX_FUNC);
+	return bt_wrap(c, create_func(c, "fn", args, CHEAX_FUNC));
 }
 
-static struct chx_value *
+static struct chx_value
 bltn_macro(CHEAX *c, struct chx_list *args, void *info)
 {
-	return create_func(c, "macro", args, CHEAX_MACRO);
+	return bt_wrap(c, create_func(c, "macro", args, CHEAX_MACRO));
 }
 
-static struct chx_value *
+static struct chx_value
 bltn_string_bytes(CHEAX *c, struct chx_list *args, void *info)
 {
 	struct chx_string *str;
 	if (unpack(c, args, "s", &str) < 0)
-		return NULL;
+		return cheax_nil();
 
-	struct chx_list *bytes = NULL;
-	for (int i = (int)str->len - 1; i >= 0; --i)
-		bytes = cheax_list(c, &cheax_int(c, (unsigned char)str->value[i])->base, bytes);
-	return bt_wrap(c, &bytes->base);
+	struct chx_value bytes = cheax_nil();
+	for (size_t i = str->len; i >= 1; --i)
+		bytes = cheax_list(c, cheax_int((unsigned char)str->value[i - 1]), bytes.data.as_list);
+	return bt_wrap(c, bytes);
 }
 
-static struct chx_value *
+static struct chx_value
 bltn_string_length(CHEAX *c, struct chx_list *args, void *info)
 {
 	struct chx_string *str;
 	return (0 == unpack(c, args, "s", &str))
-	     ? bt_wrap(c, &cheax_int(c, (int)str->len)->base)
-	     : NULL;
+	     ? bt_wrap(c, cheax_int((chx_int)str->len))
+	     : cheax_nil();
 }
 
-static struct chx_value *
+static struct chx_value
 bltn_substr(CHEAX *c, struct chx_list *args, void *info)
 {
 	struct chx_string *str;
-	int pos, len = 0;
-	struct chx_int *len_or_nil;
-	if (unpack(c, args, "si!i?", &str, &pos, &len_or_nil) < 0)
-		return NULL;
+	chx_int pos, len = 0;
+	struct chx_value len_or_nil;
+	if (unpack(c, args, "sii?", &str, &pos, &len_or_nil) < 0)
+		return cheax_nil();
 
-	if (len_or_nil != NULL)
-		len = len_or_nil->value;
+	if (!cheax_is_nil(len_or_nil))
+		len = len_or_nil.data.as_int;
 	else if (pos >= 0 && (size_t)pos <= str->len)
 		len = str->len - (size_t)pos;
 
 	if (pos < 0 || len < 0) {
 		cheax_throwf(c, CHEAX_EVALUE, "expected positive integer");
-		return bt_wrap(c, NULL);
+		return bt_wrap(c, cheax_nil());
 	}
 
-	return bt_wrap(c, &cheax_substr(c, str, pos, len)->base);
+	return bt_wrap(c, cheax_substr(c, str, pos, len));
 }
 
 void
@@ -756,5 +732,5 @@ export_core_bltns(CHEAX *c)
 	cheax_defmacro(c, "string-length", bltn_string_length, NULL);
 	cheax_defmacro(c, "substr",        bltn_substr,        NULL);
 
-	cheax_def(c, "cheax-version", &cheax_string(c, cheax_version())->base, CHEAX_READONLY);
+	cheax_def(c, "cheax-version", cheax_string(c, cheax_version()), CHEAX_READONLY);
 }

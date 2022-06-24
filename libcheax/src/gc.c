@@ -39,11 +39,27 @@
 #include "rbtree.h"
 #include "unpack.h"
 
+#define RTFLAGS(obj) (*(unsigned *)(obj))
+
 /* values for chx_ref */
 enum {
 	DO_NOTHING,
 	PLEASE_UNREF,
 };
+
+static bool
+gc_type(CHEAX *c, int type)
+{
+	switch (cheax_resolve_type(c, type)) {
+	case CHEAX_INT:
+	case CHEAX_BOOL:
+	case CHEAX_DOUBLE:
+	case CHEAX_USER_PTR:
+		return false;
+	default:
+		return true;
+	}
+}
 
 #ifndef MSIZE
 struct alloc_header {
@@ -262,8 +278,12 @@ gc_alloc(CHEAX *c, size_t size, int type)
 	if (hdr == NULL)
 		return NULL;
 
-	hdr->obj.type = type;
-	hdr->obj.rtflags = GC_BIT;
+	int rsvd_type = cheax_resolve_type(c, type);
+	if (rsvd_type < 0)
+		return NULL;
+	hdr->rsvd_type = rsvd_type;
+
+	RTFLAGS(&hdr->obj) = GC_BIT;
 
 	++c->gc.num_objects;
 
@@ -284,12 +304,12 @@ gc_alloc(CHEAX *c, size_t size, int type)
 void *
 gc_alloc_with_fin(CHEAX *c, size_t size, int type, chx_fin fin, void *info)
 {
-	struct chx_value *obj = gc_alloc(c, size + sizeof(struct gc_fin_footer), type);
+	void *obj = gc_alloc(c, size + sizeof(struct gc_fin_footer), type);
 	if (obj != NULL) {
 		struct gc_fin_footer *ftr = get_fin_footer(obj);
 		ftr->fin = fin;
 		ftr->info = info;
-		obj->rtflags |= FIN_BIT;
+		RTFLAGS(obj) |= FIN_BIT;
 	}
 	return obj;
 }
@@ -309,7 +329,7 @@ gc_free(CHEAX *c, void *obj)
 	next->prev = prev;
 	--c->gc.num_objects;
 
-	if (has_flag(hdr->obj.rtflags, FIN_BIT)) {
+	if (has_flag(RTFLAGS(obj), FIN_BIT)) {
 		struct gc_fin_footer *ftr = get_fin_footer(obj);
 		ftr->fin(obj, ftr->info);
 	}
@@ -317,71 +337,90 @@ gc_free(CHEAX *c, void *obj)
 	cheax_free(c, hdr);
 }
 
-static void mark_obj(CHEAX *c, struct chx_value *used);
+static bool
+mark_once(CHEAX *c, void *obj)
+{
+	if (obj != NULL && (RTFLAGS(obj) & (GC_BIT | GC_MARKED)) == GC_BIT) {
+		RTFLAGS(obj) |= GC_MARKED;
+		return true;
+	}
+	return false;
+}
+
+static void mark_obj(CHEAX *c, struct chx_value used);
 
 static void
-mark_env(CHEAX *c, struct rb_node *root)
+mark_list(CHEAX *c, struct chx_list *lst)
 {
-	if (root == NULL)
-		return;
+	for (; mark_once(c, lst); lst = lst->next)
+		mark_obj(c, lst->value);
+}
+static void
+mark_string(CHEAX *c, struct chx_string *str)
+{
+	for (; mark_once(c, str); str = str->orig)
+		;
+}
+static void
+mark_env_members(CHEAX *c, struct rb_node *root)
+{
+	while (root != NULL) {
+		struct full_sym *sym = root->value;
+		mark_obj(c, sym->sym.protect);
 
-	struct full_sym *sym = root->value;
-	mark_obj(c, sym->sym.protect);
-
-	for (int i = 0; i < 2; ++i)
-		mark_env(c, root->link[i]);
+		mark_env_members(c, root->link[0]);
+		root = root->link[1];
+	}
+}
+static void
+mark_env(CHEAX *c, struct chx_env *env)
+{
+	while (mark_once(c, env)) {
+		if (env->is_bif) {
+			mark_env(c, env->value.bif[0]);
+			env = env->value.bif[1];
+		} else {
+			mark_env_members(c, env->value.norm.syms.root);
+			env = env->value.norm.below;
+		}
+	}
 }
 
 static void
-mark_obj(CHEAX *c, struct chx_value *used)
+mark_obj(CHEAX *c, struct chx_value used)
 {
-	if (used == NULL || (used->rtflags & (GC_BIT | GC_MARKED)) != GC_BIT)
+	int ty = cheax_resolve_type(c, used.type);
+	if (!gc_type(c, ty))
 		return;
 
-	used->rtflags |= GC_MARKED;
-
-	struct chx_list *list;
-	struct chx_string *str;
-	struct chx_func *func;
-	struct chx_quote *quote;
-	struct chx_env *env;
-	switch (cheax_resolve_type(c, cheax_type_of(used))) {
+	switch (ty) {
 	case CHEAX_LIST:
-		list = (struct chx_list *)used;
-		mark_obj(c, list->value);
-		mark_obj(c, &list->next->base);
-		break;
-
+		mark_list(c, used.data.as_list);
+		return;
 	case CHEAX_STRING:
-		str = (struct chx_string *)used;
-		mark_obj(c, &str->orig->base);
-		break;
+		mark_string(c, used.data.as_string);
+		return;
+	case CHEAX_ENV:
+		mark_env(c, used.data.as_env);
+		return;
+	}
 
+	if (!mark_once(c, used.data.rtflags_ptr))
+		return;
+
+	switch (ty) {
 	case CHEAX_FUNC:
 	case CHEAX_MACRO:
-		func = (struct chx_func *)used;
-		mark_obj(c, func->args);
-		mark_obj(c, &func->body->base);
-		mark_obj(c, &func->lexenv->base);
+		mark_list(c, used.data.as_func->body);
+		mark_env(c, used.data.as_func->lexenv);
+		mark_obj(c, used.data.as_func->args);
 		break;
 
 	case CHEAX_QUOTE:
 	case CHEAX_BACKQUOTE:
 	case CHEAX_COMMA:
 	case CHEAX_SPLICE:
-		quote = (struct chx_quote *)used;
-		mark_obj(c, quote->value);
-		break;
-
-	case CHEAX_ENV:
-		env = (struct chx_env *)used;
-		if (env->is_bif) {
-			for (int i = 0; i < 2; ++i)
-				mark_obj(c, &env->value.bif[i]->base);
-		} else {
-			mark_env(c, env->value.norm.syms.root);
-			mark_obj(c, &env->value.norm.below->base);
-		}
+		mark_obj(c, used.data.as_quote->value);
 		break;
 	}
 }
@@ -403,14 +442,14 @@ mark(CHEAX *c)
 	struct gc_header_node *n;
 	for (n = c->gc.objects.next; n != &c->gc.objects; n = n->next) {
 		struct gc_header *hdr = (struct gc_header *)n;
-		struct chx_value *obj = &hdr->obj;
-		if (has_flag(obj->rtflags, REF_BIT))
-			mark_obj(c, &hdr->obj);
+		void *obj = &hdr->obj;
+		if (has_flag(RTFLAGS(obj), REF_BIT))
+			mark_obj(c, ((struct chx_value){ .type = hdr->rsvd_type, .data.user_ptr = obj }));
 	}
 
-	mark_obj(c, &c->env->base);
-	mark_env(c, c->globals.value.norm.syms.root);
-	mark_obj(c, &c->error.msg->base);
+	mark_env(c, c->env);
+	mark_env_members(c, c->globals.value.norm.syms.root);
+	mark_string(c, c->error.msg);
 }
 
 static void
@@ -423,11 +462,11 @@ sweep(CHEAX *c)
 	for (n = c->gc.objects.next; n != &c->gc.objects; n = nxt) {
 		nxt = n->next;
 		struct gc_header *hdr = (struct gc_header *)n;
-		struct chx_value *obj = &hdr->obj;
-		if (!has_flag(obj->rtflags, GC_MARKED))
+		void *obj = &hdr->obj;
+		if (!has_flag(RTFLAGS(obj), GC_MARKED))
 			gc_free(c, obj);
 		else
-			obj->rtflags &= ~GC_MARKED;
+			RTFLAGS(obj) &= ~GC_MARKED;
 	}
 
 	c->gc.lock = was_locked;
@@ -449,23 +488,32 @@ cheax_force_gc(CHEAX *c)
 }
 
 chx_ref
-cheax_ref(CHEAX *c, void *restrict value)
+cheax_ref(CHEAX *c, struct chx_value value)
 {
-	struct chx_value *obj = value;
-	if (obj != NULL && (obj->rtflags & (GC_BIT | REF_BIT)) == GC_BIT) {
-		obj->rtflags |= REF_BIT;
+	return gc_type(c, value.type) ? cheax_ref_ptr(c, value.data.rtflags_ptr) : DO_NOTHING;
+}
+
+chx_ref
+cheax_ref_ptr(CHEAX *c, void *restrict value)
+{
+	if (value != NULL && (RTFLAGS(value) & (GC_BIT | REF_BIT)) == GC_BIT) {
+		RTFLAGS(value) |= REF_BIT;
 		return PLEASE_UNREF;
 	}
 	return DO_NOTHING;
 }
 
 void
-cheax_unref(CHEAX *c, void *restrict value, chx_ref ref)
+cheax_unref(CHEAX *c, struct chx_value value, chx_ref ref)
 {
-	if (ref == PLEASE_UNREF) {
-		struct chx_value *obj = value;
-		obj->rtflags &= ~REF_BIT;
-	}
+	cheax_unref_ptr(c, value.data.rtflags_ptr, ref);
+}
+
+void
+cheax_unref_ptr(CHEAX *c, void *restrict value, chx_ref ref)
+{
+	if (ref == PLEASE_UNREF)
+		RTFLAGS(value) &= ~REF_BIT;
 }
 
 /*
@@ -477,33 +525,38 @@ cheax_unref(CHEAX *c, void *restrict value, chx_ref ref)
  *
  */
 
-static struct chx_value *
+static struct chx_value
 bltn_gc(CHEAX *c, struct chx_list *args, void *info)
 {
 	if (unpack(c, args, "") < 0)
-		return NULL;
+		return cheax_nil();
 
-	static struct chx_id mem = { { CHEAX_ID, 0 }, "mem" },
-			      to = { { CHEAX_ID, 0 }, "->" },
-			     obj = { { CHEAX_ID, 0 }, "obj" };
+	static struct chx_id mem = { 0, "mem" }, to = { 0, "->" }, obj = { 0, "obj" };
 
 	int mem_i = c->gc.all_mem, obj_i = c->gc.num_objects;
 	cheax_force_gc(c);
 	int mem_f = c->gc.all_mem, obj_f = c->gc.num_objects;
 
-	struct chx_value *res[] = {
-		&mem.base, &cheax_int(c, mem_i)->base, &to.base, &cheax_int(c, mem_f)->base,
-		&obj.base, &cheax_int(c, obj_i)->base, &to.base, &cheax_int(c, obj_f)->base,
+	struct chx_value res[] = {
+		{ .type = CHEAX_ID, .data = { .as_id = &mem } },
+		cheax_int(mem_i),
+		{ .type = CHEAX_ID, .data = { .as_id = &to  } },
+		cheax_int(mem_f),
+
+		{ .type = CHEAX_ID, .data = { .as_id = &obj } },
+		cheax_int(obj_i),
+		{ .type = CHEAX_ID, .data = { .as_id = &to  } },
+		cheax_int(obj_f),
 	};
-	return bt_wrap(c, &cheax_array_to_list(c, res, sizeof(res) / sizeof(res[0]))->base);
+	return bt_wrap(c, cheax_array_to_list(c, res, sizeof(res) / sizeof(res[0])));
 }
 
-static struct chx_value *
+static struct chx_value
 bltn_get_used_memory(CHEAX *c, struct chx_list *args, void *info)
 {
 	return (0 == unpack(c, args, ""))
-	     ? bt_wrap(c, &cheax_int(c, c->gc.all_mem)->base)
-	     : NULL;
+	     ? bt_wrap(c, cheax_int(c->gc.all_mem))
+	     : cheax_nil();
 }
 
 void

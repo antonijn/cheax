@@ -19,7 +19,8 @@
 #define GC_RUN_THRESHOLD 0x20000
 
 #include <cheax.h>
-#include "rbtree.h"
+
+#include <stdint.h>
 
 struct gc_header_node {
 	struct gc_header_node *prev, *next;
@@ -27,7 +28,8 @@ struct gc_header_node {
 
 struct gc_header {
 	struct gc_header_node node;
-	struct chx_value obj; /* Only for locating the start of the user object */
+	int rsvd_type; /* Resolved cheax type of allocated value */
+	intptr_t obj;  /* Only for locating the start of the user object */
 };
 
 struct gc_info {
@@ -40,10 +42,6 @@ typedef void (*chx_fin)(void *obj, void *info);
 
 void gc_init(CHEAX *c);
 void gc_cleanup(CHEAX *c);
-/*
- * Result must be treated as chx_value. Specifically, gc decisions will
- * be made depending on the value of chx_value::type.
- */
 void *gc_alloc(CHEAX *c, size_t size, int type);
 void *gc_alloc_with_fin(CHEAX *c, size_t size, int type, chx_fin fin, void *info);
 void gc_free(CHEAX *c, void *obj);

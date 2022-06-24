@@ -27,7 +27,7 @@ struct full_sym {
 };
 
 struct chx_env {
-	struct chx_value base;
+	unsigned rtflags;
 	bool is_bif;
 	union {
 		struct chx_env *bif[2];

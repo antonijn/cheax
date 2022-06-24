@@ -40,7 +40,7 @@ struct read_info {
 	const char *path;
 };
 
-static struct chx_value *read_value(struct read_info *ri, struct scnr *s, bool consume_final);
+static struct chx_value read_value(struct read_info *ri, struct scnr *s, bool consume_final);
 
 static void
 read_init(struct read_info *ri,
@@ -76,13 +76,13 @@ skip_space(struct scnr *s)
 	}
 }
 
-static struct chx_value *
+static struct chx_value
 read_id(struct read_info *ri, struct scnr *s) /* consume_final = true */
 {
 	struct sostrm ss;
 	sostrm_init(&ss, ri->c);
 
-	struct chx_value *res = NULL;
+	struct chx_value res = cheax_nil();
 
 	while (c_isid(s->ch))
 		ostrm_putc(&ss.strm, scnr_adv(s));
@@ -93,12 +93,12 @@ read_id(struct read_info *ri, struct scnr *s) /* consume_final = true */
 	}
 
 	if (ss.idx == 4 && memcmp(ss.buf, "true", 4) == 0) {
-		res = &cheax_true(ri->c)->base;
+		res = cheax_true();
 	} else if (ss.idx == 5 && memcmp(ss.buf, "false", 5) == 0) {
-		res = &cheax_false(ri->c)->base;
+		res = cheax_false();
 	} else {
 		ostrm_putc(&ss.strm, '\0');
-		res = &cheax_id(ri->c, ss.buf)->base;
+		res = cheax_id(ri->c, ss.buf);
 	}
 
 done:
@@ -140,13 +140,13 @@ read_digits(struct scnr *s, struct ostrm *ostr, int base, bool *too_big)
 	return value;
 }
 
-static struct chx_value *
+static struct chx_value
 read_num(struct read_info *ri, struct scnr *s) /* consume_final = true */
 {
 	struct sostrm ss;
 	sostrm_init(&ss, ri->c);
 
-	struct chx_value *res = NULL;
+	struct chx_value res = cheax_nil();
 
 	/*
 	 * We optimise (slightly) for integers, whose value we parse as
@@ -215,7 +215,7 @@ read_num(struct read_info *ri, struct scnr *s) /* consume_final = true */
 			goto done;
 		}
 
-		res = &cheax_int(ri->c, (int)pos_whole_value)->base;
+		res = cheax_int((chx_int)pos_whole_value);
 		goto done;
 	}
 
@@ -239,7 +239,7 @@ read_num(struct read_info *ri, struct scnr *s) /* consume_final = true */
 		goto done;
 	}
 
-	res = &cheax_double(ri->c, dval)->base;
+	res = cheax_double(dval);
 
 done:
 	cheax_free(ri->c, ss.buf);
@@ -324,13 +324,13 @@ read_bslash(struct read_info *ri, struct scnr *s, struct ostrm *ostr) /* consume
 	cheax_throwf(ri->c, CHEAX_EREAD, "unexpected character after `\\'");
 }
 
-static struct chx_value *
+static struct chx_value
 read_string(struct read_info *ri, struct scnr *s, bool consume_final)
 {
 	struct sostrm ss;
 	sostrm_init(&ss, ri->c);
 
-	struct chx_value *res = NULL;
+	struct chx_value res = cheax_nil();
 
 	/* consume initial `"' */
 	scnr_adv(s);
@@ -356,13 +356,13 @@ read_string(struct read_info *ri, struct scnr *s, bool consume_final)
 	if (consume_final)
 		scnr_adv(s);
 
-	res = &cheax_nstring(ri->c, ss.buf, ss.idx)->base;
+	res = cheax_nstring(ri->c, ss.buf, ss.idx);
 done:
 	cheax_free(ri->c, ss.buf);
 	return res;
 }
 
-static struct chx_value *
+static struct chx_value
 read_list(struct read_info *ri, struct scnr *s, bool consume_final)
 {
 	struct chx_list *lst = NULL;
@@ -379,7 +379,7 @@ read_list(struct read_info *ri, struct scnr *s, bool consume_final)
 
 		lst = ri->c->gen_debug_info
 		    ? &debug_list(ri->c, read_value(ri, s, true), NULL, info)->base
-		    : cheax_list(ri->c, read_value(ri, s, true), NULL);
+		    : cheax_list(ri->c, read_value(ri, s, true), NULL).data.as_list;
 		cheax_ft(ri->c, pad);
 
 		struct chx_list **next = &lst->next;
@@ -387,7 +387,7 @@ read_list(struct read_info *ri, struct scnr *s, bool consume_final)
 			if (s->ch == EOF)
 				goto eof_pad;
 
-			*next = cheax_list(ri->c, read_value(ri, s, true), NULL);
+			*next = cheax_list(ri->c, read_value(ri, s, true), NULL).data.as_list;
 			cheax_ft(ri->c, pad);
 			next = &(*next)->next;
 		}
@@ -398,14 +398,17 @@ read_list(struct read_info *ri, struct scnr *s, bool consume_final)
 	if (consume_final)
 		scnr_adv(s);
 
-	return &lst->base;
+	struct chx_value res;
+	res.type = CHEAX_LIST;
+	res.data.as_list = lst;
+	return res;
 eof_pad:
 	cheax_throwf(ri->c, CHEAX_EEOF, "unexpected end-of-file in S-expression");
 pad:
-	return NULL;
+	return cheax_nil();
 }
 
-static struct chx_value *
+static struct chx_value
 read_value(struct read_info *ri, struct scnr *s, bool consume_final)
 {
 	skip_space(s);
@@ -454,10 +457,10 @@ read_value(struct read_info *ri, struct scnr *s, bool consume_final)
 			ri->allow_splice = true;
 
 		scnr_adv(s);
-		struct chx_value *to_quote = read_value(ri, s, consume_final);
+		struct chx_value to_quote = read_value(ri, s, consume_final);
 		ri->allow_splice = did_allow_splice;
 		cheax_ft(ri->c, pad);
-		return &cheax_quote(ri->c, to_quote)->base;
+		return cheax_quote(ri->c, to_quote);
 	}
 
 	if (s->ch == '`') {
@@ -468,22 +471,22 @@ read_value(struct read_info *ri, struct scnr *s, bool consume_final)
 
 		scnr_adv(s);
 		++ri->bkquote_stack;
-		struct chx_value *to_quote = read_value(ri, s, consume_final);
+		struct chx_value to_quote = read_value(ri, s, consume_final);
 		--ri->bkquote_stack;
 		ri->allow_splice = did_allow_splice;
 		cheax_ft(ri->c, pad);
-		return &cheax_backquote(ri->c, to_quote)->base;
+		return cheax_backquote(ri->c, to_quote);
 	}
 
 	if (s->ch == ',') {
 		if (ri->bkquote_stack == 0) {
 			cheax_throwf(ri->c, CHEAX_EREAD, "comma is illegal outside of backquotes");
-			return NULL;
+			return cheax_nil();
 		}
 		/* same error, different message */
 		if (ri->comma_stack >= ri->bkquote_stack) {
 			cheax_throwf(ri->c, CHEAX_EREAD, "more commas than backquotes");
-			return NULL;
+			return cheax_nil();
 		}
 
 		scnr_adv(s);
@@ -491,17 +494,17 @@ read_value(struct read_info *ri, struct scnr *s, bool consume_final)
 		if (s->ch == '@') {
 			if (!ri->allow_splice) {
 				cheax_throwf(ri->c, CHEAX_EREAD, "invalid splice");
-				return NULL;
+				return cheax_nil();
 			}
 
 			splice = true;
 			scnr_adv(s);
 		}
 		++ri->comma_stack;
-		struct chx_value *to_comma = read_value(ri, s, consume_final);
+		struct chx_value to_comma = read_value(ri, s, consume_final);
 		--ri->comma_stack;
 		cheax_ft(ri->c, pad);
-		return &(splice ? cheax_splice : cheax_comma)(ri->c, to_comma)->base;
+		return (splice ? cheax_splice : cheax_comma)(ri->c, to_comma);
 	}
 
 	if (s->ch == '"')
@@ -510,10 +513,10 @@ read_value(struct read_info *ri, struct scnr *s, bool consume_final)
 	if (s->ch != EOF)
 		cheax_throwf(ri->c, CHEAX_EREAD, "unexpected character `%c'", s->ch);
 pad:
-	return NULL;
+	return cheax_nil();
 }
 
-static struct chx_value *
+static struct chx_value
 istrm_read_at(CHEAX *c, struct istrm *strm, const char *path, int *line, int *pos)
 {
 	int ln = (line == NULL) ? 1 : *line;
@@ -523,7 +526,7 @@ istrm_read_at(CHEAX *c, struct istrm *strm, const char *path, int *line, int *po
 	struct scnr s;
 	read_init(&ri, &s, strm, c, path, ln, ps);
 
-	struct chx_value *res = read_value(&ri, &s, false);
+	struct chx_value res = read_value(&ri, &s, false);
 
 	if (line != NULL)
 		*line = s.line;
@@ -533,29 +536,29 @@ istrm_read_at(CHEAX *c, struct istrm *strm, const char *path, int *line, int *po
 	return res;
 }
 
-struct chx_value *
+struct chx_value
 cheax_read(CHEAX *c, FILE *infile)
 {
 	return cheax_read_at(c, infile, "<filename unknown>", NULL, NULL);
 }
-struct chx_value *
+struct chx_value
 cheax_read_at(CHEAX *c, FILE *infile, const char *path, int *line, int *pos)
 {
 	struct fistrm fs;
 	fistrm_init(&fs, infile, c);
 	return istrm_read_at(c, &fs.strm, path, line, pos);
 }
-struct chx_value *
+struct chx_value
 cheax_readstr(CHEAX *c, const char *str)
 {
 	return cheax_readstr_at(c, &str, "<filename unknown>", NULL, NULL);
 }
-struct chx_value *
+struct chx_value
 cheax_readstr_at(CHEAX *c, const char **str, const char *path, int *line, int *pos)
 {
 	struct sistrm ss;
 	sistrm_init(&ss, *str);
-	struct chx_value *res = istrm_read_at(c, &ss.strm, path, line, pos);
+	struct chx_value res = istrm_read_at(c, &ss.strm, path, line, pos);
 	if (cheax_errno(c) == 0)
 		*str = ss.str + ss.idx;
 	return res;
