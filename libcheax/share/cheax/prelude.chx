@@ -34,12 +34,11 @@
 
 (def nil ())
 
-(def Nil       (type-of nil))
+(def List      (type-of '(0)))
 (def ID        (type-of 'a))
 (def Int       (type-of 0))
 (def Double    (type-of 0.0))
 (def Bool      (type-of true))
-(def List      (type-of '(0)))
 (def Func      (type-of (fn () ())))
 (def Macro     (type-of (macro () ())))
 (def ExtFunc   (type-of type-of))
@@ -61,7 +60,7 @@
     ((: z zs) (: (f z) (unsafe-map f zs)))))
 (defun map (f xs)
   (type-assert f Func ExtFunc)
-  (type-assert xs List Nil)
+  (type-assert xs List)
   (unsafe-map f xs))
 
 (defun head ((: x _)) x)
@@ -82,7 +81,7 @@
         (unsafe-filter p zs)))))
 (defun filter (p xs)
   (type-assert p Func ExtFunc)
-  (type-assert xs List Nil)
+  (type-assert xs List)
   (unsafe-filter p xs))
 
 (defun unsafe-any? (p xs)
@@ -91,7 +90,7 @@
     ((: y ys) (if (p y) true (unsafe-any? p ys)))))
 (defun any? (p xs)
   (type-assert p Func ExtFunc)
-  (type-assert xs List Nil)
+  (type-assert xs List)
   (unsafe-any? p xs))
 
 (defun unsafe-all? (p xs)
@@ -100,7 +99,7 @@
     ((: y ys) (and (p y) (unsafe-all? p ys)))))
 (defun all? (p xs)
   (type-assert p Func ExtFunc)
-  (type-assert xs List Nil)
+  (type-assert xs List)
   (unsafe-all? p xs))
 
 (defun unsafe-foldr (f start lst)
@@ -109,7 +108,7 @@
     ((: z zs) (f z (unsafe-foldr f start zs)))))
 (defun foldr (f start lst)
   (type-assert f Func ExtFunc)
-  (type-assert lst List Nil)
+  (type-assert lst List)
   (unsafe-foldr f start lst))
 
 (defun unsafe-foldl (f start lst)
@@ -118,7 +117,7 @@
     ((: z zs) (unsafe-foldl f (f start z) zs))))
 (defun foldl (f start lst)
   (type-assert f Func ExtFunc)
-  (type-assert lst List Nil)
+  (type-assert lst List)
   (unsafe-foldl f start lst))
 
 (defun element? (e xs)
@@ -145,7 +144,7 @@
   (if (= (type-of xs) String)
     (do (type-assert e String)
         (unsafe-strfind e xs))
-    (do (type-assert xs List Nil)
+    (do (type-assert xs List)
         (unsafe-find e xs))))
 
 (defun zip-with (: op args)
@@ -164,8 +163,8 @@
   (if (= (type-of xs) String)
     (do (type-assert ys String)
         (format "{}{}" xs ys))
-    (do (type-assert xs List Nil)
-        (type-assert ys List Nil)
+    (do (type-assert xs List)
+        (type-assert ys List)
         (case ys
           (() xs)
           (_  (++helper xs ys))))))
@@ -179,7 +178,7 @@
     (() ys)
     ((: z zs) (rev-helper zs (: z ys)))))
 (defun reverse (xs)
-  (type-assert xs List Nil)
+  (type-assert xs List)
   (rev-helper xs ()))
 
 (defun tree-insert (x tree cmp)
@@ -205,7 +204,7 @@
     (true     0)))
 
 (defun sort-by (lst cmp)
-  (type-assert lst List Nil)
+  (type-assert lst List)
   (type-assert cmp Func ExtFunc)
   (tree-to-list (list-to-tree lst cmp) ()))
 (defun sort (xs) (sort-by xs compare))
@@ -221,7 +220,7 @@
     ((: y ys) (if (= i 0) y (unsafe-!! ys (- i 1) orig-i)))
     (() (throw EINDEX (format "index {} out of bounds" orig-i)))))
 (defun !! (xs i)
-  (type-assert xs List Nil)
+  (type-assert xs List)
   (type-assert i Int)
   (when (< i 0)
     (throw EINDEX (format "expected non-negative index (got {})" i)))
@@ -239,8 +238,8 @@
     (do (type-assert arg String)
         (let ((n (string-length pfx)))
           (and (<= n (string-length arg)) (= pfx (substr arg 0 n)))))
-    (do (type-assert pfx List Nil)
-        (type-assert arg List Nil)
+    (do (type-assert pfx List)
+        (type-assert arg List)
         (list-prefix? pfx arg))))
 
 (defun suffix? (sfx arg)
@@ -248,8 +247,8 @@
     (do (type-assert arg String)
         (let ((n (string-length sfx)) (m (string-length arg)))
           (and (<= n m) (= sfx (substr arg (- m n))))))
-    (do (type-assert sfx List Nil)
-        (type-assert arg List Nil)
+    (do (type-assert sfx List)
+        (type-assert arg List)
         (list-prefix? (reverse sfx) (reverse arg)))))
 
 (defun show (arg) (format "{!s}" arg))
@@ -270,7 +269,7 @@
     ((: y ys) (format "{}{}{}" y j (unsafe-join ys j)))
     (()       "")))
 (defun join (xs j)
-  (type-assert xs List Nil)
+  (type-assert xs List)
   (type-assert j String)
   (unsafe-join xs j))
 
