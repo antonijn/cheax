@@ -13,14 +13,186 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  */
 
+#include <errno.h>
 #include <string.h>
 
 #include "core.h"
 #include "err.h"
 #include "feat.h"
 #include "io.h"
+#include "setup.h"
 #include "strm.h"
 #include "unpack.h"
+
+static bool
+mode_valid(const char *mode)
+{
+	if (mode[0] != 'r' && mode[0] != 'w' && mode[0] != 'a')
+		return false;
+
+	bool bin = false, plus = false;
+	for (int i = 1; mode[i]; ++i) {
+		if (mode[i] == '+') {
+			if (!plus) {
+				plus = true;
+				continue;
+			}
+		} else if (mode[i] == 'b') {
+			if (!bin) {
+				bin = true;
+				continue;
+			}
+		}
+
+		return false;
+	}
+
+	return true;
+}
+
+static void
+throw_io_error(CHEAX *c)
+{
+	const char *msg;
+
+	switch (errno) {
+#ifdef HAVE_EACCES
+	case EACCES:
+		msg = "permission denied";
+		break;
+#endif
+#ifdef HAVE_EBADF
+	case EBADF:
+		msg = "bad file descriptor";
+		break;
+#endif
+#ifdef HAVE_EBUSY
+	case EBUSY:
+		msg = "device or resource busy";
+		break;
+#endif
+#ifdef HAVE_EDQUOT
+	case EDQUOT:
+		msg = "disk quota exceeded";
+		break;
+#endif
+#ifdef HAVE_EEXIST
+	case EEXIST:
+		msg = "file exists";
+		break;
+#endif
+#ifdef HAVE_EFAULT
+	case EFAULT:
+		msg = "bad address";
+		break;
+#endif
+#ifdef HAVE_EFBIG
+	case EFBIG:
+		msg = "file too large";
+		break;
+#endif
+#ifdef HAVE_EINTR
+	case EINTR:
+		msg = "interrupted system call";
+		break;
+#endif
+#ifdef HAVE_EINVAL
+	case EINVAL:
+		msg = "invalid argument";
+		break;
+#endif
+#ifdef HAVE_EISDIR
+	case EISDIR:
+		msg = "is a directory";
+		break;
+#endif
+#ifdef HAVE_ELOOP
+	case ELOOP:
+		msg = "too many levels of symbolic links";
+		break;
+#endif
+#ifdef HAVE_EMFILE
+	case EMFILE:
+		msg = "too many open files";
+		break;
+#endif
+#ifdef HAVE_ENAMETOOLONG
+	case ENAMETOOLONG:
+		msg = "file name too long";
+		break;
+#endif
+#ifdef HAVE_ENFILE
+	case ENFILE:
+		msg = "too many open files in system";
+		break;
+#endif
+#ifdef HAVE_ENODEV
+	case ENODEV:
+		msg = "no such device";
+		break;
+#endif
+#ifdef HAVE_ENOENT
+	case ENOENT:
+		msg = "no such file or directory";
+		break;
+#endif
+#ifdef HAVE_ENOMEM
+	case ENOMEM:
+		msg = "cannot allocate memory";
+		break;
+#endif
+#ifdef HAVE_ENOSPC
+	case ENOSPC:
+		msg = "no space left on device";
+		break;
+#endif
+#ifdef HAVE_ENOTDIR
+	case ENOTDIR:
+		msg = "not a directory";
+		break;
+#endif
+#ifdef HAVE_ENXIO
+	case ENXIO:
+		msg = "no such device or address";
+		break;
+#endif
+#ifdef HAVE_EOPNOTSUPP
+	case EOPNOTSUPP:
+		msg = "operation not supported";
+		break;
+#endif
+#ifdef HAVE_EOVERFLOW
+	case EOVERFLOW:
+		msg = "value too large for defined data type";
+		break;
+#endif
+#ifdef HAVE_EPERM
+	case EPERM:
+		msg = "operation not permitted";
+		break;
+#endif
+#ifdef HAVE_EROFS
+	case EROFS:
+		msg = "read-only file system";
+		break;
+#endif
+#ifdef HAVE_ETXTBSY
+	case ETXTBSY:
+		msg = "text file busy";
+		break;
+#endif
+#ifdef HAVE_EWOULDBLOCK
+	case EWOULDBLOCK:
+		msg = "resource temporarily unavailable";
+		break;
+#endif
+	default:
+		msg = "internal error";
+		break;
+	}
+
+	cheax_throwf(c, CHEAX_EIO, "%s", msg);
+}
 
 static struct chx_value
 bltn_fopen(CHEAX *c, struct chx_list *args, void *info)
@@ -29,34 +201,39 @@ bltn_fopen(CHEAX *c, struct chx_list *args, void *info)
 	if (unpack(c, args, "ss", &fname_val, &mode_val) < 0)
 		return cheax_nil();
 
-	char *fname = cheax_malloc(c, fname_val->len + 1);
+	int prev_errno = errno;
+	errno = 0;
+
+	struct chx_value res = cheax_nil();
+	char *fname = NULL, *mode = NULL;
+
+	fname = cheax_malloc(c, fname_val->len + 1);
 	cheax_ft(c, pad);
 	memcpy(fname, fname_val->value, fname_val->len);
 	fname[fname_val->len] = '\0';
 
-	char *mode = cheax_malloc(c, mode_val->len + 1);
+	mode = cheax_malloc(c, mode_val->len + 1);
 	cheax_ft(c, pad);
 	memcpy(mode, mode_val->value, mode_val->len);
 	mode[mode_val->len] = '\0';
 
-	FILE *f = fopen(fname, mode);
-
-	cheax_free(c, fname);
-	fname = NULL;
-	cheax_free(c, mode);
-	mode = NULL;
-
-	if (f == NULL) {
-		/* TODO inspect errno */
-		cheax_throwf(c, CHEAX_EIO, "error opening file");
-		goto pad;
+	if (mode_valid(mode)) {
+		FILE *f = fopen(fname, mode);
+		if (errno == 0)
+			res = cheax_user_ptr(c, f, c->fhandle_type);
+		else
+			throw_io_error(c);
+	} else {
+		cheax_throwf(c, CHEAX_EVALUE, "invalid mode string %s", mode);
 	}
 
-	return bt_wrap(c, cheax_user_ptr(c, f, c->fhandle_type));
 pad:
-	cheax_free(c, fname);
-	cheax_free(c, mode);
-	return bt_wrap(c, cheax_nil());
+	if (fname != NULL)
+		cheax_free(c, fname);
+	if (mode != NULL)
+		cheax_free(c, mode);
+	errno = prev_errno;
+	return bt_wrap(c, res);
 }
 
 static struct chx_value

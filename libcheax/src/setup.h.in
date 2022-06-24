@@ -20,6 +20,33 @@
 #cmakedefine HAVE_WINDOWS_VSNPRINTF_L
 #cmakedefine HAVE_WINDOWS_MSIZE
 
+#cmakedefine HAVE_EACCES
+#cmakedefine HAVE_EBADF
+#cmakedefine HAVE_EBUSY
+#cmakedefine HAVE_EDQUOT
+#cmakedefine HAVE_EEXIST
+#cmakedefine HAVE_EFAULT
+#cmakedefine HAVE_EFBIG
+#cmakedefine HAVE_EINTR
+#cmakedefine HAVE_EINVAL
+#cmakedefine HAVE_EISDIR
+#cmakedefine HAVE_ELOOP
+#cmakedefine HAVE_EMFILE
+#cmakedefine HAVE_ENAMETOOLONG
+#cmakedefine HAVE_ENFILE
+#cmakedefine HAVE_ENODEV
+#cmakedefine HAVE_ENOENT
+#cmakedefine HAVE_ENOMEM
+#cmakedefine HAVE_ENOSPC
+#cmakedefine HAVE_ENOTDIR
+#cmakedefine HAVE_ENXIO
+#cmakedefine HAVE_EOPNOTSUPP
+#cmakedefine HAVE_EOVERFLOW
+#cmakedefine HAVE_EPERM
+#cmakedefine HAVE_EROFS
+#cmakedefine HAVE_ETXTBSY
+#cmakedefine HAVE_EWOULDBLOCK
+
 #define VERSION_STRING GIT_HASH " @VERSION_SUFFIX@"
 
 #endif
