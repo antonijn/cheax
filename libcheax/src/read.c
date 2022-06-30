@@ -106,11 +106,11 @@ done:
 	return res;
 }
 
-static long long
-read_digits(struct scnr *s, struct ostrm *ostr, int base, bool *too_big)
+static chx_int
+read_digits(struct scnr *s, struct ostrm *ostr, bool neg, int base, bool *too_big)
 {
-	long long value = 0;
-	bool overflow = false;
+	chx_int value = 0;
+	bool overflow = false, ofl, ufl;
 
 	for (;;) {
 		int digit = c_todigit(s->ch, base);
@@ -119,19 +119,26 @@ read_digits(struct scnr *s, struct ostrm *ostr, int base, bool *too_big)
 
 		ostrm_putc(ostr, scnr_adv(s));
 
-		if (overflow || value > LLONG_MAX / base) {
+		ofl = value > CHX_INT_MAX / base;
+		ufl = value < CHX_INT_MIN / base;
+		if (overflow || (!neg && ofl) || (neg && ufl)) {
 			overflow = true;
 			continue;
 		}
 
 		value *= base;
 
-		if (value > LLONG_MAX - digit) {
+		ofl = value > CHX_INT_MAX - digit;
+		ufl = value < CHX_INT_MIN + digit;
+		if ((!neg && ofl) || (!neg && ufl)) {
 			overflow = true;
 			continue;
 		}
 
-		value += digit;
+		if (!neg)
+			value += digit;
+		else
+			value -= digit;
 	}
 
 	if (too_big != NULL)
@@ -158,7 +165,7 @@ read_num(struct read_info *ri, struct scnr *s) /* consume_final = true */
 	 * "0b"-prefixed binary numbers.
 	 */
 
-	long long pos_whole_value = 0; /* Value of positive whole part */
+	chx_int whole_value = 0; /* Value of whole part */
 	bool negative = false, too_big = false, is_double = false;
 	int base = 10;
 
@@ -182,12 +189,12 @@ read_num(struct read_info *ri, struct scnr *s) /* consume_final = true */
 		}
 	}
 
-	pos_whole_value = read_digits(s, &ss.strm, base, &too_big);
+	whole_value = read_digits(s, &ss.strm, negative, base, &too_big);
 
 	if (s->ch == '.' && (base == 10 || base == 16)) {
 		is_double = true;
 		ostrm_putc(&ss.strm, scnr_adv(s));
-		read_digits(s, &ss.strm, base, NULL);
+		read_digits(s, &ss.strm, false, base, NULL);
 	}
 
 	if ((base == 10 && (s->ch == 'e' || s->ch == 'E'))
@@ -198,7 +205,7 @@ read_num(struct read_info *ri, struct scnr *s) /* consume_final = true */
 		if (s->ch == '-' || s->ch == '+')
 			ostrm_putc(&ss.strm, scnr_adv(s));
 
-		read_digits(s, &ss.strm, base, NULL);
+		read_digits(s, &ss.strm, false, base, NULL);
 	}
 
 	if (s->ch != EOF && !c_isspace(s->ch) && s->ch != ')') {
@@ -207,15 +214,12 @@ read_num(struct read_info *ri, struct scnr *s) /* consume_final = true */
 	}
 
 	if (!is_double) {
-		if (negative)
-			pos_whole_value = -pos_whole_value;
-
-		if (too_big || pos_whole_value > INT_MAX || pos_whole_value < INT_MIN) {
+		if (too_big) {
 			cheax_throwf(ri->c, CHEAX_EREAD, "integer too big");
 			goto done;
 		}
 
-		res = cheax_int((chx_int)pos_whole_value);
+		res = cheax_int(whole_value);
 		goto done;
 	}
 
