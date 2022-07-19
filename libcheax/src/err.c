@@ -291,14 +291,15 @@ static struct chx_value
 bltn_throw(CHEAX *c, struct chx_list *args, void *info)
 {
 	chx_int code;
-	struct chx_string *msg;
+	struct chx_value msg;
 	if (unpack(c, args, "x[s ]?", &code, &msg) < 0)
 		return cheax_nil();
 
 	if (code == 0)
 		cheax_throwf(c, CHEAX_EVALUE, "cannot throw ENOERR");
 	else
-		cheax_throw(c, code, msg);
+		cheax_throw(c, code, cheax_is_nil(msg) ? NULL : msg.data.as_string);
+
 	return bt_wrap(c, cheax_nil());
 }
 
