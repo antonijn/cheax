@@ -274,6 +274,11 @@ cheax_defmacro(CHEAX *c, const char *id, chx_func_ptr perform, void *info)
 {
 	cheax_def(c, id, cheax_ext_func(c, id, perform, info), CHEAX_READONLY);
 }
+void
+cheax_deftailmacro(CHEAX *c, const char *id, chx_tail_func_ptr perform, void *info)
+{
+	cheax_def(c, id, cheax_ext_tail_func(c, id, perform, info), CHEAX_READONLY);
+}
 
 void
 cheax_set(CHEAX *c, const char *id, struct chx_value value)
@@ -674,14 +679,18 @@ bltn_var(CHEAX *c, struct chx_list *args, void *info)
 	return cheax_nil();
 }
 
-static struct chx_value
-bltn_let(CHEAX *c, struct chx_list *args, void *info)
+static int
+bltn_let(CHEAX *c,
+         struct chx_list *args,
+         void *info,
+         struct chx_env *pop_stop,
+         union chx_eval_out *out)
 {
-	struct chx_value res = cheax_nil();
-
 	struct chx_list *pairs, *body;
-	if (unpack(c, args, "C_+", &pairs, &body) < 0)
-		return cheax_nil();
+	if (unpack(c, args, "C_+", &pairs, &body) < 0) {
+		out->value = cheax_nil();
+		return CHEAX_VALUE_OUT;
+	}
 
 	cheax_push_env(c);
 	cheax_ft(c, pad2);
@@ -705,14 +714,21 @@ bltn_let(CHEAX *c, struct chx_list *args, void *info)
 		cheax_ft(c, pad);
 	}
 
-	for (; body != NULL; body = body->next) {
-		res = cheax_eval(c, body->value);
-		cheax_ft(c, pad);
+	if (body != NULL) {
+		for (; body->next != NULL; body = body->next) {
+			cheax_eval(c, body->value);
+			cheax_ft(c, pad);
+		}
+
+		out->ts.tail = body->value;
+		out->ts.pop_stop = pop_stop;
+		return CHEAX_TAIL_OUT;
 	}
 pad:
 	cheax_pop_env(c);
 pad2:
-	return res;
+	out->value = cheax_nil();
+	return CHEAX_VALUE_OUT;
 }
 
 static struct chx_value
@@ -738,10 +754,10 @@ bltn_env(CHEAX *c, struct chx_list *args, void *info)
 void
 export_sym_bltns(CHEAX *c)
 {
-	cheax_defmacro(c, "defsym", bltn_defsym, NULL);
-	cheax_defmacro(c, "var",    bltn_var,    NULL);
-	cheax_defmacro(c, "def",    bltn_def,    NULL);
-	cheax_defmacro(c, "let",    bltn_let,    NULL);
-	cheax_defmacro(c, "set",    bltn_set,    NULL);
-	cheax_defmacro(c, "env",    bltn_env,    NULL);
+	cheax_defmacro(c, "defsym",  bltn_defsym, NULL);
+	cheax_defmacro(c, "var",     bltn_var,    NULL);
+	cheax_defmacro(c, "def",     bltn_def,    NULL);
+	cheax_deftailmacro(c, "let", bltn_let,    NULL);
+	cheax_defmacro(c, "set",     bltn_set,    NULL);
+	cheax_defmacro(c, "env",     bltn_env,    NULL);
 }

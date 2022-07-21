@@ -94,7 +94,7 @@ struct cheax {
 	int stack_depth;
 
 	int features;
-	bool allow_redef, gen_debug_info;
+	bool allow_redef, gen_debug_info, tail_call_elimination;
 	int mem_limit, stack_limit;
 
 	int fhandle_type;

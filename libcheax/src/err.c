@@ -253,6 +253,18 @@ cheax_add_bt(CHEAX *c)
 }
 
 void
+bt_add_tail_msg(CHEAX *c)
+{
+	if (c->bt.len >= c->bt.limit) {
+		c->bt.truncated = true;
+	} else {
+		size_t idx = c->bt.len++;
+		strcpy(c->bt.array[idx].msg, "... tail calls ...");
+		c->bt.array[idx].info.file = NULL;
+	}
+}
+
+void
 bt_print(CHEAX *c)
 {
 	if (c->bt.len == 0)
@@ -265,10 +277,14 @@ bt_print(CHEAX *c)
 
 	for (size_t i = c->bt.len; i >= 1; --i) {
 		struct bt_entry ent = c->bt.array[i - 1];
-		fprintf(stderr, "  File \"%s\"", ent.info.file);
-		if (ent.info.line > 0)
-			fprintf(stderr, ", line %d", ent.info.line);
-		fprintf(stderr, ": %s\n", ent.msg);
+		fprintf(stderr, "  ");
+		if (ent.info.file != NULL) {
+			fprintf(stderr, "File \"%s\"", ent.info.file);
+			if (ent.info.line > 0)
+				fprintf(stderr, ", line %d", ent.info.line);
+			fprintf(stderr, ": ");
+		}
+		fprintf(stderr, "%s\n", ent.msg);
 	}
 }
 

@@ -178,7 +178,7 @@ cheax_ext_func(CHEAX *c, const char *name, chx_func_ptr perform, void *info)
 	if (res.data.as_ext_func == NULL)
 		return cheax_nil();
 	res.data.as_ext_func->name = name;
-	res.data.as_ext_func->perform = perform;
+	res.data.as_ext_func->perform.func = perform;
 	res.data.as_ext_func->info = info;
 	return res;
 }
@@ -186,6 +186,26 @@ struct chx_value
 cheax_ext_func_value_proc(struct chx_ext_func *extf)
 {
 	return cheax_ext_func_value(extf);
+}
+
+struct chx_value
+cheax_ext_tail_func(CHEAX *c, const char *name, chx_tail_func_ptr perform, void *info)
+{
+	if (perform == NULL || name == NULL)
+		return cheax_nil();
+
+	struct chx_value res = cheax_ext_tail_func_value(gc_alloc(c, sizeof(struct chx_ext_func), CHEAX_EXT_TAIL_FUNC));
+	if (res.data.as_ext_func == NULL)
+		return cheax_nil();
+	res.data.as_ext_func->name = name;
+	res.data.as_ext_func->perform.tail_func = perform;
+	res.data.as_ext_func->info = info;
+	return res;
+}
+struct chx_value
+cheax_ext_tail_func_value_proc(struct chx_ext_func *extf)
+{
+	return cheax_ext_tail_func_value(extf);
 }
 
 size_t
@@ -292,6 +312,7 @@ cheax_init(void)
 	res->features = 0;
 	res->allow_redef = false;
 	res->gen_debug_info = true;
+	res->tail_call_elimination = true;
 	res->mem_limit = 0;
 	res->stack_limit = 0;
 	res->error.code = 0;

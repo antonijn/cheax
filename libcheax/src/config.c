@@ -109,6 +109,17 @@ set_mem_limit(CHEAX *c, int value)
 		c->mem_limit = value;
 }
 
+static bool
+get_tail_call_elimination(CHEAX *c)
+{
+	return c->tail_call_elimination;
+}
+static void
+set_tail_call_elimination(CHEAX *c, bool value)
+{
+	c->tail_call_elimination = value;
+}
+
 /* sorted asciibetically for use in bsearch() */
 static struct config_info opts[] = {
 	{
@@ -144,6 +155,13 @@ static struct config_info opts[] = {
 		{ .set_int = set_stack_limit },
 		"Maximum call stack depth. Set to 0 to disable stack "
 		"depth limiting."
+	},
+	{
+		"tail-call-elimination", CHEAX_BOOL, "<true|false>",
+		{ .get_bool = get_tail_call_elimination },
+		{ .set_bool = set_tail_call_elimination },
+		"Eliminate tail calls at the expense of backtrace "
+		"integrity."
 	},
 };
 

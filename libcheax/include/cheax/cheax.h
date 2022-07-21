@@ -38,10 +38,10 @@ typedef struct cheax CHEAX;
  * \sa cheax_new_type(), cheax_type_of()
  */
 enum {
-	CHEAX_LIST,       /*!< List type. */
-	CHEAX_INT,        /*!< Integral type. */
-	CHEAX_BOOL,       /*!< Boolean type. */
-	CHEAX_DOUBLE,     /*!< Floating point type. */
+	CHEAX_LIST,          /*!< List type. */
+	CHEAX_INT,           /*!< Integral type. */
+	CHEAX_BOOL,          /*!< Boolean type. */
+	CHEAX_DOUBLE,        /*!< Floating point type. */
 
 	/*! \brief Type of user pointers defined from outside the cheax
 	 * environment.
@@ -52,23 +52,24 @@ enum {
 	 */
 	CHEAX_USER_PTR,
 
-	CHEAX_ID,         /*!< Identifier type. */
-	CHEAX_FUNC,       /*!< Function type. */
-	CHEAX_MACRO,      /*!< Macro type. */
-	CHEAX_EXT_FUNC,   /*!< Type of functions defined from outside the cheax environment. */
-	CHEAX_QUOTE,      /*!< Type of quoted expressions. */
-	CHEAX_BACKQUOTE,  /*!< Type of backquoted expressions. */
-	CHEAX_COMMA,      /*!< Type of comma expressions. */
-	CHEAX_SPLICE,     /*!< Type of comma splice (i.e. ,@) expressions. */
-	CHEAX_STRING,     /*!< String type. */
-	CHEAX_ENV,        /*!< Environment type. */
+	CHEAX_ID,            /*!< Identifier type. */
+	CHEAX_FUNC,          /*!< Function type. */
+	CHEAX_MACRO,         /*!< Macro type. */
+	CHEAX_EXT_FUNC,      /*!< Type of functions defined from outside the cheax environment. */
+	CHEAX_EXT_TAIL_FUNC, /*!< Type of functions defined from outside the cheax environment. */
+	CHEAX_QUOTE,         /*!< Type of quoted expressions. */
+	CHEAX_BACKQUOTE,     /*!< Type of backquoted expressions. */
+	CHEAX_COMMA,         /*!< Type of comma expressions. */
+	CHEAX_SPLICE,        /*!< Type of comma splice (i.e. ,@) expressions. */
+	CHEAX_STRING,        /*!< String type. */
+	CHEAX_ENV,           /*!< Environment type. */
 
 	CHEAX_LAST_BASIC_TYPE = CHEAX_ENV,
 	CHEAX_TYPESTORE_BIAS,
 
 	/*! The type of type codes themselves. A type alias of \ref CHEAX_INT. */
 	CHEAX_TYPECODE = CHEAX_TYPESTORE_BIAS + 0,
-	CHEAX_ERRORCODE, /*!< Error code type. A type alias of \ref CHEAX_INT. */
+	CHEAX_ERRORCODE,     /*!< Error code type. A type alias of \ref CHEAX_INT. */
 };
 
 #define CHX_INT_MIN INT_LEAST64_MIN
@@ -247,13 +248,35 @@ CHX_API struct chx_value cheax_macro_value_proc(struct chx_func *macro);
  */
 typedef struct chx_value (*chx_func_ptr)(CHEAX *c, struct chx_list *args, void *info);
 
+enum {
+	CHEAX_VALUE_OUT, CHEAX_TAIL_OUT,
+};
+
+union chx_eval_out {
+	struct {
+		struct chx_value tail;
+		struct chx_env *pop_stop;
+	} ts;
+
+	struct chx_value value;
+};
+
+typedef int (*chx_tail_func_ptr)(CHEAX *c,
+                                 struct chx_list *args,
+                                 void *info,
+                                 struct chx_env *pop_stop,
+                                 union chx_eval_out *out);
+
 /*! \brief Cheax external/user function expression.
  * \sa cheax_ext_func(), CHEAX_EXT_FUNC, cheax_defmacro(), chx_func_ptr
  */
 struct chx_ext_func {
 	unsigned rtflags;
 	const char *name;      /*!< The function's name, used by cheax_print(). */
-	chx_func_ptr perform;  /*!< The function pointer to be invoked. */
+	union {
+		chx_func_ptr func;
+		chx_tail_func_ptr tail_func;
+	} perform;
 	void *info;            /*!< Callback info to be passed upon invocation. */
 };
 
@@ -271,6 +294,14 @@ CHX_API struct chx_value cheax_ext_func(CHEAX *c,
 
 #define cheax_ext_func_value(X) ((struct chx_value){ .type = CHEAX_EXT_FUNC, .data.as_ext_func = (X) })
 CHX_API struct chx_value cheax_ext_func_value_proc(struct chx_ext_func *extf);
+
+CHX_API struct chx_value cheax_ext_tail_func(CHEAX *c,
+                                             const char *name,
+                                             chx_tail_func_ptr perform,
+                                             void *info);
+
+#define cheax_ext_tail_func_value(X) ((struct chx_value){ .type = CHEAX_EXT_TAIL_FUNC, .data.as_ext_func = (X) })
+CHX_API struct chx_value cheax_ext_tail_func_value_proc(struct chx_ext_func *extf);
 
 /*! \brief Creates a quoted cheax expression.
  *
@@ -886,6 +917,7 @@ cheax_def(c, id, &cheax_ext_func(c, id, perform, info)->base, CHEAX_READONLY);
  * \sa chx_ext_func, cheax_ext_func(), cheax_def()
  */
 CHX_API void cheax_defmacro(CHEAX *c, const char *id, chx_func_ptr perform, void *info);
+CHX_API void cheax_deftailmacro(CHEAX *c, const char *id, chx_tail_func_ptr perform, void *info);
 
 /*! \brief Synchronizes a variable from C with a symbol in the cheax environment.
  *

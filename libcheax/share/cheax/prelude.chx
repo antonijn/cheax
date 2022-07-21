@@ -34,18 +34,19 @@
 
 (def nil ())
 
-(def List      (type-of '(0)))
-(def ID        (type-of 'a))
-(def Int       (type-of 0))
-(def Double    (type-of 0.0))
-(def Bool      (type-of true))
-(def Func      (type-of (fn () ())))
-(def Macro     (type-of (macro () ())))
-(def ExtFunc   (type-of type-of))
-(def Quote     (type-of ''0))
-(def BackQuote (type-of '`0))
-(def String    (type-of ""))
-(def Env       (type-of ((fn () (env)))))
+(def List        (type-of '(0)))
+(def ID          (type-of 'a))
+(def Int         (type-of 0))
+(def Double      (type-of 0.0))
+(def Bool        (type-of true))
+(def Func        (type-of (fn () ())))
+(def Macro       (type-of (macro () ())))
+(def ExtFunc     (type-of type-of))
+(def ExtTailFunc (type-of case))
+(def Quote       (type-of ''0))
+(def BackQuote   (type-of '`0))
+(def String      (type-of ""))
+(def Env         (type-of ((fn () (env)))))
 
 (defsym iota
   (var _iota 0)
@@ -72,17 +73,10 @@
 
 (defun list args args)
 
-(defun unsafe-filter (p xs)
-  (case xs
-    (() ())
-    ((: z zs)
-      (if (p z)
-        (: z (unsafe-filter p zs))
-        (unsafe-filter p zs)))))
 (defun filter (p xs)
   (type-assert p Func ExtFunc)
   (type-assert xs List)
-  (unsafe-filter p xs))
+  (reverse (foldl (fn (ts t) (if (p t) (: t ts) ts)) () xs)))
 
 (defun unsafe-any? (p xs)
   (case xs
@@ -169,8 +163,8 @@
           (() xs)
           (_  (++helper xs ys))))))
 
-(defun concat (xs) (foldr ++ () xs))
-(defun strcat (xs) (foldr ++ "" xs))
+(defun concat (xs) (foldl ++ () xs))
+(defun strcat (xs) (foldl ++ "" xs))
 (defun append args (concat args))
 
 (defun rev-helper (xs ys)
@@ -190,7 +184,7 @@
         (list l v (tree-insert x r cmp))))))
 
 (defun list-to-tree (lst cmp)
-  (foldr (fn (a b) (tree-insert a b cmp)) () lst))
+  (foldl (fn (a b) (tree-insert a b cmp)) () lst))
 
 (defun tree-to-list (tree res)
   (case tree
@@ -213,7 +207,7 @@
   (let ((tups (map (fn (x) (list x (key x))) xs)))
     (map (fn ((a b)) b) (sort-by tups (fn ((al bl) (ar br)) (compare bl br))))))
 
-(defun length (xs) (foldr (fn (_ l) (+ 1 l)) 0 xs))
+(defun length (xs) (foldl (fn (_ l) (+ 1 l)) 0 xs))
 
 (defun unsafe-!! (xs i orig-i)
   (case xs
@@ -279,26 +273,26 @@
 (defun get-line () (get-line-from stdin))
 (defun get-byte () (get-byte-from stdin))
 
-(defun sum (args) (foldr + 0 args))
-(defun product (args) (foldr * 1 args))
+(defun sum (args) (foldl + 0 args))
+(defun product (args) (foldl * 1 args))
 
 (defun ~ (x) (- 0 x))
 
-(defun ..helper (from to step fin)
+(defun ..helper (from to step fin acc)
   (if (fin from to)
-    ()
-    (: from (..helper (+ from step) to step fin))))
+    acc
+    (..helper from (- to step) step fin (: to acc))))
 (defun .. (from to)
   (type-assert from Int)
   (type-assert to Int)
   (if (<= from to)
-    (..helper from to  1 >)
-    (..helper from to -1 <)))
+    (..helper from to  1 > ())
+    (..helper from to -1 < ())))
 
 (defun maximum ((: x xs))
-  (foldr (fn (a b) (if (> a b) a b)) x xs))
+  (foldl (fn (a b) (if (> a b) a b)) x xs))
 (defun minimum ((: x xs))
-  (foldr (fn (a b) (if (< a b) a b)) x xs))
+  (foldl (fn (a b) (if (< a b) a b)) x xs))
 
 (defun max args (maximum args))
 (defun min args (minimum args))
