@@ -228,7 +228,7 @@ unpack_arg(CHEAX *c,
 		res = unpack_once(c, args, ufs_i, ufs_f, &st_opts, &fty, &v);
 		if (res == -CHEAX_EEVAL)
 			return -CHEAX_EEVAL;
-		return store_arg(c, argc, argv_out, st_opts, fty, v, ap);
+		return store_arg(c, argc, argv_out, STORE_VALUE, fty, v, ap);
 
 	case '+':
 		needs_one = true;

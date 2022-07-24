@@ -277,12 +277,20 @@
   (if (fin from to)
     acc
     (..helper from (- to step) step fin (: to acc))))
-(defun .. (from to)
-  (type-assert from Int)
-  (type-assert to Int)
-  (if (<= from to)
-    (..helper from to  1 > ())
-    (..helper from to -1 < ())))
+(defun .. args
+  (case args
+    ((from to)
+      (type-assert from Int)
+      (type-assert to Int)
+      (if (<= from to)
+        (..helper from to  1 > ())
+        (..helper from to -1 < ())))
+    ((n)
+      (type-assert n Int)
+      (cond
+        ((> n 0) (..helper 1 n 1 > ()))
+        ((= n 0) ())
+        (true    (throw EVALUE "`n' must be non-negative"))))))
 
 (defun maximum ((: x xs))
   (foldl (fn (a b) (if (> a b) a b)) x xs))
