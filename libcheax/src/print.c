@@ -108,6 +108,7 @@ ostrm_show_basic(CHEAX *c, struct ostrm *s, struct chx_value val)
 		ostrm_putc(s, '"');
 		break;
 	case CHEAX_EXT_FUNC:
+	case CHEAX_EXT_TAIL_FUNC:
 		macro = val.data.as_ext_func;
 		if (macro->name == NULL)
 			ostrm_printf(s, "[built-in function]");
