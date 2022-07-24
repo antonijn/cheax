@@ -117,29 +117,24 @@
 (defun element? (e xs)
   (any? (fn (x) (= e x)) xs))
 
-(defun unsafe-strfind (e s)
-  (if (prefix? e s)
-    0
-    (if (= s "")
-      nil
-      (case (unsafe-strfind e (substr s 1))
-        (() nil)
-        (n  (+ n 1))))))
-(defun unsafe-find (e xs)
+(defun unsafe-strfind (e s acc)
+  (cond
+    ((prefix? e s) acc)
+    ((= s "")      nil)
+    (true          (unsafe-strfind e (substr s 1) (+ acc 1)))))
+(defun unsafe-find (e xs acc)
   (case xs
     ((: y ys)
       (if (= e y)
-        0
-        (case (unsafe-find e ys)
-          (() nil)
-          (n  (+ n 1)))))
+        acc
+        (unsafe-find e ys (+ acc 1))))
     (() nil)))
 (defun find (e xs)
   (if (= (type-of xs) String)
     (do (type-assert e String)
-        (unsafe-strfind e xs))
+        (unsafe-strfind e xs 0))
     (do (type-assert xs List)
-        (unsafe-find e xs))))
+        (unsafe-find e xs 0))))
 
 (defun zip-with (: op args)
   (case args
