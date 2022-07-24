@@ -518,10 +518,12 @@ cheax_eval(CHEAX *c, struct chx_value input)
 	chx_ref ret_env_ref = cheax_ref_ptr(c, ret_env);
 
 	struct chx_env *pop_stop;
+	int tail_lvls = -1;
 
 	if (c->tail_call_elimination) {
 		int ek;
 		do {
+			++tail_lvls;
 			pop_stop = out.ts.pop_stop;
 			ek = eval(c, out.ts.tail, pop_stop, &out);
 			cheax_ft(c, pad2);
@@ -541,7 +543,7 @@ pad2:
 pad:
 	if (cheax_errno(c) != 0) {
 		if (c->tail_call_elimination)
-			bt_add_tail_msg(c);
+			bt_add_tail_msg(c, tail_lvls);
 		c->bt.last_call = was_last_call;
 		cheax_add_bt(c);
 	} else {

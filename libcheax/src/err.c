@@ -253,13 +253,13 @@ cheax_add_bt(CHEAX *c)
 }
 
 void
-bt_add_tail_msg(CHEAX *c)
+bt_add_tail_msg(CHEAX *c, int tail_lvls)
 {
 	if (c->bt.len >= c->bt.limit) {
 		c->bt.truncated = true;
 	} else {
 		size_t idx = c->bt.len++;
-		strcpy(c->bt.array[idx].msg, "... tail calls ...");
+		sprintf(c->bt.array[idx].msg, "... tail calls (%d) ...", tail_lvls);
 		c->bt.array[idx].info.file = NULL;
 	}
 }

@@ -20,7 +20,7 @@
 
 int bt_init(CHEAX *c, size_t limit);
 int bt_limit(CHEAX *c, size_t limit);
-void bt_add_tail_msg(CHEAX *c);
+void bt_add_tail_msg(CHEAX *c, int tail_lvls);
 void bt_print(CHEAX *c);
 
 /*
