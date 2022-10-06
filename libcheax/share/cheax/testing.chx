@@ -1,0 +1,92 @@
+; Copyright (c) 2022, Antonie Blom
+;
+; Permission to use, copy, modify, and/or distribute this software for any
+; purpose with or without fee is hereby granted, provided that the above
+; copyright notice and this permission notice appear in all copies.
+;
+; THE SOFTWARE IS PROVIDED "AS IS" AND THE AUTHOR DISCLAIMS ALL WARRANTIES
+; WITH REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED WARRANTIES OF
+; MERCHANTABILITY AND FITNESS. IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR
+; ANY SPECIAL, DIRECT, INDIRECT, OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES
+; WHATSOEVER RESULTING FROM LOSS OF USE, DATA OR PROFITS, WHETHER IN AN
+; ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF
+; OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
+
+(new-error-code EASSERT)
+
+(var fail-fatal true)
+
+(var has-failed false)
+(var test-indent-level 0)
+
+(defun indent (msg)
+  (let ((ind (join (map (const "  ") (.. test-indent-level)) ""))
+        (lines (split msg "\n")))
+    (join (map (fn (line) (++ ind line)) lines) "\n")))
+
+(defun put-test-msg (msg)
+  (put (indent msg))
+  (put "\n"))
+
+(defun fail-test (info msg)
+  (put-test-msg info)
+  (unless (= nil msg)
+    (put-test-msg msg))
+  (set has-failed true)
+  (when fail-fatal
+    (throw EASSERT (if (= nil msg) info (format "{}; {}" info msg)))))
+
+(defun assert-true args
+  (case args
+    ((p) (assert-true p nil))
+    ((p msg)
+      (unless p
+        (fail-test "assertion failed" msg)))))
+
+(defun assert-false args
+  (case args
+    ((p) (assert-false p nil))
+    ((p msg)
+      (when p
+        (fail-test "assertion failed" msg)))))
+
+(defun assert-eq args
+  (case args
+    ((a b) (assert-eq a b nil))
+    ((a b msg)
+      (unless (= a b)
+        (fail-test (format "equality assertion failed: {!r} not equal to {!r}" a b) msg)))))
+
+(defmacro assert-error (: err msg body)
+ `(let ((_msg ,msg))
+    (try
+      (do
+        ,@body
+        (fail-test (format "error assertion failed: expected {}, got nothing" ',err) _msg))
+
+      (catch EASSERT (throw errno errmsg))
+      (catch ,err ())
+      (catch errno (fail-test (format "error assertion failed: expected {}, got {}" ',err errno) _msg)))))
+
+(defun assert-type args
+  (case args
+    ((val ty) (assert-type val ty nil))
+    ((val ty msg)
+      (unless (= (type-of val) ty)
+        (fail-test (format "type assertion failed: expected {}, got {}" ty (type-of val)) msg)))))
+
+(defmacro test (: name body)
+ `(let ((_name ,name) (prev-has-failed has-failed))
+    (set has-failed false)
+    (put-test-msg (format "running test: {}" _name))
+    (set test-indent-level (+ test-indent-level 1))
+    (try
+      (do
+        ,@body)
+      (finally
+        (set test-indent-level (- test-indent-level 1))
+        (put-test-msg (format "test {}!" (if has-failed "failed" "succesful") _name))))
+    (set has-failed prev-has-failed)))
+
+(defun testing-done ()
+  (exit (if has-failed 1 0)))
