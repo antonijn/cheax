@@ -155,11 +155,16 @@
     (do (type-assert xs List)
         (unsafe-find e xs 0))))
 
-(defun zip-with (: op args)
+(defun unsafe-zip-with (: op args)
   (case args
     ((as ()) ())
     ((() bs) ())
-    (((: a as) (: b bs)) (: (op a b) (zip-with op as bs)))))
+    (((: a as) (: b bs)) (: (op a b) (unsafe-zip-with op as bs)))))
+(defun zip-with (op as bs)
+  (type-assert op Func ExtFunc)
+  (type-assert as List)
+  (type-assert bs List)
+  (unsafe-zip-with op as bs))
 (defun zip (xs ys)
   (zip-with list xs ys))
 

@@ -130,15 +130,13 @@
   (assert-eq '(2 4 6) (zip-with + (.. 0 2) (.. 2 10)))
   (assert-eq '((0 1) (1 2) (2 3)) (zip-with .. (.. 0 2) (.. 1 3)))
   (assert-eq () (zip-with throw (.. 10) ()))
-; (assert-takes-only zip-with `((,Func ,ExtFunc) ,List ,List)))
-  )
+  (assert-takes-only zip-with `((,Func ,ExtFunc) ,List ,List)))
 
 (test "function (zip)"
   (assert-eq '((0 a) (1 b) (2 c)) (zip (.. 0 2) '(a b c)))
   (assert-eq '((a b) (c d)) (zip '(a c e) '(b d)))
   (assert-eq () (zip () (.. 10)))
-; (assert-takes-only zip `(,List ,List)))
-  )
+  (assert-takes-only zip `(,List ,List)))
 
 (test "function (++)"
   (assert-eq (.. 100) (++ (.. 50) (.. 51 100)))
