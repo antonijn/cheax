@@ -30,7 +30,7 @@
     (()         false)))
 (defmacro type-assert (: symbol types)
  `(unless (any-of? (type-of ,symbol) (list ,@types))
-    (throw ETYPE (format "`{}' must have type {}" ',symbol (join ',types " or ")))))
+    (throw ETYPE (format "`{}' must have type {}" ',symbol (unsafe-join (unsafe-map show ',types) " or ")))))
 
 (def nil ())
 
@@ -280,12 +280,15 @@
 
 (defun unsafe-join (xs j)
   (case xs
-    ((y)      (show y))
-    ((: y ys) (format "{}{}{}" y j (unsafe-join ys j)))
+    ((: y ys)
+      (if (= () ys)
+        y
+        (format "{}{}{}" y j (unsafe-join ys j))))
     (()       "")))
 (defun join (xs j)
   (type-assert xs List)
   (type-assert j String)
+  (map (fn (x) (type-assert x String)) xs)
   (unsafe-join xs j))
 
 (defun read () (read-from stdin))

@@ -315,7 +315,7 @@
   (assert-eq "foobar" (join '("foo" "bar") ""))
   (assert-eq "" (join () "foo"))
   (assert-eq "foo" (join '("foo") "bar"))
-; (assert-error ETYPE (join '(foo bar) ""))
+  (assert-error ETYPE (join '(foo bar) ""))
   (assert-takes-only join `(,List ,String)))
 
 (test "function (sum)"
