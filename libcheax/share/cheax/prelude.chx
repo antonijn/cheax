@@ -337,10 +337,7 @@
   (type-assert x Int Double)
   (type-assert a Int Double)
   (type-assert b Int Double)
-  (cond
-    ((< x a) a)
-    ((> x b) b)
-    (true    x)))
+  (min (max x a) b))
 (defun lerp (a b t)
   (type-assert a Int Double)
   (type-assert b Int Double)

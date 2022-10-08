@@ -376,9 +376,9 @@
   (assert-eq 4.0 (clamp 5 4 4.0))
   (assert-eq 4.0 (clamp 4.0 1 4))
   (assert-eq 1.0 (clamp 1.0 1 4))
-; (assert-eq 1.0 (clamp 1.5 2.0 1.0))
-; (assert-eq 1.0 (clamp 0 2.0 1.0))
-; (assert-eq 1.0 (clamp 3 2.0 1.0))
+  (assert-eq 1.0 (clamp 1.5 2.0 1.0))
+  (assert-eq 1.0 (clamp 0 2.0 1.0))
+  (assert-eq 1.0 (clamp 3 2.0 1.0))
   (assert-takes-only clamp `((,Int ,Double) (,Int ,Double) (,Int ,Double))))
 
 (test "function (lerp)"
