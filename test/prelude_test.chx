@@ -51,20 +51,17 @@
 (test "function (head)"
   (assert-eq 1 (head (.. 10)))
   (assert-error EMATCH (head ()))
-; (assert-takes-only head `(,List))
-  )
+  (assert-takes-only head `(,List)))
 
 (test "function (tail)"
   (assert-eq (.. 2 10) (tail (.. 10)))
   (assert-error EMATCH (tail ()))
-; (assert-takes-only tail `(,List))
-  )
+  (assert-takes-only tail `(,List)))
 
 (test "function (last)"
   (assert-eq 10 (last (.. 10)))
   (assert-error EMATCH (last ()))
-; (assert-takes-only last `(,List))
-  )
+  (assert-takes-only last `(,List)))
 
 (test "function (list)"
   (assert-eq '(2 foo "bar") (list (+ 1 1) 'foo "bar"))

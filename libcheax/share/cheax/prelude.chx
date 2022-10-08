@@ -76,12 +76,19 @@
   (type-assert xs List)
   (unsafe-map f xs))
 
-(defun head ((: x _)) x)
-(defun tail ((: _ xs)) xs)
-(defun last ((: x xs))
+(defun head (xs)
+  (type-assert xs List)
+  (let (((: t _) xs)) t))
+(defun tail (xs)
+  (type-assert xs List)
+  (let (((: _ ts) xs)) ts))
+(defun unsafe-last ((: x xs))
   (case xs
     (() x)
-    (_  (last xs))))
+    (_  (unsafe-last xs))))
+(defun last (xs)
+  (type-assert xs List)
+  (unsafe-last xs))
 
 (defun list args args)
 
