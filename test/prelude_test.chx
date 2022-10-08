@@ -176,7 +176,7 @@
   (assert-eq (.. 100) (reverse (reverse (.. 100))))
   (assert-takes-only reverse `(,List)))
 
-(test "function (sort-by)"
+(test "function (sort-with)"
   (defun dict-compare (x y)
     (case (list x y)
       ((() ()) 0)
@@ -187,7 +187,7 @@
           ((< a b) -1)
           ((> a b)  1)
           (true (dict-compare as bs))))))
-  (assert-eq '(() (1 2) (1 2 3) (1 3 4) (2)) (sort-by '((1 2) (1 3 4) (2) () (1 2 3)) dict-compare))
+  (assert-eq '(() (1 2) (1 2 3) (1 3 4) (2)) (sort-with '((1 2) (1 3 4) (2) () (1 2 3)) dict-compare))
 
   (defun mod2-compare (n m)
     (let ((n2 (/ n 2)) (m2 (/ m 2)))
@@ -195,23 +195,23 @@
         ((< n2 m2) -1)
         ((> n2 m2)  1)
         (true       0))))
-  (assert-eq '(0 2 4 6) (sort-by '(2 6 4 0) mod2-compare))
-  (assert-eq '(0 1 2 3 4 5) (sort-by '(4 5 2 0 1 3) mod2-compare))
-  (assert-eq () (sort-by () mod2-compare))
-  (assert-eq '(42) (sort-by '(42) mod2-compare))
+  (assert-eq '(0 2 4 6) (sort-with '(2 6 4 0) mod2-compare))
+  (assert-eq '(0 1 2 3 4 5) (sort-with '(4 5 2 0 1 3) mod2-compare))
+  (assert-eq () (sort-with () mod2-compare))
+  (assert-eq '(42) (sort-with '(42) mod2-compare))
 
-  (assert-eq '(foo 8 3 "qux") (sort-by '(foo 8 3 "qux") (const 0)))
+  (assert-eq '(foo 8 3 "qux") (sort-with '(foo 8 3 "qux") (const 0)))
+
+  (assert-error ETYPE (sort-with (.. 10) (const 'foo)))
+  (assert-takes-only sort-with `(,List (,Func ,ExtFunc))))
+
+(test "function (sort-by)"
+  (assert-eq '("fo" "bar" "quux") (sort-by '("quux" "fo" "bar") string-length))
+  (assert-eq () (sort-by () (fn _ (throw EVALUE))))
+  (assert-eq (.. 10 1) (sort-by (.. 10 1) (const 42)))
 
   (assert-error ETYPE (sort-by (.. 10) (const 'foo)))
   (assert-takes-only sort-by `(,List (,Func ,ExtFunc))))
-
-(test "function (sort-as)"
-; (assert-eq '("fo" "bar" "quux") (sort-as '("quux" "fo" "bar") string-length))
-; (assert-eq () (sort-as () (fn _ (throw EVALUE))))
-; (assert-eq (.. 10 1) (sort-as (.. 10 1) (const 42)))
-
-  (assert-error ETYPE (sort-as (.. 10) (const 'foo)))
-  (assert-takes-only sort-as `(,List (,Func ,ExtFunc))))
 
 (test "function (sort)"
   (assert-eq (.. 5) (sort '(5 3 4 1 2)))

@@ -216,15 +216,15 @@
     ((> a b)  1)
     (true     0)))
 
-(defun sort-by (lst cmp)
+(defun sort-with (lst cmp)
   (type-assert lst List)
   (type-assert cmp Func ExtFunc)
   (tree-to-list (list-to-tree lst cmp) ()))
-(defun sort (xs) (sort-by xs compare))
-(defun sort-as (xs key)
+(defun sort (xs) (sort-with xs compare))
+(defun sort-by (xs key)
   (type-assert key Func ExtFunc)
   (let ((tups (map (fn (x) (list x (key x))) xs)))
-    (map (fn ((a b)) b) (sort-by tups (fn ((al bl) (ar br)) (compare bl br))))))
+    (map (fn ((a b)) a) (sort-with tups (fn ((al bl) (ar br)) (compare bl br))))))
 
 (defun length (xs) (foldl (fn (l _) (+ 1 l)) 0 xs))
 
