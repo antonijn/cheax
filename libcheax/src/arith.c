@@ -118,17 +118,15 @@ iop_mul(CHEAX *c, chx_int a, chx_int b)
 	if (((a == -1) && (b == CHX_INT_MIN))
 	 || ((b == -1) && (a == CHX_INT_MIN)))
 	{
-		cheax_throwf(c, CHEAX_EOVERFLOW, "integer overflow");
+		cheax_throwf(c, CHEAX_EOVERFLOW, "multiplication overflow");
 		return 0;
 	}
 
-	if (b != 0) {
-		if (a > CHX_INT_MAX / b) {
-			cheax_throwf(c, CHEAX_EOVERFLOW, "integer overflow");
-			return 0;
-		}
-		if (a < CHX_INT_MIN / b) {
-			cheax_throwf(c, CHEAX_EOVERFLOW, "integer underflow");
+	if (a != 0 && b != 0) {
+		/* TODO this relies on non-standard behaviour! */
+		chx_int x = a * b;
+		if (a != x / b) {
+			cheax_throwf(c, CHEAX_EOVERFLOW, "multiplication overflow");
 			return 0;
 		}
 	}
