@@ -335,34 +335,32 @@
 
 (test "function (maximum)"
   (assert-eq 10 (maximum (++ (.. 10) (.. 9 1))))
-; (assert-eq 5 (maximum '(4 5 2 5.0 1)))
-; (assert-eq 5.0 (maximum '(4 5.0 2 5 1)))
+  (assert-eq 5 (maximum '(4 5 2 5.0 1)))
+  (assert-eq 5.0 (maximum '(4 5.0 2 5 1)))
   (assert-eq 42 (maximum '(42)))
   (assert-error EMATCH (maximum ()))
-; (assert-takes-only maximum `(,List))
-  )
+  (assert-takes-only maximum `(,List)))
 
 (test "function (minimum)"
   (assert-eq 10 (minimum (++ (.. 20 10) (.. 11 20))))
-; (assert-eq 5 (minimum '(9 5 7 5.0 6)))
-; (assert-eq 5.0 (minimum '(9 5.0 7 5 6)))
+  (assert-eq 5 (minimum '(9 5 7 5.0 6)))
+  (assert-eq 5.0 (minimum '(9 5.0 7 5 6)))
   (assert-eq 42 (minimum '(42)))
   (assert-error EMATCH (minimum ()))
-; (assert-takes-only minimum `(,List))
-  )
+  (assert-takes-only minimum `(,List)))
 
 (test "function (max)"
   (assert-eq 10 (max 6 7 10 9 8 4))
-; (assert-eq 5 (max 4 5 2 5.0 1))
-; (assert-eq 5.0 (max 4 5 2 5.0 1))
+  (assert-eq 5 (max 4 5 2 5.0 1))
+  (assert-eq 5.0 (max 4 5.0 2 5 1))
   (assert-eq 42 (max 42))
   (assert-takes max `((,Int ,Double) (,Int ,Double) (,Int ,Double)))
   (assert-arg-count max (list 1 int-max)))
 
 (test "function (min)"
   (assert-eq 4 (min 6 7 4 9 8 10))
-; (assert-eq 5 (min 9 5 7 5.0 6))
-; (assert-eq 5.0 (min 9 5.0 7 5 6))
+  (assert-eq 5 (min 9 5 7 5.0 6))
+  (assert-eq 5.0 (min 9 5.0 7 5 6))
   (assert-eq 42 (min 42))
   (assert-takes min `((,Int ,Double) (,Int ,Double) (,Int ,Double)))
   (assert-arg-count min (list 1 int-max)))

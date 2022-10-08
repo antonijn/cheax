@@ -321,10 +321,14 @@
         ((= n 0) ())
         (true    (throw EVALUE "`n' must be non-negative"))))))
 
-(defun maximum ((: x xs))
-  (foldl (fn (a b) (if (> a b) a b)) x xs))
-(defun minimum ((: x xs))
-  (foldl (fn (a b) (if (< a b) a b)) x xs))
+(defun maximum (lst)
+  (type-assert lst List)
+  (let (((: x xs) lst))
+    (foldl (fn (a b) (if (>= a b) a b)) x xs)))
+(defun minimum (lst)
+  (type-assert lst List)
+  (let (((: x xs) lst))
+    (foldl (fn (a b) (if (<= a b) a b)) x xs)))
 
 (defun max args (maximum args))
 (defun min args (minimum args))
