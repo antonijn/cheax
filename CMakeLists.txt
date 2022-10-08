@@ -15,4 +15,9 @@ add_subdirectory (libcheax)
 
 include (CTest)
 set (CMAKE_CTEST_ARGUMENTS "--output-on-failure")
-add_test (NAME Prelude COMMAND cheax/cheax libcheax/share/cheax/testing.chx test/prelude_test.chx)
+add_test (NAME Prelude
+          COMMAND
+            cheax/cheax -p
+              libcheax/share/cheax/prelude.chx
+              libcheax/share/cheax/testing.chx
+              test/prelude_test.chx)
