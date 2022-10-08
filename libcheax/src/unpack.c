@@ -275,12 +275,14 @@ unpack(CHEAX *c, struct chx_list *args, const char *fmt, ...)
 {
 	int argc = 0, res = 0;
 	struct valueref argv[16];
-	enum st_opts st_opts = STORE_DATA;
+	enum st_opts st_opts;
 
 	va_list ap;
 	va_start(ap, fmt);
 
 	while (*fmt != '\0') {
+		st_opts = STORE_DATA;
+
 		const char *ufs_i, *ufs_f;
 		if (*fmt == '[') {
 			ufs_i = ++fmt;
