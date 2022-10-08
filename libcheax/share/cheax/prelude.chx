@@ -205,7 +205,7 @@
   (let ((tups (map (fn (x) (list x (key x))) xs)))
     (map (fn ((a b)) b) (sort-by tups (fn ((al bl) (ar br)) (compare bl br))))))
 
-(defun length (xs) (foldl (fn (_ l) (+ 1 l)) 0 xs))
+(defun length (xs) (foldl (fn (l _) (+ 1 l)) 0 xs))
 
 (defun unsafe-!! (xs i orig-i)
   (case xs
