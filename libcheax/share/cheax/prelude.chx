@@ -53,7 +53,16 @@
 
 (defsym iota
   (var _iota 0)
-  (defget (let ((res _iota)) (set _iota (+ res 1)) res))
+  (defget
+    (let ((res _iota))
+      (case res
+        ((no msg) (throw no msg))
+        (n
+          (try
+            (set _iota (+ n 1))
+            (catch EOVERFLOW
+              (set _iota (list errno errmsg))))
+          n))))
   (defset
     (type-assert value Int)
     (set _iota value)))

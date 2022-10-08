@@ -39,12 +39,14 @@
   (assert-error ETYPE (set iota 0.0))
   (assert-error ETYPE (set iota nil))
 
-; (set iota int-max)
-; ; must not throw
-; iota
-; (assert-error EOVERFLOW iota)
+  (set iota int-max)
+  ; must not throw
+  iota
+  (assert-error EOVERFLOW iota)
+  (assert-error EOVERFLOW iota)
 
-  (set iota int-min)) ; must not throw
+  (set iota int-min)
+  iota)
 
 (test "function (head)"
   (assert-eq 1 (head (.. 10)))
