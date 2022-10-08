@@ -7,3 +7,5 @@ CMakeScripts
 cmake_install.cmake
 install_manifest.txt
 CTestTestfile.cmake
+Testing
+DartConfiguration.tcl

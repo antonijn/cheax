@@ -33,35 +33,37 @@ enum {
 };
 
 static const struct unpack_field unpack_fields[] = {
-	[' '] = { NIL_TYPE,        true  },
-	['#'] = { NUM_TYPE,        true  },
-	['-'] = { NIL_TYPE,        false },
-	['.'] = { ANY_TYPE,        true  },
-	['B'] = { CHEAX_BOOL,      false },
-	['C'] = { CHEAX_LIST,      false }, /* C: Cons */
-	['D'] = { CHEAX_DOUBLE,    false },
-	['E'] = { CHEAX_ENV,       false },
-	['F'] = { FILE_TYPE,       false },
-	['I'] = { CHEAX_INT,       false },
-	['L'] = { CHEAX_FUNC,      false }, /* L: Lambda */
-	['M'] = { CHEAX_MACRO,     false },
-	['N'] = { CHEAX_ID,        false }, /* N: Name */
-	['P'] = { CHEAX_EXT_FUNC,  false }, /* P: Procedure */
-	['S'] = { CHEAX_STRING,    false },
-	['X'] = { CHEAX_ERRORCODE, false },
-	['_'] = { ANY_TYPE,        false },
-	['b'] = { CHEAX_BOOL,      true  },
-	['c'] = { CHEAX_LIST,      true  },
-	['d'] = { CHEAX_DOUBLE,    true  },
-	['e'] = { CHEAX_ENV,       true  },
-	['f'] = { FILE_TYPE,       true  },
-	['i'] = { CHEAX_INT,       true  },
-	['l'] = { CHEAX_FUNC,      true  },
-	['m'] = { CHEAX_MACRO,     true  },
-	['n'] = { CHEAX_ID,        true  },
-	['p'] = { CHEAX_EXT_FUNC,  true  },
-	['s'] = { CHEAX_STRING,    true  },
-	['x'] = { CHEAX_ERRORCODE, true  },
+	[' '] = { NIL_TYPE,            true  },
+	['#'] = { NUM_TYPE,            true  },
+	['-'] = { NIL_TYPE,            false },
+	['.'] = { ANY_TYPE,            true  },
+	['B'] = { CHEAX_BOOL,          false },
+	['C'] = { CHEAX_LIST,          false }, /* C: Cons */
+	['D'] = { CHEAX_DOUBLE,        false },
+	['E'] = { CHEAX_ENV,           false },
+	['F'] = { FILE_TYPE,           false },
+	['I'] = { CHEAX_INT,           false },
+	['L'] = { CHEAX_FUNC,          false }, /* L: Lambda */
+	['M'] = { CHEAX_MACRO,         false },
+	['N'] = { CHEAX_ID,            false }, /* N: Name */
+	['P'] = { CHEAX_EXT_FUNC,      false }, /* P: Procedure */
+	['S'] = { CHEAX_STRING,        false },
+	['T'] = { CHEAX_EXT_TAIL_FUNC, false },
+	['X'] = { CHEAX_ERRORCODE,     false },
+	['_'] = { ANY_TYPE,            false },
+	['b'] = { CHEAX_BOOL,          true  },
+	['c'] = { CHEAX_LIST,          true  },
+	['d'] = { CHEAX_DOUBLE,        true  },
+	['e'] = { CHEAX_ENV,           true  },
+	['f'] = { FILE_TYPE,           true  },
+	['i'] = { CHEAX_INT,           true  },
+	['l'] = { CHEAX_FUNC,          true  },
+	['m'] = { CHEAX_MACRO,         true  },
+	['n'] = { CHEAX_ID,            true  },
+	['p'] = { CHEAX_EXT_FUNC,      true  },
+	['s'] = { CHEAX_STRING,        true  },
+	['t'] = { CHEAX_EXT_TAIL_FUNC, true  },
+	['x'] = { CHEAX_ERRORCODE,     true  },
 };
 
 /* storage options */
@@ -275,12 +277,14 @@ unpack(CHEAX *c, struct chx_list *args, const char *fmt, ...)
 {
 	int argc = 0, res = 0;
 	struct valueref argv[16];
-	enum st_opts st_opts = STORE_DATA;
+	enum st_opts st_opts;
 
 	va_list ap;
 	va_start(ap, fmt);
 
 	while (*fmt != '\0') {
+		st_opts = STORE_DATA;
+
 		const char *ufs_i, *ufs_f;
 		if (*fmt == '[') {
 			ufs_i = ++fmt;

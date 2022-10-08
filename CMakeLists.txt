@@ -12,3 +12,7 @@ endif()
 add_subdirectory (cheaky)
 add_subdirectory (cheax)
 add_subdirectory (libcheax)
+
+include (CTest)
+set (CMAKE_CTEST_ARGUMENTS "--output-on-failure")
+add_test (NAME Prelude COMMAND cheax/cheax libcheax/share/cheax/testing.chx test/prelude_test.chx)

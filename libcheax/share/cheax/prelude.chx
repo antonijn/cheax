@@ -48,6 +48,9 @@
 (def String      (type-of ""))
 (def Env         (type-of ((fn () (env)))))
 
+(defun const (e)
+  (fn args e))
+
 (defsym iota
   (var _iota 0)
   (defget (let ((res _iota)) (set _iota (+ res 1)) res))

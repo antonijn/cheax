@@ -1,0 +1,400 @@
+(test "function (..)"
+  (assert-eq '(1 2 3 4) (.. 4))
+  (assert-eq '(5 6 7 8) (.. 5 8))
+  (assert-eq '(4 3 2 1) (.. 4 1))
+  (assert-eq () (.. 0))
+  (assert-eq '(0) (.. 0 0))
+  (assert-takes .. `(,Int))
+  (assert-takes .. `(,Int ,Int))
+  (assert-arg-count .. '(1 2)))
+
+(test "function (map)"
+  (assert-eq (.. 2 6) (map (fn (n) (+ n 1)) (.. 5)))
+  (assert-eq () (map throw ()))
+  (assert-eq '(foo foo foo) (map (const 'foo) (.. 3)))
+  (assert-eq '("1" "2" "3") (map show (.. 3)))
+  (assert-error EVALUE (map (fn (e) (throw e)) (list EVALUE ENOSYM EDIVZERO)))
+  (assert-takes-only map `((,Func ,ExtFunc) ,List)))
+
+(test "function (const)"
+  (assert-type (const 'foo) Func)
+  (assert-eq "bar" ((const "bar")))
+  (assert-eq "qux" ((const "qux") 1 2 3))
+  (do
+    (var x 10)
+    (def f (const x))
+    (set x 20)
+    (assert-eq 10 (f)))
+  (assert-arg-count const 1))
+
+(test "symbol iota"
+  (set iota 0)
+  (assert-eq 0 iota)
+  (assert-eq 1 iota)
+  (assert-eq 2 iota)
+
+  (set iota 1)
+  (assert-eq (.. 100) (map (fn _ iota) (.. 100)))
+
+  (assert-error ETYPE (set iota 0.0))
+  (assert-error ETYPE (set iota nil))
+
+; (set iota int-max)
+; ; must not throw
+; iota
+; (assert-error EOVERFLOW iota)
+
+  (set iota int-min)) ; must not throw
+
+(test "function (head)"
+  (assert-eq 1 (head (.. 10)))
+  (assert-error EMATCH (head ()))
+; (assert-takes-only head `(,List))
+  )
+
+(test "function (tail)"
+  (assert-eq (.. 2 10) (tail (.. 10)))
+  (assert-error EMATCH (tail ()))
+; (assert-takes-only tail `(,List))
+  )
+
+(test "function (last)"
+  (assert-eq 10 (last (.. 10)))
+  (assert-error EMATCH (last ()))
+; (assert-takes-only last `(,List))
+  )
+
+(test "function (list)"
+  (assert-eq '(2 foo "bar") (list (+ 1 1) 'foo "bar"))
+  (assert-eq () (list)))
+
+(test "function (filter)"
+  (let ((xs (.. 100)))
+    (assert-eq xs (filter (const true) xs))
+    (assert-eq () (filter (const false) xs)))
+  (assert-eq (.. 10 20) (filter (fn (n) (and (>= n 10) (<= n 20))) (.. 0 30)))
+  (assert-eq '("one" "two") (filter (fn (x) (= String (type-of x))) '(1 "one" 2 "two")))
+  (assert-error EVALUE (filter throw (list EVALUE ENOSYM EDIVZERO)))
+  (assert-error ETYPE (filter (const "foo") (.. 100)))
+  (assert-takes-only filter `((,Func ,ExtFunc) ,List)))
+
+(test "function (any?)"
+  (assert-true  (any? (fn (n) (= n 5)) (.. 10)))
+  (assert-false (any? (fn (n) (< n 0)) (.. 10)))
+  (assert-false (any? throw ()))
+  (assert-error ETYPE (any? (const 'foo) (.. 10)))
+  (assert-takes-only any? `((,Func ,ExtFunc) ,List)))
+
+(test "function (all?)"
+  (assert-false (all? (fn (n) (= n 5)) (.. 10)))
+  (assert-true  (all? (fn (n) (> n 0)) (.. 10)))
+  (assert-true  (all? throw ()))
+  (assert-error ETYPE (all? (const 'foo) (.. 10)))
+  (assert-takes-only all? `((,Func ,ExtFunc) ,List)))
+
+(test "function (foldl)"
+  (assert-eq '(((() 1) 2) 3) (foldl list () (.. 3)))
+  (assert-eq 'foo (foldl (const 'foo) nil (.. 100)))
+  (assert-eq 'init (foldl (const nil) 'init ()))
+  (assert-eq 5050 (foldl + 0 (.. 100)))
+  (assert-takes-only foldl `((,Func ,ExtFunc) ,all-types ,List)))
+
+(test "function (foldr)"
+  (assert-eq '(1 (2 (3 ()))) (foldr list () (.. 3)))
+  (assert-eq 'foo (foldr (const 'foo) nil (.. 100)))
+  (assert-eq 'init (foldr (const nil) 'init ()))
+  (assert-eq 5050 (foldr + 0 (.. 100)))
+  (assert-takes-only foldr `((,Func ,ExtFunc) ,all-types ,List)))
+
+(test "function (element?)"
+  (assert-true  (element? 5 (.. 10)))
+  (assert-false (element? 11 (.. 10)))
+  (assert-false (element? 10 ()))
+  (assert-takes-only element? `(,all-types ,List)))
+
+(test "function (find)"
+  (assert-eq 0 (find 'a '(a "b" c)))
+  (assert-eq 1 (find "b" '(a "b" c)))
+  (assert-eq 2 (find 3 '(1 2 3 3 4 5)))
+  (let ((xs (reverse (.. 100))))
+    (assert-eq (.. 0 99) (map (fn (x) (find x xs)) xs)))
+  (assert-eq nil (find 'a '(1 2 3)))
+  (assert-eq nil (find 'foo nil))
+  (assert-eq 2 (find "cde" "abcdefg"))
+  (assert-eq nil (find "fgh" "abcdefg"))
+  (assert-eq 0 (find "" "abcdefg"))
+  (assert-error ETYPE (find 10 "10"))
+  (assert-error ETYPE (find 10 'foo))
+  (assert-arg-count find 2))
+
+(test "function (zip-with)"
+  (assert-eq '(2 4 6) (zip-with + (.. 0 2) (.. 2 10)))
+  (assert-eq '((0 1) (1 2) (2 3)) (zip-with .. (.. 0 2) (.. 1 3)))
+  (assert-eq () (zip-with throw (.. 10) ()))
+; (assert-takes-only zip-with `((,Func ,ExtFunc) ,List ,List)))
+  )
+
+(test "function (zip)"
+  (assert-eq '((0 a) (1 b) (2 c)) (zip (.. 0 2) '(a b c)))
+  (assert-eq '((a b) (c d)) (zip '(a c e) '(b d)))
+  (assert-eq () (zip () (.. 10)))
+; (assert-takes-only zip `(,List ,List)))
+  )
+
+(test "function (++)"
+  (assert-eq (.. 100) (++ (.. 50) (.. 51 100)))
+  (assert-eq (.. 10) (++ (.. 10) ()))
+  (assert-eq (.. 10) (++ () (.. 10)))
+  (assert-eq "abcdef" (++ "ab" "cdef"))
+  (assert-error ETYPE (++ 'foo ()))
+  (assert-error ETYPE (++ () 'bar))
+  (assert-error ETYPE (++ "foo" ()))
+  (assert-error ETYPE (++ () "foo"))
+  (assert-arg-count ++ 2))
+
+(test "function (concat)"
+  (assert-eq (.. 7) (concat '((1 2) (3 4 5) (6 7))))
+  (assert-eq (.. 10) (concat (list (.. 10))))
+  (assert-eq () (concat ()))
+  (assert-error ETYPE (concat (.. 5)))
+  (assert-takes-only concat `(,List)))
+
+(test "function (strcat)"
+  (assert-eq "abcdefg" (strcat '("ab" "cde" "fg")))
+  (assert-eq "foobar" (strcat (list "foobar")))
+  (assert-eq "" (strcat ()))
+  (assert-error ETYPE (strcat (.. 5)))
+  (assert-error ETYPE (strcat '((1 2) (3 4))))
+  (assert-takes-only strcat `(,List)))
+
+(test "function (append)"
+  (assert-eq (.. 7) (append '(1 2) '(3 4 5) '(6 7)))
+  (assert-eq (.. 10) (append (.. 10)))
+  (assert-eq () (append))
+  (assert-takes append `(,List ,List ,List)))
+
+(test "function (reverse)"
+  (assert-eq '(3 2 1) (reverse (.. 3)))
+  (assert-eq () (reverse ()))
+  (assert-eq (.. 100) (reverse (reverse (.. 100))))
+  (assert-takes-only reverse `(,List)))
+
+(test "function (sort-by)"
+  (defun dict-compare (x y)
+    (case (list x y)
+      ((() ()) 0)
+      ((() _) -1)
+      ((_ ())  1)
+      (((: a as) (: b bs))
+        (cond
+          ((< a b) -1)
+          ((> a b)  1)
+          (true (dict-compare as bs))))))
+  (assert-eq '(() (1 2) (1 2 3) (1 3 4) (2)) (sort-by '((1 2) (1 3 4) (2) () (1 2 3)) dict-compare))
+
+  (defun mod2-compare (n m)
+    (let ((n2 (/ n 2)) (m2 (/ m 2)))
+      (cond
+        ((< n2 m2) -1)
+        ((> n2 m2)  1)
+        (true       0))))
+  (assert-eq '(0 2 4 6) (sort-by '(2 6 4 0) mod2-compare))
+  (assert-eq '(1 2 3 4 5 6) (sort-by '(5 6 3 1 2 4) mod2-compare))
+  (assert-eq () (sort-by () mod2-compare))
+  (assert-eq '(42) (sort-by '(42) mod2-compare))
+
+; (assert-eq '(foo 8 3 "qux") (sort-by '(foo 8 3 "qux") (const 0)))
+
+  (assert-error ETYPE (sort-by (.. 10) (const 'foo)))
+  (assert-takes-only sort-by `(,List (,Func ,ExtFunc))))
+
+(test "function (sort-as)"
+; (assert-eq '("fo" "bar" "quux") (sort-as '("quux" "fo" "bar") string-length))
+; (assert-eq () (sort-as () (fn _ (throw EVALUE))))
+; (assert-eq (.. 10 1) (sort-as (.. 10 1) (const 42)))
+
+  (assert-error ETYPE (sort-as (.. 10) (const 'foo)))
+  (assert-takes-only sort-as `(,List (,Func ,ExtFunc))))
+
+(test "function (sort)"
+  (assert-eq (.. 5) (sort '(5 3 4 1 2)))
+  (assert-eq '(0 0 1) (sort '(0 1 0)))
+; (assert-eq '(0 0.0 1) (sort '(0 1 0.0)))
+  (assert-eq () (sort ()))
+  (assert-takes-only sort `(,List)))
+
+(test "function (length)"
+  (assert-eq 0 (length ()))
+  (assert-eq 3 (length '(foo "bar" 0x123)))
+  (map (fn (n) (assert-eq n (length (.. n)))) (.. 0 100))
+  (assert-takes-only length `(,List)))
+
+(test "function (!!)"
+  (let ((xs '(1 two "three")))
+    (assert-eq 1 (!! xs 0))
+    (assert-eq 'two (!! xs 1))
+    (assert-eq "three" (!! xs 2))
+    (assert-error EINDEX (!! xs 3))
+    (assert-error EINDEX (!! xs -1)))
+
+  (let ((xs '(random "list" with things inside)))
+    (assert-true (all? (fn (x) (= x (!! xs (find x xs)))) xs)))
+
+  (assert-error EINDEX (!! () 0))
+  (assert-takes-only !! `(,List ,Int)))
+
+(test "function (prefix?)"
+  (assert-true (prefix? (.. 5) (.. 10)))
+  (assert-true (prefix? () '(foo bar qux)))
+  (assert-true (prefix? () ()))
+  (assert-false (prefix? (.. 2 6) (.. 10)))
+  (assert-false (prefix? (.. 6 10) (.. 10)))
+  (assert-false (prefix? (.. 10) (.. 5)))
+  (assert-true (prefix? "foo" "foobar"))
+  (assert-true (prefix? "" "abcdef"))
+  (assert-true (prefix? "" ""))
+  (assert-false (prefix? "ooba" "foobar"))
+  (assert-false (prefix? "bar" "foobar"))
+  (assert-false (prefix? "foobar" "foo"))
+  (assert-error ETYPE (prefix? 1 (.. 10)))
+  (assert-error ETYPE (prefix? (.. 10) 1))
+  (assert-error ETYPE (prefix? 1 "string"))
+  (assert-error ETYPE (prefix? "string" 1))
+  (assert-error ETYPE (prefix? "string" (.. 10)))
+  (assert-error ETYPE (prefix? (.. 10) "string"))
+  (assert-arg-count prefix? 2))
+
+(test "function (suffix?)"
+  (assert-true (suffix? (.. 6 10) (.. 10)))
+  (assert-true (suffix? () '(foo bar qux)))
+  (assert-true (suffix? () ()))
+  (assert-false (suffix? (.. 5 9) (.. 10)))
+  (assert-false (suffix? (.. 1 5) (.. 10)))
+  (assert-false (suffix? (.. 10) (.. 6 9)))
+  (assert-true (suffix? "bar" "foobar"))
+  (assert-true (suffix? "" "abcdef"))
+  (assert-true (suffix? "" ""))
+  (assert-false (suffix? "ooba" "foobar"))
+  (assert-false (suffix? "foo" "foobar"))
+  (assert-false (suffix? "foobar" "bar"))
+  (assert-error ETYPE (suffix? 1 (.. 10)))
+  (assert-error ETYPE (suffix? (.. 10) 1))
+  (assert-error ETYPE (suffix? 1 "string"))
+  (assert-error ETYPE (suffix? "string" 1))
+  (assert-error ETYPE (suffix? "string" (.. 10)))
+  (assert-error ETYPE (suffix? (.. 10) "string"))
+  (assert-arg-count suffix? 2))
+
+(test "function (show)"
+  (assert-eq "16" (show 0x10))
+  (assert-eq "foo" (show 'foo))
+  (assert-eq "foo" (show "foo"))
+  (assert-eq "foo\nbar" (show "foo\nbar"))
+  (assert-eq "(1 foo \"bar\")" (show '(1 foo "bar")))
+  (assert-eq "()" (show nil))
+  (assert-arg-count show 1))
+
+(test "function (repr)"
+  (assert-eq "16" (repr 0x10))
+  (assert-eq "foo" (repr 'foo))
+  (assert-eq "\"foo\"" (repr "foo"))
+  (assert-eq "\"foo\\x0Abar\"" (repr "foo\nbar"))
+  (assert-eq "(1 foo \"bar\")" (repr '(1 foo "bar")))
+  (assert-eq "()" (repr nil))
+  (map (fn (x) (= x (read-string (repr x)))) '(false one 2 0x3 'four "five" (6 7) 8.9))
+  (assert-arg-count repr 1))
+
+(test "function (split)"
+  (assert-eq '("one" "two" "three") (split "one, two, three" ", "))
+  (assert-eq '("" "four/five" "" "six" "") (split "//four/five////six//" "//"))
+  (assert-eq '("foobar") (split "foobar" "/"))
+  (assert-eq '("foobar") (split "foobar" "/"))
+  (assert-eq '("a" "ba") (split "abbba" "bb"))
+; (assert-error EVALUE (split "foobar" ""))
+  (assert-takes-only split `(,String ,String)))
+
+(test "function (join)"
+  (assert-eq "weet... ik... veel" (join '("weet" "ik" "veel") "... "))
+  (assert-eq "foobar" (join '("foo" "bar") ""))
+  (assert-eq "" (join () "foo"))
+  (assert-eq "foo" (join '("foo") "bar"))
+; (assert-error ETYPE (join '(foo bar) ""))
+  (assert-takes-only join `(,List ,String)))
+
+(test "function (sum)"
+  (assert-eq 5050 (sum (.. 100)))
+  (assert-eq 0 (sum ()))
+  (assert-eq 5050.0 (sum (: 0.0 (.. 100))))
+  (assert-error ETYPE (sum '(foo bar)))
+  (assert-error EOVERFLOW (sum (list 1 int-max)))
+  (assert-takes-only sum `(,List)))
+
+(test "function (~)"
+  (assert-eq -20 (~ 20))
+  (assert-eq -20.0 (~ 20.0))
+  (assert-eq int-max (~ (~ int-max)))
+  (assert-error EOVERFLOW (~ int-min))
+  (assert-takes-only ~ `((,Int ,Double))))
+
+(test "function (maximum)"
+  (assert-eq 10 (maximum (++ (.. 10) (.. 9 1))))
+; (assert-eq 5 (maximum '(4 5 2 5.0 1)))
+; (assert-eq 5.0 (maximum '(4 5.0 2 5 1)))
+  (assert-eq 42 (maximum '(42)))
+  (assert-error EMATCH (maximum ()))
+; (assert-takes-only maximum `(,List))
+  )
+
+(test "function (minimum)"
+  (assert-eq 10 (minimum (++ (.. 20 10) (.. 11 20))))
+; (assert-eq 5 (minimum '(9 5 7 5.0 6)))
+; (assert-eq 5.0 (minimum '(9 5.0 7 5 6)))
+  (assert-eq 42 (minimum '(42)))
+  (assert-error EMATCH (minimum ()))
+; (assert-takes-only minimum `(,List))
+  )
+
+(test "function (max)"
+  (assert-eq 10 (max 6 7 10 9 8 4))
+; (assert-eq 5 (max 4 5 2 5.0 1))
+; (assert-eq 5.0 (max 4 5 2 5.0 1))
+  (assert-eq 42 (max 42))
+  (assert-takes max `((,Int ,Double) (,Int ,Double) (,Int ,Double)))
+  (assert-arg-count max (list 1 int-max)))
+
+(test "function (min)"
+  (assert-eq 4 (min 6 7 4 9 8 10))
+; (assert-eq 5 (min 9 5 7 5.0 6))
+; (assert-eq 5.0 (min 9 5.0 7 5 6))
+  (assert-eq 42 (min 42))
+  (assert-takes min `((,Int ,Double) (,Int ,Double) (,Int ,Double)))
+  (assert-arg-count min (list 1 int-max)))
+
+(test "function (clamp)"
+  (assert-eq 3.0 (clamp 3.0 1 4))
+  (assert-eq 1 (clamp 0 1 4))
+  (assert-eq 4 (clamp 5 1 4))
+  (assert-eq 4 (clamp 1 4 4))
+  (assert-eq 4.0 (clamp 1 4.0 4))
+  (assert-eq 4 (clamp 1 4 4.0))
+  (assert-eq 4 (clamp 5 4.0 4))
+  (assert-eq 4.0 (clamp 5 4 4.0))
+  (assert-eq 4.0 (clamp 4.0 1 4))
+  (assert-eq 1.0 (clamp 1.0 1 4))
+; (assert-eq 1.0 (clamp 1.5 2.0 1.0))
+; (assert-eq 1.0 (clamp 0 2.0 1.0))
+; (assert-eq 1.0 (clamp 3 2.0 1.0))
+  (assert-takes-only clamp `((,Int ,Double) (,Int ,Double) (,Int ,Double))))
+
+(test "function (lerp)"
+  (assert-eq 5.0 (lerp 4.0 8.0 0.25))
+  (assert-eq 7.0 (lerp 4.0 8.0 0.75))
+  (assert-eq 7.0 (lerp 8.0 4.0 0.25))
+  (assert-eq 5.0 (lerp 8.0 4.0 0.75))
+  (assert-eq 1.0 (lerp -0.5 0.5 1.5))
+  (assert-eq 1.0 (lerp 1 1.0e30 0.0))
+; (assert-eq 1.0 (lerp -1.0e30 1 1.0))
+  (assert-eq -20 (lerp 10 20 -3))
+  (assert-takes-only lerp `((,Int ,Double) (,Int ,Double) (,Int ,Double))))
+
+(testing-done)
