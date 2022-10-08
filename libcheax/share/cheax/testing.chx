@@ -57,16 +57,19 @@
       (unless (= a b)
         (fail-test (format "equality assertion failed: {!r} not equal to {!r}" a b) msg)))))
 
-(defmacro assert-error (: err msg body)
- `(let ((_msg ,msg))
-    (try
-      (do
-        ,@body
-        (fail-test (format "error assertion failed: expected {}, got nothing" ',err) _msg))
+(defmacro assert-error args
+  (case args
+    ((err cmd) `(assert-error ,err ,cmd nil))
+    ((err cmd msg)
+     `(let ((_msg ,msg))
+        (try
+          (do
+            ,cmd
+            (fail-test (format "error assertion failed: expected {}, got nothing" ',err) _msg))
 
-      (catch EASSERT (throw errno errmsg))
-      (catch ,err ())
-      (catch errno (fail-test (format "error assertion failed: expected {}, got {}" ',err errno) _msg)))))
+          (catch EASSERT (throw errno errmsg))
+          (catch ,err ())
+          (catch errno (fail-test (format "error assertion failed: expected {}, got {}" ',err errno) _msg)))))))
 
 (defun assert-type args
   (case args
@@ -87,6 +90,79 @@
         (set test-indent-level (- test-indent-level 1))
         (put-test-msg (format "test {}!" (if has-failed "failed" "succesful") _name))))
     (set has-failed prev-has-failed)))
+
+(defun assert-arg-count-helper (f fname count msg)
+  (case count
+    ((least most)
+      (type-assert least Int)
+      (type-assert most Int)
+      (when (or (> least most) (< least 0))
+        (throw EVALUE "invalid arg count specification"))
+      (when (> least 0)
+        (assert-error EMATCH (apply f (.. (- least 1))) msg))
+      (when (< most int-max)
+        (assert-error EMATCH (apply f (.. (+ most 1))) msg)))
+    (n (assert-arg-count-helper f fname (list n n) msg))))
+
+(defmacro assert-arg-count args
+  (case args
+    ((f count)     `(assert-arg-count-helper ,f ',f ,count nil))
+    ((f count msg) `(assert-arg-count-helper ,f ',f ,count ,msg))))
+
+(def prototypes (list (.. 10) () 'foo 42 0.5 true list do + ''bar '`qux "string" "" ((fn () (env)))))
+(def all-types (list List ID Int Double Bool Func Macro ExtFunc Quote BackQuote String Env))
+
+; e.g.
+; (cart-prod '((1 2) (a b))) => ((1 a) (1 b) (2 a) (2 b))
+(defun cart-prod (xs)
+  (case xs
+    (() '(()))
+    ((: as rs)
+      (case as
+        (() ())
+        ((: t ts) (++ (map (fn (ys) (: t ys)) (cart-prod rs)) (cart-prod (: ts rs))))))))
+
+(defun wrong-type-lists-helper (types-list)
+  (case types-list
+    (() ())
+    ((: t ts)
+      (++
+        (cart-prod (: (filter (fn (x) (not (element? x t))) all-types) ts))
+        (concat (map (fn (xs) (map (fn (type) (: type xs)) t)) (wrong-type-lists-helper ts)))))))
+(defun wrong-type-lists (type-list)
+  (wrong-type-lists-helper (map (fn (t) (if (= (type-of t) List) t (list t))) type-list)))
+
+(defun wrong-arg-lists (type-list)
+  (concat
+    (map
+      (fn (wtl)
+        (cart-prod
+          (map
+            (fn (wt) (filter (fn (proto) (= (type-of proto) wt)) prototypes))
+            wtl)))
+    (wrong-type-lists type-list))))
+
+(defun assert-takes-helper (f fname type-list msg)
+  (map
+    (fn (arg-list)
+      (assert-error ETYPE (apply f arg-list)
+        (let ((gen-msg (format "arguments {} should be invalid for ({})" arg-list fname)))
+          (if (= nil msg) gen-msg (format "{}; {}" gen-msg msg)))))
+  (wrong-arg-lists type-list)))
+
+(defmacro assert-takes args
+  (case args
+    ((f type-list)     `(assert-takes-helper ,f ',f ,type-list nil))
+    ((f type-list msg) `(assert-takes-helper ,f ',f ,type-list ,msg))))
+
+(defun assert-takes-only-helper (f fname type-list msg)
+  (assert-takes-helper f fname type-list msg)
+  (assert-arg-count-helper f fname (length type-list) msg))
+
+(defmacro assert-takes-only args
+  (case args
+    ((f type-list)     `(assert-takes-only-helper ,f ',f ,type-list nil))
+    ((f type-list msg) `(assert-takes-only-helper ,f ',f ,type-list ,msg))))
 
 (defun testing-done ()
   (exit (if has-failed 1 0)))
