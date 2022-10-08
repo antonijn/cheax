@@ -1118,6 +1118,8 @@ CHX_API struct chx_value cheax_readstr_at(CHEAX *c,
  */
 CHX_API struct chx_value cheax_eval(CHEAX *c, struct chx_value expr);
 
+CHX_API struct chx_value cheax_apply(CHEAX *c, struct chx_value func, struct chx_list *list);
+
 /*! \brief Prints given cheax expression to file.
  *
  * Core element of the read, eval, print loop.

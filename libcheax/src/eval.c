@@ -71,7 +71,7 @@ pad:
 }
 
 static struct chx_value
-eval_func_call(CHEAX *c, struct chx_value fn_value, struct chx_list *args)
+eval_func_call(CHEAX *c, struct chx_value fn_value, struct chx_list *args, bool argeval_override)
 {
 	struct chx_func *fn = fn_value.data.as_func;
 	struct chx_value res = cheax_nil(), args_val = cheax_list_value(args);
@@ -91,7 +91,7 @@ eval_func_call(CHEAX *c, struct chx_value fn_value, struct chx_list *args)
 	chx_ref prev_env_ref = cheax_ref_ptr(c, prev_env);
 
 	int mflags = CHEAX_READONLY;
-	if (ty == CHEAX_FUNC)
+	if (ty == CHEAX_FUNC && !argeval_override)
 		mflags |= CHEAX_EVAL_NODES;
 	bool arg_match_ok = cheax_match_in(c, prev_env, fn->args, args_val, mflags);
 
@@ -175,7 +175,7 @@ eval_sexpr(CHEAX *c, struct chx_list *input)
 
 	case CHEAX_FUNC:
 	case CHEAX_MACRO:
-		res = eval_func_call(c, head, args);
+		res = eval_func_call(c, head, args, false);
 		break;
 
 	case CHEAX_TYPECODE:
@@ -418,6 +418,22 @@ cheax_eval(CHEAX *c, struct chx_value input)
 	return input;
 }
 
+struct chx_value
+cheax_apply(CHEAX *c, struct chx_value func, struct chx_list *args)
+{
+	switch (func.type) {
+	case CHEAX_EXT_FUNC:
+		return func.data.as_ext_func->perform(c, args, func.data.as_ext_func->info);
+
+	case CHEAX_FUNC:
+		return eval_func_call(c, func, args, true);
+
+	default:
+		cheax_throwf(c, CHEAX_ETYPE, "apply(): only ExtFunc and Func allowed (got type %d)", func.type);
+		return cheax_nil();
+	}
+}
+
 static bool
 match_node(CHEAX *c,
            struct chx_env *env,
@@ -646,6 +662,16 @@ pad:
 }
 
 static struct chx_value
+bltn_apply(CHEAX *c, struct chx_list *args, void *info)
+{
+	struct chx_value func;
+	struct chx_list *list;
+	return (0 == unpack(c, args, "[lp]c", &func, &list))
+	     ? bt_wrap(c, cheax_apply(c, func, list))
+	     : cheax_nil();
+}
+
+static struct chx_value
 bltn_cond(CHEAX *c, struct chx_list *args, void *info)
 {
 	/* test-value-pair */
@@ -711,9 +737,10 @@ bltn_ne(CHEAX *c, struct chx_list *args, void *info)
 void
 export_eval_bltns(CHEAX *c)
 {
-	cheax_defmacro(c, "eval", bltn_eval, NULL);
-	cheax_defmacro(c, "case", bltn_case, NULL);
-	cheax_defmacro(c, "cond", bltn_cond, NULL);
-	cheax_defmacro(c, "=",    bltn_eq,   NULL);
-	cheax_defmacro(c, "!=",   bltn_ne,   NULL);
+	cheax_defmacro(c, "eval",  bltn_eval,  NULL);
+	cheax_defmacro(c, "apply", bltn_apply, NULL);
+	cheax_defmacro(c, "case",  bltn_case,  NULL);
+	cheax_defmacro(c, "cond",  bltn_cond,  NULL);
+	cheax_defmacro(c, "=",     bltn_eq,    NULL);
+	cheax_defmacro(c, "!=",    bltn_ne,    NULL);
 }

@@ -564,10 +564,7 @@ static void
 defsym_set(CHEAX *c, struct chx_sym *sym, struct chx_value value)
 {
 	struct defsym_info *info = sym->user_info;
-	struct chx_quote arg  = { 0, value };
-	struct chx_list args  = { 0, cheax_quote_value(&arg),     NULL  };
-	struct chx_list sexpr = { 0, cheax_func_value(info->set), &args };
-	cheax_eval(c, cheax_list_value(&sexpr));
+	cheax_apply(c, cheax_func_value(info->set), cheax_list(c, value, NULL).data.as_list);
 }
 static void
 defsym_finalizer(CHEAX *c, struct chx_sym *sym)
