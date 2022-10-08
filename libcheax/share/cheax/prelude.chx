@@ -342,4 +342,4 @@
   (type-assert a Int Double)
   (type-assert b Int Double)
   (type-assert t Int Double)
-  (+ a (* t (- b a))))
+  (+ (* a (- 1 t)) (* b t)))

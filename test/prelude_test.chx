@@ -388,7 +388,7 @@
   (assert-eq 5.0 (lerp 8.0 4.0 0.75))
   (assert-eq 1.0 (lerp -0.5 0.5 1.5))
   (assert-eq 1.0 (lerp 1 1.0e30 0.0))
-; (assert-eq 1.0 (lerp -1.0e30 1 1.0))
+  (assert-eq 1.0 (lerp -1.0e30 1.0 1.0))
   (assert-eq -20 (lerp 10 20 -3))
   (assert-takes-only lerp `((,Int ,Double) (,Int ,Double) (,Int ,Double))))
 
