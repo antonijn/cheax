@@ -307,7 +307,7 @@
   (assert-eq '("foobar") (split "foobar" "/"))
   (assert-eq '("foobar") (split "foobar" "/"))
   (assert-eq '("a" "ba") (split "abbba" "bb"))
-; (assert-error EVALUE (split "foobar" ""))
+  (assert-error EVALUE (split "foobar" ""))
   (assert-takes-only split `(,String ,String)))
 
 (test "function (join)"

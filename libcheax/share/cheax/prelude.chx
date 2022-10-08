@@ -274,6 +274,8 @@
 (defun split (s at)
   (type-assert s String)
   (type-assert at String)
+  (when (= "" at)
+    (throw EVALUE "cannot split on empty string"))
   (unsafe-split s at))
 
 (defun unsafe-join (xs j)
