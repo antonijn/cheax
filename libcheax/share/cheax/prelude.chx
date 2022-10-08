@@ -182,7 +182,7 @@
         (list l v (tree-insert x r cmp))))))
 
 (defun list-to-tree (lst cmp)
-  (foldl (fn (a b) (tree-insert a b cmp)) () lst))
+  (foldl (fn (a b) (tree-insert b a cmp)) () lst))
 
 (defun tree-to-list (tree res)
   (case tree
