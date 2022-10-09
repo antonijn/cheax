@@ -207,7 +207,6 @@ cheax_free(CHEAX *c, void *obj)
 {
 	if (obj != NULL) {
 		c->gc.all_mem -= obj_size(obj);
-		memset(get_alloc_ptr(obj), -1, obj_size(obj));
 		free(get_alloc_ptr(obj));
 	}
 }
@@ -429,9 +428,6 @@ mark_obj(CHEAX *c, struct chx_value used)
 void
 cheax_gc(CHEAX *c)
 {
-	cheax_force_gc(c);
-	return;
-
 	size_t mem = c->gc.all_mem, prev = c->gc.prev_run;
 	if ((mem > prev && mem - prev >= GC_RUN_THRESHOLD)
 	 || (c->mem_limit > 256 && mem > (size_t)(c->mem_limit - 256)))
