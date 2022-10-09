@@ -76,7 +76,7 @@ find_feature(const char *feat)
 }
 
 static struct chx_value
-bltn_exit(CHEAX *c, struct chx_list *args, void *info)
+sf_exit(CHEAX *c, struct chx_list *args, void *info)
 {
 	struct chx_value code_val;
 	if (unpack(c, args, "i?", &code_val) < 0)
@@ -96,7 +96,7 @@ cheax_load_feature(CHEAX *c, const char *feat)
 	int nf = feats & ~c->features;
 
 	if (has_flag(nf, EXIT_BUILTIN))
-		cheax_def_special_form(c, "exit", bltn_exit, NULL);
+		cheax_def_special_form(c, "exit", sf_exit, NULL);
 
 	load_config_feature(c, nf);
 	load_gc_feature(c, nf);

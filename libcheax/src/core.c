@@ -636,7 +636,7 @@ pad:
 }
 
 static struct chx_value
-bltn_prepend(CHEAX *c, struct chx_list *args, void *info)
+sf_prepend(CHEAX *c, struct chx_list *args, void *info)
 {
 	if (args == NULL) {
 		cheax_throwf(c, CHEAX_EMATCH, "expected at least one argument");
@@ -647,7 +647,7 @@ bltn_prepend(CHEAX *c, struct chx_list *args, void *info)
 }
 
 static struct chx_value
-bltn_type_of(CHEAX *c, struct chx_list *args, void *info)
+sf_type_of(CHEAX *c, struct chx_list *args, void *info)
 {
 	struct chx_value val;
 	return (0 == unpack(c, args, ".", &val))
@@ -687,19 +687,19 @@ create_func(CHEAX *c,
 }
 
 static struct chx_value
-bltn_fn(CHEAX *c, struct chx_list *args, void *info)
+sf_fn(CHEAX *c, struct chx_list *args, void *info)
 {
 	return bt_wrap(c, create_func(c, "fn", args, CHEAX_FUNC));
 }
 
 static struct chx_value
-bltn_macro(CHEAX *c, struct chx_list *args, void *info)
+sf_macro(CHEAX *c, struct chx_list *args, void *info)
 {
 	return bt_wrap(c, create_func(c, "macro", args, CHEAX_MACRO));
 }
 
 static struct chx_value
-bltn_string_bytes(CHEAX *c, struct chx_list *args, void *info)
+sf_string_bytes(CHEAX *c, struct chx_list *args, void *info)
 {
 	struct chx_string *str;
 	if (unpack(c, args, "s", &str) < 0)
@@ -712,7 +712,7 @@ bltn_string_bytes(CHEAX *c, struct chx_list *args, void *info)
 }
 
 static struct chx_value
-bltn_string_length(CHEAX *c, struct chx_list *args, void *info)
+sf_string_length(CHEAX *c, struct chx_list *args, void *info)
 {
 	struct chx_string *str;
 	return (0 == unpack(c, args, "s", &str))
@@ -721,7 +721,7 @@ bltn_string_length(CHEAX *c, struct chx_list *args, void *info)
 }
 
 static struct chx_value
-bltn_substr(CHEAX *c, struct chx_list *args, void *info)
+sf_substr(CHEAX *c, struct chx_list *args, void *info)
 {
 	struct chx_string *str;
 	chx_int pos, len = 0;
@@ -745,13 +745,13 @@ bltn_substr(CHEAX *c, struct chx_list *args, void *info)
 void
 export_core_bltns(CHEAX *c)
 {
-	cheax_def_special_form(c, ":",             bltn_prepend,       NULL);
-	cheax_def_special_form(c, "type-of",       bltn_type_of,       NULL);
-	cheax_def_special_form(c, "fn",            bltn_fn,            NULL);
-	cheax_def_special_form(c, "macro",         bltn_macro,         NULL);
-	cheax_def_special_form(c, "string-bytes",  bltn_string_bytes,  NULL);
-	cheax_def_special_form(c, "string-length", bltn_string_length, NULL);
-	cheax_def_special_form(c, "substr",        bltn_substr,        NULL);
+	cheax_def_special_form(c, ":",             sf_prepend,       NULL);
+	cheax_def_special_form(c, "type-of",       sf_type_of,       NULL);
+	cheax_def_special_form(c, "fn",            sf_fn,            NULL);
+	cheax_def_special_form(c, "macro",         sf_macro,         NULL);
+	cheax_def_special_form(c, "string-bytes",  sf_string_bytes,  NULL);
+	cheax_def_special_form(c, "string-length", sf_string_length, NULL);
+	cheax_def_special_form(c, "substr",        sf_substr,        NULL);
 
 	cheax_def(c, "cheax-version", cheax_string(c, cheax_version()), CHEAX_READONLY);
 }

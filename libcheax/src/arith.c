@@ -195,49 +195,49 @@ iop_bit_xor(CHEAX *c, chx_int a, chx_int b)
 }
 
 static struct chx_value
-bltn_add(CHEAX *c, struct chx_list *args, void *info)
+sf_add(CHEAX *c, struct chx_list *args, void *info)
 {
 	return do_assoc_aop(c, args, iop_add, fop_add);
 }
 static struct chx_value
-bltn_sub(CHEAX *c, struct chx_list *args, void *info)
+sf_sub(CHEAX *c, struct chx_list *args, void *info)
 {
 	return do_aop(c, args, iop_sub, fop_sub);
 }
 static struct chx_value
-bltn_mul(CHEAX *c, struct chx_list *args, void *info)
+sf_mul(CHEAX *c, struct chx_list *args, void *info)
 {
 	return do_assoc_aop(c, args, iop_mul, fop_mul);
 }
 static struct chx_value
-bltn_div(CHEAX *c, struct chx_list *args, void *info)
+sf_div(CHEAX *c, struct chx_list *args, void *info)
 {
 	return do_aop(c, args, iop_div, fop_div);
 }
 static struct chx_value
-bltn_mod(CHEAX *c, struct chx_list *args, void *info)
+sf_mod(CHEAX *c, struct chx_list *args, void *info)
 {
 	return do_aop(c, args, iop_mod, NULL);
 }
 
 static struct chx_value
-bltn_bit_and(CHEAX *c, struct chx_list *args, void *info)
+sf_bit_and(CHEAX *c, struct chx_list *args, void *info)
 {
 	return do_assoc_aop(c, args, iop_bit_and, NULL);
 }
 static struct chx_value
-bltn_bit_or(CHEAX *c, struct chx_list *args, void *info)
+sf_bit_or(CHEAX *c, struct chx_list *args, void *info)
 {
 	return do_assoc_aop(c, args, iop_bit_or, NULL);
 }
 static struct chx_value
-bltn_bit_xor(CHEAX *c, struct chx_list *args, void *info)
+sf_bit_xor(CHEAX *c, struct chx_list *args, void *info)
 {
 	return do_assoc_aop(c, args, iop_bit_xor, NULL);
 }
 
 static struct chx_value
-bltn_bit_not(CHEAX *c, struct chx_list *args, void *info)
+sf_bit_not(CHEAX *c, struct chx_list *args, void *info)
 {
 	chx_int i;
 	return (0 == unpack(c, args, "i", &i))
@@ -309,32 +309,32 @@ do_shift(CHEAX *c, struct chx_list *args, bool right, int mode)
 }
 
 static struct chx_value
-bltn_bit_shl(CHEAX *c, struct chx_list *args, void *info)
+sf_bit_shl(CHEAX *c, struct chx_list *args, void *info)
 {
 	return do_shift(c, args, false, BIT_SHIFT);
 }
 static struct chx_value
-bltn_bit_shr(CHEAX *c, struct chx_list *args, void *info)
+sf_bit_shr(CHEAX *c, struct chx_list *args, void *info)
 {
 	return do_shift(c, args, true, BIT_SHIFT);
 }
 static struct chx_value
-bltn_bit_sal(CHEAX *c, struct chx_list *args, void *info)
+sf_bit_sal(CHEAX *c, struct chx_list *args, void *info)
 {
 	return do_shift(c, args, false, ARITH_SHIFT);
 }
 static struct chx_value
-bltn_bit_sar(CHEAX *c, struct chx_list *args, void *info)
+sf_bit_sar(CHEAX *c, struct chx_list *args, void *info)
 {
 	return do_shift(c, args, true, ARITH_SHIFT);
 }
 static struct chx_value
-bltn_bit_rol(CHEAX *c, struct chx_list *args, void *info)
+sf_bit_rol(CHEAX *c, struct chx_list *args, void *info)
 {
 	return do_shift(c, args, false, ROTATE);
 }
 static struct chx_value
-bltn_bit_ror(CHEAX *c, struct chx_list *args, void *info)
+sf_bit_ror(CHEAX *c, struct chx_list *args, void *info)
 {
 	return do_shift(c, args, true, ROTATE);
 }
@@ -366,22 +366,22 @@ do_cmp(CHEAX *c, struct chx_list *args, bool lt, bool eq, bool gt)
 }
 
 static struct chx_value
-bltn_lt(CHEAX *c, struct chx_list *args, void *info)
+sf_lt(CHEAX *c, struct chx_list *args, void *info)
 {
 	return do_cmp(c, args, 1, 0, 0);
 }
 static struct chx_value
-bltn_le(CHEAX *c, struct chx_list *args, void *info)
+sf_le(CHEAX *c, struct chx_list *args, void *info)
 {
 	return do_cmp(c, args, 1, 1, 0);
 }
 static struct chx_value
-bltn_gt(CHEAX *c, struct chx_list *args, void *info)
+sf_gt(CHEAX *c, struct chx_list *args, void *info)
 {
 	return do_cmp(c, args, 0, 0, 1);
 }
 static struct chx_value
-bltn_ge(CHEAX *c, struct chx_list *args, void *info)
+sf_ge(CHEAX *c, struct chx_list *args, void *info)
 {
 	return do_cmp(c, args, 0, 1, 1);
 }
@@ -389,27 +389,27 @@ bltn_ge(CHEAX *c, struct chx_list *args, void *info)
 void
 export_arith_bltns(CHEAX *c)
 {
-	cheax_def_special_form(c, "+",  bltn_add, NULL);
-	cheax_def_special_form(c, "-",  bltn_sub, NULL);
-	cheax_def_special_form(c, "*",  bltn_mul, NULL);
-	cheax_def_special_form(c, "/",  bltn_div, NULL);
-	cheax_def_special_form(c, "%",  bltn_mod, NULL);
+	cheax_def_special_form(c, "+",  sf_add, NULL);
+	cheax_def_special_form(c, "-",  sf_sub, NULL);
+	cheax_def_special_form(c, "*",  sf_mul, NULL);
+	cheax_def_special_form(c, "/",  sf_div, NULL);
+	cheax_def_special_form(c, "%",  sf_mod, NULL);
 
-	cheax_def_special_form(c, "bit-and", bltn_bit_and, NULL);
-	cheax_def_special_form(c, "bit-or",  bltn_bit_or,  NULL);
-	cheax_def_special_form(c, "bit-xor", bltn_bit_xor, NULL);
-	cheax_def_special_form(c, "bit-not", bltn_bit_not, NULL);
-	cheax_def_special_form(c, "bit-shl", bltn_bit_shl, NULL);
-	cheax_def_special_form(c, "bit-shr", bltn_bit_shr, NULL);
-	cheax_def_special_form(c, "bit-sal", bltn_bit_sal, NULL);
-	cheax_def_special_form(c, "bit-sar", bltn_bit_sar, NULL);
-	cheax_def_special_form(c, "bit-rol", bltn_bit_rol, NULL);
-	cheax_def_special_form(c, "bit-ror", bltn_bit_ror, NULL);
+	cheax_def_special_form(c, "bit-and", sf_bit_and, NULL);
+	cheax_def_special_form(c, "bit-or",  sf_bit_or,  NULL);
+	cheax_def_special_form(c, "bit-xor", sf_bit_xor, NULL);
+	cheax_def_special_form(c, "bit-not", sf_bit_not, NULL);
+	cheax_def_special_form(c, "bit-shl", sf_bit_shl, NULL);
+	cheax_def_special_form(c, "bit-shr", sf_bit_shr, NULL);
+	cheax_def_special_form(c, "bit-sal", sf_bit_sal, NULL);
+	cheax_def_special_form(c, "bit-sar", sf_bit_sar, NULL);
+	cheax_def_special_form(c, "bit-rol", sf_bit_rol, NULL);
+	cheax_def_special_form(c, "bit-ror", sf_bit_ror, NULL);
 
-	cheax_def_special_form(c, "<",  bltn_lt, NULL);
-	cheax_def_special_form(c, "<=", bltn_le, NULL);
-	cheax_def_special_form(c, ">",  bltn_gt, NULL);
-	cheax_def_special_form(c, ">=", bltn_ge, NULL);
+	cheax_def_special_form(c, "<",  sf_lt, NULL);
+	cheax_def_special_form(c, "<=", sf_le, NULL);
+	cheax_def_special_form(c, ">",  sf_gt, NULL);
+	cheax_def_special_form(c, ">=", sf_ge, NULL);
 
 	cheax_def(c, "int-max", cheax_int(CHX_INT_MAX), CHEAX_READONLY);
 	cheax_def(c, "int-min", cheax_int(CHX_INT_MIN), CHEAX_READONLY);

@@ -806,7 +806,7 @@ cheax_eq(CHEAX *c, struct chx_value l, struct chx_value r)
  */
 
 static struct chx_value
-bltn_eval(CHEAX *c, struct chx_list *args, void *info)
+sf_eval(CHEAX *c, struct chx_list *args, void *info)
 {
 	struct chx_value arg;
 	return (0 == unpack(c, args, ".", &arg))
@@ -815,7 +815,7 @@ bltn_eval(CHEAX *c, struct chx_list *args, void *info)
 }
 
 static int
-bltn_case(CHEAX *c,
+sf_case(CHEAX *c,
           struct chx_list *args,
           void *info,
           struct chx_env *pop_stop,
@@ -877,7 +877,7 @@ pad:
 }
 
 static int
-bltn_apply(CHEAX *c,
+sf_apply(CHEAX *c,
            struct chx_list *args,
            void *info,
            struct chx_env *pop_stop,
@@ -908,7 +908,7 @@ bltn_apply(CHEAX *c,
 }
 
 static int
-bltn_cond(CHEAX *c,
+sf_cond(CHEAX *c,
           struct chx_list *args,
           void *info,
           struct chx_env *pop_stop,
@@ -963,7 +963,7 @@ pad:
 }
 
 static struct chx_value
-bltn_eq(CHEAX *c, struct chx_list *args, void *info)
+sf_eq(CHEAX *c, struct chx_list *args, void *info)
 {
 	struct chx_value l, r;
 	return (0 == unpack(c, args, "..", &l, &r))
@@ -972,7 +972,7 @@ bltn_eq(CHEAX *c, struct chx_list *args, void *info)
 }
 
 static struct chx_value
-bltn_ne(CHEAX *c, struct chx_list *args, void *info)
+sf_ne(CHEAX *c, struct chx_list *args, void *info)
 {
 	struct chx_value l, r;
 	return (0 == unpack(c, args, "..", &l, &r))
@@ -983,10 +983,10 @@ bltn_ne(CHEAX *c, struct chx_list *args, void *info)
 void
 export_eval_bltns(CHEAX *c)
 {
-	cheax_def_special_form(c, "eval", bltn_eval, NULL);
-	cheax_def_special_tail_form(c, "apply", bltn_apply, NULL);
-	cheax_def_special_tail_form(c, "case",  bltn_case,  NULL);
-	cheax_def_special_tail_form(c, "cond",  bltn_cond,  NULL);
-	cheax_def_special_form(c, "=",    bltn_eq,   NULL);
-	cheax_def_special_form(c, "!=",   bltn_ne,   NULL);
+	cheax_def_special_form(c, "eval", sf_eval, NULL);
+	cheax_def_special_tail_form(c, "apply", sf_apply, NULL);
+	cheax_def_special_tail_form(c, "case",  sf_case,  NULL);
+	cheax_def_special_tail_form(c, "cond",  sf_cond,  NULL);
+	cheax_def_special_form(c, "=",    sf_eq,   NULL);
+	cheax_def_special_form(c, "!=",   sf_ne,   NULL);
 }

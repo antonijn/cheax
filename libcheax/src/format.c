@@ -319,7 +319,7 @@ cheax_format(CHEAX *c, struct chx_string *fmt, struct chx_list *args)
 }
 
 static struct chx_value
-bltn_format(CHEAX *c, struct chx_list *args, void *info)
+sf_format(CHEAX *c, struct chx_list *args, void *info)
 {
 	struct chx_string *fmt;
 	struct chx_list *lst;
@@ -331,5 +331,5 @@ bltn_format(CHEAX *c, struct chx_list *args, void *info)
 void
 export_format_bltns(CHEAX *c)
 {
-	cheax_def_special_form(c, "format", bltn_format, NULL);
+	cheax_def_special_form(c, "format", sf_format, NULL);
 }

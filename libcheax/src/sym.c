@@ -537,14 +537,14 @@ defgetset(CHEAX *c, const char *name,
 }
 
 static struct chx_value
-bltn_defget(CHEAX *c, struct chx_list *args, void *info)
+sf_defget(CHEAX *c, struct chx_list *args, void *info)
 {
 	struct defsym_info *dinfo = info;
 	defgetset(c, "defget", cheax_nil(), args, dinfo, &dinfo->get);
 	return bt_wrap(c, cheax_nil());
 }
 static struct chx_value
-bltn_defset(CHEAX *c, struct chx_list *args, void *info)
+sf_defset(CHEAX *c, struct chx_list *args, void *info)
 {
 	static struct chx_id id = { 0, "value" };
 	static struct chx_list set_args = { 0, { .type = CHEAX_ID, .data.as_id = &id }, NULL };
@@ -578,7 +578,7 @@ defsym_finalizer(CHEAX *c, struct chx_sym *sym)
 }
 
 static struct chx_value
-bltn_defsym(CHEAX *c, struct chx_list *args, void *info)
+sf_defsym(CHEAX *c, struct chx_list *args, void *info)
 {
 	if (args == NULL) {
 		cheax_throwf(c, CHEAX_EMATCH, "expected symbol name");
@@ -600,8 +600,8 @@ bltn_defsym(CHEAX *c, struct chx_list *args, void *info)
 	dinfo->get = dinfo->set = NULL;
 
 	struct chx_value defget, defset;
-	defget = cheax_special_form(c, "defget", bltn_defget, dinfo);
-	defset = cheax_special_form(c, "defset", bltn_defset, dinfo);
+	defget = cheax_special_form(c, "defget", sf_defget, dinfo);
+	defset = cheax_special_form(c, "defset", sf_defset, dinfo);
 	cheax_ft(c, err_pad); /* alloc failure */
 
 	cheax_push_env(c);
@@ -650,7 +650,7 @@ err_pad:
 }
 
 static struct chx_value
-bltn_def(CHEAX *c, struct chx_list *args, void *info)
+sf_def(CHEAX *c, struct chx_list *args, void *info)
 {
 	struct chx_value idval, setto;
 	if (0 == unpack(c, args, "_.", &idval, &setto)
@@ -663,7 +663,7 @@ bltn_def(CHEAX *c, struct chx_list *args, void *info)
 	return cheax_nil();
 }
 static struct chx_value
-bltn_var(CHEAX *c, struct chx_list *args, void *info)
+sf_var(CHEAX *c, struct chx_list *args, void *info)
 {
 	struct chx_value idval, setto;
 	if (0 == unpack(c, args, "_.?", &idval, &setto)
@@ -677,7 +677,7 @@ bltn_var(CHEAX *c, struct chx_list *args, void *info)
 }
 
 static int
-bltn_let(CHEAX *c,
+sf_let(CHEAX *c,
          struct chx_list *args,
          void *info,
          struct chx_env *pop_stop,
@@ -729,7 +729,7 @@ pad2:
 }
 
 static struct chx_value
-bltn_set(CHEAX *c, struct chx_list *args, void *info)
+sf_set(CHEAX *c, struct chx_list *args, void *info)
 {
 	const char *id;
 	struct chx_value setto;
@@ -741,7 +741,7 @@ bltn_set(CHEAX *c, struct chx_list *args, void *info)
 }
 
 static struct chx_value
-bltn_env(CHEAX *c, struct chx_list *args, void *info)
+sf_env(CHEAX *c, struct chx_list *args, void *info)
 {
 	return (0 == unpack(c, args, ""))
 	     ? cheax_env(c)
@@ -751,10 +751,10 @@ bltn_env(CHEAX *c, struct chx_list *args, void *info)
 void
 export_sym_bltns(CHEAX *c)
 {
-	cheax_def_special_form(c, "defsym",  bltn_defsym, NULL);
-	cheax_def_special_form(c, "var",     bltn_var,    NULL);
-	cheax_def_special_form(c, "def",     bltn_def,    NULL);
-	cheax_def_special_tail_form(c, "let", bltn_let,    NULL);
-	cheax_def_special_form(c, "set",     bltn_set,    NULL);
-	cheax_def_special_form(c, "env",     bltn_env,    NULL);
+	cheax_def_special_form(c, "defsym",  sf_defsym, NULL);
+	cheax_def_special_form(c, "var",     sf_var,    NULL);
+	cheax_def_special_form(c, "def",     sf_def,    NULL);
+	cheax_def_special_tail_form(c, "let", sf_let,    NULL);
+	cheax_def_special_form(c, "set",     sf_set,    NULL);
+	cheax_def_special_form(c, "env",     sf_env,    NULL);
 }

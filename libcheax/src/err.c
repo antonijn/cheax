@@ -23,7 +23,7 @@
 #include "unpack.h"
 
 /* declare associative array of builtin error codes and their names */
-CHEAX_BUILTIN_ERROR_NAMES(bltn_error_names);
+CHEAX_BUILTIN_ERROR_NAMES(sf_error_names);
 
 static const char *
 errname(CHEAX *c, int code)
@@ -39,12 +39,12 @@ errname(CHEAX *c, int code)
 
 	/* builtin error code, binary search */
 
-	int lo = 0, hi = sizeof(bltn_error_names) / sizeof(bltn_error_names[0]);
+	int lo = 0, hi = sizeof(sf_error_names) / sizeof(sf_error_names[0]);
 	while (lo <= hi) {
 		int pivot = lo + (hi - lo) / 2;
-		int pivot_code = bltn_error_names[pivot].code;
+		int pivot_code = sf_error_names[pivot].code;
 		if (pivot_code == code)
-			return bltn_error_names[pivot].name;
+			return sf_error_names[pivot].name;
 		if (pivot_code < code)
 			lo = pivot + 1;
 		else
@@ -181,10 +181,10 @@ cheax_find_error_code(CHEAX *c, const char *name)
 		if (0 == strcmp(name, c->user_error_names.array[i]))
 			return i + CHEAX_EUSER0;
 
-	size_t num_bltn = sizeof(bltn_error_names) / sizeof(bltn_error_names[0]);
+	size_t num_bltn = sizeof(sf_error_names) / sizeof(sf_error_names[0]);
 	for (size_t i = 0; i < num_bltn; ++i)
-		if (0 == strcmp(name, bltn_error_names[i].name))
-			return bltn_error_names[i].code;
+		if (0 == strcmp(name, sf_error_names[i].name))
+			return sf_error_names[i].code;
 
 	return -1;
 }
@@ -304,7 +304,7 @@ bt_wrap(CHEAX *c, struct chx_value v)
  */
 
 static struct chx_value
-bltn_throw(CHEAX *c, struct chx_list *args, void *info)
+sf_throw(CHEAX *c, struct chx_list *args, void *info)
 {
 	chx_int code;
 	struct chx_value msg;
@@ -439,7 +439,7 @@ run_finally(CHEAX *c, struct chx_list *finally_block)
 		active_msg_ref = cheax_ref(c, amv);
 	}
 
-	/* Semi-clear-errno state; see warning comment in bltn_try(). */
+	/* Semi-clear-errno state; see warning comment in sf_try(). */
 	c->error.code = 0;
 	c->error.msg = NULL;
 
@@ -463,7 +463,7 @@ pad2:
 }
 
 static struct chx_value
-bltn_try(CHEAX *c, struct chx_list *args, void *info)
+sf_try(CHEAX *c, struct chx_list *args, void *info)
 {
 	if (args == NULL) {
 		cheax_throwf(c, CHEAX_EMATCH, "expected at least two arguments");
@@ -548,7 +548,7 @@ pad2:
 }
 
 static struct chx_value
-bltn_new_error_code(CHEAX *c, struct chx_list *args, void *info)
+sf_new_error_code(CHEAX *c, struct chx_list *args, void *info)
 {
 	const char *errname;
 	if (unpack(c, args, "N!", &errname) < 0)
@@ -564,12 +564,12 @@ bltn_new_error_code(CHEAX *c, struct chx_list *args, void *info)
 static void
 export_error_names(CHEAX *c)
 {
-	int num_codes = sizeof(bltn_error_names)
-	              / sizeof(bltn_error_names[0]);
+	int num_codes = sizeof(sf_error_names)
+	              / sizeof(sf_error_names[0]);
 
 	for (int i = 0; i < num_codes; ++i) {
-		const char *name = bltn_error_names[i].name;
-		int code = bltn_error_names[i].code;
+		const char *name = sf_error_names[i].name;
+		int code = sf_error_names[i].code;
 		cheax_def(c, name, errorcode(code), CHEAX_READONLY);
 	}
 }
@@ -577,9 +577,9 @@ export_error_names(CHEAX *c)
 void
 export_err_bltns(CHEAX *c)
 {
-	cheax_def_special_form(c, "throw",          bltn_throw,          NULL);
-	cheax_def_special_form(c, "try",            bltn_try,            NULL);
-	cheax_def_special_form(c, "new-error-code", bltn_new_error_code, NULL);
+	cheax_def_special_form(c, "throw",          sf_throw,          NULL);
+	cheax_def_special_form(c, "try",            sf_try,            NULL);
+	cheax_def_special_form(c, "new-error-code", sf_new_error_code, NULL);
 
 	export_error_names(c);
 }

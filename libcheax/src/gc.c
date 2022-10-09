@@ -526,7 +526,7 @@ cheax_unref_ptr(CHEAX *c, void *restrict value, chx_ref ref)
  */
 
 static struct chx_value
-bltn_gc(CHEAX *c, struct chx_list *args, void *info)
+sf_gc(CHEAX *c, struct chx_list *args, void *info)
 {
 	if (unpack(c, args, "") < 0)
 		return cheax_nil();
@@ -552,7 +552,7 @@ bltn_gc(CHEAX *c, struct chx_list *args, void *info)
 }
 
 static struct chx_value
-bltn_get_used_memory(CHEAX *c, struct chx_list *args, void *info)
+sf_get_used_memory(CHEAX *c, struct chx_list *args, void *info)
 {
 	return (0 == unpack(c, args, ""))
 	     ? bt_wrap(c, cheax_int(c->gc.all_mem))
@@ -563,7 +563,7 @@ void
 load_gc_feature(CHEAX *c, int bits)
 {
 	if (has_flag(bits, GC_BUILTIN)) {
-		cheax_def_special_form(c, "gc", bltn_gc, NULL);
-		cheax_def_special_form(c, "get-used-memory", bltn_get_used_memory, NULL);
+		cheax_def_special_form(c, "gc", sf_gc, NULL);
+		cheax_def_special_form(c, "get-used-memory", sf_get_used_memory, NULL);
 	}
 }

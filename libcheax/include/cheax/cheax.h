@@ -55,7 +55,7 @@ enum {
 	CHEAX_ID,            /*!< Identifier type. */
 	CHEAX_FUNC,          /*!< Function type. */
 	CHEAX_MACRO,         /*!< Macro type. */
-	/* CHEAX_EXT_FUNC, */   /*!< Type of functions defined through the C API. */
+	CHEAX_EXT_FUNC,      /*!< Type of functions defined through the C API. */
 	CHEAX_SPECIAL_FORM,  /*!< Type of special forms, which are defined through the C API. */
 	CHEAX_SPECIAL_TAIL_FORM,
 	CHEAX_QUOTE,         /*!< Type of quoted expressions. */
