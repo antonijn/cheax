@@ -274,6 +274,12 @@ eval_sexpr(CHEAX *c, struct chx_list *input, struct chx_env *pop_stop, union chx
 		chx_ref res_ref = cheax_ref(c, out->value);
 		cheax_gc(c);
 		cheax_unref(c, out->value, res_ref);
+	} else if (res == CHEAX_TAIL_OUT) {
+		chx_ref tail_ref = cheax_ref(c, out->ts.tail);
+		chx_ref pop_stop_ref = cheax_ref_ptr(c, out->ts.pop_stop);
+		cheax_gc(c);
+		cheax_unref_ptr(c, out->ts.pop_stop, pop_stop_ref);
+		cheax_unref(c, out->ts.tail, tail_ref);
 	}
 pad:
 	cheax_unref_ptr(c, input, input_ref);
