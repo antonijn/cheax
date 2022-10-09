@@ -83,7 +83,7 @@ struct chx_id;
 struct chx_string;
 struct chx_quote;
 struct chx_func;
-struct chx_special_form;
+struct chx_form;
 struct chx_env;
 
 /*! \brief Base type of cheax expressions. */
@@ -98,7 +98,7 @@ struct chx_value {
 		struct chx_string *as_string;
 		struct chx_quote *as_quote;
 		struct chx_func *as_func;
-		struct chx_special_form *as_special_form;
+		struct chx_form *as_special_form;
 		struct chx_env *as_env;
 		void *user_ptr;
 
@@ -112,7 +112,7 @@ struct chx_value {
 		struct chx_string *as_string;
 		struct chx_quote *as_quote;
 		struct chx_func *as_func;
-		struct chx_special_form *as_special_form;
+		struct chx_form *as_special_form;
 		struct chx_env *as_env;
 		void *user_ptr;
 
@@ -245,7 +245,7 @@ CHX_API struct chx_value cheax_macro_value_proc(struct chx_func *macro);
  *
  * \returns The function's return value to be delivered back to cheax.
  *
- * \sa chx_special_form, cheax_special_form(), cheax_defmacro()
+ * \sa chx_special_form, cheax_special_form(), cheax_def_special_form()
  */
 typedef struct chx_value (*chx_func_ptr)(CHEAX *c, struct chx_list *args, void *info);
 
@@ -269,9 +269,9 @@ typedef int (*chx_tail_func_ptr)(CHEAX *c,
                                  union chx_eval_out *out);
 
 /*! \brief Cheax external/user function expression.
- * \sa cheax_special_form(), CHEAX_SPECIAL_FORM, cheax_defmacro(), chx_func_ptr
+ * \sa cheax_special_form(), CHEAX_SPECIAL_FORM, cheax_def_special_form(), chx_func_ptr
  */
-struct chx_special_form {
+struct chx_form {
 	unsigned rtflags;
 	const char *name;      /*!< The function's name, used by cheax_print(). */
 	union {
@@ -294,7 +294,7 @@ CHX_API struct chx_value cheax_special_form(CHEAX *c,
                                             void *info);
 
 #define cheax_special_form_value(X) ((struct chx_value){ .type = CHEAX_SPECIAL_FORM, .data.as_special_form = (X) })
-CHX_API struct chx_value cheax_special_form_value_proc(struct chx_special_form *sf);
+CHX_API struct chx_value cheax_special_form_value_proc(struct chx_form *sf);
 
 CHX_API struct chx_value cheax_special_tail_form(CHEAX *c,
                                                  const char *name,
@@ -302,7 +302,7 @@ CHX_API struct chx_value cheax_special_tail_form(CHEAX *c,
                                                  void *info);
 
 #define cheax_special_tail_form_value(X) ((struct chx_value){ .type = CHEAX_SPECIAL_TAIL_FORM, .data.as_special_form = (X) })
-CHX_API struct chx_value cheax_special_tail_form_value_proc(struct chx_special_form *sf);
+CHX_API struct chx_value cheax_special_tail_form_value_proc(struct chx_form *sf);
 
 /*! \brief Creates a quoted cheax expression.
  *
@@ -441,17 +441,16 @@ CHX_API struct chx_value cheax_env(CHEAX *c);
 CHX_API struct chx_value cheax_env_value_proc(struct chx_env *env);
 
 #if __STDC_VERSION__ + 0 >= 201112L
-#define cheax_value(v)                                                    \
-	(_Generic((0,v),                                                  \
-		int:                       cheax_int_proc,                \
-		chx_int:                   cheax_int_proc,                \
-		double:                    cheax_double_proc,             \
-		float:                     cheax_double_proc,             \
-		struct chx_special_form *: cheax_special_form_value_proc, \
-		struct chx_env *:          cheax_env_value_proc,          \
-		struct chx_id *:           cheax_id_value_proc,           \
-		struct chx_string *:       cheax_string_value_proc,       \
-		struct chx_list *:         cheax_list_value_proc)(v))
+#define cheax_value(v)                                              \
+	(_Generic((0,v),                                            \
+		int:                 cheax_int_proc,                \
+		chx_int:             cheax_int_proc,                \
+		double:              cheax_double_proc,             \
+		float:               cheax_double_proc,             \
+		struct chx_env *:    cheax_env_value_proc,          \
+		struct chx_id *:     cheax_id_value_proc,           \
+		struct chx_string *: cheax_string_value_proc,       \
+		struct chx_list *:   cheax_list_value_proc)(v))
 #endif
 
 struct chx_sym;

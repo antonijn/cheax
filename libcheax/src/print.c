@@ -37,7 +37,7 @@ static void
 ostrm_show_basic(CHEAX *c, struct ostrm *s, struct chx_value val)
 {
 	struct chx_env *env;
-	struct chx_special_form *macro;
+	struct chx_form *macro;
 
 	int ty = cheax_resolve_type(c, val.type);
 	switch (ty) {

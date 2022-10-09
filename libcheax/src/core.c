@@ -174,7 +174,7 @@ cheax_special_form(CHEAX *c, const char *name, chx_func_ptr perform, void *info)
 	if (perform == NULL || name == NULL)
 		return cheax_nil();
 
-	struct chx_value res = cheax_special_form_value(gc_alloc(c, sizeof(struct chx_special_form), CHEAX_SPECIAL_FORM));
+	struct chx_value res = cheax_special_form_value(gc_alloc(c, sizeof(struct chx_form), CHEAX_SPECIAL_FORM));
 	if (res.data.as_special_form == NULL)
 		return cheax_nil();
 	res.data.as_special_form->name = name;
@@ -183,7 +183,7 @@ cheax_special_form(CHEAX *c, const char *name, chx_func_ptr perform, void *info)
 	return res;
 }
 struct chx_value
-cheax_special_form_value_proc(struct chx_special_form *extf)
+cheax_special_form_value_proc(struct chx_form *extf)
 {
 	return cheax_special_form_value(extf);
 }
@@ -194,7 +194,7 @@ cheax_special_tail_form(CHEAX *c, const char *name, chx_tail_func_ptr perform, v
 	if (perform == NULL || name == NULL)
 		return cheax_nil();
 
-	struct chx_value res = cheax_special_tail_form_value(gc_alloc(c, sizeof(struct chx_special_form), CHEAX_SPECIAL_TAIL_FORM));
+	struct chx_value res = cheax_special_tail_form_value(gc_alloc(c, sizeof(struct chx_form), CHEAX_SPECIAL_TAIL_FORM));
 	if (res.data.as_special_form == NULL)
 		return cheax_nil();
 	res.data.as_special_form->name = name;
@@ -203,7 +203,7 @@ cheax_special_tail_form(CHEAX *c, const char *name, chx_tail_func_ptr perform, v
 	return res;
 }
 struct chx_value
-cheax_special_tail_form_value_proc(struct chx_special_form *extf)
+cheax_special_tail_form_value_proc(struct chx_form *extf)
 {
 	return cheax_special_tail_form_value(extf);
 }
