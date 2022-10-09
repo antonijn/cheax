@@ -169,43 +169,43 @@ debug_list(CHEAX *c, struct chx_value car, struct chx_list *cdr, struct debug_in
 }
 
 struct chx_value
-cheax_ext_func(CHEAX *c, const char *name, chx_func_ptr perform, void *info)
+cheax_special_form(CHEAX *c, const char *name, chx_func_ptr perform, void *info)
 {
 	if (perform == NULL || name == NULL)
 		return cheax_nil();
 
-	struct chx_value res = cheax_ext_func_value(gc_alloc(c, sizeof(struct chx_ext_func), CHEAX_EXT_FUNC));
-	if (res.data.as_ext_func == NULL)
+	struct chx_value res = cheax_special_form_value(gc_alloc(c, sizeof(struct chx_special_form), CHEAX_SPECIAL_FORM));
+	if (res.data.as_special_form == NULL)
 		return cheax_nil();
-	res.data.as_ext_func->name = name;
-	res.data.as_ext_func->perform.func = perform;
-	res.data.as_ext_func->info = info;
+	res.data.as_special_form->name = name;
+	res.data.as_special_form->perform.func = perform;
+	res.data.as_special_form->info = info;
 	return res;
 }
 struct chx_value
-cheax_ext_func_value_proc(struct chx_ext_func *extf)
+cheax_special_form_value_proc(struct chx_special_form *extf)
 {
-	return cheax_ext_func_value(extf);
+	return cheax_special_form_value(extf);
 }
 
 struct chx_value
-cheax_ext_tail_func(CHEAX *c, const char *name, chx_tail_func_ptr perform, void *info)
+cheax_special_tail_form(CHEAX *c, const char *name, chx_tail_func_ptr perform, void *info)
 {
 	if (perform == NULL || name == NULL)
 		return cheax_nil();
 
-	struct chx_value res = cheax_ext_tail_func_value(gc_alloc(c, sizeof(struct chx_ext_func), CHEAX_EXT_TAIL_FUNC));
-	if (res.data.as_ext_func == NULL)
+	struct chx_value res = cheax_special_tail_form_value(gc_alloc(c, sizeof(struct chx_special_form), CHEAX_SPECIAL_TAIL_FORM));
+	if (res.data.as_special_form == NULL)
 		return cheax_nil();
-	res.data.as_ext_func->name = name;
-	res.data.as_ext_func->perform.tail_func = perform;
-	res.data.as_ext_func->info = info;
+	res.data.as_special_form->name = name;
+	res.data.as_special_form->perform.tail_func = perform;
+	res.data.as_special_form->info = info;
 	return res;
 }
 struct chx_value
-cheax_ext_tail_func_value_proc(struct chx_ext_func *extf)
+cheax_special_tail_form_value_proc(struct chx_special_form *extf)
 {
-	return cheax_ext_tail_func_value(extf);
+	return cheax_special_tail_form_value(extf);
 }
 
 size_t
@@ -745,13 +745,13 @@ bltn_substr(CHEAX *c, struct chx_list *args, void *info)
 void
 export_core_bltns(CHEAX *c)
 {
-	cheax_defmacro(c, ":",             bltn_prepend,       NULL);
-	cheax_defmacro(c, "type-of",       bltn_type_of,       NULL);
-	cheax_defmacro(c, "fn",            bltn_fn,            NULL);
-	cheax_defmacro(c, "macro",         bltn_macro,         NULL);
-	cheax_defmacro(c, "string-bytes",  bltn_string_bytes,  NULL);
-	cheax_defmacro(c, "string-length", bltn_string_length, NULL);
-	cheax_defmacro(c, "substr",        bltn_substr,        NULL);
+	cheax_def_special_form(c, ":",             bltn_prepend,       NULL);
+	cheax_def_special_form(c, "type-of",       bltn_type_of,       NULL);
+	cheax_def_special_form(c, "fn",            bltn_fn,            NULL);
+	cheax_def_special_form(c, "macro",         bltn_macro,         NULL);
+	cheax_def_special_form(c, "string-bytes",  bltn_string_bytes,  NULL);
+	cheax_def_special_form(c, "string-length", bltn_string_length, NULL);
+	cheax_def_special_form(c, "substr",        bltn_substr,        NULL);
 
 	cheax_def(c, "cheax-version", cheax_string(c, cheax_version()), CHEAX_READONLY);
 }

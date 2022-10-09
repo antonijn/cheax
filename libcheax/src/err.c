@@ -577,9 +577,9 @@ export_error_names(CHEAX *c)
 void
 export_err_bltns(CHEAX *c)
 {
-	cheax_defmacro(c, "throw",          bltn_throw,          NULL);
-	cheax_defmacro(c, "try",            bltn_try,            NULL);
-	cheax_defmacro(c, "new-error-code", bltn_new_error_code, NULL);
+	cheax_def_special_form(c, "throw",          bltn_throw,          NULL);
+	cheax_def_special_form(c, "try",            bltn_try,            NULL);
+	cheax_def_special_form(c, "new-error-code", bltn_new_error_code, NULL);
 
 	export_error_names(c);
 }

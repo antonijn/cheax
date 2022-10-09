@@ -121,10 +121,10 @@ main(void)
 
 	cheax_load_feature(c, "all");
 
-	cheax_defmacro(c, "show-w", show_w, NULL);
-	cheax_defmacro(c, "show-c", show_c, NULL);
+	cheax_def_special_form(c, "show-w", show_w, NULL);
+	cheax_def_special_form(c, "show-c", show_c, NULL);
 
-	cheax_defmacro(c, "quit", quit_fun, NULL);
+	cheax_def_special_form(c, "quit", quit_fun, NULL);
 
 	if (cheax_load_prelude(c)) {
 		cheax_perror(c, "cheaky");

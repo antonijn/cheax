@@ -389,27 +389,27 @@ bltn_ge(CHEAX *c, struct chx_list *args, void *info)
 void
 export_arith_bltns(CHEAX *c)
 {
-	cheax_defmacro(c, "+",  bltn_add, NULL);
-	cheax_defmacro(c, "-",  bltn_sub, NULL);
-	cheax_defmacro(c, "*",  bltn_mul, NULL);
-	cheax_defmacro(c, "/",  bltn_div, NULL);
-	cheax_defmacro(c, "%",  bltn_mod, NULL);
+	cheax_def_special_form(c, "+",  bltn_add, NULL);
+	cheax_def_special_form(c, "-",  bltn_sub, NULL);
+	cheax_def_special_form(c, "*",  bltn_mul, NULL);
+	cheax_def_special_form(c, "/",  bltn_div, NULL);
+	cheax_def_special_form(c, "%",  bltn_mod, NULL);
 
-	cheax_defmacro(c, "bit-and", bltn_bit_and, NULL);
-	cheax_defmacro(c, "bit-or",  bltn_bit_or,  NULL);
-	cheax_defmacro(c, "bit-xor", bltn_bit_xor, NULL);
-	cheax_defmacro(c, "bit-not", bltn_bit_not, NULL);
-	cheax_defmacro(c, "bit-shl", bltn_bit_shl, NULL);
-	cheax_defmacro(c, "bit-shr", bltn_bit_shr, NULL);
-	cheax_defmacro(c, "bit-sal", bltn_bit_sal, NULL);
-	cheax_defmacro(c, "bit-sar", bltn_bit_sar, NULL);
-	cheax_defmacro(c, "bit-rol", bltn_bit_rol, NULL);
-	cheax_defmacro(c, "bit-ror", bltn_bit_ror, NULL);
+	cheax_def_special_form(c, "bit-and", bltn_bit_and, NULL);
+	cheax_def_special_form(c, "bit-or",  bltn_bit_or,  NULL);
+	cheax_def_special_form(c, "bit-xor", bltn_bit_xor, NULL);
+	cheax_def_special_form(c, "bit-not", bltn_bit_not, NULL);
+	cheax_def_special_form(c, "bit-shl", bltn_bit_shl, NULL);
+	cheax_def_special_form(c, "bit-shr", bltn_bit_shr, NULL);
+	cheax_def_special_form(c, "bit-sal", bltn_bit_sal, NULL);
+	cheax_def_special_form(c, "bit-sar", bltn_bit_sar, NULL);
+	cheax_def_special_form(c, "bit-rol", bltn_bit_rol, NULL);
+	cheax_def_special_form(c, "bit-ror", bltn_bit_ror, NULL);
 
-	cheax_defmacro(c, "<",  bltn_lt, NULL);
-	cheax_defmacro(c, "<=", bltn_le, NULL);
-	cheax_defmacro(c, ">",  bltn_gt, NULL);
-	cheax_defmacro(c, ">=", bltn_ge, NULL);
+	cheax_def_special_form(c, "<",  bltn_lt, NULL);
+	cheax_def_special_form(c, "<=", bltn_le, NULL);
+	cheax_def_special_form(c, ">",  bltn_gt, NULL);
+	cheax_def_special_form(c, ">=", bltn_ge, NULL);
 
 	cheax_def(c, "int-max", cheax_int(CHX_INT_MAX), CHEAX_READONLY);
 	cheax_def(c, "int-min", cheax_int(CHX_INT_MIN), CHEAX_READONLY);

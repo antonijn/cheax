@@ -96,7 +96,7 @@ cheax_load_feature(CHEAX *c, const char *feat)
 	int nf = feats & ~c->features;
 
 	if (has_flag(nf, EXIT_BUILTIN))
-		cheax_defmacro(c, "exit", bltn_exit, NULL);
+		cheax_def_special_form(c, "exit", bltn_exit, NULL);
 
 	load_config_feature(c, nf);
 	load_gc_feature(c, nf);

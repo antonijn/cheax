@@ -563,7 +563,7 @@ void
 load_gc_feature(CHEAX *c, int bits)
 {
 	if (has_flag(bits, GC_BUILTIN)) {
-		cheax_defmacro(c, "gc", bltn_gc, NULL);
-		cheax_defmacro(c, "get-used-memory", bltn_get_used_memory, NULL);
+		cheax_def_special_form(c, "gc", bltn_gc, NULL);
+		cheax_def_special_form(c, "get-used-memory", bltn_get_used_memory, NULL);
 	}
 }

@@ -343,8 +343,8 @@ void
 load_io_feature(CHEAX *c, int bits)
 {
 	if (has_flag(bits, FILE_IO)) {
-		cheax_defmacro(c, "fopen", bltn_fopen, NULL);
-		cheax_defmacro(c, "fclose", bltn_fclose, NULL);
+		cheax_def_special_form(c, "fopen", bltn_fopen, NULL);
+		cheax_def_special_form(c, "fclose", bltn_fclose, NULL);
 	}
 
 	if (has_flag(bits, EXPOSE_STDIN)) {
@@ -371,11 +371,11 @@ export_io_bltns(CHEAX *c)
 {
 	c->fhandle_type = cheax_new_type(c, "FileHandle", CHEAX_USER_PTR);
 
-	cheax_defmacro(c, "eof?",          bltn_eof,           NULL);
-	cheax_defmacro(c, "read-from",     bltn_read_from,     NULL);
-	cheax_defmacro(c, "read-string",   bltn_read_string,   NULL);
-	cheax_defmacro(c, "print-to",      bltn_print_to,      NULL);
-	cheax_defmacro(c, "put-to",        bltn_put_to,        NULL);
-	cheax_defmacro(c, "get-byte-from", bltn_get_byte_from, NULL);
-	cheax_defmacro(c, "get-line-from", bltn_get_line_from, NULL);
+	cheax_def_special_form(c, "eof?",          bltn_eof,           NULL);
+	cheax_def_special_form(c, "read-from",     bltn_read_from,     NULL);
+	cheax_def_special_form(c, "read-string",   bltn_read_string,   NULL);
+	cheax_def_special_form(c, "print-to",      bltn_print_to,      NULL);
+	cheax_def_special_form(c, "put-to",        bltn_put_to,        NULL);
+	cheax_def_special_form(c, "get-byte-from", bltn_get_byte_from, NULL);
+	cheax_def_special_form(c, "get-line-from", bltn_get_line_from, NULL);
 }

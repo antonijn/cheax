@@ -55,8 +55,9 @@ enum {
 	CHEAX_ID,            /*!< Identifier type. */
 	CHEAX_FUNC,          /*!< Function type. */
 	CHEAX_MACRO,         /*!< Macro type. */
-	CHEAX_EXT_FUNC,      /*!< Type of functions defined from outside the cheax environment. */
-	CHEAX_EXT_TAIL_FUNC, /*!< Type of functions defined from outside the cheax environment. */
+	/* CHEAX_EXT_FUNC, */   /*!< Type of functions defined through the C API. */
+	CHEAX_SPECIAL_FORM,  /*!< Type of special forms, which are defined through the C API. */
+	CHEAX_SPECIAL_TAIL_FORM,
 	CHEAX_QUOTE,         /*!< Type of quoted expressions. */
 	CHEAX_BACKQUOTE,     /*!< Type of backquoted expressions. */
 	CHEAX_COMMA,         /*!< Type of comma expressions. */
@@ -82,7 +83,7 @@ struct chx_id;
 struct chx_string;
 struct chx_quote;
 struct chx_func;
-struct chx_ext_func;
+struct chx_special_form;
 struct chx_env;
 
 /*! \brief Base type of cheax expressions. */
@@ -97,7 +98,7 @@ struct chx_value {
 		struct chx_string *as_string;
 		struct chx_quote *as_quote;
 		struct chx_func *as_func;
-		struct chx_ext_func *as_ext_func;
+		struct chx_special_form *as_special_form;
 		struct chx_env *as_env;
 		void *user_ptr;
 
@@ -111,7 +112,7 @@ struct chx_value {
 		struct chx_string *as_string;
 		struct chx_quote *as_quote;
 		struct chx_func *as_func;
-		struct chx_ext_func *as_ext_func;
+		struct chx_special_form *as_special_form;
 		struct chx_env *as_env;
 		void *user_ptr;
 
@@ -218,7 +219,7 @@ CHX_API struct chx_value cheax_list_value_proc(struct chx_list *list);
  *
  * Lambdas cannot be constructed by the C API.
  *
- * \sa CHEAX_FUNC, CHEAX_MACRO, chx_ext_func, cheax_ext_func()
+ * \sa CHEAX_FUNC, CHEAX_MACRO, chx_special_form, cheax_special_form()
  */
 struct chx_func {
 	unsigned rtflags;
@@ -244,7 +245,7 @@ CHX_API struct chx_value cheax_macro_value_proc(struct chx_func *macro);
  *
  * \returns The function's return value to be delivered back to cheax.
  *
- * \sa chx_ext_func, cheax_ext_func(), cheax_defmacro()
+ * \sa chx_special_form, cheax_special_form(), cheax_defmacro()
  */
 typedef struct chx_value (*chx_func_ptr)(CHEAX *c, struct chx_list *args, void *info);
 
@@ -268,9 +269,9 @@ typedef int (*chx_tail_func_ptr)(CHEAX *c,
                                  union chx_eval_out *out);
 
 /*! \brief Cheax external/user function expression.
- * \sa cheax_ext_func(), CHEAX_EXT_FUNC, cheax_defmacro(), chx_func_ptr
+ * \sa cheax_special_form(), CHEAX_SPECIAL_FORM, cheax_defmacro(), chx_func_ptr
  */
-struct chx_ext_func {
+struct chx_special_form {
 	unsigned rtflags;
 	const char *name;      /*!< The function's name, used by cheax_print(). */
 	union {
@@ -287,21 +288,21 @@ struct chx_ext_func {
  * \param name    Function name as will be used by cheax_print().
  * \param info    Callback info to be passed upon invocation.
  */
-CHX_API struct chx_value cheax_ext_func(CHEAX *c,
-                                        const char *name,
-                                        chx_func_ptr perform,
-                                        void *info);
+CHX_API struct chx_value cheax_special_form(CHEAX *c,
+                                            const char *name,
+                                            chx_func_ptr perform,
+                                            void *info);
 
-#define cheax_ext_func_value(X) ((struct chx_value){ .type = CHEAX_EXT_FUNC, .data.as_ext_func = (X) })
-CHX_API struct chx_value cheax_ext_func_value_proc(struct chx_ext_func *extf);
+#define cheax_special_form_value(X) ((struct chx_value){ .type = CHEAX_SPECIAL_FORM, .data.as_special_form = (X) })
+CHX_API struct chx_value cheax_special_form_value_proc(struct chx_special_form *sf);
 
-CHX_API struct chx_value cheax_ext_tail_func(CHEAX *c,
-                                             const char *name,
-                                             chx_tail_func_ptr perform,
-                                             void *info);
+CHX_API struct chx_value cheax_special_tail_form(CHEAX *c,
+                                                 const char *name,
+                                                 chx_tail_func_ptr perform,
+                                                 void *info);
 
-#define cheax_ext_tail_func_value(X) ((struct chx_value){ .type = CHEAX_EXT_TAIL_FUNC, .data.as_ext_func = (X) })
-CHX_API struct chx_value cheax_ext_tail_func_value_proc(struct chx_ext_func *extf);
+#define cheax_special_tail_form_value(X) ((struct chx_value){ .type = CHEAX_SPECIAL_TAIL_FORM, .data.as_special_form = (X) })
+CHX_API struct chx_value cheax_special_tail_form_value_proc(struct chx_special_form *sf);
 
 /*! \brief Creates a quoted cheax expression.
  *
@@ -440,17 +441,17 @@ CHX_API struct chx_value cheax_env(CHEAX *c);
 CHX_API struct chx_value cheax_env_value_proc(struct chx_env *env);
 
 #if __STDC_VERSION__ + 0 >= 201112L
-#define cheax_value(v)                                                \
-	(_Generic((0,v),                                              \
-		int:                    cheax_int_proc,               \
-		chx_int:                cheax_int_proc,               \
-		double:                 cheax_double_proc,            \
-		float:                  cheax_double_proc,            \
-		struct chx_ext_func *:  cheax_ext_func_value_proc,    \
-		struct chx_env *:       cheax_env_value_proc,         \
-		struct chx_id *:        cheax_id_value_proc,          \
-		struct chx_string *:    cheax_string_value_proc,      \
-		struct chx_list *:      cheax_list_value_proc)(v))
+#define cheax_value(v)                                                    \
+	(_Generic((0,v),                                                  \
+		int:                       cheax_int_proc,                \
+		chx_int:                   cheax_int_proc,                \
+		double:                    cheax_double_proc,             \
+		float:                     cheax_double_proc,             \
+		struct chx_special_form *: cheax_special_form_value_proc, \
+		struct chx_env *:          cheax_env_value_proc,          \
+		struct chx_id *:           cheax_id_value_proc,           \
+		struct chx_string *:       cheax_string_value_proc,       \
+		struct chx_list *:         cheax_list_value_proc)(v))
 #endif
 
 struct chx_sym;
@@ -901,23 +902,26 @@ CHX_API struct chx_value cheax_get_from(CHEAX *c, struct chx_env *env, const cha
  */
 CHX_API void cheax_set(CHEAX *c, const char *id, struct chx_value value);
 
-/*! \brief Shorthand function to declare an external function the cheax
+/*! \brief Shorthand function to declare a special form the cheax
  *         environment.
  *
  * Shorthand for:
 \code{.c}
-cheax_def(c, id, &cheax_ext_func(c, id, perform, info)->base, CHEAX_READONLY);
+cheax_def(c, id, &cheax_special_form(c, id, perform, info)->base, CHEAX_READONLY);
 \endcode
  *
  * \param c       Virtual machine instance.
- * \param id      Identifier for the external function.
- * \param perform Callback for the new external function.
- * \param info    Callback info for the new external function.
+ * \param id      Identifier for the special form.
+ * \param perform Callback for the new special form.
+ * \param info    Callback info for the new special form.
  *
- * \sa chx_ext_func, cheax_ext_func(), cheax_def()
+ * \sa chx_special_form, cheax_special_form(), cheax_def()
  */
-CHX_API void cheax_defmacro(CHEAX *c, const char *id, chx_func_ptr perform, void *info);
-CHX_API void cheax_deftailmacro(CHEAX *c, const char *id, chx_tail_func_ptr perform, void *info);
+CHX_API void cheax_def_special_form(CHEAX *c, const char *id, chx_func_ptr perform, void *info);
+CHX_API void cheax_def_special_tail_form(CHEAX *c,
+                                         const char *id,
+                                         chx_tail_func_ptr perform,
+                                         void *info);
 
 /*! \brief Synchronizes a variable from C with a symbol in the cheax environment.
  *

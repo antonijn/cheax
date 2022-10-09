@@ -233,18 +233,18 @@ eval_sexpr(CHEAX *c, struct chx_list *input, struct chx_env *pop_stop, union chx
 	struct chx_list *args = input->next;
 
 	switch (head.type) {
-	case CHEAX_EXT_FUNC:
-		out->value = head.data.as_ext_func->perform.func(c,
-		                                                 args,
-		                                                 head.data.as_ext_func->info);
+	case CHEAX_SPECIAL_FORM:
+		out->value = head.data.as_special_form->perform.func(c,
+		                                                     args,
+		                                                     head.data.as_special_form->info);
 		res = CHEAX_VALUE_OUT;
 		break;
-	case CHEAX_EXT_TAIL_FUNC:
-		res = head.data.as_ext_func->perform.tail_func(c,
-		                                               args,
-		                                               head.data.as_ext_func->info,
-		                                               pop_stop,
-		                                               out);
+	case CHEAX_SPECIAL_TAIL_FORM:
+		res = head.data.as_special_form->perform.tail_func(c,
+		                                                   args,
+		                                                   head.data.as_special_form->info,
+		                                                   pop_stop,
+		                                                   out);
 		break;
 
 	case CHEAX_FUNC:
@@ -529,18 +529,18 @@ apply_func_evaluator(CHEAX *c, void *input_info, struct chx_env *pop_stop, union
 
 	int res;
 	switch (func.type) {
-	case CHEAX_EXT_FUNC:
-		out->value = func.data.as_ext_func->perform.func(c,
-		                                                 args,
-		                                                 func.data.as_ext_func->info);
+	case CHEAX_SPECIAL_FORM:
+		out->value = func.data.as_special_form->perform.func(c,
+		                                                     args,
+		                                                     func.data.as_special_form->info);
 		res = CHEAX_VALUE_OUT;
 		break;
-	case CHEAX_EXT_TAIL_FUNC:
-		res = func.data.as_ext_func->perform.tail_func(c,
-		                                               args,
-		                                               func.data.as_ext_func->info,
-		                                               pop_stop,
-		                                               out);
+	case CHEAX_SPECIAL_TAIL_FORM:
+		res = func.data.as_special_form->perform.tail_func(c,
+		                                                   args,
+		                                                   func.data.as_special_form->info,
+		                                                   pop_stop,
+		                                                   out);
 		break;
 
 	case CHEAX_FUNC:
@@ -626,8 +626,8 @@ cheax_apply(CHEAX *c, struct chx_value func, struct chx_list *args)
 	struct apply_func_info afi = { func, args };
 
 	switch (func.type) {
-	case CHEAX_EXT_FUNC:
-	case CHEAX_EXT_TAIL_FUNC:
+	case CHEAX_SPECIAL_FORM:
+	case CHEAX_SPECIAL_TAIL_FORM:
 	case CHEAX_FUNC:
 		return wrap_tail_eval(c, apply_func_evaluator, &afi);
 
@@ -776,10 +776,10 @@ cheax_eq(CHEAX *c, struct chx_value l, struct chx_value r)
 		return l.data.as_double == r.data.as_double;
 	case CHEAX_LIST:
 		return list_eq(c, l.data.as_list, r.data.as_list);
-	case CHEAX_EXT_FUNC:
-	case CHEAX_EXT_TAIL_FUNC:
-		return (l.data.as_ext_func->perform.func == r.data.as_ext_func->perform.func)
-		    && (l.data.as_ext_func->info == r.data.as_ext_func->info);
+	case CHEAX_SPECIAL_FORM:
+	case CHEAX_SPECIAL_TAIL_FORM:
+		return (l.data.as_special_form->perform.func == r.data.as_special_form->perform.func)
+		    && (l.data.as_special_form->info == r.data.as_special_form->info);
 	case CHEAX_QUOTE:
 	case CHEAX_BACKQUOTE:
 	case CHEAX_COMMA:
@@ -894,9 +894,9 @@ bltn_apply(CHEAX *c,
 	struct apply_func_info afi = { func, list };
 
 	switch (func.type) {
-	case CHEAX_EXT_FUNC:
-	case CHEAX_EXT_TAIL_FUNC:
 	case CHEAX_FUNC:
+	case CHEAX_SPECIAL_FORM:
+	case CHEAX_SPECIAL_TAIL_FORM:
 		res = apply_func_evaluator(c, &afi, pop_stop, out);
 		break;
 	}
@@ -983,10 +983,10 @@ bltn_ne(CHEAX *c, struct chx_list *args, void *info)
 void
 export_eval_bltns(CHEAX *c)
 {
-	cheax_defmacro(c, "eval", bltn_eval, NULL);
-	cheax_deftailmacro(c, "apply", bltn_apply, NULL);
-	cheax_deftailmacro(c, "case",  bltn_case,  NULL);
-	cheax_deftailmacro(c, "cond",  bltn_cond,  NULL);
-	cheax_defmacro(c, "=",    bltn_eq,   NULL);
-	cheax_defmacro(c, "!=",   bltn_ne,   NULL);
+	cheax_def_special_form(c, "eval", bltn_eval, NULL);
+	cheax_def_special_tail_form(c, "apply", bltn_apply, NULL);
+	cheax_def_special_tail_form(c, "case",  bltn_case,  NULL);
+	cheax_def_special_tail_form(c, "cond",  bltn_cond,  NULL);
+	cheax_def_special_form(c, "=",    bltn_eq,   NULL);
+	cheax_def_special_form(c, "!=",   bltn_ne,   NULL);
 }

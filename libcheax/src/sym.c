@@ -270,14 +270,14 @@ cheax_def(CHEAX *c, const char *id, struct chx_value value, int flags)
 }
 
 void
-cheax_defmacro(CHEAX *c, const char *id, chx_func_ptr perform, void *info)
+cheax_def_special_form(CHEAX *c, const char *id, chx_func_ptr perform, void *info)
 {
-	cheax_def(c, id, cheax_ext_func(c, id, perform, info), CHEAX_READONLY);
+	cheax_def(c, id, cheax_special_form(c, id, perform, info), CHEAX_READONLY);
 }
 void
-cheax_deftailmacro(CHEAX *c, const char *id, chx_tail_func_ptr perform, void *info)
+cheax_def_special_tail_form(CHEAX *c, const char *id, chx_tail_func_ptr perform, void *info)
 {
-	cheax_def(c, id, cheax_ext_tail_func(c, id, perform, info), CHEAX_READONLY);
+	cheax_def(c, id, cheax_special_tail_form(c, id, perform, info), CHEAX_READONLY);
 }
 
 void
@@ -600,8 +600,8 @@ bltn_defsym(CHEAX *c, struct chx_list *args, void *info)
 	dinfo->get = dinfo->set = NULL;
 
 	struct chx_value defget, defset;
-	defget = cheax_ext_func(c, "defget", bltn_defget, dinfo);
-	defset = cheax_ext_func(c, "defset", bltn_defset, dinfo);
+	defget = cheax_special_form(c, "defget", bltn_defget, dinfo);
+	defset = cheax_special_form(c, "defset", bltn_defset, dinfo);
 	cheax_ft(c, err_pad); /* alloc failure */
 
 	cheax_push_env(c);
@@ -619,7 +619,7 @@ bltn_defsym(CHEAX *c, struct chx_list *args, void *info)
 
 	body_ok = add_bt = true;
 pad:
-	defget.data.as_ext_func->info = defset.data.as_ext_func->info = NULL;
+	defget.data.as_special_form->info = defset.data.as_special_form->info = NULL;
 	cheax_pop_env(c);
 
 	if (!body_ok)
@@ -751,10 +751,10 @@ bltn_env(CHEAX *c, struct chx_list *args, void *info)
 void
 export_sym_bltns(CHEAX *c)
 {
-	cheax_defmacro(c, "defsym",  bltn_defsym, NULL);
-	cheax_defmacro(c, "var",     bltn_var,    NULL);
-	cheax_defmacro(c, "def",     bltn_def,    NULL);
-	cheax_deftailmacro(c, "let", bltn_let,    NULL);
-	cheax_defmacro(c, "set",     bltn_set,    NULL);
-	cheax_defmacro(c, "env",     bltn_env,    NULL);
+	cheax_def_special_form(c, "defsym",  bltn_defsym, NULL);
+	cheax_def_special_form(c, "var",     bltn_var,    NULL);
+	cheax_def_special_form(c, "def",     bltn_def,    NULL);
+	cheax_def_special_tail_form(c, "let", bltn_let,    NULL);
+	cheax_def_special_form(c, "set",     bltn_set,    NULL);
+	cheax_def_special_form(c, "env",     bltn_env,    NULL);
 }

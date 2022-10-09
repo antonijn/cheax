@@ -115,7 +115,7 @@ show_env(CHEAX *c, struct sostrm *ss, struct chx_env *env, const char *func_desc
 	struct chx_value showf = cheax_get_from(c, env, func_desc);
 	cheax_ft(c, pad);
 
-	if (showf.type != CHEAX_FUNC && showf.type != CHEAX_EXT_FUNC) {
+	if (showf.type != CHEAX_FUNC && showf.type != CHEAX_SPECIAL_FORM) {
 		cheax_throwf(c, CHEAX_ETYPE, "env %s symbol must be function", func_desc);
 		return -1;
 	}
@@ -331,5 +331,5 @@ bltn_format(CHEAX *c, struct chx_list *args, void *info)
 void
 export_format_bltns(CHEAX *c)
 {
-	cheax_defmacro(c, "format", bltn_format, NULL);
+	cheax_def_special_form(c, "format", bltn_format, NULL);
 }
