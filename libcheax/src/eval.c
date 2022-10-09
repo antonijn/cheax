@@ -816,10 +816,10 @@ sf_eval(CHEAX *c, struct chx_list *args, void *info)
 
 static int
 sf_case(CHEAX *c,
-          struct chx_list *args,
-          void *info,
-          struct chx_env *pop_stop,
-          union chx_eval_out *out)
+        struct chx_list *args,
+        void *info,
+        struct chx_env *pop_stop,
+        union chx_eval_out *out)
 {
 	if (args == NULL) {
 		cheax_throwf(c, CHEAX_EMATCH, "invalid case");
@@ -878,10 +878,10 @@ pad:
 
 static int
 sf_apply(CHEAX *c,
-           struct chx_list *args,
-           void *info,
-           struct chx_env *pop_stop,
-           union chx_eval_out *out)
+         struct chx_list *args,
+         void *info,
+         struct chx_env *pop_stop,
+         union chx_eval_out *out)
 {
 	struct chx_value func;
 	struct chx_list *list;
@@ -909,10 +909,10 @@ sf_apply(CHEAX *c,
 
 static int
 sf_cond(CHEAX *c,
-          struct chx_list *args,
-          void *info,
-          struct chx_env *pop_stop,
-          union chx_eval_out *out)
+        struct chx_list *args,
+        void *info,
+        struct chx_env *pop_stop,
+        union chx_eval_out *out)
 {
 	/* test-value-pair */
 	for (struct chx_list *tvp = args; tvp != NULL; tvp = tvp->next) {

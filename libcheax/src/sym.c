@@ -678,10 +678,10 @@ sf_var(CHEAX *c, struct chx_list *args, void *info)
 
 static int
 sf_let(CHEAX *c,
-         struct chx_list *args,
-         void *info,
-         struct chx_env *pop_stop,
-         union chx_eval_out *out)
+       struct chx_list *args,
+       void *info,
+       struct chx_env *pop_stop,
+       union chx_eval_out *out)
 {
 	struct chx_list *pairs, *body;
 	if (unpack(c, args, "C_+", &pairs, &body) < 0) {
