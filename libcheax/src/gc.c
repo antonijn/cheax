@@ -207,6 +207,7 @@ cheax_free(CHEAX *c, void *obj)
 {
 	if (obj != NULL) {
 		c->gc.all_mem -= obj_size(obj);
+		memset(get_alloc_ptr(obj), -1, obj_size(obj));
 		free(get_alloc_ptr(obj));
 	}
 }
@@ -428,6 +429,9 @@ mark_obj(CHEAX *c, struct chx_value used)
 void
 cheax_gc(CHEAX *c)
 {
+	cheax_force_gc(c);
+	return;
+
 	size_t mem = c->gc.all_mem, prev = c->gc.prev_run;
 	if ((mem > prev && mem - prev >= GC_RUN_THRESHOLD)
 	 || (c->mem_limit > 256 && mem > (size_t)(c->mem_limit - 256)))
@@ -500,6 +504,7 @@ cheax_ref_ptr(CHEAX *c, void *restrict value)
 		RTFLAGS(value) |= REF_BIT;
 		return PLEASE_UNREF;
 	}
+
 	return DO_NOTHING;
 }
 
@@ -526,7 +531,7 @@ cheax_unref_ptr(CHEAX *c, void *restrict value, chx_ref ref)
  */
 
 static struct chx_value
-sf_gc(CHEAX *c, struct chx_list *args, void *info)
+bltn_gc(CHEAX *c, struct chx_list *args, void *info)
 {
 	if (unpack(c, args, "") < 0)
 		return cheax_nil();
@@ -552,7 +557,7 @@ sf_gc(CHEAX *c, struct chx_list *args, void *info)
 }
 
 static struct chx_value
-sf_get_used_memory(CHEAX *c, struct chx_list *args, void *info)
+bltn_get_used_memory(CHEAX *c, struct chx_list *args, void *info)
 {
 	return (0 == unpack(c, args, ""))
 	     ? bt_wrap(c, cheax_int(c->gc.all_mem))
@@ -563,7 +568,7 @@ void
 load_gc_feature(CHEAX *c, int bits)
 {
 	if (has_flag(bits, GC_BUILTIN)) {
-		cheax_def_special_form(c, "gc", sf_gc, NULL);
-		cheax_def_special_form(c, "get-used-memory", sf_get_used_memory, NULL);
+		cheax_defun(c, "gc", bltn_gc, NULL);
+		cheax_defun(c, "get-used-memory", bltn_get_used_memory, NULL);
 	}
 }

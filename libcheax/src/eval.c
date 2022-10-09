@@ -70,6 +70,49 @@ pad:
 	fclose(f);
 }
 
+static struct chx_value
+eval_ext_func(CHEAX *c, struct chx_form *form, struct chx_list *args, bool eval_args)
+{
+	struct chx_list *true_args;
+	struct chx_list arg_buf[16];
+	chx_ref ref_buf[16];
+	size_t i = 0;
+	struct chx_value res = cheax_nil();
+
+	if (eval_args) {
+		struct chx_list **next_argp = &true_args;
+		true_args = NULL;
+		for (struct chx_list *arg_in = args; arg_in != NULL; arg_in = arg_in->next) {
+			if (i >= sizeof(arg_buf) / sizeof(arg_buf[0])) {
+				/* TODO allow for more than 16 args */
+				cheax_throwf(c, CHEAX_EEVAL, "only 16 args allowed in ext func");
+				goto pad;
+			}
+
+			arg_buf[i].rtflags = 0;
+			arg_buf[i].value = cheax_eval(c, arg_in->value);
+			arg_buf[i].next = NULL;
+
+			cheax_ft(c, pad);
+
+			ref_buf[i] = cheax_ref(c, arg_buf[i].value);
+
+			*next_argp = &arg_buf[i];
+			next_argp = &arg_buf[i++].next;
+		}
+	} else {
+		true_args = args;
+	}
+
+	res = form->perform.func(c, true_args, form->info);
+
+pad:
+	for (size_t j = 0; j < i; ++j)
+		cheax_unref(c, arg_buf[j].value, ref_buf[j]);
+
+	return res;
+}
+
 static int
 eval_args(CHEAX *c,
           struct chx_value fn_value,
@@ -233,6 +276,11 @@ eval_sexpr(CHEAX *c, struct chx_list *input, struct chx_env *pop_stop, union chx
 	struct chx_list *args = input->next;
 
 	switch (head.type) {
+	case CHEAX_EXT_FUNC:
+		out->value = eval_ext_func(c, head.data.as_form, args, true);
+		res = CHEAX_VALUE_OUT;
+		break;
+
 	case CHEAX_SPECIAL_FORM:
 		out->value = head.data.as_form->perform.func(c,
 		                                             args,
@@ -276,9 +324,9 @@ eval_sexpr(CHEAX *c, struct chx_list *input, struct chx_env *pop_stop, union chx
 		cheax_unref(c, out->value, res_ref);
 	} else if (res == CHEAX_TAIL_OUT) {
 		chx_ref tail_ref = cheax_ref(c, out->ts.tail);
-		chx_ref pop_stop_ref = cheax_ref_ptr(c, out->ts.pop_stop);
+		chx_ref out_pop_stop_ref = cheax_ref_ptr(c, out->ts.pop_stop);
 		cheax_gc(c);
-		cheax_unref_ptr(c, out->ts.pop_stop, pop_stop_ref);
+		cheax_unref_ptr(c, out->ts.pop_stop, out_pop_stop_ref);
 		cheax_unref(c, out->ts.tail, tail_ref);
 	}
 pad:
@@ -521,32 +569,18 @@ value_evaluator(CHEAX *c, void *input_info, struct chx_env *pop_stop, union chx_
 	return eval(c, val, pop_stop, out);
 }
 
-struct apply_func_info {
-	struct chx_value func;
-	struct chx_list *args;
-};
-
 static int
 apply_func_evaluator(CHEAX *c, void *input_info, struct chx_env *pop_stop, union chx_eval_out *out)
 {
-	struct apply_func_info afi = *(struct apply_func_info *)input_info;
-	struct chx_value func = afi.func;
-	struct chx_list *args = afi.args;
+	struct chx_list afi = *(struct chx_list *)input_info;
+	struct chx_value func = afi.value;
+	struct chx_list *args = afi.next;
 
 	int res;
 	switch (func.type) {
-	case CHEAX_SPECIAL_FORM:
-		out->value = func.data.as_form->perform.func(c,
-		                                             args,
-		                                             func.data.as_form->info);
+	case CHEAX_EXT_FUNC:
+		out->value = eval_ext_func(c, func.data.as_form, args, false);
 		res = CHEAX_VALUE_OUT;
-		break;
-	case CHEAX_SPECIAL_TAIL_FORM:
-		res = func.data.as_form->perform.tail_func(c,
-		                                           args,
-		                                           func.data.as_form->info,
-		                                           pop_stop,
-		                                           out);
 		break;
 
 	case CHEAX_FUNC:
@@ -573,17 +607,17 @@ wrap_tail_eval(CHEAX *c, tail_evaluator initial_eval, void *input_info)
 	if (initial_eval(c, input_info, c->env, &out) == CHEAX_VALUE_OUT)
 		return out.value;
 
+	struct chx_list *was_last_call = c->bt.last_call;
+	int tail_lvls = -1;
 	struct chx_value res = cheax_nil();
 	cheax_ft(c, pad);
 
 	/* we've leapt into a tail call */
-	struct chx_list *was_last_call = c->bt.last_call;
 	chx_ref last_call_ref = cheax_ref_ptr(c, was_last_call);
 	chx_ref ret_last_call_ref = cheax_ref_ptr(c, ret_last_call);
 	chx_ref ret_env_ref = cheax_ref_ptr(c, ret_env);
 
 	struct chx_env *pop_stop;
-	int tail_lvls = -1;
 
 	if (c->tail_call_elimination) {
 		int ek;
@@ -629,13 +663,18 @@ cheax_eval(CHEAX *c, struct chx_value input)
 struct chx_value
 cheax_apply(CHEAX *c, struct chx_value func, struct chx_list *args)
 {
-	struct apply_func_info afi = { func, args };
+	struct chx_list afi = { 0, func, args };
+	chx_ref func_ref, args_ref;
 
 	switch (func.type) {
-	case CHEAX_SPECIAL_FORM:
-	case CHEAX_SPECIAL_TAIL_FORM:
+	case CHEAX_EXT_FUNC:
 	case CHEAX_FUNC:
-		return wrap_tail_eval(c, apply_func_evaluator, &afi);
+		func_ref = cheax_ref(c, func);
+		args_ref = cheax_ref_ptr(c, args);
+		struct chx_value res = wrap_tail_eval(c, apply_func_evaluator, &afi);
+		cheax_unref(c, func, func_ref);
+		cheax_unref_ptr(c, args, args_ref);
+		return res;
 
 	default:
 		cheax_throwf(c, CHEAX_ETYPE, "apply(): only ExtFunc and Func allowed (got type %d)", func.type);
@@ -782,6 +821,7 @@ cheax_eq(CHEAX *c, struct chx_value l, struct chx_value r)
 		return l.data.as_double == r.data.as_double;
 	case CHEAX_LIST:
 		return list_eq(c, l.data.as_list, r.data.as_list);
+	case CHEAX_EXT_FUNC:
 	case CHEAX_SPECIAL_FORM:
 	case CHEAX_SPECIAL_TAIL_FORM:
 		return (l.data.as_form->perform.func == r.data.as_form->perform.func)
@@ -812,11 +852,42 @@ cheax_eq(CHEAX *c, struct chx_value l, struct chx_value r)
  */
 
 static struct chx_value
-sf_eval(CHEAX *c, struct chx_list *args, void *info)
+bltn_eval(CHEAX *c, struct chx_list *args, void *info)
 {
 	struct chx_value arg;
-	return (0 == unpack(c, args, ".", &arg))
+	return (0 == unpack(c, args, "_", &arg))
 	     ? bt_wrap(c, cheax_eval(c, arg))
+	     : cheax_nil();
+}
+
+static struct chx_value
+bltn_apply(CHEAX *c, struct chx_list *args, void *info)
+{
+	/* TODO revert back to tailable form */
+
+	struct chx_value func;
+	struct chx_list *list;
+	if (unpack(c, args, "[LP]C", &func, &list) < 0)
+		return cheax_nil();
+
+	return cheax_apply(c, func, list);
+}
+
+static struct chx_value
+bltn_eq(CHEAX *c, struct chx_list *args, void *info)
+{
+	struct chx_value l, r;
+	return (0 == unpack(c, args, "__", &l, &r))
+	     ? bt_wrap(c, cheax_bool(cheax_eq(c, l, r)))
+	     : cheax_nil();
+}
+
+static struct chx_value
+bltn_ne(CHEAX *c, struct chx_list *args, void *info)
+{
+	struct chx_value l, r;
+	return (0 == unpack(c, args, "__", &l, &r))
+	     ? bt_wrap(c, cheax_bool(!cheax_eq(c, l, r)))
 	     : cheax_nil();
 }
 
@@ -883,37 +954,6 @@ pad:
 }
 
 static int
-sf_apply(CHEAX *c,
-         struct chx_list *args,
-         void *info,
-         struct chx_env *pop_stop,
-         union chx_eval_out *out)
-{
-	struct chx_value func;
-	struct chx_list *list;
-	if (unpack(c, args, "[lpt]c", &func, &list) < 0) {
-		out->value = cheax_nil();
-		return CHEAX_VALUE_OUT;
-	}
-
-	int res = CHEAX_VALUE_OUT;
-	struct apply_func_info afi = { func, list };
-
-	switch (func.type) {
-	case CHEAX_FUNC:
-	case CHEAX_SPECIAL_FORM:
-	case CHEAX_SPECIAL_TAIL_FORM:
-		res = apply_func_evaluator(c, &afi, pop_stop, out);
-		break;
-	}
-
-	if (cheax_errno(c) != 0)
-		cheax_add_bt(c);
-
-	return res;
-}
-
-static int
 sf_cond(CHEAX *c,
         struct chx_list *args,
         void *info,
@@ -968,31 +1008,14 @@ pad:
 	return CHEAX_VALUE_OUT;
 }
 
-static struct chx_value
-sf_eq(CHEAX *c, struct chx_list *args, void *info)
-{
-	struct chx_value l, r;
-	return (0 == unpack(c, args, "..", &l, &r))
-	     ? bt_wrap(c, cheax_bool(cheax_eq(c, l, r)))
-	     : cheax_nil();
-}
-
-static struct chx_value
-sf_ne(CHEAX *c, struct chx_list *args, void *info)
-{
-	struct chx_value l, r;
-	return (0 == unpack(c, args, "..", &l, &r))
-	     ? bt_wrap(c, cheax_bool(!cheax_eq(c, l, r)))
-	     : cheax_nil();
-}
-
 void
 export_eval_bltns(CHEAX *c)
 {
-	cheax_def_special_form(c, "eval", sf_eval, NULL);
-	cheax_def_special_tail_form(c, "apply", sf_apply, NULL);
-	cheax_def_special_tail_form(c, "case",  sf_case,  NULL);
-	cheax_def_special_tail_form(c, "cond",  sf_cond,  NULL);
-	cheax_def_special_form(c, "=",    sf_eq,   NULL);
-	cheax_def_special_form(c, "!=",   sf_ne,   NULL);
+	cheax_defun(c, "eval",  bltn_eval,  NULL);
+	cheax_defun(c, "apply", bltn_apply, NULL);
+	cheax_defun(c, "=",     bltn_eq,    NULL);
+	cheax_defun(c, "!=",    bltn_ne,    NULL);
+
+	cheax_def_special_tail_form(c, "case", sf_case, NULL);
+	cheax_def_special_tail_form(c, "cond", sf_cond, NULL);
 }

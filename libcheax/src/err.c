@@ -304,11 +304,11 @@ bt_wrap(CHEAX *c, struct chx_value v)
  */
 
 static struct chx_value
-sf_throw(CHEAX *c, struct chx_list *args, void *info)
+bltn_throw(CHEAX *c, struct chx_list *args, void *info)
 {
 	chx_int code;
 	struct chx_value msg;
-	if (unpack(c, args, "x[s ]?", &code, &msg) < 0)
+	if (unpack(c, args, "X[S-]?", &code, &msg) < 0)
 		return cheax_nil();
 
 	if (code == 0)
@@ -577,7 +577,7 @@ export_error_names(CHEAX *c)
 void
 export_err_bltns(CHEAX *c)
 {
-	cheax_def_special_form(c, "throw",          sf_throw,          NULL);
+	cheax_defun(c, "throw", bltn_throw, NULL);
 	cheax_def_special_form(c, "try",            sf_try,            NULL);
 	cheax_def_special_form(c, "new-error-code", sf_new_error_code, NULL);
 

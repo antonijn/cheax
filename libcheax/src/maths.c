@@ -21,7 +21,7 @@
 #include "unpack.h"
 
 static struct chx_value
-sf_acos(CHEAX *c, struct chx_list *args, void *info)
+bltn_acos(CHEAX *c, struct chx_list *args, void *info)
 {
 	chx_double x;
 	if (unpack(c, args, "#", &x) < 0)
@@ -36,7 +36,7 @@ sf_acos(CHEAX *c, struct chx_list *args, void *info)
 }
 
 static struct chx_value
-sf_acosh(CHEAX *c, struct chx_list *args, void *info)
+bltn_acosh(CHEAX *c, struct chx_list *args, void *info)
 {
 	chx_double x;
 	if (unpack(c, args, "#", &x) < 0)
@@ -51,7 +51,7 @@ sf_acosh(CHEAX *c, struct chx_list *args, void *info)
 }
 
 static struct chx_value
-sf_asin(CHEAX *c, struct chx_list *args, void *info)
+bltn_asin(CHEAX *c, struct chx_list *args, void *info)
 {
 	chx_double x;
 	if (unpack(c, args, "#", &x) < 0)
@@ -66,7 +66,7 @@ sf_asin(CHEAX *c, struct chx_list *args, void *info)
 }
 
 static struct chx_value
-sf_asinh(CHEAX *c, struct chx_list *args, void *info)
+bltn_asinh(CHEAX *c, struct chx_list *args, void *info)
 {
 	chx_double x;
 	if (unpack(c, args, "#", &x) < 0)
@@ -76,7 +76,7 @@ sf_asinh(CHEAX *c, struct chx_list *args, void *info)
 }
 
 static struct chx_value
-sf_atan(CHEAX *c, struct chx_list *args, void *info)
+bltn_atan(CHEAX *c, struct chx_list *args, void *info)
 {
 	chx_double x;
 	if (unpack(c, args, "#", &x) < 0)
@@ -86,7 +86,7 @@ sf_atan(CHEAX *c, struct chx_list *args, void *info)
 }
 
 static struct chx_value
-sf_atan2(CHEAX *c, struct chx_list *args, void *info)
+bltn_atan2(CHEAX *c, struct chx_list *args, void *info)
 {
 	chx_double x, y;
 	if (unpack(c, args, "##", &x, &y) < 0)
@@ -96,7 +96,7 @@ sf_atan2(CHEAX *c, struct chx_list *args, void *info)
 }
 
 static struct chx_value
-sf_atanh(CHEAX *c, struct chx_list *args, void *info)
+bltn_atanh(CHEAX *c, struct chx_list *args, void *info)
 {
 	chx_double x;
 	if (unpack(c, args, "#", &x) < 0)
@@ -115,7 +115,7 @@ sf_atanh(CHEAX *c, struct chx_list *args, void *info)
 }
 
 static struct chx_value
-sf_cbrt(CHEAX *c, struct chx_list *args, void *info)
+bltn_cbrt(CHEAX *c, struct chx_list *args, void *info)
 {
 	chx_double x;
 	if (unpack(c, args, "#", &x) < 0)
@@ -125,7 +125,7 @@ sf_cbrt(CHEAX *c, struct chx_list *args, void *info)
 }
 
 static struct chx_value
-sf_ceil(CHEAX *c, struct chx_list *args, void *info)
+bltn_ceil(CHEAX *c, struct chx_list *args, void *info)
 {
 	chx_double x;
 	if (unpack(c, args, "#", &x) < 0)
@@ -135,7 +135,7 @@ sf_ceil(CHEAX *c, struct chx_list *args, void *info)
 }
 
 static struct chx_value
-sf_cos(CHEAX *c, struct chx_list *args, void *info)
+bltn_cos(CHEAX *c, struct chx_list *args, void *info)
 {
 	chx_double x;
 	if (unpack(c, args, "#", &x) < 0)
@@ -145,7 +145,7 @@ sf_cos(CHEAX *c, struct chx_list *args, void *info)
 }
 
 static struct chx_value
-sf_cosh(CHEAX *c, struct chx_list *args, void *info)
+bltn_cosh(CHEAX *c, struct chx_list *args, void *info)
 {
 	chx_double x;
 	if (unpack(c, args, "#", &x) < 0)
@@ -157,7 +157,7 @@ sf_cosh(CHEAX *c, struct chx_list *args, void *info)
 }
 
 static struct chx_value
-sf_erf(CHEAX *c, struct chx_list *args, void *info)
+bltn_erf(CHEAX *c, struct chx_list *args, void *info)
 {
 	chx_double x;
 	if (unpack(c, args, "#", &x) < 0)
@@ -172,7 +172,7 @@ sf_erf(CHEAX *c, struct chx_list *args, void *info)
 }
 
 static struct chx_value
-sf_exp(CHEAX *c, struct chx_list *args, void *info)
+bltn_exp(CHEAX *c, struct chx_list *args, void *info)
 {
 	chx_double x;
 	if (unpack(c, args, "#", &x) < 0)
@@ -184,7 +184,7 @@ sf_exp(CHEAX *c, struct chx_list *args, void *info)
 }
 
 static struct chx_value
-sf_expm1(CHEAX *c, struct chx_list *args, void *info)
+bltn_expm1(CHEAX *c, struct chx_list *args, void *info)
 {
 	chx_double x;
 	if (unpack(c, args, "#", &x) < 0)
@@ -196,7 +196,7 @@ sf_expm1(CHEAX *c, struct chx_list *args, void *info)
 }
 
 static struct chx_value
-sf_floor(CHEAX *c, struct chx_list *args, void *info)
+bltn_floor(CHEAX *c, struct chx_list *args, void *info)
 {
 	chx_double x;
 	if (unpack(c, args, "#", &x) < 0)
@@ -206,11 +206,11 @@ sf_floor(CHEAX *c, struct chx_list *args, void *info)
 }
 
 static struct chx_value
-sf_ldexp(CHEAX *c, struct chx_list *args, void *info)
+bltn_ldexp(CHEAX *c, struct chx_list *args, void *info)
 {
 	chx_double x;
 	chx_int e;
-	if (unpack(c, args, "#i", &x, &e) < 0)
+	if (unpack(c, args, "#I", &x, &e) < 0)
 		return cheax_nil();
 
 	/* TODO deal with ERANGE? */
@@ -219,7 +219,7 @@ sf_ldexp(CHEAX *c, struct chx_list *args, void *info)
 }
 
 static struct chx_value
-sf_lgamma(CHEAX *c, struct chx_list *args, void *info)
+bltn_lgamma(CHEAX *c, struct chx_list *args, void *info)
 {
 	chx_double x;
 	if (unpack(c, args, "#", &x) < 0)
@@ -234,7 +234,7 @@ sf_lgamma(CHEAX *c, struct chx_list *args, void *info)
 }
 
 static struct chx_value
-sf_log(CHEAX *c, struct chx_list *args, void *info)
+bltn_log(CHEAX *c, struct chx_list *args, void *info)
 {
 	chx_double x;
 	if (unpack(c, args, "#", &x) < 0)
@@ -253,7 +253,7 @@ sf_log(CHEAX *c, struct chx_list *args, void *info)
 }
 
 static struct chx_value
-sf_log10(CHEAX *c, struct chx_list *args, void *info)
+bltn_log10(CHEAX *c, struct chx_list *args, void *info)
 {
 	chx_double x;
 	if (unpack(c, args, "#", &x) < 0)
@@ -272,7 +272,7 @@ sf_log10(CHEAX *c, struct chx_list *args, void *info)
 }
 
 static struct chx_value
-sf_log1p(CHEAX *c, struct chx_list *args, void *info)
+bltn_log1p(CHEAX *c, struct chx_list *args, void *info)
 {
 	chx_double x;
 	if (unpack(c, args, "#", &x) < 0)
@@ -291,7 +291,7 @@ sf_log1p(CHEAX *c, struct chx_list *args, void *info)
 }
 
 static struct chx_value
-sf_log2(CHEAX *c, struct chx_list *args, void *info)
+bltn_log2(CHEAX *c, struct chx_list *args, void *info)
 {
 	chx_double x;
 	if (unpack(c, args, "#", &x) < 0)
@@ -310,7 +310,7 @@ sf_log2(CHEAX *c, struct chx_list *args, void *info)
 }
 
 static struct chx_value
-sf_nextafter(CHEAX *c, struct chx_list *args, void *info)
+bltn_nextafter(CHEAX *c, struct chx_list *args, void *info)
 {
 	chx_double x, y;
 	if (unpack(c, args, "##", &x, &y) < 0)
@@ -320,7 +320,7 @@ sf_nextafter(CHEAX *c, struct chx_list *args, void *info)
 }
 
 static struct chx_value
-sf_pow(CHEAX *c, struct chx_list *args, void *info)
+bltn_pow(CHEAX *c, struct chx_list *args, void *info)
 {
 	chx_double x, y;
 	if (unpack(c, args, "##", &x, &y) < 0)
@@ -339,7 +339,7 @@ sf_pow(CHEAX *c, struct chx_list *args, void *info)
 }
 
 static struct chx_value
-sf_round(CHEAX *c, struct chx_list *args, void *info)
+bltn_round(CHEAX *c, struct chx_list *args, void *info)
 {
 	chx_double x;
 	if (unpack(c, args, "#", &x) < 0)
@@ -349,7 +349,7 @@ sf_round(CHEAX *c, struct chx_list *args, void *info)
 }
 
 static struct chx_value
-sf_sin(CHEAX *c, struct chx_list *args, void *info)
+bltn_sin(CHEAX *c, struct chx_list *args, void *info)
 {
 	chx_double x;
 	if (unpack(c, args, "#", &x) < 0)
@@ -359,7 +359,7 @@ sf_sin(CHEAX *c, struct chx_list *args, void *info)
 }
 
 static struct chx_value
-sf_sinh(CHEAX *c, struct chx_list *args, void *info)
+bltn_sinh(CHEAX *c, struct chx_list *args, void *info)
 {
 	chx_double x;
 	if (unpack(c, args, "#", &x) < 0)
@@ -369,7 +369,7 @@ sf_sinh(CHEAX *c, struct chx_list *args, void *info)
 }
 
 static struct chx_value
-sf_sqrt(CHEAX *c, struct chx_list *args, void *info)
+bltn_sqrt(CHEAX *c, struct chx_list *args, void *info)
 {
 	chx_double x;
 	if (unpack(c, args, "#", &x) < 0)
@@ -384,7 +384,7 @@ sf_sqrt(CHEAX *c, struct chx_list *args, void *info)
 }
 
 static struct chx_value
-sf_tan(CHEAX *c, struct chx_list *args, void *info)
+bltn_tan(CHEAX *c, struct chx_list *args, void *info)
 {
 	chx_double x;
 	if (unpack(c, args, "#", &x) < 0)
@@ -399,7 +399,7 @@ sf_tan(CHEAX *c, struct chx_list *args, void *info)
 }
 
 static struct chx_value
-sf_tanh(CHEAX *c, struct chx_list *args, void *info)
+bltn_tanh(CHEAX *c, struct chx_list *args, void *info)
 {
 	chx_double x;
 	if (unpack(c, args, "#", &x) < 0)
@@ -409,7 +409,7 @@ sf_tanh(CHEAX *c, struct chx_list *args, void *info)
 }
 
 static struct chx_value
-sf_tgamma(CHEAX *c, struct chx_list *args, void *info)
+bltn_tgamma(CHEAX *c, struct chx_list *args, void *info)
 {
 	chx_double x;
 	if (unpack(c, args, "#", &x) < 0)
@@ -428,7 +428,7 @@ sf_tgamma(CHEAX *c, struct chx_list *args, void *info)
 }
 
 static struct chx_value
-sf_trunc(CHEAX *c, struct chx_list *args, void *info)
+bltn_trunc(CHEAX *c, struct chx_list *args, void *info)
 {
 	chx_double x;
 	if (unpack(c, args, "#", &x) < 0)
@@ -440,37 +440,37 @@ sf_trunc(CHEAX *c, struct chx_list *args, void *info)
 void
 export_math_bltns(CHEAX *c)
 {
-	cheax_def_special_form(c, "acos",      sf_acos,      NULL);
-	cheax_def_special_form(c, "acosh",     sf_acosh,     NULL);
-	cheax_def_special_form(c, "asin",      sf_asin,      NULL);
-	cheax_def_special_form(c, "asinh",     sf_asinh,     NULL);
-	cheax_def_special_form(c, "atan",      sf_atan,      NULL);
-	cheax_def_special_form(c, "atan2",     sf_atan2,     NULL);
-	cheax_def_special_form(c, "atanh",     sf_atanh,     NULL);
-	cheax_def_special_form(c, "cbrt",      sf_cbrt,      NULL);
-	cheax_def_special_form(c, "ceil",      sf_ceil,      NULL);
-	cheax_def_special_form(c, "cos",       sf_cos,       NULL);
-	cheax_def_special_form(c, "cosh",      sf_cosh,      NULL);
-	cheax_def_special_form(c, "erf",       sf_erf,       NULL);
-	cheax_def_special_form(c, "exp",       sf_exp,       NULL);
-	cheax_def_special_form(c, "expm1",     sf_expm1,     NULL);
-	cheax_def_special_form(c, "floor",     sf_floor,     NULL);
-	cheax_def_special_form(c, "ldexp",     sf_ldexp,     NULL);
-	cheax_def_special_form(c, "lgamma",    sf_lgamma,    NULL);
-	cheax_def_special_form(c, "log",       sf_log,       NULL);
-	cheax_def_special_form(c, "log10",     sf_log10,     NULL);
-	cheax_def_special_form(c, "log1p",     sf_log1p,     NULL);
-	cheax_def_special_form(c, "log2",      sf_log2,      NULL);
-	cheax_def_special_form(c, "nextafter", sf_nextafter, NULL);
-	cheax_def_special_form(c, "pow",       sf_pow,       NULL);
-	cheax_def_special_form(c, "round",     sf_round,     NULL);
-	cheax_def_special_form(c, "sin",       sf_sin,       NULL);
-	cheax_def_special_form(c, "sinh",      sf_sinh,      NULL);
-	cheax_def_special_form(c, "sqrt",      sf_sqrt,      NULL);
-	cheax_def_special_form(c, "tan",       sf_tan,       NULL);
-	cheax_def_special_form(c, "tanh",      sf_tanh,      NULL);
-	cheax_def_special_form(c, "tgamma",    sf_tgamma,    NULL);
-	cheax_def_special_form(c, "trunc",     sf_trunc,     NULL);
+	cheax_defun(c, "acos",      bltn_acos,      NULL);
+	cheax_defun(c, "acosh",     bltn_acosh,     NULL);
+	cheax_defun(c, "asin",      bltn_asin,      NULL);
+	cheax_defun(c, "asinh",     bltn_asinh,     NULL);
+	cheax_defun(c, "atan",      bltn_atan,      NULL);
+	cheax_defun(c, "atan2",     bltn_atan2,     NULL);
+	cheax_defun(c, "atanh",     bltn_atanh,     NULL);
+	cheax_defun(c, "cbrt",      bltn_cbrt,      NULL);
+	cheax_defun(c, "ceil",      bltn_ceil,      NULL);
+	cheax_defun(c, "cos",       bltn_cos,       NULL);
+	cheax_defun(c, "cosh",      bltn_cosh,      NULL);
+	cheax_defun(c, "erf",       bltn_erf,       NULL);
+	cheax_defun(c, "exp",       bltn_exp,       NULL);
+	cheax_defun(c, "expm1",     bltn_expm1,     NULL);
+	cheax_defun(c, "floor",     bltn_floor,     NULL);
+	cheax_defun(c, "ldexp",     bltn_ldexp,     NULL);
+	cheax_defun(c, "lgamma",    bltn_lgamma,    NULL);
+	cheax_defun(c, "log",       bltn_log,       NULL);
+	cheax_defun(c, "log10",     bltn_log10,     NULL);
+	cheax_defun(c, "log1p",     bltn_log1p,     NULL);
+	cheax_defun(c, "log2",      bltn_log2,      NULL);
+	cheax_defun(c, "nextafter", bltn_nextafter, NULL);
+	cheax_defun(c, "pow",       bltn_pow,       NULL);
+	cheax_defun(c, "round",     bltn_round,     NULL);
+	cheax_defun(c, "sin",       bltn_sin,       NULL);
+	cheax_defun(c, "sinh",      bltn_sinh,      NULL);
+	cheax_defun(c, "sqrt",      bltn_sqrt,      NULL);
+	cheax_defun(c, "tan",       bltn_tan,       NULL);
+	cheax_defun(c, "tanh",      bltn_tanh,      NULL);
+	cheax_defun(c, "tgamma",    bltn_tgamma,    NULL);
+	cheax_defun(c, "trunc",     bltn_trunc,     NULL);
 
 	cheax_def(c, "pi",   cheax_double(M_PI),      CHEAX_READONLY);
 	cheax_def(c, "nan",  cheax_double(+NAN),      CHEAX_READONLY);

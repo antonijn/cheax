@@ -195,10 +195,10 @@ throw_io_error(CHEAX *c)
 }
 
 static struct chx_value
-sf_fopen(CHEAX *c, struct chx_list *args, void *info)
+bltn_fopen(CHEAX *c, struct chx_list *args, void *info)
 {
 	struct chx_string *fname_val, *mode_val;
-	if (unpack(c, args, "ss", &fname_val, &mode_val) < 0)
+	if (unpack(c, args, "SS", &fname_val, &mode_val) < 0)
 		return cheax_nil();
 
 	int prev_errno = errno;
@@ -237,37 +237,37 @@ pad:
 }
 
 static struct chx_value
-sf_fclose(CHEAX *c, struct chx_list *args, void *info)
+bltn_fclose(CHEAX *c, struct chx_list *args, void *info)
 {
 	FILE *f;
-	if (0 == unpack(c, args, "f", &f))
+	if (0 == unpack(c, args, "F", &f))
 		fclose(f);
 	return cheax_nil();
 }
 
 static struct chx_value
-sf_eof(CHEAX *c, struct chx_list *args, void *info)
+bltn_eof(CHEAX *c, struct chx_list *args, void *info)
 {
 	FILE *f;
-	return (0 == unpack(c, args, "f", &f))
+	return (0 == unpack(c, args, "F", &f))
 	     ? cheax_bool(feof(f))
 	     : cheax_nil();
 }
 
 static struct chx_value
-sf_read_from(CHEAX *c, struct chx_list *args, void *info)
+bltn_read_from(CHEAX *c, struct chx_list *args, void *info)
 {
 	FILE *f;
-	return (0 == unpack(c, args, "f", &f))
+	return (0 == unpack(c, args, "F", &f))
 	     ? bt_wrap(c, cheax_read(c, f))
 	     : cheax_nil();
 }
 
 static struct chx_value
-sf_read_string(CHEAX *c, struct chx_list *args, void *info)
+bltn_read_string(CHEAX *c, struct chx_list *args, void *info)
 {
 	struct chx_string *s;
-	if (unpack(c, args, "s", &s) < 0)
+	if (unpack(c, args, "S", &s) < 0)
 		return cheax_nil();
 
 	char *cstr = cheax_strdup(s);
@@ -279,30 +279,30 @@ sf_read_string(CHEAX *c, struct chx_list *args, void *info)
 }
 
 static struct chx_value
-sf_print_to(CHEAX *c, struct chx_list *args, void *info)
+bltn_print_to(CHEAX *c, struct chx_list *args, void *info)
 {
 	FILE *f;
 	struct chx_value v;
-	if (0 == unpack(c, args, "f.", &f, &v))
+	if (0 == unpack(c, args, "F_", &f, &v))
 		cheax_print(c, f, v);
 	return cheax_nil();
 }
 
 static struct chx_value
-sf_put_to(CHEAX *c, struct chx_list *args, void *info)
+bltn_put_to(CHEAX *c, struct chx_list *args, void *info)
 {
 	FILE *f;
 	struct chx_string *s;
-	if (0 == unpack(c, args, "fs", &f, &s))
+	if (0 == unpack(c, args, "FS", &f, &s))
 		fwrite(s->value, 1, s->len, f);
 	return cheax_nil();
 }
 
 static struct chx_value
-sf_get_byte_from(CHEAX *c, struct chx_list *args, void *info)
+bltn_get_byte_from(CHEAX *c, struct chx_list *args, void *info)
 {
 	FILE *f;
-	if (unpack(c, args, "f", &f) < 0)
+	if (unpack(c, args, "F", &f) < 0)
 		return cheax_nil();
 
 	int ch = fgetc(f);
@@ -310,14 +310,14 @@ sf_get_byte_from(CHEAX *c, struct chx_list *args, void *info)
 }
 
 static struct chx_value
-sf_get_line_from(CHEAX *c, struct chx_list *args, void *info)
+bltn_get_line_from(CHEAX *c, struct chx_list *args, void *info)
 {
 	/*
 	 * This could all be implemented in the prelude, but for the
 	 * sake of performance it's done here.
 	 */
 	FILE *f;
-	if (unpack(c, args, "f", &f) < 0)
+	if (unpack(c, args, "F", &f) < 0)
 		return cheax_nil();
 
 	struct chx_value res = cheax_nil();
@@ -343,8 +343,8 @@ void
 load_io_feature(CHEAX *c, int bits)
 {
 	if (has_flag(bits, FILE_IO)) {
-		cheax_def_special_form(c, "fopen", sf_fopen, NULL);
-		cheax_def_special_form(c, "fclose", sf_fclose, NULL);
+		cheax_defun(c, "fopen", bltn_fopen, NULL);
+		cheax_defun(c, "fclose", bltn_fclose, NULL);
 	}
 
 	if (has_flag(bits, EXPOSE_STDIN)) {
@@ -371,11 +371,11 @@ export_io_bltns(CHEAX *c)
 {
 	c->fhandle_type = cheax_new_type(c, "FileHandle", CHEAX_USER_PTR);
 
-	cheax_def_special_form(c, "eof?",          sf_eof,           NULL);
-	cheax_def_special_form(c, "read-from",     sf_read_from,     NULL);
-	cheax_def_special_form(c, "read-string",   sf_read_string,   NULL);
-	cheax_def_special_form(c, "print-to",      sf_print_to,      NULL);
-	cheax_def_special_form(c, "put-to",        sf_put_to,        NULL);
-	cheax_def_special_form(c, "get-byte-from", sf_get_byte_from, NULL);
-	cheax_def_special_form(c, "get-line-from", sf_get_line_from, NULL);
+	cheax_defun(c, "eof?",          bltn_eof,           NULL);
+	cheax_defun(c, "read-from",     bltn_read_from,     NULL);
+	cheax_defun(c, "read-string",   bltn_read_string,   NULL);
+	cheax_defun(c, "print-to",      bltn_print_to,      NULL);
+	cheax_defun(c, "put-to",        bltn_put_to,        NULL);
+	cheax_defun(c, "get-byte-from", bltn_get_byte_from, NULL);
+	cheax_defun(c, "get-line-from", bltn_get_line_from, NULL);
 }

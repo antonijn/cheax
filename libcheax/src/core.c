@@ -631,51 +631,6 @@ cheax_load_prelude(CHEAX *c)
  */
 
 static struct chx_value
-prepend(CHEAX *c, struct chx_list *args)
-{
-	if (args->next != NULL) {
-		struct chx_value head = cheax_eval(c, args->value);
-		cheax_ft(c, pad);
-		chx_ref head_ref = cheax_ref(c, head);
-		struct chx_value tail = prepend(c, args->next);
-		cheax_unref(c, head, head_ref);
-		cheax_ft(c, pad);
-		return cheax_list(c, head, tail.data.as_list);
-	}
-
-	struct chx_value res = cheax_eval(c, args->value);
-	cheax_ft(c, pad);
-	if (res.type != CHEAX_LIST) {
-		cheax_throwf(c, CHEAX_ETYPE, "improper list not allowed");
-		return cheax_nil();
-	}
-
-	return res;
-pad:
-	return cheax_nil();
-}
-
-static struct chx_value
-sf_prepend(CHEAX *c, struct chx_list *args, void *info)
-{
-	if (args == NULL) {
-		cheax_throwf(c, CHEAX_EMATCH, "expected at least one argument");
-		return bt_wrap(c, cheax_nil());
-	}
-
-	return bt_wrap(c, prepend(c, args));
-}
-
-static struct chx_value
-sf_type_of(CHEAX *c, struct chx_list *args, void *info)
-{
-	struct chx_value val;
-	return (0 == unpack(c, args, ".", &val))
-	     ? bt_wrap(c, typecode(val.type))
-	     : cheax_nil();
-}
-
-static struct chx_value
 create_func(CHEAX *c,
             const char *name,
             struct chx_list *args,
@@ -718,11 +673,51 @@ sf_macro(CHEAX *c, struct chx_list *args, void *info)
 	return bt_wrap(c, create_func(c, "macro", args, CHEAX_MACRO));
 }
 
+static struct chx_list *
+prepend(CHEAX *c, struct chx_list *args)
+{
+	if (args->next != NULL) {
+		struct chx_list *tail = prepend(c, args->next);
+		cheax_ft(c, pad);
+		return cheax_list(c, args->value, tail).data.as_list;
+	}
+
+	struct chx_value res = args->value;
+	if (res.type != CHEAX_LIST) {
+		cheax_throwf(c, CHEAX_ETYPE, "improper list not allowed");
+		return NULL;
+	}
+
+	return res.data.as_list;
+pad:
+	return NULL;
+}
+
 static struct chx_value
-sf_string_bytes(CHEAX *c, struct chx_list *args, void *info)
+bltn_prepend(CHEAX *c, struct chx_list *args, void *info)
+{
+	if (args == NULL) {
+		cheax_throwf(c, CHEAX_EMATCH, "expected at least one argument");
+		return bt_wrap(c, cheax_nil());
+	}
+
+	return bt_wrap(c, cheax_list_value(prepend(c, args)));
+}
+
+static struct chx_value
+bltn_type_of(CHEAX *c, struct chx_list *args, void *info)
+{
+	struct chx_value val;
+	return (0 == unpack(c, args, "_", &val))
+	     ? bt_wrap(c, typecode(val.type))
+	     : cheax_nil();
+}
+
+static struct chx_value
+bltn_string_bytes(CHEAX *c, struct chx_list *args, void *info)
 {
 	struct chx_string *str;
-	if (unpack(c, args, "s", &str) < 0)
+	if (unpack(c, args, "S", &str) < 0)
 		return cheax_nil();
 
 	struct chx_value bytes = cheax_nil();
@@ -732,21 +727,21 @@ sf_string_bytes(CHEAX *c, struct chx_list *args, void *info)
 }
 
 static struct chx_value
-sf_string_length(CHEAX *c, struct chx_list *args, void *info)
+bltn_string_length(CHEAX *c, struct chx_list *args, void *info)
 {
 	struct chx_string *str;
-	return (0 == unpack(c, args, "s", &str))
+	return (0 == unpack(c, args, "S", &str))
 	     ? bt_wrap(c, cheax_int((chx_int)str->len))
 	     : cheax_nil();
 }
 
 static struct chx_value
-sf_substr(CHEAX *c, struct chx_list *args, void *info)
+bltn_substr(CHEAX *c, struct chx_list *args, void *info)
 {
 	struct chx_string *str;
 	chx_int pos, len = 0;
 	struct chx_value len_or_nil;
-	if (unpack(c, args, "sii?", &str, &pos, &len_or_nil) < 0)
+	if (unpack(c, args, "SII?", &str, &pos, &len_or_nil) < 0)
 		return cheax_nil();
 
 	if (!cheax_is_nil(len_or_nil))
@@ -765,13 +760,14 @@ sf_substr(CHEAX *c, struct chx_list *args, void *info)
 void
 export_core_bltns(CHEAX *c)
 {
-	cheax_def_special_form(c, ":",             sf_prepend,       NULL);
-	cheax_def_special_form(c, "type-of",       sf_type_of,       NULL);
-	cheax_def_special_form(c, "fn",            sf_fn,            NULL);
-	cheax_def_special_form(c, "macro",         sf_macro,         NULL);
-	cheax_def_special_form(c, "string-bytes",  sf_string_bytes,  NULL);
-	cheax_def_special_form(c, "string-length", sf_string_length, NULL);
-	cheax_def_special_form(c, "substr",        sf_substr,        NULL);
+	cheax_def_special_form(c, "fn",    sf_fn,    NULL);
+	cheax_def_special_form(c, "macro", sf_macro, NULL);
+
+	cheax_defun(c, ":",             bltn_prepend,       NULL);
+	cheax_defun(c, "type-of",       bltn_type_of,       NULL);
+	cheax_defun(c, "string-bytes",  bltn_string_bytes,  NULL);
+	cheax_defun(c, "string-length", bltn_string_length, NULL);
+	cheax_defun(c, "substr",        bltn_substr,        NULL);
 
 	cheax_def(c, "cheax-version", cheax_string(c, cheax_version()), CHEAX_READONLY);
 }

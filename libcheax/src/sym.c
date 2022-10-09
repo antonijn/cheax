@@ -755,7 +755,7 @@ sf_set(CHEAX *c, struct chx_list *args, void *info)
 }
 
 static struct chx_value
-sf_env(CHEAX *c, struct chx_list *args, void *info)
+bltn_env(CHEAX *c, struct chx_list *args, void *info)
 {
 	return (0 == unpack(c, args, ""))
 	     ? cheax_env(c)
@@ -770,5 +770,5 @@ export_sym_bltns(CHEAX *c)
 	cheax_def_special_form(c, "def",     sf_def,    NULL);
 	cheax_def_special_tail_form(c, "let", sf_let,    NULL);
 	cheax_def_special_form(c, "set",     sf_set,    NULL);
-	cheax_def_special_form(c, "env",     sf_env,    NULL);
+	cheax_defun(c, "env", bltn_env, NULL);
 }
