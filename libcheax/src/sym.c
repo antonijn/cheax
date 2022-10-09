@@ -509,6 +509,7 @@ cheax_sync_nstring(CHEAX *c, const char *name, char *buf, size_t size, int flags
 
 struct defsym_info {
 	struct chx_func *get, *set;
+	chx_ref get_ref, set_ref;
 };
 
 static void
@@ -516,7 +517,8 @@ defgetset(CHEAX *c, const char *name,
           struct chx_value getset_args,
           struct chx_list *args,
           struct defsym_info *info,
-          struct chx_func **out)
+          struct chx_func **out,
+          chx_ref *ref_out)
 {
 	if (info == NULL) {
 		cheax_throwf(c, CHEAX_EEVAL, "out of symbol scope");
@@ -538,6 +540,7 @@ defgetset(CHEAX *c, const char *name,
 		res->args = getset_args;
 		res->body = args;
 		res->lexenv = cheax_env(c).data.as_env;
+		*ref_out = cheax_ref_ptr(c, res);
 	}
 	*out = res;
 }
@@ -546,7 +549,7 @@ static struct chx_value
 sf_defget(CHEAX *c, struct chx_list *args, void *info)
 {
 	struct defsym_info *dinfo = info;
-	defgetset(c, "defget", cheax_nil(), args, dinfo, &dinfo->get);
+	defgetset(c, "defget", cheax_nil(), args, dinfo, &dinfo->get, &dinfo->get_ref);
 	return bt_wrap(c, cheax_nil());
 }
 static struct chx_value
@@ -557,7 +560,7 @@ sf_defset(CHEAX *c, struct chx_list *args, void *info)
 	static struct chx_value set_args_val = { .type = CHEAX_LIST, .data = { .as_list = &set_args } };
 
 	struct defsym_info *dinfo = info;
-	defgetset(c, "defset", set_args_val, args, dinfo, &dinfo->set);
+	defgetset(c, "defset", set_args_val, args, dinfo, &dinfo->set, &dinfo->set_ref);
 	return bt_wrap(c, cheax_nil());
 }
 
@@ -625,6 +628,11 @@ sf_defsym(CHEAX *c, struct chx_list *args, void *info)
 
 	body_ok = add_bt = true;
 pad:
+	if (dinfo->get != NULL)
+		cheax_unref_ptr(c, dinfo->get, dinfo->get_ref);
+	if (dinfo->set != NULL)
+		cheax_unref_ptr(c, dinfo->set, dinfo->set_ref);
+
 	defget.data.as_form->info = defset.data.as_form->info = NULL;
 	cheax_pop_env(c);
 
