@@ -98,7 +98,7 @@ struct chx_value {
 		struct chx_string *as_string;
 		struct chx_quote *as_quote;
 		struct chx_func *as_func;
-		struct chx_form *as_special_form;
+		struct chx_form *as_form;
 		struct chx_env *as_env;
 		void *user_ptr;
 
@@ -112,7 +112,7 @@ struct chx_value {
 		struct chx_string *as_string;
 		struct chx_quote *as_quote;
 		struct chx_func *as_func;
-		struct chx_form *as_special_form;
+		struct chx_form *as_form;
 		struct chx_env *as_env;
 		void *user_ptr;
 
@@ -219,7 +219,7 @@ CHX_API struct chx_value cheax_list_value_proc(struct chx_list *list);
  *
  * Lambdas cannot be constructed by the C API.
  *
- * \sa CHEAX_FUNC, CHEAX_MACRO, chx_special_form, cheax_special_form()
+ * \sa CHEAX_FUNC, CHEAX_MACRO, chx_form, cheax_special_form()
  */
 struct chx_func {
 	unsigned rtflags;
@@ -245,7 +245,8 @@ CHX_API struct chx_value cheax_macro_value_proc(struct chx_func *macro);
  *
  * \returns The function's return value to be delivered back to cheax.
  *
- * \sa chx_special_form, cheax_special_form(), cheax_def_special_form()
+ * \sa chx_form, cheax_special_form(), cheax_def_special_form(),
+ *     cheax_ext_func(), cheax_defun()
  */
 typedef struct chx_value (*chx_func_ptr)(CHEAX *c, struct chx_list *args, void *info);
 
@@ -283,6 +284,27 @@ struct chx_form {
 
 /*! \brief Creates a cheax external/user function expression.
  *
+ * External functions, unlike special forms, have their arguments
+ * pre-evaluated.
+ *
+ * \param c       Virtual machine instance.
+ * \param perform Function pointer to be invoked.
+ * \param name    Function name as will be used by cheax_print().
+ * \param info    Callback info to be passed upon invocation.
+ */
+CHX_API struct chx_value cheax_ext_func(CHEAX *c,
+                                        const char *name,
+                                        chx_func_ptr perform,
+                                        void *info);
+
+#define cheax_ext_func_value(X) ((struct chx_value){ .type = CHEAX_EXT_FUNC, .data.as_form = (X) })
+CHX_API struct chx_value cheax_ext_func_value_proc(struct chx_form *sf);
+
+/*! \brief Creates a cheax special form.
+ *
+ * Special forms, unlike external functions, do not have their arguments
+ * pre-evaluated.
+ *
  * \param c       Virtual machine instance.
  * \param perform Function pointer to be invoked.
  * \param name    Function name as will be used by cheax_print().
@@ -293,7 +315,7 @@ CHX_API struct chx_value cheax_special_form(CHEAX *c,
                                             chx_func_ptr perform,
                                             void *info);
 
-#define cheax_special_form_value(X) ((struct chx_value){ .type = CHEAX_SPECIAL_FORM, .data.as_special_form = (X) })
+#define cheax_special_form_value(X) ((struct chx_value){ .type = CHEAX_SPECIAL_FORM, .data.as_form = (X) })
 CHX_API struct chx_value cheax_special_form_value_proc(struct chx_form *sf);
 
 CHX_API struct chx_value cheax_special_tail_form(CHEAX *c,
@@ -301,7 +323,7 @@ CHX_API struct chx_value cheax_special_tail_form(CHEAX *c,
                                                  chx_tail_func_ptr perform,
                                                  void *info);
 
-#define cheax_special_tail_form_value(X) ((struct chx_value){ .type = CHEAX_SPECIAL_TAIL_FORM, .data.as_special_form = (X) })
+#define cheax_special_tail_form_value(X) ((struct chx_value){ .type = CHEAX_SPECIAL_TAIL_FORM, .data.as_form = (X) })
 CHX_API struct chx_value cheax_special_tail_form_value_proc(struct chx_form *sf);
 
 /*! \brief Creates a quoted cheax expression.
@@ -901,6 +923,23 @@ CHX_API struct chx_value cheax_get_from(CHEAX *c, struct chx_env *env, const cha
  */
 CHX_API void cheax_set(CHEAX *c, const char *id, struct chx_value value);
 
+/*! \brief Shorthand function to declare an external function the cheax
+ *         environment.
+ *
+ * Shorthand for:
+\code{.c}
+cheax_def(c, id, &cheax_ext_func(c, id, perform, info)->base, CHEAX_READONLY);
+\endcode
+ *
+ * \param c       Virtual machine instance.
+ * \param id      Identifier for the external functions.
+ * \param perform Callback for the new external functions.
+ * \param info    Callback info for the new external functions.
+ *
+ * \sa chx_form, cheax_ext_func(), cheax_def(), cheax_def_special_form()
+ */
+CHX_API void cheax_defun(CHEAX *c, const char *id, chx_func_ptr perform, void *info);
+
 /*! \brief Shorthand function to declare a special form the cheax
  *         environment.
  *
@@ -914,7 +953,7 @@ cheax_def(c, id, &cheax_special_form(c, id, perform, info)->base, CHEAX_READONLY
  * \param perform Callback for the new special form.
  * \param info    Callback info for the new special form.
  *
- * \sa chx_special_form, cheax_special_form(), cheax_def()
+ * \sa chx_form, cheax_special_form(), cheax_def(), cheax_defun()
  */
 CHX_API void cheax_def_special_form(CHEAX *c, const char *id, chx_func_ptr perform, void *info);
 CHX_API void cheax_def_special_tail_form(CHEAX *c,

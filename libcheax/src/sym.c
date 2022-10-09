@@ -270,6 +270,11 @@ cheax_def(CHEAX *c, const char *id, struct chx_value value, int flags)
 }
 
 void
+cheax_defun(CHEAX *c, const char *id, chx_func_ptr perform, void *info)
+{
+	cheax_def(c, id, cheax_ext_func(c, id, perform, info), CHEAX_READONLY);
+}
+void
 cheax_def_special_form(CHEAX *c, const char *id, chx_func_ptr perform, void *info)
 {
 	cheax_def(c, id, cheax_special_form(c, id, perform, info), CHEAX_READONLY);
@@ -619,7 +624,7 @@ sf_defsym(CHEAX *c, struct chx_list *args, void *info)
 
 	body_ok = add_bt = true;
 pad:
-	defget.data.as_special_form->info = defset.data.as_special_form->info = NULL;
+	defget.data.as_form->info = defset.data.as_form->info = NULL;
 	cheax_pop_env(c);
 
 	if (!body_ok)

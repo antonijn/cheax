@@ -234,17 +234,17 @@ eval_sexpr(CHEAX *c, struct chx_list *input, struct chx_env *pop_stop, union chx
 
 	switch (head.type) {
 	case CHEAX_SPECIAL_FORM:
-		out->value = head.data.as_special_form->perform.func(c,
-		                                                     args,
-		                                                     head.data.as_special_form->info);
+		out->value = head.data.as_form->perform.func(c,
+		                                             args,
+		                                             head.data.as_form->info);
 		res = CHEAX_VALUE_OUT;
 		break;
 	case CHEAX_SPECIAL_TAIL_FORM:
-		res = head.data.as_special_form->perform.tail_func(c,
-		                                                   args,
-		                                                   head.data.as_special_form->info,
-		                                                   pop_stop,
-		                                                   out);
+		res = head.data.as_form->perform.tail_func(c,
+		                                           args,
+		                                           head.data.as_form->info,
+		                                           pop_stop,
+		                                           out);
 		break;
 
 	case CHEAX_FUNC:
@@ -530,17 +530,17 @@ apply_func_evaluator(CHEAX *c, void *input_info, struct chx_env *pop_stop, union
 	int res;
 	switch (func.type) {
 	case CHEAX_SPECIAL_FORM:
-		out->value = func.data.as_special_form->perform.func(c,
-		                                                     args,
-		                                                     func.data.as_special_form->info);
+		out->value = func.data.as_form->perform.func(c,
+		                                             args,
+		                                             func.data.as_form->info);
 		res = CHEAX_VALUE_OUT;
 		break;
 	case CHEAX_SPECIAL_TAIL_FORM:
-		res = func.data.as_special_form->perform.tail_func(c,
-		                                                   args,
-		                                                   func.data.as_special_form->info,
-		                                                   pop_stop,
-		                                                   out);
+		res = func.data.as_form->perform.tail_func(c,
+		                                           args,
+		                                           func.data.as_form->info,
+		                                           pop_stop,
+		                                           out);
 		break;
 
 	case CHEAX_FUNC:
@@ -778,8 +778,8 @@ cheax_eq(CHEAX *c, struct chx_value l, struct chx_value r)
 		return list_eq(c, l.data.as_list, r.data.as_list);
 	case CHEAX_SPECIAL_FORM:
 	case CHEAX_SPECIAL_TAIL_FORM:
-		return (l.data.as_special_form->perform.func == r.data.as_special_form->perform.func)
-		    && (l.data.as_special_form->info == r.data.as_special_form->info);
+		return (l.data.as_form->perform.func == r.data.as_form->perform.func)
+		    && (l.data.as_form->info == r.data.as_form->info);
 	case CHEAX_QUOTE:
 	case CHEAX_BACKQUOTE:
 	case CHEAX_COMMA:

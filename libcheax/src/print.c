@@ -109,7 +109,7 @@ ostrm_show_basic(CHEAX *c, struct ostrm *s, struct chx_value val)
 		break;
 	case CHEAX_SPECIAL_FORM:
 	case CHEAX_SPECIAL_TAIL_FORM:
-		macro = val.data.as_special_form;
+		macro = val.data.as_form;
 		if (macro->name == NULL)
 			ostrm_printf(s, "[built-in function]");
 		else
