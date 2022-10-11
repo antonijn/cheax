@@ -35,7 +35,7 @@ struct gc_header {
 struct gc_info {
 	struct gc_header_node objects;
 	size_t all_mem, prev_run, num_objects;
-	bool lock;
+	bool lock, triggered;
 };
 
 typedef void (*chx_fin)(void *obj, void *info);

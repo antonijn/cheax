@@ -79,6 +79,17 @@ set_gen_debug_info(CHEAX *c, bool value)
 	c->gen_debug_info = value;
 }
 
+static bool
+get_hyper_gc(CHEAX *c)
+{
+	return c->hyper_gc;
+}
+static void
+set_hyper_gc(CHEAX *c, bool value)
+{
+	c->hyper_gc = value;
+}
+
 static int
 get_stack_limit(CHEAX *c)
 {
@@ -140,6 +151,13 @@ static struct config_info opts[] = {
 		{ .set_bool = set_gen_debug_info },
 		"Generate debug info when reading S-expressions to "
 		"improve backtrace readability."
+	},
+	{
+		"hyperactive-gc", CHEAX_BOOL, "<true|false>",
+		{ .get_bool = get_hyper_gc },
+		{ .set_bool = set_hyper_gc },
+		"Run GC at every opportunity. For debugging purposes "
+		"only."
 	},
 	{
 		"mem-limit", CHEAX_INT, "N",

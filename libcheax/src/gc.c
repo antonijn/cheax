@@ -87,6 +87,12 @@ claim_mem(CHEAX *c, alloc_ptr ptr, size_t total_size, size_t unclaim)
 {
 	ptr->size = total_size;
 	c->gc.all_mem = c->gc.all_mem - unclaim + total_size;
+
+	size_t mem = c->gc.all_mem, prev_mem = c->gc.prev_run;
+	c->gc.triggered = c->gc.triggered
+	               || (mem > prev_mem && mem - prev_mem >= GC_RUN_THRESHOLD)
+	               || (c->mem_limit > 256 && mem > (size_t)(c->mem_limit - 256));
+
 	return &ptr->obj;
 }
 
@@ -110,6 +116,12 @@ static void *
 claim_mem(CHEAX *c, alloc_ptr ptr, size_t total_size, size_t unclaim)
 {
 	c->gc.all_mem = c->gc.all_mem - unclaim + MSIZE(ptr);
+
+	size_t mem = c->gc.all_mem, prev_mem = c->gc.prev_run;
+	c->gc.triggered = c->gc.triggered
+	               || (mem > prev_mem && mem - prev_mem >= GC_RUN_THRESHOLD)
+	               || (c->mem_limit > 256 && mem > (size_t)(c->mem_limit - 256));
+
 	return ptr;
 }
 #endif
@@ -236,7 +248,7 @@ gc_init(CHEAX *c)
 	c->gc.objects.prev = c->gc.objects.next = &c->gc.objects;
 
 	c->gc.all_mem = c->gc.prev_run = c->gc.num_objects = 0;
-	c->gc.lock = false;
+	c->gc.lock = c->gc.triggered = false;
 }
 
 /* sets GC_MARKED bit for all reachable objects */
@@ -428,12 +440,8 @@ mark_obj(CHEAX *c, struct chx_value used)
 void
 cheax_gc(CHEAX *c)
 {
-	size_t mem = c->gc.all_mem, prev = c->gc.prev_run;
-	if ((mem > prev && mem - prev >= GC_RUN_THRESHOLD)
-	 || (c->mem_limit > 256 && mem > (size_t)(c->mem_limit - 256)))
-	{
+	if (c->gc.triggered || c->hyper_gc)
 		cheax_force_gc(c);
-	}
 }
 
 static void
@@ -484,7 +492,7 @@ cheax_force_gc(CHEAX *c)
 	sweep(c);
 
 	c->gc.prev_run = c->gc.all_mem;
-	c->gc.lock = false;
+	c->gc.lock = c->gc.triggered = false;
 }
 
 chx_ref

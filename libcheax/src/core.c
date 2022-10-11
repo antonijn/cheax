@@ -333,6 +333,7 @@ cheax_init(void)
 	res->allow_redef = false;
 	res->gen_debug_info = true;
 	res->tail_call_elimination = true;
+	res->hyper_gc = false;
 	res->mem_limit = 0;
 	res->stack_limit = 0;
 	res->error.code = 0;
