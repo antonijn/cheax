@@ -167,8 +167,9 @@ eval_func_call(CHEAX *c,
 	if (eval_args(c, fn_value, args, caller_env, argeval_override) < 0)
 		goto pad;
 
-	/* we have a license to pop the caller context */
-	if (ty == CHEAX_FUNC) {
+	if (ty == CHEAX_FUNC && fn->body != NULL) {
+		cheax_unref_ptr(c, caller_env, caller_env_ref);
+
 		struct chx_env *func_env = c->env;
 		c->env = caller_env;
 
@@ -176,16 +177,14 @@ eval_func_call(CHEAX *c,
 			cheax_pop_env(c);
 
 		c->env = func_env;
-	}
 
-	if (ty == CHEAX_FUNC && fn->body != NULL) {
 		struct chx_list *stat;
 		for (stat = fn->body; stat->next != NULL; stat = stat->next) {
 			bt_wrap(c, cheax_eval(c, stat->value));
-			cheax_ft(c, pad);
+			cheax_ft(c, pad2);
 		}
 
-		cheax_unref_ptr(c, caller_env, caller_env_ref);
+pad2:
 		out->ts.pop_stop = fn->lexenv;
 		out->ts.tail = stat->value;
 		return CHEAX_TAIL_OUT;
@@ -322,12 +321,6 @@ eval_sexpr(CHEAX *c, struct chx_list *input, struct chx_env *pop_stop, union chx
 		chx_ref res_ref = cheax_ref(c, out->value);
 		cheax_gc(c);
 		cheax_unref(c, out->value, res_ref);
-	} else if (res == CHEAX_TAIL_OUT) {
-		chx_ref tail_ref = cheax_ref(c, out->ts.tail);
-		chx_ref out_pop_stop_ref = cheax_ref_ptr(c, out->ts.pop_stop);
-		cheax_gc(c);
-		cheax_unref_ptr(c, out->ts.pop_stop, out_pop_stop_ref);
-		cheax_unref(c, out->ts.tail, tail_ref);
 	}
 pad:
 	cheax_unref_ptr(c, input, input_ref);

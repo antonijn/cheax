@@ -195,10 +195,9 @@ cheax_pop_env(CHEAX *c)
 	else
 		c->env = env->value.norm.below;
 
-	/* TODO re-implement with tail call elimination in mind */
 	/* dangerous, but worth it! */
-	/*if (env->rtflags & (NO_ESC_BIT | REF_BIT) == NO_ESC_BIT)
-		gc_free(c, env);*/
+	if (has_flag(env->rtflags, NO_ESC_BIT))
+		gc_free(c, env);
 }
 
 struct chx_sym *
