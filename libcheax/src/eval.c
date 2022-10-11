@@ -178,6 +178,8 @@ eval_func_call(CHEAX *c,
 
 		c->env = func_env;
 
+		chx_ref ps_ref = cheax_ref_ptr(c, pop_stop);
+
 		struct chx_list *stat;
 		for (stat = fn->body; stat->next != NULL; stat = stat->next) {
 			bt_wrap(c, cheax_eval(c, stat->value));
@@ -185,6 +187,7 @@ eval_func_call(CHEAX *c,
 		}
 
 pad2:
+		cheax_unref_ptr(c, pop_stop, ps_ref);
 		out->ts.pop_stop = fn->lexenv;
 		out->ts.tail = stat->value;
 		return CHEAX_TAIL_OUT;
