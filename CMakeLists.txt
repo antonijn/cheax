@@ -9,6 +9,9 @@ if (NOT MSVC)
 	add_compile_options (-Wall -Wextra -Wno-unused-parameter -pedantic-errors)
 endif()
 
+install (FILES stdlib/prelude.chx DESTINATION share/cheax/)
+install (FILES stdlib/testing.chx DESTINATION share/cheax/)
+
 add_subdirectory (cheaky)
 add_subdirectory (cheax)
 add_subdirectory (libcheax)
