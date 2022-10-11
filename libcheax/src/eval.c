@@ -74,7 +74,7 @@ static struct chx_value
 eval_ext_func(CHEAX *c, struct chx_form *form, struct chx_list *args, bool eval_args)
 {
 	struct chx_list *true_args;
-	struct chx_list arg_buf[16];
+	struct chx_list arg_buf[16], *other_args = NULL;
 	chx_ref ref_buf[16];
 	size_t i = 0;
 	struct chx_value res = cheax_nil();
@@ -82,15 +82,10 @@ eval_ext_func(CHEAX *c, struct chx_form *form, struct chx_list *args, bool eval_
 	if (eval_args) {
 		struct chx_list **next_argp = &true_args;
 		true_args = NULL;
-		for (struct chx_list *arg_in = args; arg_in != NULL; arg_in = arg_in->next) {
-			if (i >= sizeof(arg_buf) / sizeof(arg_buf[0])) {
-				/* TODO allow for more than 16 args */
-				cheax_throwf(c, CHEAX_EEVAL, "only 16 args allowed in ext func");
-				goto pad;
-			}
 
+		for (; args != NULL && i < sizeof(arg_buf) / sizeof(arg_buf[0]); args = args->next) {
 			arg_buf[i].rtflags = 0;
-			arg_buf[i].value = cheax_eval(c, arg_in->value);
+			arg_buf[i].value = cheax_eval(c, args->value);
 			arg_buf[i].next = NULL;
 
 			cheax_ft(c, pad);
@@ -100,12 +95,18 @@ eval_ext_func(CHEAX *c, struct chx_form *form, struct chx_list *args, bool eval_
 			*next_argp = &arg_buf[i];
 			next_argp = &arg_buf[i++].next;
 		}
+
+		if (unpack(c, args, ".*", &other_args) < 0)
+			goto pad;
+
+		*next_argp = other_args;
 	} else {
 		true_args = args;
 	}
 
+	chx_ref other_arg_ref = cheax_ref_ptr(c, other_args);
 	res = form->perform.func(c, true_args, form->info);
-
+	cheax_unref_ptr(c, other_args, other_arg_ref);
 pad:
 	for (size_t j = 0; j < i; ++j)
 		cheax_unref(c, arg_buf[j].value, ref_buf[j]);
