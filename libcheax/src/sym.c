@@ -334,7 +334,7 @@ cheax_try_get(CHEAX *c, const char *id, struct chx_value *out)
 }
 
 struct chx_value
-cheax_get_from(CHEAX *c, struct chx_env *env, const char *id, struct chx_value *out)
+cheax_get_from(CHEAX *c, struct chx_env *env, const char *id)
 {
 	struct chx_value res = cheax_nil();
 
@@ -344,7 +344,7 @@ cheax_get_from(CHEAX *c, struct chx_env *env, const char *id, struct chx_value *
 	return res;
 }
 
-struct chx_value
+bool
 cheax_try_get_from(CHEAX *c, struct chx_env *env, const char *id, struct chx_value *out)
 {
 	ASSERT_NOT_NULL("get_from", id, false);
