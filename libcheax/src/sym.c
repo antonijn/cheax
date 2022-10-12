@@ -334,23 +334,33 @@ cheax_try_get(CHEAX *c, const char *id, struct chx_value *out)
 }
 
 struct chx_value
-cheax_get_from(CHEAX *c, struct chx_env *env, const char *id)
+cheax_get_from(CHEAX *c, struct chx_env *env, const char *id, struct chx_value *out)
 {
-	ASSERT_NOT_NULL("get_from", id, cheax_nil());
+	struct chx_value res = cheax_nil();
+
+	if (!cheax_try_get_from(c, env, id, &res) && cheax_errno(c) == 0)
+		cheax_throwf(c, CHEAX_ENOSYM, "no such symbol `%s'", id);
+
+	return res;
+}
+
+struct chx_value
+cheax_try_get_from(CHEAX *c, struct chx_env *env, const char *id, struct chx_value *out)
+{
+	ASSERT_NOT_NULL("get_from", id, false);
 
 	struct full_sym *fs = find_sym_in(norm_env(env), id);
-	if (fs == NULL) {
-		cheax_throwf(c, CHEAX_ENOSYM, "no such symbol `%s'", id);
-		return cheax_nil();
-	}
+	if (fs == NULL)
+		return false;
 
 	struct chx_sym *sym = &fs->sym;
 	if (sym->get == NULL) {
 		cheax_throwf(c, CHEAX_EWRITEONLY, "cannot read from write-only symbol");
-		return cheax_nil();
+		return false;
 	}
 
-	return sym->get(c, sym);
+	*out = sym->get(c, sym);
+	return cheax_errno(c) == 0;
 }
 
 static struct chx_value

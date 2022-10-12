@@ -903,6 +903,10 @@ CHX_API bool cheax_try_get(CHEAX *c, const char *id, struct chx_value *out);
  * \sa cheax_get(), cheax_set()
  */
 CHX_API struct chx_value cheax_get_from(CHEAX *c, struct chx_env *env, const char *id);
+CHX_API bool cheax_try_get_from(CHEAX *c,
+                                struct chx_env *env,
+                                const char *id,
+                                struct chx_value *out);
 
 /*! \brief Sets the value of a symbol.
  *
