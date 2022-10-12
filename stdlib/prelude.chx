@@ -42,8 +42,6 @@
 (def Func            (type-of (fn () ())))
 (def Macro           (type-of (macro () ())))
 (def ExtFunc         (type-of =))
-(def SpecialForm     (type-of fn))
-(def SpecialTailForm (type-of cond))
 (def Quote           (type-of ''0))
 (def BackQuote       (type-of '`0))
 (def String          (type-of ""))

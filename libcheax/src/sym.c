@@ -277,12 +277,18 @@ cheax_defun(CHEAX *c, const char *id, chx_func_ptr perform, void *info)
 void
 cheax_def_special_form(CHEAX *c, const char *id, chx_func_ptr perform, void *info)
 {
+	struct chx_env *prev_env = c->env;
+	c->env = &c->sf_env_struct;
 	cheax_def(c, id, cheax_special_form(c, id, perform, info), CHEAX_READONLY);
+	c->env = prev_env;
 }
 void
 cheax_def_special_tail_form(CHEAX *c, const char *id, chx_tail_func_ptr perform, void *info)
 {
+	struct chx_env *prev_env = c->env;
+	c->env = &c->sf_env_struct;
 	cheax_def(c, id, cheax_special_tail_form(c, id, perform, info), CHEAX_READONLY);
+	c->env = prev_env;
 }
 
 void

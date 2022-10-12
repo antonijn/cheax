@@ -267,8 +267,15 @@ eval_sexpr(CHEAX *c, struct chx_list *input, struct chx_env *pop_stop, union chx
 
 	chx_ref input_ref = cheax_ref_ptr(c, input);
 
-	struct chx_value head = cheax_eval(c, input->value);
-	cheax_ft(c, pad);
+	struct chx_value head = input->value;
+
+	if (head.type != CHEAX_ID
+	 || !cheax_try_get_from(c, &c->sf_env_struct, head.data.as_id->value, &head))
+	{
+		head = cheax_eval(c, head);
+		cheax_ft(c, pad);
+	}
+
 	chx_ref head_ref = cheax_ref(c, head);
 
 	/* should already be cheax_ref()'d further up the
