@@ -885,6 +885,7 @@ CHX_API void cheax_def(CHEAX *c, const char *id, struct chx_value value, int fla
  * \sa cheax_get_from(), cheax_set()
  */
 CHX_API struct chx_value cheax_get(CHEAX *c, const char *id);
+CHX_API bool cheax_try_get(CHEAX *c, const char *id, struct chx_value *out);
 
 /*! \brief Retrieves the value of the given symbol, performing symbol
  *         lookup only in the specified environment.
