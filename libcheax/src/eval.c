@@ -62,6 +62,8 @@ cheax_exec(CHEAX *c, const char *path)
 	struct chx_value v;
 	while (!cheax_is_nil(v = cheax_read_at(c, f, path, &line, &pos))) {
 		cheax_ft(c, pad);
+		v = cheax_macroexpand(c, v);
+		cheax_ft(c, pad);
 		cheax_eval(c, v);
 		cheax_ft(c, pad);
 	}
@@ -662,6 +664,84 @@ struct chx_value
 cheax_eval(CHEAX *c, struct chx_value input)
 {
 	return wrap_tail_eval(c, value_evaluator, &input);
+}
+
+static struct chx_value
+macroexpand(CHEAX *c, struct chx_value expr, bool once, bool *expanded)
+{
+	*expanded = false;
+	if (expr.type != CHEAX_LIST || expr.data.as_list == NULL)
+		return expr;
+
+	struct chx_list *lst = expr.data.as_list;
+	struct chx_value head = lst->value, macro;
+	if (head.type == CHEAX_ID
+	 && cheax_try_get_from(c, &c->macro_env_struct, head.data.as_id->value, &macro))
+	{
+		if (macro.type != CHEAX_FUNC || macro.type != CHEAX_EXT_FUNC) {
+			cheax_throwf(c, CHEAX_EMACRO, "invalid macro type");
+			return cheax_nil();
+		}
+
+		struct chx_value res = cheax_apply(c, macro, lst->next);
+		*expanded = true;
+
+		bool dummy;
+		return once ? res : macroexpand(c, expr, false, &dummy);
+	}
+
+	bool made_new_list = false;
+	struct chx_list *new_list = NULL, **new_listp = &new_list;
+	for (struct chx_list *cons = lst; cons != NULL; cons = cons->next) {
+		bool elt_expanded = false;
+		struct chx_value elt = cons->value;
+
+		if (!once || !*expanded) {
+			chx_ref lst_ref = cheax_ref_ptr(c, lst);
+			chx_ref new_list_ref = cheax_ref_ptr(c, new_list);
+
+			elt = macroexpand(c, elt, once, &elt_expanded);
+
+			cheax_unref_ptr(c, new_list, new_list_ref);
+			cheax_unref_ptr(c, lst, lst_ref);
+
+			cheax_ft(c, pad);
+		}
+
+		if (elt_expanded && !made_new_list) {
+			made_new_list = *expanded = true;
+
+			for (struct chx_list *copy = lst; copy != cons; copy = copy->next) {
+				*new_listp = cheax_list(c, copy->value, NULL).data.as_list;
+				cheax_ft(c, pad);
+				new_listp = &(*new_listp)->next;
+			}
+		}
+
+		if (made_new_list) {
+			*new_listp = cheax_list(c, elt, NULL).data.as_list;
+			cheax_ft(c, pad);
+			new_listp = &(*new_listp)->next;
+		}
+	}
+
+	return cheax_list_value(made_new_list ? new_list : lst);
+pad:
+	return cheax_nil();
+}
+
+struct chx_value
+cheax_macroexpand(CHEAX *c, struct chx_value expr)
+{
+	bool dummy;
+	return macroexpand(c, expr, false, &dummy);
+}
+
+struct chx_value
+cheax_macroexpand_once(CHEAX *c, struct chx_value expr)
+{
+	bool dummy;
+	return macroexpand(c, expr, true, &dummy);
 }
 
 struct chx_value
