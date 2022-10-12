@@ -88,15 +88,30 @@ struct type_alias {
 };
 
 struct cheax {
-	struct chx_env globals;
+	/* contains all global symbols defined at runtime */
+	struct chx_env global_env_struct;
+	/* contains all special forms (not directly accessible) */
+	struct chx_env sf_env_struct;
+	/* contains all macros */
+	struct chx_env macro_env_struct;
+
+	/* current environment */
 	struct chx_env *env;
+
+	/*
+	 * either a reference to global_env_struct, or NULL when running
+	 * in macro expansion mode
+	 */
+	struct chx_env *global_env;
 
 	int stack_depth;
 
+	/* see config.c for explanation of these fields */
 	int features;
 	bool allow_redef, gen_debug_info, tail_call_elimination, hyper_gc;
 	int mem_limit, stack_limit;
 
+	/* file handle type code */
 	int fhandle_type;
 
 	struct {

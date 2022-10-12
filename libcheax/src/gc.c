@@ -456,7 +456,9 @@ mark(CHEAX *c)
 	}
 
 	mark_env(c, c->env);
-	mark_env_members(c, c->globals.value.norm.syms.root);
+	mark_env_members(c, c->global_env_struct.value.norm.syms.root);
+	mark_env_members(c, c->sf_env_struct.value.norm.syms.root);
+	mark_env_members(c, c->macro_env_struct.value.norm.syms.root);
 	mark_string(c, c->error.msg);
 }
 

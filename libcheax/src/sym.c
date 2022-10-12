@@ -82,7 +82,7 @@ static struct full_sym *
 find_sym(CHEAX *c, const char *name)
 {
 	struct full_sym *fs = find_sym_in_or_below(c->env, name);
-	return (fs != NULL) ? fs : find_sym_in(&c->globals, name);
+	return (fs != NULL) ? fs : find_sym_in(c->global_env, name);
 }
 
 struct chx_env *
@@ -214,7 +214,7 @@ cheax_defsym(CHEAX *c, const char *id,
 
 	struct chx_env *env = norm_env(c->env);
 	if (env == NULL)
-		env = &c->globals;
+		env = c->global_env;
 
 	struct full_sym *prev_fs = find_sym_in(env, id);
 	if (prev_fs != NULL && !prev_fs->allow_redef) {
@@ -232,7 +232,7 @@ cheax_defsym(CHEAX *c, const char *id,
 
 	struct full_sym *fs = (struct full_sym *)fs_mem;
 	fs->name = idcpy;
-	fs->allow_redef = c->allow_redef && (env == &c->globals);
+	fs->allow_redef = c->allow_redef && (env == c->global_env);
 	fs->sym.get = get;
 	fs->sym.set = set;
 	fs->sym.fin = fin;

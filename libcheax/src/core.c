@@ -324,8 +324,15 @@ cheax_init(void)
 	if (res == NULL)
 		return NULL;
 
-	res->globals.rtflags = 0;
-	norm_env_init(res, &res->globals, NULL);
+	res->global_env_struct.rtflags = 0;
+	norm_env_init(res, &res->global_env_struct, NULL);
+	res->global_env = &res->global_env_struct;
+
+	res->sf_env_struct.rtflags = 0;
+	norm_env_init(res, &res->sf_env_struct, NULL);
+	res->macro_env_struct.rtflags = 0;
+	norm_env_init(res, &res->macro_env_struct, NULL);
+
 	res->env = NULL;
 	res->stack_depth = 0;
 
@@ -373,7 +380,9 @@ cheax_destroy(CHEAX *c)
 	}
 
 	gc_cleanup(c);
-	norm_env_cleanup(&c->globals);
+	norm_env_cleanup(&c->global_env_struct);
+	norm_env_cleanup(&c->sf_env_struct);
+	norm_env_cleanup(&c->macro_env_struct);
 
 	cheax_free(c, c->bt.array);
 
