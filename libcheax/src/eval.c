@@ -118,15 +118,13 @@ pad:
 
 static int
 eval_args(CHEAX *c,
-          struct chx_value fn_value,
+          struct chx_func *fn,
           struct chx_list *args,
           struct chx_env *caller_env,
           bool argeval_override)
 {
-	struct chx_func *fn = fn_value.data.as_func;
-
 	int mflags = CHEAX_READONLY;
-	if (fn_value.type == CHEAX_FUNC && !argeval_override)
+	if (!argeval_override)
 		mflags |= CHEAX_EVAL_NODES;
 
 	bool arg_match_ok = cheax_match_in(c, caller_env, fn->args, cheax_list_value(args), mflags);
@@ -143,17 +141,13 @@ eval_args(CHEAX *c,
 
 static int
 eval_func_call(CHEAX *c,
-               struct chx_value fn_value,
+               struct chx_func *fn,
                struct chx_list *args,
                struct chx_env *pop_stop,
                union chx_eval_out *out,
                bool argeval_override)
 {
-	struct chx_func *fn = fn_value.data.as_func;
 	struct chx_value res = cheax_nil();
-
-	bool call_ok = false;
-	int ty = fn_value.type;
 
 	struct chx_env *caller_env = c->env;
 
@@ -167,51 +161,42 @@ eval_func_call(CHEAX *c,
 
 	chx_ref caller_env_ref = cheax_ref_ptr(c, caller_env);
 
-	if (eval_args(c, fn_value, args, caller_env, argeval_override) < 0)
+	if (eval_args(c, fn, args, caller_env, argeval_override) < 0)
 		goto pad;
 
-	if (ty == CHEAX_FUNC && fn->body != NULL) {
-		cheax_unref_ptr(c, caller_env, caller_env_ref);
+	cheax_unref_ptr(c, caller_env, caller_env_ref);
 
-		struct chx_env *func_env = c->env;
-		c->env = caller_env;
+	struct chx_env *func_env = c->env;
+	c->env = caller_env;
 
-		while (c->env != pop_stop)
-			cheax_pop_env(c);
+	while (c->env != pop_stop)
+		cheax_pop_env(c);
 
-		c->env = func_env;
+	c->env = func_env;
 
-		chx_ref ps_ref = cheax_ref_ptr(c, pop_stop);
+	chx_ref ps_ref = cheax_ref_ptr(c, pop_stop);
 
+	if (fn->body != NULL) {
 		struct chx_list *stat;
 		for (stat = fn->body; stat->next != NULL; stat = stat->next) {
 			bt_wrap(c, cheax_eval(c, stat->value));
 			cheax_ft(c, pad2);
 		}
 
-pad2:
-		cheax_unref_ptr(c, pop_stop, ps_ref);
-		out->ts.pop_stop = fn->lexenv;
 		out->ts.tail = stat->value;
-		return CHEAX_TAIL_OUT;
+	} else {
+		out->ts.tail = cheax_nil();
 	}
+pad2:
+	cheax_unref_ptr(c, pop_stop, ps_ref);
+	out->ts.pop_stop = fn->lexenv;
+	return CHEAX_TAIL_OUT;
 
-	for (struct chx_list *cons = fn->body; cons != NULL; cons = cons->next) {
-		res = bt_wrap(c, cheax_eval(c, cons->value));
-		cheax_ft(c, pad);
-	}
-
-	call_ok = true;
 pad:
 	cheax_pop_env(c);
 	cheax_unref_ptr(c, caller_env, caller_env_ref);
 env_fail_pad:
 	c->env = caller_env;
-	if (call_ok && ty == CHEAX_MACRO) {
-		out->ts.tail = res;
-		out->ts.pop_stop = pop_stop;
-		return CHEAX_TAIL_OUT;
-	}
 
 	out->value = res;
 	return CHEAX_VALUE_OUT;
@@ -308,8 +293,7 @@ eval_sexpr(CHEAX *c, struct chx_list *input, struct chx_env *pop_stop, union chx
 		break;
 
 	case CHEAX_FUNC:
-	case CHEAX_MACRO:
-		res = eval_func_call(c, head, args, pop_stop, out, false);
+		res = eval_func_call(c, head.data.as_func, args, pop_stop, out, false);
 		break;
 
 	case CHEAX_TYPECODE:
@@ -590,7 +574,7 @@ apply_func_evaluator(CHEAX *c, void *input_info, struct chx_env *pop_stop, union
 		break;
 
 	case CHEAX_FUNC:
-		res = eval_func_call(c, func, args, pop_stop, out, true);
+		res = eval_func_call(c, func.data.as_func, args, pop_stop, out, true);
 		break;
 
 	default:

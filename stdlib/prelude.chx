@@ -39,7 +39,6 @@
 (def Double          (type-of 0.0))
 (def Bool            (type-of true))
 (def Func            (type-of (fn () ())))
-; (def Macro           (type-of (macro () ())))
 (def ExtFunc         (type-of =))
 (def Quote           (type-of ''0))
 (def BackQuote       (type-of '`0))

@@ -422,7 +422,6 @@ mark_obj(CHEAX *c, struct chx_value used)
 
 	switch (ty) {
 	case CHEAX_FUNC:
-	case CHEAX_MACRO:
 		mark_list(c, used.data.as_func->body);
 		mark_env(c, used.data.as_func->lexenv);
 		mark_obj(c, used.data.as_func->args);

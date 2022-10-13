@@ -109,8 +109,8 @@
     ((f count)     `(assert-arg-count-helper ,f ',f ,count nil))
     ((f count msg) `(assert-arg-count-helper ,f ',f ,count ,msg))))
 
-(def prototypes (list (.. 10) () 'foo 42 0.5 true list do + ''bar '`qux "string" "" ((fn () (env)))))
-(def all-types (list List ID Int Double Bool Func Macro ExtFunc Quote BackQuote String Env))
+(def prototypes (list (.. 10) () 'foo 42 0.5 true list + ''bar '`qux "string" "" ((fn () (env)))))
+(def all-types (list List ID Int Double Bool Func ExtFunc Quote BackQuote String Env))
 
 ; e.g.
 ; (cart-prod '((1 2) (a b))) => ((1 a) (1 b) (2 a) (2 b))

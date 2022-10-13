@@ -54,7 +54,6 @@ enum {
 
 	CHEAX_ID,            /*!< Identifier type. */
 	CHEAX_FUNC,          /*!< Function type. */
-	CHEAX_MACRO,         /*!< Macro type. */
 	CHEAX_EXT_FUNC,      /*!< Type of functions defined through the C API. */
 	CHEAX_SPECIAL_FORM,  /*!< Type of special forms, which are defined through the C API. */
 	CHEAX_SPECIAL_TAIL_FORM,
@@ -219,7 +218,7 @@ CHX_API struct chx_value cheax_list_value_proc(struct chx_list *list);
  *
  * Lambdas cannot be constructed by the C API.
  *
- * \sa CHEAX_FUNC, CHEAX_MACRO, chx_form, cheax_special_form()
+ * \sa CHEAX_FUNC, chx_form, cheax_special_form()
  */
 struct chx_func {
 	unsigned rtflags;
@@ -230,8 +229,6 @@ struct chx_func {
 
 #define cheax_func_value(X) ((struct chx_value){ .type = CHEAX_FUNC, .data.as_func = (X) })
 CHX_API struct chx_value cheax_func_value_proc(struct chx_func *fn);
-#define cheax_macro_value(X) ((struct chx_value){ .type = CHEAX_MACRO, .data.as_func = (X) })
-CHX_API struct chx_value cheax_macro_value_proc(struct chx_func *macro);
 
 /*! \brief Type for C functions to be invoked from cheax.
  *

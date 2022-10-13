@@ -305,11 +305,6 @@ cheax_func_value_proc(struct chx_func *fn)
 {
 	return cheax_func_value(fn);
 }
-struct chx_value
-cheax_macro_value_proc(struct chx_func *macro)
-{
-	return cheax_macro_value(macro);
-}
 
 struct chx_value
 cheax_env_value_proc(struct chx_env *env)

@@ -79,13 +79,9 @@ ostrm_show_basic(CHEAX *c, struct ostrm *s, struct chx_value val)
 		ostrm_show(c, s, val.data.as_quote->value);
 		break;
 	case CHEAX_FUNC:
-	case CHEAX_MACRO:
 		ostrm_putc(s, '(');
 		struct chx_func *func = val.data.as_func;
-		if (ty == CHEAX_FUNC)
-			ostrm_printf(s, "fn ");
-		else
-			ostrm_printf(s, "macro ");
+		ostrm_printf(s, "fn ");
 		ostrm_show(c, s, func->args);
 		for (struct chx_list *body = func->body; body != NULL; body = body->next) {
 			ostrm_printf(s, "\n  ");
