@@ -641,10 +641,7 @@ cheax_load_prelude(CHEAX *c)
  */
 
 static struct chx_value
-create_func(CHEAX *c,
-            const char *name,
-            struct chx_list *args,
-            int type)
+create_func(CHEAX *c, struct chx_list *args)
 {
 	if (args == NULL) {
 		cheax_throwf(c, CHEAX_EMATCH, "expected arguments");
@@ -660,8 +657,8 @@ create_func(CHEAX *c,
 	}
 
 	struct chx_value res;
-	res.type = type;
-	res.data.as_func = gc_alloc(c, sizeof(struct chx_func), type);
+	res.type = CHEAX_FUNC;
+	res.data.as_func = gc_alloc(c, sizeof(struct chx_func), CHEAX_FUNC);
 	if (res.data.as_func == NULL)
 		return cheax_nil();
 
@@ -672,15 +669,31 @@ create_func(CHEAX *c,
 }
 
 static struct chx_value
-sf_fn(CHEAX *c, struct chx_list *args, void *info)
+bltn_defmacro(CHEAX *c, struct chx_list *args, void *info)
 {
-	return bt_wrap(c, create_func(c, "fn", args, CHEAX_FUNC));
+	char *id;
+	if (unpack(c, args, "N!_+", &id, &args) < 0)
+		return cheax_nil();
+
+	bool dummy;
+	struct chx_list *args_exp = macroexpand_list(c, args, false, &dummy);
+	cheax_ft(c, pad);
+
+	struct chx_value macro = bt_wrap(c, create_func(c, args_exp));
+	cheax_ft(c, pad);
+
+	struct chx_env *prev_env = c->env;
+	c->env = &c->macro_env_struct;
+	cheax_def(c, id, macro, CHEAX_READONLY);
+	c->env = prev_env;
+pad:
+	return cheax_nil();
 }
 
 static struct chx_value
-sf_macro(CHEAX *c, struct chx_list *args, void *info)
+sf_fn(CHEAX *c, struct chx_list *args, void *info)
 {
-	return bt_wrap(c, create_func(c, "macro", args, CHEAX_MACRO));
+	return bt_wrap(c, create_func(c, args));
 }
 
 static struct chx_list *
@@ -770,8 +783,12 @@ bltn_substr(CHEAX *c, struct chx_list *args, void *info)
 void
 export_core_bltns(CHEAX *c)
 {
-	cheax_def_special_form(c, "fn",    sf_fn,    NULL);
-	cheax_def_special_form(c, "macro", sf_macro, NULL);
+	struct chx_env *prev_env = c->env;
+	c->env = &c->macro_env_struct;
+	cheax_def(c, "defmacro", cheax_ext_func(c, "defmacro", bltn_defmacro, NULL), CHEAX_READONLY);
+	c->env = prev_env;
+
+	cheax_def_special_form(c, "fn", sf_fn, NULL);
 
 	cheax_defun(c, ":",             bltn_prepend,       NULL);
 	cheax_defun(c, "type-of",       bltn_type_of,       NULL);

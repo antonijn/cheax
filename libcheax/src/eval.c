@@ -675,20 +675,28 @@ macroexpand(CHEAX *c, struct chx_value expr, bool once, bool *expanded)
 
 	struct chx_list *lst = expr.data.as_list;
 	struct chx_value head = lst->value, macro;
-	if (head.type == CHEAX_ID
-	 && cheax_try_get_from(c, &c->macro_env_struct, head.data.as_id->value, &macro))
+	if (head.type != CHEAX_ID
+	 || !cheax_try_get_from(c, &c->macro_env_struct, head.data.as_id->value, &macro))
 	{
-		if (macro.type != CHEAX_FUNC || macro.type != CHEAX_EXT_FUNC) {
-			cheax_throwf(c, CHEAX_EMACRO, "invalid macro type");
-			return cheax_nil();
-		}
-
-		struct chx_value res = cheax_apply(c, macro, lst->next);
-		*expanded = true;
-
-		bool dummy;
-		return once ? res : macroexpand(c, expr, false, &dummy);
+		return cheax_list_value(macroexpand_list(c, lst, once, expanded));
 	}
+
+	if (macro.type != CHEAX_FUNC && macro.type != CHEAX_EXT_FUNC) {
+		cheax_throwf(c, CHEAX_EMACRO, "invalid macro type");
+		return cheax_nil();
+	}
+
+	struct chx_value res = cheax_apply(c, macro, lst->next);
+	*expanded = true;
+
+	bool dummy;
+	return once ? res : macroexpand(c, res, false, &dummy);
+}
+
+struct chx_list *
+macroexpand_list(CHEAX *c, struct chx_list *lst, bool once, bool *expanded)
+{
+	*expanded = false;
 
 	bool made_new_list = false;
 	struct chx_list *new_list = NULL, **new_listp = &new_list;
@@ -725,9 +733,9 @@ macroexpand(CHEAX *c, struct chx_value expr, bool once, bool *expanded)
 		}
 	}
 
-	return cheax_list_value(made_new_list ? new_list : lst);
+	return made_new_list ? new_list : lst;
 pad:
-	return cheax_nil();
+	return NULL;
 }
 
 struct chx_value

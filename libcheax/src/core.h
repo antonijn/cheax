@@ -155,4 +155,7 @@ double vtod(struct chx_value value);
 
 void export_core_bltns(CHEAX *c);
 
+/* defined in eval.c */
+struct chx_list *macroexpand_list(CHEAX *c, struct chx_list *lst, bool once, bool *expanded);
+
 #endif

@@ -12,8 +12,7 @@
 ; ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF
 ; OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
 
-(def defmacro (macro (: name args body) `(def ,name (macro ,args ,@body))))
-(defmacro defun      (: name args body) `(def ,name (fn    ,args ,@body)))
+(defmacro defun (: name args body) `(def ,name (fn ,args ,@body)))
 
 (defmacro if   (c t e) `(cond (,c ,t) (true ,e)))
 (defmacro when   (c t) `(cond (,c ,t)))
@@ -40,7 +39,7 @@
 (def Double          (type-of 0.0))
 (def Bool            (type-of true))
 (def Func            (type-of (fn () ())))
-(def Macro           (type-of (macro () ())))
+; (def Macro           (type-of (macro () ())))
 (def ExtFunc         (type-of =))
 (def Quote           (type-of ''0))
 (def BackQuote       (type-of '`0))
