@@ -71,6 +71,8 @@ struct debug_list *debug_list(CHEAX *c,
                               struct chx_list *cdr,
                               struct debug_info info);
 
+struct debug_info *get_debug_info(struct chx_list *list);
+
 struct type_cast {
 	int to;
 	chx_func_ptr cast;

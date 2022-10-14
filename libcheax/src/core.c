@@ -168,6 +168,16 @@ debug_list(CHEAX *c, struct chx_value car, struct chx_list *cdr, struct debug_in
 	return res;
 }
 
+struct debug_info *
+get_debug_info(struct chx_list *list)
+{
+	if (list == NULL || !has_flag(list->rtflags, DEBUG_LIST))
+		return NULL;
+
+	struct debug_list *dbg_list = (struct debug_list *)list;
+	return &dbg_list->info;
+}
+
 struct chx_value
 cheax_ext_func(CHEAX *c, const char *name, chx_func_ptr perform, void *info)
 {

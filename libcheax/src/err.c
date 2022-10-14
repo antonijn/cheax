@@ -242,9 +242,9 @@ cheax_add_bt(CHEAX *c)
 	ostrm_show(c, &ss.strm, cheax_list_value(last_call));
 	strcpy(c->bt.array[idx].msg + sizeof(c->bt.array[idx].msg) - 4, "...");
 
-	if (has_flag(last_call->rtflags, DEBUG_LIST)) {
-		struct debug_list *dbg = (struct debug_list *)last_call;
-		c->bt.array[idx].info = dbg->info;
+	struct debug_info *info = get_debug_info(last_call);
+	if (info != NULL) {
+		c->bt.array[idx].info = *info;
 	} else {
 		c->bt.array[idx].info.file = "<filename unknown>";
 		c->bt.array[idx].info.pos = -1;
