@@ -369,12 +369,9 @@ eval_bkquoted_list(CHEAX *c, struct chx_list *quoted, int nest)
 		cheax_unref(c, car, car_ref);
 		cheax_ft(c, pad);
 
-		if (has_flag(quoted->rtflags, DEBUG_LIST)) {
-			struct debug_info info = ((struct debug_list *)quoted)->info;
-			return &debug_list(c, car, (struct chx_list *)cdr, info)->base;
-		}
-
-		return cheax_list(c, car, (struct chx_list *)cdr).data.as_list;
+		return c->gen_debug_info
+		     ? orig_debug_list(c, car, (struct chx_list *)cdr, quoted)
+		     : cheax_list(c, car, (struct chx_list *)cdr).data.as_list;
 
 	case BKQ_SPLICED:
 		spl_list_value = cheax_list_value(spl_list);
@@ -662,7 +659,13 @@ macroexpand(CHEAX *c, struct chx_value expr, bool once, bool *expanded)
 	if (head.type != CHEAX_ID
 	 || !cheax_try_get_from(c, &c->macro_env_struct, head.data.as_id->value, &macro))
 	{
-		return cheax_list_value(macroexpand_list(c, lst, once, expanded));
+		struct chx_list *exp_lst = macroexpand_list(c, lst, once, expanded);
+		cheax_ft(c, pad);
+
+		if (*expanded && exp_lst != NULL && c->gen_debug_info)
+			exp_lst = orig_debug_list(c, exp_lst->value, exp_lst->next, lst);
+
+		return cheax_list_value(exp_lst);
 	}
 
 	if (macro.type != CHEAX_FUNC && macro.type != CHEAX_EXT_FUNC) {
@@ -670,11 +673,23 @@ macroexpand(CHEAX *c, struct chx_value expr, bool once, bool *expanded)
 		return cheax_nil();
 	}
 
+	chx_ref lst_ref = cheax_ref_ptr(c, lst);
+
 	struct chx_value res = cheax_apply(c, macro, lst->next);
 	*expanded = true;
 
+	cheax_unref_ptr(c, lst, lst_ref);
+	cheax_ft(c, pad);
+
+	if (res.type == CHEAX_LIST && res.data.as_list != NULL && c->gen_debug_info) {
+		struct chx_list *exp_lst = res.data.as_list;
+		res = cheax_list_value(orig_debug_list(c, exp_lst->value, exp_lst->next, lst));
+	}
+
 	bool dummy;
 	return once ? res : macroexpand(c, res, false, &dummy);
+pad:
+	return cheax_nil();
 }
 
 struct chx_list *

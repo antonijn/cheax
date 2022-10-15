@@ -370,7 +370,7 @@ static struct chx_value
 read_list(struct read_info *ri, struct scnr *s, bool consume_final)
 {
 	struct chx_list *lst = NULL;
-	struct debug_info info = { ri->path, s->pos, s->line };
+	struct loc_debug_info info = { ri->path, s->pos, s->line };
 
 	bool did_allow_splice = ri->allow_splice;
 	if (ri->bkquote_stack - ri->comma_stack > 0)
@@ -382,7 +382,7 @@ read_list(struct read_info *ri, struct scnr *s, bool consume_final)
 			goto eof_pad;
 
 		lst = ri->c->gen_debug_info
-		    ? &debug_list(ri->c, read_value(ri, s, true), NULL, info)->base
+		    ? loc_debug_list(ri->c, read_value(ri, s, true), NULL, info)
 		    : cheax_list(ri->c, read_value(ri, s, true), NULL).data.as_list;
 		cheax_ft(ri->c, pad);
 

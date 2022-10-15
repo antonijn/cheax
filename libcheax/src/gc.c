@@ -364,6 +364,10 @@ static void mark_obj(CHEAX *c, struct chx_value used);
 static void
 mark_list(CHEAX *c, struct chx_list *lst)
 {
+	struct chx_list *orig_form = get_orig_form(lst);
+	if (orig_form != NULL)
+		mark_list(c, orig_form);
+
 	for (; mark_once(c, lst); lst = lst->next)
 		mark_obj(c, lst->value);
 }

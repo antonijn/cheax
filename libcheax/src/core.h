@@ -40,7 +40,9 @@ enum {
 	GC_MARKED   = 0x0004, /* marked in use by gc (temporary) */
 	REF_BIT     = 0x0008, /* carries cheax_ref() */
 	NO_ESC_BIT  = 0x0010, /* chx_env presumed not to have escaped */
-	DEBUG_LIST  = 0x0020, /* list is struct debug_list */
+	LOC_INFO    = 0x0020, /* list is struct loc_debug_list */
+	ORIG_INFO   = 0x0040, /* list is struct orig_debug_list */
+	DEBUG_BITS  = 0x0060,
 };
 
 static inline bool
@@ -56,22 +58,22 @@ struct chx_string {
 	struct chx_string *orig;
 };
 
-struct debug_info {
+struct loc_debug_info {
 	const char *file;
 	int pos, line;
 };
 
-struct debug_list {
-	struct chx_list base;
-	struct debug_info info;
-};
+struct chx_list *loc_debug_list(CHEAX *c,
+                                struct chx_value car,
+                                struct chx_list *cdr,
+                                struct loc_debug_info info);
+struct chx_list *orig_debug_list(CHEAX *c,
+                                 struct chx_value car,
+                                 struct chx_list *cdr,
+                                 struct chx_list *orig_form);
 
-struct debug_list *debug_list(CHEAX *c,
-                              struct chx_value car,
-                              struct chx_list *cdr,
-                              struct debug_info info);
-
-struct debug_info *get_debug_info(struct chx_list *list);
+struct loc_debug_info *get_loc_debug_info(struct chx_list *list);
+struct chx_list *get_orig_form(struct chx_list *list);
 
 struct type_cast {
 	int to;
@@ -123,8 +125,9 @@ struct cheax {
 
 	struct {
 		struct bt_entry {
-			struct debug_info info;
-			char msg[64];
+			struct loc_debug_info info;
+			char line1[81];
+			char line2[81];
 		} *array;
 		size_t len, limit;
 		bool truncated;

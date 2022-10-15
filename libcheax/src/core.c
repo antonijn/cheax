@@ -155,27 +155,64 @@ cheax_list_value_proc(struct chx_list *list)
 	return cheax_list_value(list);
 }
 
-struct debug_list *
-debug_list(CHEAX *c, struct chx_value car, struct chx_list *cdr, struct debug_info info)
+struct loc_debug_list {
+	struct chx_list base;
+	struct loc_debug_info info;
+};
+
+struct orig_debug_list {
+	struct chx_list base;
+	struct chx_list *orig_form;
+};
+
+struct chx_list *
+loc_debug_list(CHEAX *c, struct chx_value car, struct chx_list *cdr, struct loc_debug_info info)
 {
-	struct debug_list *res = gc_alloc(c, sizeof(struct debug_list), CHEAX_LIST);
+	struct loc_debug_list *res = gc_alloc(c, sizeof(struct loc_debug_list), CHEAX_LIST);
 	if (res == NULL)
 		return NULL;
-	res->base.rtflags |= DEBUG_LIST;
+	res->base.rtflags |= LOC_INFO;
 	res->base.value = car;
 	res->base.next = cdr;
 	res->info = info;
-	return res;
+	return &res->base;
+}
+struct chx_list *
+orig_debug_list(CHEAX *c, struct chx_value car, struct chx_list *cdr, struct chx_list *orig_form)
+{
+	struct orig_debug_list *res = gc_alloc(c, sizeof(struct loc_debug_list), CHEAX_LIST);
+	if (res == NULL)
+		return NULL;
+	res->base.rtflags |= ORIG_INFO;
+	res->base.value = car;
+	res->base.next = cdr;
+
+	struct chx_list *true_origin = orig_form;
+	while ((orig_form = get_orig_form(true_origin)) != NULL)
+		true_origin = orig_form;
+
+	res->orig_form = true_origin;
+	return &res->base;
 }
 
-struct debug_info *
-get_debug_info(struct chx_list *list)
+struct loc_debug_info *
+get_loc_debug_info(struct chx_list *list)
 {
-	if (list == NULL || !has_flag(list->rtflags, DEBUG_LIST))
+	if (list == NULL || (list->rtflags & DEBUG_BITS) != LOC_INFO)
 		return NULL;
 
-	struct debug_list *dbg_list = (struct debug_list *)list;
+	struct loc_debug_list *dbg_list = (struct loc_debug_list *)list;
 	return &dbg_list->info;
+}
+
+struct chx_list *
+get_orig_form(struct chx_list *list)
+{
+	if (list == NULL || (list->rtflags & DEBUG_BITS) != ORIG_INFO)
+		return NULL;
+
+	struct orig_debug_list *dbg_list = (struct orig_debug_list *)list;
+	return dbg_list->orig_form;
 }
 
 struct chx_value

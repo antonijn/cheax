@@ -218,6 +218,16 @@ bt_limit(CHEAX *c, size_t limit)
 	return 0;
 }
 
+static void
+truncate_list_msg(CHEAX *c, char *dest, size_t size, struct chx_list *list)
+{
+	struct snostrm ss;
+	strcpy(dest, "    ");
+	snostrm_init(&ss, dest + 4, size - 4);
+	ostrm_show(c, &ss.strm, cheax_list_value(list));
+	strcpy(dest + size - 8, "...");
+}
+
 void
 cheax_add_bt(CHEAX *c)
 {
@@ -236,20 +246,30 @@ cheax_add_bt(CHEAX *c)
 
 	struct chx_list *last_call = c->bt.last_call;
 	size_t idx = c->bt.len++;
+	struct bt_entry *ent = &c->bt.array[idx];
+	memset(ent, 0, sizeof(struct bt_entry));
 
-	struct snostrm ss;
-	snostrm_init(&ss, c->bt.array[idx].msg, sizeof(c->bt.array[idx].msg));
-	ostrm_show(c, &ss.strm, cheax_list_value(last_call));
-	strcpy(c->bt.array[idx].msg + sizeof(c->bt.array[idx].msg) - 4, "...");
+	struct chx_list *list_line1, *list_line2;
 
-	struct debug_info *info = get_debug_info(last_call);
-	if (info != NULL) {
-		c->bt.array[idx].info = *info;
+	struct loc_debug_info *info;
+	struct chx_list *orig_form = get_orig_form(last_call);
+	if (orig_form != NULL) {
+		info = get_loc_debug_info(orig_form);
+		list_line1 = orig_form;
+		list_line2 = last_call;
 	} else {
-		c->bt.array[idx].info.file = "<filename unknown>";
-		c->bt.array[idx].info.pos = -1;
-		c->bt.array[idx].info.line = -1;
+		info = get_loc_debug_info(last_call);
+		list_line1 = last_call;
+		list_line2 = NULL;
 	}
+
+	struct loc_debug_info no_info = { .file = "<filename unknown>", .pos = -1, .line = -1, };
+
+	ent->info = (info != NULL) ? *info : no_info;
+
+	truncate_list_msg(c, ent->line1, sizeof(ent->line1), list_line1);
+	if (list_line2 != NULL)
+		truncate_list_msg(c, ent->line2, sizeof(ent->line2), list_line2);
 }
 
 void
@@ -259,8 +279,8 @@ bt_add_tail_msg(CHEAX *c, int tail_lvls)
 		c->bt.truncated = true;
 	} else {
 		size_t idx = c->bt.len++;
-		sprintf(c->bt.array[idx].msg, "... tail calls (%d) ...", tail_lvls);
-		c->bt.array[idx].info.file = NULL;
+		memset(&c->bt.array[idx], 0, sizeof(c->bt.array[idx]));
+		sprintf(c->bt.array[idx].line1, "  ... tail calls (%d) ...", tail_lvls);
 	}
 }
 
@@ -276,15 +296,21 @@ bt_print(CHEAX *c)
 		fprintf(stderr, "Backtrace:\n");
 
 	for (size_t i = c->bt.len; i >= 1; --i) {
-		struct bt_entry ent = c->bt.array[i - 1];
-		fprintf(stderr, "  ");
-		if (ent.info.file != NULL) {
-			fprintf(stderr, "File \"%s\"", ent.info.file);
-			if (ent.info.line > 0)
-				fprintf(stderr, ", line %d", ent.info.line);
-			fprintf(stderr, ": ");
+		struct bt_entry *ent = &c->bt.array[i - 1];
+
+		if (ent->info.file != NULL) {
+			fprintf(stderr, "  File \"%s\"", ent->info.file);
+			if (ent->info.line > 0)
+				fprintf(stderr, ", line %d", ent->info.line);
+			fprintf(stderr, "\n");
 		}
-		fprintf(stderr, "%s\n", ent.msg);
+
+		fprintf(stderr, "%s\n", ent->line1);
+
+		if (strlen(ent->line2) > 0) {
+			fprintf(stderr, "   Expanded to:\n");
+			fprintf(stderr, "%s\n", ent->line2);
+		}
 	}
 }
 
