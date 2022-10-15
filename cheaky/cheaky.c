@@ -146,6 +146,9 @@ main(void)
 		if (quit)
 			break;
 
+		v = cheax_macroexpand(c, v);
+		cheax_ft(c, pad);
+
 		v = cheax_eval(c, v);
 		cheax_ft(c, pad);
 		if (quit)
