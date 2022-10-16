@@ -9,18 +9,12 @@ if (NOT MSVC)
 	add_compile_options (-Wall -Wextra -Wno-unused-parameter -pedantic-errors)
 endif()
 
-install (FILES stdlib/prelude.chx DESTINATION share/cheax/)
-install (FILES stdlib/testing.chx DESTINATION share/cheax/)
+enable_testing ()
 
 add_subdirectory (cheaky)
 add_subdirectory (cheax)
 add_subdirectory (libcheax)
+add_subdirectory (test)
 
-include (CTest)
-set (CMAKE_CTEST_ARGUMENTS "--output-on-failure")
-add_test (NAME Prelude
-          COMMAND
-            cheax/cheax -p
-              stdlib/prelude.chx
-              stdlib/testing.chx
-              test/prelude_test.chx)
+install (FILES stdlib/prelude.chx DESTINATION share/cheax/)
+install (FILES stdlib/testing.chx DESTINATION share/cheax/)

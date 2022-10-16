@@ -89,7 +89,7 @@ else ()
 endif ()
 list (JOIN FEATURES " " VERSION_SUFFIX)
 
-configure_file (src/setup.h.in src/setup.h)
+configure_file (src/setup.h.in "${CMAKE_CURRENT_SOURCE_DIR}/src/setup.h")
 
 # hide all library functions, unless declared with CHX_API
 set(CMAKE_C_VISIBILITY_PRESET hidden)
@@ -121,7 +121,7 @@ endif ()
 generate_export_header (libcheax
 	BASE_NAME          CHX
 	EXPORT_MACRO_NAME  CHX_API
-	EXPORT_FILE_NAME   ${CMAKE_CURRENT_SOURCE_DIR}/include/cheax/export.h
+	EXPORT_FILE_NAME   "${CMAKE_CURRENT_SOURCE_DIR}/include/cheax/export.h"
 	INCLUDE_GUARD_NAME CHEAX_EXPORT_H)
 
 target_include_directories (libcheax PUBLIC include)
