@@ -1,6 +1,8 @@
 cheax
 =====
 
+[![Build status](https://github.com/antonijn/cheax/actions/workflows/build-test.yml/badge.svg)](https://github.com/antonijn/cheax/actions)
+
 A Lisp dialect that looks a bit like Haskell. Designed for easy
 interopability with C/C++.
 
