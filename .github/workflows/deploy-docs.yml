@@ -16,6 +16,7 @@ jobs:
       - name: Build docs
         run: |
           mkdir build
+          cd build
           cmake ..
           make docs
 
