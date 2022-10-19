@@ -1,0 +1,27 @@
+USE_MDFILE_AS_MAINPAGE = "@DOXYGEN_MAIN_PAGE@"
+INPUT                  = @DOXYGEN_INPUT@
+
+DOXYFILE_ENCODING      = UTF-8
+PROJECT_NAME           = cheax
+PROJECT_BRIEF          = Lisp dialect with C API
+OUTPUT_DIRECTORY       = "@CMAKE_CURRENT_BINARY_DIR@"
+OUTPUT_LANGUAGE        = English
+LAYOUT_FILE            = "@CMAKE_CURRENT_SOURCE_DIR@/DoxygenLayout.xml"
+FULL_PATH_NAMES        = NO
+TAB_SIZE               = 8
+OPTIMIZE_OUTPUT_FOR_C  = YES
+WARNINGS               = YES
+GENERATE_LATEX         = NO
+HTML_OUTPUT            = html
+
+ENABLE_PREPROCESSING   = YES
+MACRO_EXPANSION        = YES
+EXPAND_ONLY_PREDEF     = YES
+PREDEFINED             = CHX_API
+
+GENERATE_TREEVIEW      = YES
+DISABLE_INDEX          = NO
+FULL_SIDEBAR           = NO
+HTML_EXTRA_STYLESHEET  = "@CMAKE_CURRENT_SOURCE_DIR@/doxygen-awesome.css" \
+                         "@CMAKE_CURRENT_SOURCE_DIR@/doxygen-awesome-sidebar-only.css" \
+                         "@CMAKE_CURRENT_SOURCE_DIR@/doxygen-awesome-sidebar-only-darkmode-toggle.css"

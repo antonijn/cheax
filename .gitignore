@@ -9,3 +9,5 @@ install_manifest.txt
 CTestTestfile.cmake
 Testing
 DartConfiguration.tcl
+CMakeDoxyfile.in
+CMakeDoxygenDefaults.cmake

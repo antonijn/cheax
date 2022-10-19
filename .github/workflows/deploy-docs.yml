@@ -1,0 +1,25 @@
+name: Build docs and deploy to GH Pages
+on:
+  push:
+    branches: [ "deploy-docs" ]
+
+permissions:
+  contents: write
+
+jobs:
+  build-docs-and-deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+
+      - name: Build docs
+        run: |
+          mkdir build
+          cmake ..
+          make docs
+
+      - name: Deploy
+        uses: JamesIves/github-pages-deploy-action@v4
+        with:
+          folder: build/docs/html
