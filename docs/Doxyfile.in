@@ -3,7 +3,7 @@ INPUT                  = @DOXYGEN_INPUT@
 
 DOXYFILE_ENCODING      = UTF-8
 PROJECT_NAME           = cheax
-PROJECT_BRIEF          = Lisp dialect with C API
+PROJECT_BRIEF          = "Lisp dialect with C API"
 OUTPUT_DIRECTORY       = "@CMAKE_CURRENT_BINARY_DIR@"
 OUTPUT_LANGUAGE        = English
 LAYOUT_FILE            = "@CMAKE_CURRENT_SOURCE_DIR@/DoxygenLayout.xml"
