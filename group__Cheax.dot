@@ -1,0 +1,11 @@
+digraph "The cheax C API"
+{
+  edge [fontname="Helvetica",fontsize="10",labelfontname="Helvetica",labelfontsize="10"];
+  node [fontname="Helvetica",fontsize="10",shape=box];
+  rankdir=LR;
+  Node2 [label="Type system",height=0.2,width=0.4,color="black", fillcolor="white", style="filled",URL="$group__TypeSystem.html",tooltip="Functions and datastructures to create, examine and manipulate cheax expressions and their types."];
+  Node1 [label="The cheax C API",height=0.2,width=0.4,color="black", fillcolor="grey75", style="filled", fontcolor="black",tooltip="API functions to interface with cheax from C/C++."];
+  Node3 [label="Error handling",height=0.2,width=0.4,color="black", fillcolor="white", style="filled",URL="$group__ErrorHandling.html",tooltip="Error codes and ways to deal with them."];
+  Node1->Node2 [shape=plaintext, dir="back", style="solid"];
+  Node1->Node3 [shape=plaintext, dir="back", style="solid"];
+}

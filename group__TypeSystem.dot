@@ -1,0 +1,9 @@
+digraph "Type system"
+{
+  edge [fontname="Helvetica",fontsize="10",labelfontname="Helvetica",labelfontsize="10"];
+  node [fontname="Helvetica",fontsize="10",shape=box];
+  rankdir=LR;
+  Node1 [label="Type system",height=0.2,width=0.4,color="black", fillcolor="grey75", style="filled", fontcolor="black",tooltip="Functions and datastructures to create, examine and manipulate cheax expressions and their types."];
+  Node2 [label="The cheax C API",height=0.2,width=0.4,color="black", fillcolor="white", style="filled",URL="$group__Cheax.html",tooltip="API functions to interface with cheax from C/C++."];
+  Node2->Node1 [shape=plaintext, dir="back", style="solid"];
+}
