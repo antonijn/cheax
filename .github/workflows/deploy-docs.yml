@@ -13,6 +13,9 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v3
 
+      - name: Install Doxygen
+        run: sudo apt-get install -y doxygen
+
       - name: Build docs
         run: |
           mkdir build
