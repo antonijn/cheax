@@ -104,10 +104,9 @@ Collaboration diagram for Error handling:</div>
 <table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2 class="groupheader"><a name="define-members"></a>
 Macros</h2></td></tr>
-<tr class="memitem:ga3aa3c0ed9057317b01c932a29a57ca8a"><td class="memItemLeft" align="right" valign="top"><a id="ga3aa3c0ed9057317b01c932a29a57ca8a"></a>
-#define&#160;</td><td class="memItemRight" valign="bottom"><b>ERR_NAME_PAIR</b>(NAME)&#160;&#160;&#160;{#NAME, CHEAX_##NAME}</td></tr>
+<tr class="memitem:ga3aa3c0ed9057317b01c932a29a57ca8a"><td class="memItemLeft" align="right" valign="top">#define&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__ErrorHandling.html#ga3aa3c0ed9057317b01c932a29a57ca8a">ERR_NAME_PAIR</a>(NAME)&#160;&#160;&#160;{#NAME, CHEAX_##NAME}</td></tr>
 <tr class="separator:ga3aa3c0ed9057317b01c932a29a57ca8a"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:gae8cdcff4f427a04ae1e8f8c07b5b4721"><td class="memItemLeft" align="right" valign="top">#define&#160;</td><td class="memItemRight" valign="bottom"><b>CHEAX_BUILTIN_ERROR_NAMES</b>(var)</td></tr>
+<tr class="memitem:gae8cdcff4f427a04ae1e8f8c07b5b4721"><td class="memItemLeft" align="right" valign="top">#define&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__ErrorHandling.html#gae8cdcff4f427a04ae1e8f8c07b5b4721">CHEAX_BUILTIN_ERROR_NAMES</a>(var)</td></tr>
 <tr class="separator:gae8cdcff4f427a04ae1e8f8c07b5b4721"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:ga0886a1a0fe2addea4c19317e096a10d5"><td class="memItemLeft" align="right" valign="top">#define&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__ErrorHandling.html#ga0886a1a0fe2addea4c19317e096a10d5">cheax_ft</a>(c,  pad)&#160;&#160;&#160;{ if (<a class="el" href="group__ErrorHandling.html#ga146c925e6989b70f61a5cb798e74a0f9">cheax_errno</a>(c) != 0) goto pad; }</td></tr>
 <tr class="memdesc:ga0886a1a0fe2addea4c19317e096a10d5"><td class="mdescLeft">&#160;</td><td class="mdescRight">Macro to fall through to a pad in case of an error.  <a href="group__ErrorHandling.html#ga0886a1a0fe2addea4c19317e096a10d5">More...</a><br /></td></tr>
@@ -159,11 +158,9 @@ Functions</h2></td></tr>
 <tr class="memitem:ga19372077c9fc18789fa5591c805caa98"><td class="memItemLeft" align="right" valign="top">void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__ErrorHandling.html#ga19372077c9fc18789fa5591c805caa98">cheax_throw</a> (<a class="el" href="group__Cheax.html#gae1a7e5521943626a5cb9f1f59f661662">CHEAX</a> *c, int code, struct chx_string *msg)</td></tr>
 <tr class="memdesc:ga19372077c9fc18789fa5591c805caa98"><td class="mdescLeft">&#160;</td><td class="mdescRight">Sets <a class="el" href="group__ErrorHandling.html#ga146c925e6989b70f61a5cb798e74a0f9" title="Gets the value of the current cheax error code.">cheax_errno()</a> to the given value.  <a href="group__ErrorHandling.html#ga19372077c9fc18789fa5591c805caa98">More...</a><br /></td></tr>
 <tr class="separator:ga19372077c9fc18789fa5591c805caa98"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:ga1a4e76d4aec955a06654684705926892"><td class="memItemLeft" align="right" valign="top"><a id="ga1a4e76d4aec955a06654684705926892"></a>
-void&#160;</td><td class="memItemRight" valign="bottom"><b>cheax_throwf</b> (<a class="el" href="group__Cheax.html#gae1a7e5521943626a5cb9f1f59f661662">CHEAX</a> *c, int code, const char *fmt,...)</td></tr>
+<tr class="memitem:ga1a4e76d4aec955a06654684705926892"><td class="memItemLeft" align="right" valign="top">void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__ErrorHandling.html#ga1a4e76d4aec955a06654684705926892">cheax_throwf</a> (<a class="el" href="group__Cheax.html#gae1a7e5521943626a5cb9f1f59f661662">CHEAX</a> *c, int code, const char *fmt,...)</td></tr>
 <tr class="separator:ga1a4e76d4aec955a06654684705926892"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:ga3de3963593ca1cad8258c8feced21c90"><td class="memItemLeft" align="right" valign="top"><a id="ga3de3963593ca1cad8258c8feced21c90"></a>
-void&#160;</td><td class="memItemRight" valign="bottom"><b>cheax_add_bt</b> (<a class="el" href="group__Cheax.html#gae1a7e5521943626a5cb9f1f59f661662">CHEAX</a> *c)</td></tr>
+<tr class="memitem:ga3de3963593ca1cad8258c8feced21c90"><td class="memItemLeft" align="right" valign="top">void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__ErrorHandling.html#ga3de3963593ca1cad8258c8feced21c90">cheax_add_bt</a> (<a class="el" href="group__Cheax.html#gae1a7e5521943626a5cb9f1f59f661662">CHEAX</a> *c)</td></tr>
 <tr class="separator:ga3de3963593ca1cad8258c8feced21c90"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:ga5909bf42f2d85bee4f3dc83ba44ca77f"><td class="memItemLeft" align="right" valign="top">int&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__ErrorHandling.html#ga5909bf42f2d85bee4f3dc83ba44ca77f">cheax_new_error_code</a> (<a class="el" href="group__Cheax.html#gae1a7e5521943626a5cb9f1f59f661662">CHEAX</a> *c, const char *name)</td></tr>
 <tr class="memdesc:ga5909bf42f2d85bee4f3dc83ba44ca77f"><td class="mdescLeft">&#160;</td><td class="mdescRight">Creates a new error code with a given name.  <a href="group__ErrorHandling.html#ga5909bf42f2d85bee4f3dc83ba44ca77f">More...</a><br /></td></tr>
@@ -175,6 +172,24 @@ void&#160;</td><td class="memItemRight" valign="bottom"><b>cheax_add_bt</b> (<a 
 <a name="details" id="details"></a><h2 class="groupheader">Detailed Description</h2>
 <p>Error codes and ways to deal with them. </p>
 <h2 class="groupheader">Macro Definition Documentation</h2>
+<a id="ga3aa3c0ed9057317b01c932a29a57ca8a"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#ga3aa3c0ed9057317b01c932a29a57ca8a">&#9670;&nbsp;</a></span>ERR_NAME_PAIR</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">#define ERR_NAME_PAIR</td>
+          <td>(</td>
+          <td class="paramtype">&#160;</td>
+          <td class="paramname">NAME</td><td>)</td>
+          <td>&#160;&#160;&#160;{#NAME, CHEAX_##NAME}</td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+</div>
+</div>
 <a id="gae8cdcff4f427a04ae1e8f8c07b5b4721"></a>
 <h2 class="memtitle"><span class="permalink"><a href="#gae8cdcff4f427a04ae1e8f8c07b5b4721">&#9670;&nbsp;</a></span>CHEAX_BUILTIN_ERROR_NAMES</h2>
 
@@ -191,19 +206,19 @@ void&#160;</td><td class="memItemRight" valign="bottom"><b>cheax_add_bt</b> (<a 
       </table>
 </div><div class="memdoc">
 <b>Value:</b><div class="fragment"><div class="line"><span class="keyword">static</span> <span class="keyword">const</span> <span class="keyword">struct </span>{ <span class="keyword">const</span> <span class="keywordtype">char</span> *name; <span class="keywordtype">int</span> code; } var[] = { \</div>
-<div class="line">        ERR_NAME_PAIR(ENOERR),                                \</div>
-<div class="line">                                                              \</div>
-<div class="line">        ERR_NAME_PAIR(EREAD), ERR_NAME_PAIR(EEOF),            \</div>
-<div class="line">                                                              \</div>
-<div class="line">        ERR_NAME_PAIR(EEVAL), ERR_NAME_PAIR(ENOSYM),          \</div>
-<div class="line">        ERR_NAME_PAIR(ESTACK), ERR_NAME_PAIR(ETYPE),          \</div>
-<div class="line">        ERR_NAME_PAIR(EMATCH), ERR_NAME_PAIR(EMACRO),         \</div>
-<div class="line">        ERR_NAME_PAIR(EDIVZERO), ERR_NAME_PAIR(EREADONLY),    \</div>
-<div class="line">        ERR_NAME_PAIR(EWRITEONLY), ERR_NAME_PAIR(EEXIST),     \</div>
-<div class="line">        ERR_NAME_PAIR(EVALUE), ERR_NAME_PAIR(EOVERFLOW),      \</div>
-<div class="line">        ERR_NAME_PAIR(EINDEX), ERR_NAME_PAIR(EIO),            \</div>
-<div class="line">                                                              \</div>
-<div class="line">        ERR_NAME_PAIR(EAPI), ERR_NAME_PAIR(ENOMEM)            \</div>
+<div class="line">        ERR_NAME_PAIR(ENOERR),                                <a class="code" href="group__ErrorHandling.html#ga3aa3c0ed9057317b01c932a29a57ca8a">\</a></div>
+<div class="line"><a class="code" href="group__ErrorHandling.html#ga3aa3c0ed9057317b01c932a29a57ca8a">	                                                      \</a></div>
+<div class="line"><a class="code" href="group__ErrorHandling.html#ga3aa3c0ed9057317b01c932a29a57ca8a">	ERR_NAME_PAIR</a>(EREAD), <a class="code" href="group__ErrorHandling.html#ga3aa3c0ed9057317b01c932a29a57ca8a">ERR_NAME_PAIR</a>(EEOF),            <a class="code" href="group__ErrorHandling.html#ga3aa3c0ed9057317b01c932a29a57ca8a">\</a></div>
+<div class="line"><a class="code" href="group__ErrorHandling.html#ga3aa3c0ed9057317b01c932a29a57ca8a">	                                                      \</a></div>
+<div class="line"><a class="code" href="group__ErrorHandling.html#ga3aa3c0ed9057317b01c932a29a57ca8a">	ERR_NAME_PAIR</a>(EEVAL), <a class="code" href="group__ErrorHandling.html#ga3aa3c0ed9057317b01c932a29a57ca8a">ERR_NAME_PAIR</a>(ENOSYM),          \</div>
+<div class="line">        ERR_NAME_PAIR(ESTACK), <a class="code" href="group__ErrorHandling.html#ga3aa3c0ed9057317b01c932a29a57ca8a">ERR_NAME_PAIR</a>(ETYPE),          \</div>
+<div class="line">        ERR_NAME_PAIR(EMATCH), <a class="code" href="group__ErrorHandling.html#ga3aa3c0ed9057317b01c932a29a57ca8a">ERR_NAME_PAIR</a>(EMACRO),         \</div>
+<div class="line">        ERR_NAME_PAIR(EDIVZERO), <a class="code" href="group__ErrorHandling.html#ga3aa3c0ed9057317b01c932a29a57ca8a">ERR_NAME_PAIR</a>(EREADONLY),    \</div>
+<div class="line">        ERR_NAME_PAIR(EWRITEONLY), <a class="code" href="group__ErrorHandling.html#ga3aa3c0ed9057317b01c932a29a57ca8a">ERR_NAME_PAIR</a>(EEXIST),     \</div>
+<div class="line">        ERR_NAME_PAIR(EVALUE), <a class="code" href="group__ErrorHandling.html#ga3aa3c0ed9057317b01c932a29a57ca8a">ERR_NAME_PAIR</a>(EOVERFLOW),      \</div>
+<div class="line">        ERR_NAME_PAIR(EINDEX), <a class="code" href="group__ErrorHandling.html#ga3aa3c0ed9057317b01c932a29a57ca8a">ERR_NAME_PAIR</a>(EIO),            <a class="code" href="group__ErrorHandling.html#ga3aa3c0ed9057317b01c932a29a57ca8a">\</a></div>
+<div class="line"><a class="code" href="group__ErrorHandling.html#ga3aa3c0ed9057317b01c932a29a57ca8a">	                                                      \</a></div>
+<div class="line"><a class="code" href="group__ErrorHandling.html#ga3aa3c0ed9057317b01c932a29a57ca8a">	ERR_NAME_PAIR</a>(EAPI), <a class="code" href="group__ErrorHandling.html#ga3aa3c0ed9057317b01c932a29a57ca8a">ERR_NAME_PAIR</a>(ENOMEM)            \</div>
 <div class="line">}</div>
 </div><!-- fragment -->
 </div>
@@ -238,7 +253,6 @@ void&#160;</td><td class="memItemRight" valign="bottom"><b>cheax_add_bt</b> (<a 
 <p>Jumps to <em>pad</em> if <a class="el" href="group__ErrorHandling.html#ga146c925e6989b70f61a5cb798e74a0f9" title="Gets the value of the current cheax error code.">cheax_errno()</a> is not 0. Most commonly used after <a class="el" href="group__Cheax.html#ga46ecfc59560c9b24cb0313e62876ec31" title="Evaluates given cheax expression.">cheax_eval()</a>.</p>
 <dl class="params"><dt>Parameters</dt><dd>
   <table class="params">
-    <tr><td class="paramname">c</td><td>Virtual machine instance. </td></tr>
     <tr><td class="paramname">pad</td><td>Label to jump to in case of an error. </td></tr>
   </table>
   </dd>
@@ -307,33 +321,6 @@ void&#160;</td><td class="memItemRight" valign="bottom"><b>cheax_add_bt</b> (<a 
 </div>
 </div>
 <h2 class="groupheader">Function Documentation</h2>
-<a id="ga5a36ad3064ecb2576614e0b0bc7a2f9d"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#ga5a36ad3064ecb2576614e0b0bc7a2f9d">&#9670;&nbsp;</a></span>cheax_clear_errno()</h2>
-
-<div class="memitem">
-<div class="memproto">
-      <table class="memname">
-        <tr>
-          <td class="memname">void cheax_clear_errno </td>
-          <td>(</td>
-          <td class="paramtype"><a class="el" href="group__Cheax.html#gae1a7e5521943626a5cb9f1f59f661662">CHEAX</a> *&#160;</td>
-          <td class="paramname"><em>c</em></td><td>)</td>
-          <td></td>
-        </tr>
-      </table>
-</div><div class="memdoc">
-
-<p>Sets <a class="el" href="group__ErrorHandling.html#ga146c925e6989b70f61a5cb798e74a0f9" title="Gets the value of the current cheax error code.">cheax_errno()</a> to 0. </p>
-<dl class="params"><dt>Parameters</dt><dd>
-  <table class="params">
-    <tr><td class="paramname">c</td><td>Virtual machine instance.</td></tr>
-  </table>
-  </dd>
-</dl>
-<dl class="section see"><dt>See also</dt><dd><a class="el" href="group__ErrorHandling.html#ga146c925e6989b70f61a5cb798e74a0f9" title="Gets the value of the current cheax error code.">cheax_errno()</a> </dd></dl>
-
-</div>
-</div>
 <a id="ga146c925e6989b70f61a5cb798e74a0f9"></a>
 <h2 class="memtitle"><span class="permalink"><a href="#ga146c925e6989b70f61a5cb798e74a0f9">&#9670;&nbsp;</a></span>cheax_errno()</h2>
 
@@ -351,92 +338,7 @@ void&#160;</td><td class="memItemRight" valign="bottom"><b>cheax_add_bt</b> (<a 
 </div><div class="memdoc">
 
 <p>Gets the value of the current cheax error code. </p>
-<dl class="params"><dt>Parameters</dt><dd>
-  <table class="params">
-    <tr><td class="paramname">c</td><td>Virtual machine instance.</td></tr>
-  </table>
-  </dd>
-</dl>
 <dl class="section see"><dt>See also</dt><dd><a class="el" href="group__ErrorHandling.html#ga19372077c9fc18789fa5591c805caa98" title="Sets cheax_errno() to the given value.">cheax_throw()</a>, <a class="el" href="group__ErrorHandling.html#ga5909bf42f2d85bee4f3dc83ba44ca77f" title="Creates a new error code with a given name.">cheax_new_error_code()</a>, <a class="el" href="group__ErrorHandling.html#ga0886a1a0fe2addea4c19317e096a10d5" title="Macro to fall through to a pad in case of an error.">cheax_ft()</a> </dd></dl>
-
-</div>
-</div>
-<a id="ga4c3ce9dae899e0a486416dd0ec49c915"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#ga4c3ce9dae899e0a486416dd0ec49c915">&#9670;&nbsp;</a></span>cheax_find_error_code()</h2>
-
-<div class="memitem">
-<div class="memproto">
-      <table class="memname">
-        <tr>
-          <td class="memname">int cheax_find_error_code </td>
-          <td>(</td>
-          <td class="paramtype"><a class="el" href="group__Cheax.html#gae1a7e5521943626a5cb9f1f59f661662">CHEAX</a> *&#160;</td>
-          <td class="paramname"><em>c</em>, </td>
-        </tr>
-        <tr>
-          <td class="paramkey"></td>
-          <td></td>
-          <td class="paramtype">const char *&#160;</td>
-          <td class="paramname"><em>name</em>&#160;</td>
-        </tr>
-        <tr>
-          <td></td>
-          <td>)</td>
-          <td></td><td></td>
-        </tr>
-      </table>
-</div><div class="memdoc">
-
-<p>Looks up the value of a named error code. </p>
-<p>Sets <a class="el" href="group__ErrorHandling.html#ga146c925e6989b70f61a5cb798e74a0f9" title="Gets the value of the current cheax error code.">cheax_errno()</a> to <a class="el" href="group__ErrorHandling.html#gga99fb83031ce9923c84392b4e92f956b5a2dbf822a29e714713ccd9be697004ed6">CHEAX_EAPI</a> if <em>name</em> is NULL.</p>
-<dl class="params"><dt>Parameters</dt><dd>
-  <table class="params">
-    <tr><td class="paramname">c</td><td>Virtual machine instance. </td></tr>
-    <tr><td class="paramname">name</td><td>Error code name.</td></tr>
-  </table>
-  </dd>
-</dl>
-<dl class="section return"><dt>Returns</dt><dd>The error code carrying the given name, or -1 if unsuccesful. </dd></dl>
-
-</div>
-</div>
-<a id="ga5909bf42f2d85bee4f3dc83ba44ca77f"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#ga5909bf42f2d85bee4f3dc83ba44ca77f">&#9670;&nbsp;</a></span>cheax_new_error_code()</h2>
-
-<div class="memitem">
-<div class="memproto">
-      <table class="memname">
-        <tr>
-          <td class="memname">int cheax_new_error_code </td>
-          <td>(</td>
-          <td class="paramtype"><a class="el" href="group__Cheax.html#gae1a7e5521943626a5cb9f1f59f661662">CHEAX</a> *&#160;</td>
-          <td class="paramname"><em>c</em>, </td>
-        </tr>
-        <tr>
-          <td class="paramkey"></td>
-          <td></td>
-          <td class="paramtype">const char *&#160;</td>
-          <td class="paramname"><em>name</em>&#160;</td>
-        </tr>
-        <tr>
-          <td></td>
-          <td>)</td>
-          <td></td><td></td>
-        </tr>
-      </table>
-</div><div class="memdoc">
-
-<p>Creates a new error code with a given name. </p>
-<p>Such new error codes can then be thrown with <a class="el" href="group__ErrorHandling.html#ga19372077c9fc18789fa5591c805caa98" title="Sets cheax_errno() to the given value.">cheax_throw()</a> or from within cheax.</p>
-<p>Does not change <a class="el" href="group__ErrorHandling.html#ga146c925e6989b70f61a5cb798e74a0f9" title="Gets the value of the current cheax error code.">cheax_errno()</a>, except when <em>name</em> is NULL, in which case it is set to <a class="el" href="group__ErrorHandling.html#gga99fb83031ce9923c84392b4e92f956b5a2dbf822a29e714713ccd9be697004ed6">CHEAX_EAPI</a>.</p>
-<dl class="params"><dt>Parameters</dt><dd>
-  <table class="params">
-    <tr><td class="paramname">c</td><td>Virtual machine instance </td></tr>
-    <tr><td class="paramname">name</td><td>The error code's name. Used to make the error code available in cheax, and for error reporting by <a class="el" href="group__ErrorHandling.html#gaf1d17c5c1c4bce01616bd414fddfe3e4" title="Prints the current cheax error code and error message.">cheax_perror()</a>.</td></tr>
-  </table>
-  </dd>
-</dl>
-<dl class="section return"><dt>Returns</dt><dd>The newly created error code value. </dd></dl>
 
 </div>
 </div>
@@ -469,11 +371,31 @@ void&#160;</td><td class="memItemRight" valign="bottom"><b>cheax_add_bt</b> (<a 
 <p>Prints the current cheax error code and error message. </p>
 <dl class="params"><dt>Parameters</dt><dd>
   <table class="params">
-    <tr><td class="paramname">c</td><td>Virtual machine instance. </td></tr>
     <tr><td class="paramname">s</td><td>Argument string, will be printed followed by a colon and an error description. </td></tr>
   </table>
   </dd>
 </dl>
+
+</div>
+</div>
+<a id="ga5a36ad3064ecb2576614e0b0bc7a2f9d"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#ga5a36ad3064ecb2576614e0b0bc7a2f9d">&#9670;&nbsp;</a></span>cheax_clear_errno()</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">void cheax_clear_errno </td>
+          <td>(</td>
+          <td class="paramtype"><a class="el" href="group__Cheax.html#gae1a7e5521943626a5cb9f1f59f661662">CHEAX</a> *&#160;</td>
+          <td class="paramname"><em>c</em></td><td>)</td>
+          <td></td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+<p>Sets <a class="el" href="group__ErrorHandling.html#ga146c925e6989b70f61a5cb798e74a0f9" title="Gets the value of the current cheax error code.">cheax_errno()</a> to 0. </p>
+<dl class="section see"><dt>See also</dt><dd><a class="el" href="group__ErrorHandling.html#ga146c925e6989b70f61a5cb798e74a0f9" title="Gets the value of the current cheax error code.">cheax_errno()</a> </dd></dl>
 
 </div>
 </div>
@@ -513,9 +435,8 @@ void&#160;</td><td class="memItemRight" valign="bottom"><b>cheax_add_bt</b> (<a 
 <p>Sets <a class="el" href="group__ErrorHandling.html#ga146c925e6989b70f61a5cb798e74a0f9" title="Gets the value of the current cheax error code.">cheax_errno()</a> to <a class="el" href="group__ErrorHandling.html#gga99fb83031ce9923c84392b4e92f956b5a2dbf822a29e714713ccd9be697004ed6">CHEAX_EAPI</a> if <em>code</em> is 0.</p>
 <dl class="params"><dt>Parameters</dt><dd>
   <table class="params">
-    <tr><td class="paramname">c</td><td>Virtual machine instance. </td></tr>
     <tr><td class="paramname">code</td><td>Error code. </td></tr>
-    <tr><td class="paramname">msg</td><td>Error message string or <em>NULL</em>.</td></tr>
+    <tr><td class="paramname">msg</td><td>Error message string or <code>NULL</code>.</td></tr>
   </table>
   </dd>
 </dl>
@@ -523,8 +444,144 @@ void&#160;</td><td class="memItemRight" valign="bottom"><b>cheax_add_bt</b> (<a 
 
 </div>
 </div>
+<a id="ga1a4e76d4aec955a06654684705926892"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#ga1a4e76d4aec955a06654684705926892">&#9670;&nbsp;</a></span>cheax_throwf()</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">void cheax_throwf </td>
+          <td>(</td>
+          <td class="paramtype"><a class="el" href="group__Cheax.html#gae1a7e5521943626a5cb9f1f59f661662">CHEAX</a> *&#160;</td>
+          <td class="paramname"><em>c</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">int&#160;</td>
+          <td class="paramname"><em>code</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">const char *&#160;</td>
+          <td class="paramname"><em>fmt</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">&#160;</td>
+          <td class="paramname"><em>...</em>&#160;</td>
+        </tr>
+        <tr>
+          <td></td>
+          <td>)</td>
+          <td></td><td></td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+</div>
+</div>
+<a id="ga3de3963593ca1cad8258c8feced21c90"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#ga3de3963593ca1cad8258c8feced21c90">&#9670;&nbsp;</a></span>cheax_add_bt()</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">void cheax_add_bt </td>
+          <td>(</td>
+          <td class="paramtype"><a class="el" href="group__Cheax.html#gae1a7e5521943626a5cb9f1f59f661662">CHEAX</a> *&#160;</td>
+          <td class="paramname"><em>c</em></td><td>)</td>
+          <td></td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+</div>
+</div>
+<a id="ga5909bf42f2d85bee4f3dc83ba44ca77f"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#ga5909bf42f2d85bee4f3dc83ba44ca77f">&#9670;&nbsp;</a></span>cheax_new_error_code()</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">int cheax_new_error_code </td>
+          <td>(</td>
+          <td class="paramtype"><a class="el" href="group__Cheax.html#gae1a7e5521943626a5cb9f1f59f661662">CHEAX</a> *&#160;</td>
+          <td class="paramname"><em>c</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">const char *&#160;</td>
+          <td class="paramname"><em>name</em>&#160;</td>
+        </tr>
+        <tr>
+          <td></td>
+          <td>)</td>
+          <td></td><td></td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+<p>Creates a new error code with a given name. </p>
+<p>Such new error codes can then be thrown with <a class="el" href="group__ErrorHandling.html#ga19372077c9fc18789fa5591c805caa98" title="Sets cheax_errno() to the given value.">cheax_throw()</a> or from within cheax.</p>
+<p>Does not change <a class="el" href="group__ErrorHandling.html#ga146c925e6989b70f61a5cb798e74a0f9" title="Gets the value of the current cheax error code.">cheax_errno()</a>, except when <em>name</em> is NULL, in which case it is set to <a class="el" href="group__ErrorHandling.html#gga99fb83031ce9923c84392b4e92f956b5a2dbf822a29e714713ccd9be697004ed6">CHEAX_EAPI</a>.</p>
+<dl class="params"><dt>Parameters</dt><dd>
+  <table class="params">
+    <tr><td class="paramname">name</td><td>The error code's name. Used to make the error code available in cheax, and for error reporting by <a class="el" href="group__ErrorHandling.html#gaf1d17c5c1c4bce01616bd414fddfe3e4" title="Prints the current cheax error code and error message.">cheax_perror()</a>.</td></tr>
+  </table>
+  </dd>
+</dl>
+<dl class="section return"><dt>Returns</dt><dd>The newly created error code value. </dd></dl>
+
+</div>
+</div>
+<a id="ga4c3ce9dae899e0a486416dd0ec49c915"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#ga4c3ce9dae899e0a486416dd0ec49c915">&#9670;&nbsp;</a></span>cheax_find_error_code()</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">int cheax_find_error_code </td>
+          <td>(</td>
+          <td class="paramtype"><a class="el" href="group__Cheax.html#gae1a7e5521943626a5cb9f1f59f661662">CHEAX</a> *&#160;</td>
+          <td class="paramname"><em>c</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">const char *&#160;</td>
+          <td class="paramname"><em>name</em>&#160;</td>
+        </tr>
+        <tr>
+          <td></td>
+          <td>)</td>
+          <td></td><td></td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+<p>Looks up the value of a named error code. </p>
+<p>Sets <a class="el" href="group__ErrorHandling.html#ga146c925e6989b70f61a5cb798e74a0f9" title="Gets the value of the current cheax error code.">cheax_errno()</a> to <a class="el" href="group__ErrorHandling.html#gga99fb83031ce9923c84392b4e92f956b5a2dbf822a29e714713ccd9be697004ed6">CHEAX_EAPI</a> if <em>name</em> is NULL.</p>
+<dl class="params"><dt>Parameters</dt><dd>
+  <table class="params">
+    <tr><td class="paramname">name</td><td>Error code name.</td></tr>
+  </table>
+  </dd>
+</dl>
+<dl class="section return"><dt>Returns</dt><dd>The error code carrying the given name, or -1 if unsuccessful. </dd></dl>
+
+</div>
+</div>
 </div><!-- contents -->
 </div><!-- doc-content -->
+<div class="ttc" id="agroup__ErrorHandling_html_ga3aa3c0ed9057317b01c932a29a57ca8a"><div class="ttname"><a href="group__ErrorHandling.html#ga3aa3c0ed9057317b01c932a29a57ca8a">ERR_NAME_PAIR</a></div><div class="ttdeci">#define ERR_NAME_PAIR(NAME)</div><div class="ttdef"><b>Definition:</b> cheax.h:683</div></div>
 <!-- start footer part -->
 <div id="nav-path" class="navpath"><!-- id is needed for treeview function! -->
   <ul>

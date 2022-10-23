@@ -91,6 +91,11 @@ $(document).ready(function(){initNavTree('structchx__quote.html',''); initResiza
 <div class="title">chx_quote Struct Reference<div class="ingroups"><a class="el" href="group__Cheax.html">The cheax C API</a> &raquo; <a class="el" href="group__TypeSystem.html">Type system</a></div></div>  </div>
 </div><!--header-->
 <div class="contents">
+
+<p>Quoted value type.  
+ <a href="structchx__quote.html#details">More...</a></p>
+
+<p><code>#include &lt;<a class="el" href="cheax_8h_source.html">cheax.h</a>&gt;</code></p>
 <div class="dynheader">
 Collaboration diagram for chx_quote:</div>
 <div class="dyncontent">
@@ -99,13 +104,45 @@ Collaboration diagram for chx_quote:</div>
 <table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2 class="groupheader"><a name="pub-attribs"></a>
 Data Fields</h2></td></tr>
-<tr class="memitem:a253c988e6e223bed85dcadb1b78fc387"><td class="memItemLeft" align="right" valign="top"><a id="a253c988e6e223bed85dcadb1b78fc387"></a>
-unsigned&#160;</td><td class="memItemRight" valign="bottom"><b>rtflags</b></td></tr>
+<tr class="memitem:a253c988e6e223bed85dcadb1b78fc387"><td class="memItemLeft" align="right" valign="top">unsigned&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="structchx__quote.html#a253c988e6e223bed85dcadb1b78fc387">rtflags</a></td></tr>
 <tr class="separator:a253c988e6e223bed85dcadb1b78fc387"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:ae554a60633c2c3409b2bdac7dbb60d10"><td class="memItemLeft" align="right" valign="top"><a id="ae554a60633c2c3409b2bdac7dbb60d10"></a>
-struct <a class="el" href="structchx__value.html">chx_value</a>&#160;</td><td class="memItemRight" valign="bottom"><b>value</b></td></tr>
+<tr class="memitem:ae554a60633c2c3409b2bdac7dbb60d10"><td class="memItemLeft" align="right" valign="top">struct <a class="el" href="structchx__value.html">chx_value</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="structchx__quote.html#ae554a60633c2c3409b2bdac7dbb60d10">value</a></td></tr>
 <tr class="separator:ae554a60633c2c3409b2bdac7dbb60d10"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table>
+<a name="details" id="details"></a><h2 class="groupheader">Detailed Description</h2>
+<div class="textblock"><p>Quoted value type. </p>
+<p>Also used for values of type <a class="el" href="group__TypeSystem.html#gga06fc87d81c62e9abb8790b6e5713c55ba1ac91a7036edeef8dd2e5fdfb0174b31">CHEAX_BACKQUOTE</a>, <a class="el" href="group__TypeSystem.html#gga06fc87d81c62e9abb8790b6e5713c55ba79e6e5ed54003a64d2430ae20cc377d2">CHEAX_COMMA</a> and <a class="el" href="group__TypeSystem.html#gga06fc87d81c62e9abb8790b6e5713c55bae59c19e5ff0cf4fe4d6378239b5d731e">CHEAX_SPLICE</a>. </p>
+</div><h2 class="groupheader">Field Documentation</h2>
+<a id="a253c988e6e223bed85dcadb1b78fc387"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a253c988e6e223bed85dcadb1b78fc387">&#9670;&nbsp;</a></span>rtflags</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">unsigned chx_quote::rtflags</td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+<p>Runtime flags. </p><dl class="section note"><dt>Note</dt><dd>For internal use. </dd></dl>
+
+</div>
+</div>
+<a id="ae554a60633c2c3409b2bdac7dbb60d10"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#ae554a60633c2c3409b2bdac7dbb60d10">&#9670;&nbsp;</a></span>value</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">struct <a class="el" href="structchx__value.html">chx_value</a> chx_quote::value</td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+<p>(Back)quoted/comma'd/spliced value. </p>
+
+</div>
+</div>
 <hr/>The documentation for this struct was generated from the following file:<ul>
 <li><a class="el" href="cheax_8h_source.html">cheax.h</a></li>
 </ul>

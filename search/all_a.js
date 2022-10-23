@@ -1,4 +1,4 @@
 var searchData=
 [
-  ['value_119',['value',['../structchx__list.html#a0e667f5678b02e37a1eac5f556367c29',1,'chx_list']]]
+  ['metavar_194',['metavar',['../structchx__config__help.html#a6d68301a78b07df29bb90e7df24cb050',1,'chx_config_help']]]
 ];

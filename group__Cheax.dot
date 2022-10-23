@@ -6,6 +6,8 @@ digraph "The cheax C API"
   Node2 [label="Type system",height=0.2,width=0.4,color="black", fillcolor="white", style="filled",URL="$group__TypeSystem.html",tooltip="Functions and datastructures to create, examine and manipulate cheax expressions and their types."];
   Node1 [label="The cheax C API",height=0.2,width=0.4,color="black", fillcolor="grey75", style="filled", fontcolor="black",tooltip="API functions to interface with cheax from C/C++."];
   Node3 [label="Error handling",height=0.2,width=0.4,color="black", fillcolor="white", style="filled",URL="$group__ErrorHandling.html",tooltip="Error codes and ways to deal with them."];
+  Node4 [label="Setup and configuration",height=0.2,width=0.4,color="black", fillcolor="white", style="filled",URL="$group__SetupConfig.html",tooltip="Functions and datastructures to initialize, clean up and configure a cheax virtual machine instance."];
   Node1->Node2 [shape=plaintext, dir="back", style="solid"];
   Node1->Node3 [shape=plaintext, dir="back", style="solid"];
+  Node1->Node4 [shape=plaintext, dir="back", style="solid"];
 }

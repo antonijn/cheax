@@ -92,7 +92,7 @@ $(document).ready(function(){initNavTree('structchx__list.html',''); initResizab
 </div><!--header-->
 <div class="contents">
 
-<p>Cheax s-expression.  
+<p>List type.  
  <a href="structchx__list.html#details">More...</a></p>
 
 <p><code>#include &lt;<a class="el" href="cheax_8h_source.html">cheax.h</a>&gt;</code></p>
@@ -104,8 +104,7 @@ Collaboration diagram for chx_list:</div>
 <table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2 class="groupheader"><a name="pub-attribs"></a>
 Data Fields</h2></td></tr>
-<tr class="memitem:a1da7eb231d3f57b4ba17d0be1a384d10"><td class="memItemLeft" align="right" valign="top"><a id="a1da7eb231d3f57b4ba17d0be1a384d10"></a>
-unsigned&#160;</td><td class="memItemRight" valign="bottom"><b>rtflags</b></td></tr>
+<tr class="memitem:a1da7eb231d3f57b4ba17d0be1a384d10"><td class="memItemLeft" align="right" valign="top">unsigned&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="structchx__list.html#a1da7eb231d3f57b4ba17d0be1a384d10">rtflags</a></td></tr>
 <tr class="separator:a1da7eb231d3f57b4ba17d0be1a384d10"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a0e667f5678b02e37a1eac5f556367c29"><td class="memItemLeft" align="right" valign="top">struct <a class="el" href="structchx__value.html">chx_value</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="structchx__list.html#a0e667f5678b02e37a1eac5f556367c29">value</a></td></tr>
 <tr class="separator:a0e667f5678b02e37a1eac5f556367c29"><td class="memSeparator" colspan="2">&#160;</td></tr>
@@ -113,21 +112,22 @@ unsigned&#160;</td><td class="memItemRight" valign="bottom"><b>rtflags</b></td><
 <tr class="separator:a2ae2b9bc73995fbfa3cd9f6f51519a11"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table>
 <a name="details" id="details"></a><h2 class="groupheader">Detailed Description</h2>
-<div class="textblock"><p>Cheax s-expression. </p>
-<dl class="section see"><dt>See also</dt><dd><a class="el" href="group__TypeSystem.html#ga7acf317fd6bd2ce19c9da5a13ea51883" title="Creates a cheax s-expression.">cheax_list()</a>, <a class="el" href="group__TypeSystem.html#gga06fc87d81c62e9abb8790b6e5713c55ba049696924e67bbd7584e0775509d5f17">CHEAX_LIST</a> </dd></dl>
+<div class="textblock"><p>List type. </p>
+<p>Also known as a cons cell, an S-expression or a singly-linked list.</p>
+<dl class="section see"><dt>See also</dt><dd><a class="el" href="group__TypeSystem.html#gga06fc87d81c62e9abb8790b6e5713c55ba049696924e67bbd7584e0775509d5f17">CHEAX_LIST</a>, <a class="el" href="group__TypeSystem.html#ga7acf317fd6bd2ce19c9da5a13ea51883" title="Creates a list.">cheax_list()</a>, <a class="el" href="structchx__value.html" title="Represents a value in the cheax environment.">chx_value</a> </dd></dl>
 </div><h2 class="groupheader">Field Documentation</h2>
-<a id="a2ae2b9bc73995fbfa3cd9f6f51519a11"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#a2ae2b9bc73995fbfa3cd9f6f51519a11">&#9670;&nbsp;</a></span>next</h2>
+<a id="a1da7eb231d3f57b4ba17d0be1a384d10"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a1da7eb231d3f57b4ba17d0be1a384d10">&#9670;&nbsp;</a></span>rtflags</h2>
 
 <div class="memitem">
 <div class="memproto">
       <table class="memname">
         <tr>
-          <td class="memname">struct <a class="el" href="structchx__list.html">chx_list</a>* chx_list::next</td>
+          <td class="memname">unsigned chx_list::rtflags</td>
         </tr>
       </table>
 </div><div class="memdoc">
-<p>The next node in the s-expression. </p>
+<p>Runtime flags. </p><dl class="section note"><dt>Note</dt><dd>For internal use. </dd></dl>
 
 </div>
 </div>
@@ -143,6 +143,21 @@ unsigned&#160;</td><td class="memItemRight" valign="bottom"><b>rtflags</b></td><
       </table>
 </div><div class="memdoc">
 <p>The value of the s-expression node. </p>
+
+</div>
+</div>
+<a id="a2ae2b9bc73995fbfa3cd9f6f51519a11"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a2ae2b9bc73995fbfa3cd9f6f51519a11">&#9670;&nbsp;</a></span>next</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">struct <a class="el" href="structchx__list.html">chx_list</a>* chx_list::next</td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+<p>The next node in the s-expression. </p>
 
 </div>
 </div>

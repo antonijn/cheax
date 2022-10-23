@@ -88,7 +88,6 @@ $(document).ready(function(){initNavTree('group__Cheax.html',''); initResizable(
   <div class="summary">
 <a href="#groups">Modules</a> &#124;
 <a href="#files">Files</a> &#124;
-<a href="#nested-classes">Data Structures</a> &#124;
 <a href="#typedef-members">Typedefs</a> &#124;
 <a href="#enum-members">Enumerations</a> &#124;
 <a href="#func-members">Functions</a>  </div>
@@ -113,16 +112,14 @@ Modules</h2></td></tr>
 <tr class="memitem:group__ErrorHandling"><td class="memItemLeft" align="right" valign="top">&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__ErrorHandling.html">Error handling</a></td></tr>
 <tr class="memdesc:group__ErrorHandling"><td class="mdescLeft">&#160;</td><td class="mdescRight">Error codes and ways to deal with them. <br /></td></tr>
 <tr class="separator:"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:group__SetupConfig"><td class="memItemLeft" align="right" valign="top">&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__SetupConfig.html">Setup and configuration</a></td></tr>
+<tr class="memdesc:group__SetupConfig"><td class="mdescLeft">&#160;</td><td class="mdescRight">Functions and datastructures to initialize, clean up and configure a cheax virtual machine instance. <br /></td></tr>
+<tr class="separator:"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table><table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2 class="groupheader"><a name="files"></a>
 Files</h2></td></tr>
 <tr class="memitem:cheax_8h"><td class="memItemLeft" align="right" valign="top">file &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="cheax_8h.html">cheax.h</a></td></tr>
 <tr class="memdesc:cheax_8h"><td class="mdescLeft">&#160;</td><td class="mdescRight">The header for the cheax C API. <br /></td></tr>
-<tr class="separator:"><td class="memSeparator" colspan="2">&#160;</td></tr>
-</table><table class="memberdecls">
-<tr class="heading"><td colspan="2"><h2 class="groupheader"><a name="nested-classes"></a>
-Data Structures</h2></td></tr>
-<tr class="memitem:"><td class="memItemLeft" align="right" valign="top">struct &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="structchx__config__help.html">chx_config_help</a></td></tr>
 <tr class="separator:"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table><table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2 class="groupheader"><a name="typedef-members"></a>
@@ -143,27 +140,11 @@ Enumerations</h2></td></tr>
 </table><table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2 class="groupheader"><a name="func-members"></a>
 Functions</h2></td></tr>
-<tr class="memitem:ga82228a8d8fbeae6e9c104e80efde84ca"><td class="memItemLeft" align="right" valign="top"><a class="el" href="group__Cheax.html#gae1a7e5521943626a5cb9f1f59f661662">CHEAX</a> *&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__Cheax.html#ga82228a8d8fbeae6e9c104e80efde84ca">cheax_init</a> (void)</td></tr>
-<tr class="memdesc:ga82228a8d8fbeae6e9c104e80efde84ca"><td class="mdescLeft">&#160;</td><td class="mdescRight">Initializes a new cheax virtual machine instance.  <a href="group__Cheax.html#ga82228a8d8fbeae6e9c104e80efde84ca">More...</a><br /></td></tr>
-<tr class="separator:ga82228a8d8fbeae6e9c104e80efde84ca"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:ga531d3caa61b7abe2296aa74c250d2b53"><td class="memItemLeft" align="right" valign="top"><a id="ga531d3caa61b7abe2296aa74c250d2b53"></a>
-const char *&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__Cheax.html#ga531d3caa61b7abe2296aa74c250d2b53">cheax_version</a> (void)</td></tr>
-<tr class="memdesc:ga531d3caa61b7abe2296aa74c250d2b53"><td class="mdescLeft">&#160;</td><td class="mdescRight">Returns cheax library version as a string in the static storage class. <br /></td></tr>
-<tr class="separator:ga531d3caa61b7abe2296aa74c250d2b53"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:ga16a03f0af286023ea3ca41e6c469ca75"><td class="memItemLeft" align="right" valign="top">int&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__Cheax.html#ga16a03f0af286023ea3ca41e6c469ca75">cheax_load_feature</a> (<a class="el" href="group__Cheax.html#gae1a7e5521943626a5cb9f1f59f661662">CHEAX</a> *c, const char *feat)</td></tr>
-<tr class="memdesc:ga16a03f0af286023ea3ca41e6c469ca75"><td class="mdescLeft">&#160;</td><td class="mdescRight">Loads extra functions or language features into the cheax environment, including 'unsafe' ones.  <a href="group__Cheax.html#ga16a03f0af286023ea3ca41e6c469ca75">More...</a><br /></td></tr>
-<tr class="separator:ga16a03f0af286023ea3ca41e6c469ca75"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:ga9ed440cb74b1db60d639db905845523c"><td class="memItemLeft" align="right" valign="top">int&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__Cheax.html#ga9ed440cb74b1db60d639db905845523c">cheax_load_prelude</a> (<a class="el" href="group__Cheax.html#gae1a7e5521943626a5cb9f1f59f661662">CHEAX</a> *c)</td></tr>
-<tr class="memdesc:ga9ed440cb74b1db60d639db905845523c"><td class="mdescLeft">&#160;</td><td class="mdescRight">Loads the cheax standard library.  <a href="group__Cheax.html#ga9ed440cb74b1db60d639db905845523c">More...</a><br /></td></tr>
-<tr class="separator:ga9ed440cb74b1db60d639db905845523c"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:ga1639ba43e8fd1d8150b00a2b85661bca"><td class="memItemLeft" align="right" valign="top">void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__Cheax.html#ga1639ba43e8fd1d8150b00a2b85661bca">cheax_destroy</a> (<a class="el" href="group__Cheax.html#gae1a7e5521943626a5cb9f1f59f661662">CHEAX</a> *c)</td></tr>
-<tr class="memdesc:ga1639ba43e8fd1d8150b00a2b85661bca"><td class="mdescLeft">&#160;</td><td class="mdescRight">Destroys a cheax virtual machine instance, freeing its resources.  <a href="group__Cheax.html#ga1639ba43e8fd1d8150b00a2b85661bca">More...</a><br /></td></tr>
-<tr class="separator:ga1639ba43e8fd1d8150b00a2b85661bca"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:gadf2456ad59a56786cbe36db7502b1fb0"><td class="memItemLeft" align="right" valign="top">int&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__Cheax.html#gadf2456ad59a56786cbe36db7502b1fb0">cheax_list_to_array</a> (<a class="el" href="group__Cheax.html#gae1a7e5521943626a5cb9f1f59f661662">CHEAX</a> *c, struct <a class="el" href="structchx__list.html">chx_list</a> *list, struct <a class="el" href="structchx__value.html">chx_value</a> **array_ptr, size_t *length)</td></tr>
-<tr class="memdesc:gadf2456ad59a56786cbe36db7502b1fb0"><td class="mdescLeft">&#160;</td><td class="mdescRight">Converts <a class="el" href="structchx__list.html" title="Cheax s-expression.">chx_list</a> to array.  <a href="group__Cheax.html#gadf2456ad59a56786cbe36db7502b1fb0">More...</a><br /></td></tr>
+<tr class="memdesc:gadf2456ad59a56786cbe36db7502b1fb0"><td class="mdescLeft">&#160;</td><td class="mdescRight">Converts <a class="el" href="structchx__list.html">chx_list</a> to array.  <a href="group__Cheax.html#gadf2456ad59a56786cbe36db7502b1fb0">More...</a><br /></td></tr>
 <tr class="separator:gadf2456ad59a56786cbe36db7502b1fb0"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:ga81b1dee2fc3b313cee8c9a38c186c721"><td class="memItemLeft" align="right" valign="top"><a id="ga81b1dee2fc3b313cee8c9a38c186c721"></a>
-struct <a class="el" href="structchx__value.html">chx_value</a>&#160;</td><td class="memItemRight" valign="bottom"><b>cheax_array_to_list</b> (<a class="el" href="group__Cheax.html#gae1a7e5521943626a5cb9f1f59f661662">CHEAX</a> *c, struct <a class="el" href="structchx__value.html">chx_value</a> *array, size_t length)</td></tr>
+<tr class="memitem:ga81b1dee2fc3b313cee8c9a38c186c721"><td class="memItemLeft" align="right" valign="top">struct <a class="el" href="structchx__value.html">chx_value</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__Cheax.html#ga81b1dee2fc3b313cee8c9a38c186c721">cheax_array_to_list</a> (<a class="el" href="group__Cheax.html#gae1a7e5521943626a5cb9f1f59f661662">CHEAX</a> *c, struct <a class="el" href="structchx__value.html">chx_value</a> *array, size_t length)</td></tr>
+<tr class="memdesc:ga81b1dee2fc3b313cee8c9a38c186c721"><td class="mdescLeft">&#160;</td><td class="mdescRight">Converts array to <a class="el" href="structchx__list.html">chx_list</a>.  <a href="group__Cheax.html#ga81b1dee2fc3b313cee8c9a38c186c721">More...</a><br /></td></tr>
 <tr class="separator:ga81b1dee2fc3b313cee8c9a38c186c721"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:ga762f81ab8ce82a5d4beb1e227763b49c"><td class="memItemLeft" align="right" valign="top">void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__Cheax.html#ga762f81ab8ce82a5d4beb1e227763b49c">cheax_push_env</a> (<a class="el" href="group__Cheax.html#gae1a7e5521943626a5cb9f1f59f661662">CHEAX</a> *c)</td></tr>
 <tr class="memdesc:ga762f81ab8ce82a5d4beb1e227763b49c"><td class="mdescLeft">&#160;</td><td class="mdescRight">Pushes new empty environment to environment stack.  <a href="group__Cheax.html#ga762f81ab8ce82a5d4beb1e227763b49c">More...</a><br /></td></tr>
@@ -174,23 +155,21 @@ struct <a class="el" href="structchx__value.html">chx_value</a>&#160;</td><td cl
 <tr class="memitem:ga62592dd871f03fdf5effe8034006d1e9"><td class="memItemLeft" align="right" valign="top">void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__Cheax.html#ga62592dd871f03fdf5effe8034006d1e9">cheax_pop_env</a> (<a class="el" href="group__Cheax.html#gae1a7e5521943626a5cb9f1f59f661662">CHEAX</a> *c)</td></tr>
 <tr class="memdesc:ga62592dd871f03fdf5effe8034006d1e9"><td class="mdescLeft">&#160;</td><td class="mdescRight">Pops environment off environment stack.  <a href="group__Cheax.html#ga62592dd871f03fdf5effe8034006d1e9">More...</a><br /></td></tr>
 <tr class="separator:ga62592dd871f03fdf5effe8034006d1e9"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:gab415dedb11b00957d6feaa19db34d9e1"><td class="memItemLeft" align="right" valign="top"><a id="gab415dedb11b00957d6feaa19db34d9e1"></a>
-struct <a class="el" href="structchx__sym.html">chx_sym</a> *&#160;</td><td class="memItemRight" valign="bottom"><b>cheax_defsym</b> (<a class="el" href="group__Cheax.html#gae1a7e5521943626a5cb9f1f59f661662">CHEAX</a> *c, const char *id, chx_getter get, chx_setter set, chx_finalizer fin, void *user_info)</td></tr>
+<tr class="memitem:gab415dedb11b00957d6feaa19db34d9e1"><td class="memItemLeft" align="right" valign="top">struct <a class="el" href="structchx__sym.html">chx_sym</a> *&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__Cheax.html#gab415dedb11b00957d6feaa19db34d9e1">cheax_defsym</a> (<a class="el" href="group__Cheax.html#gae1a7e5521943626a5cb9f1f59f661662">CHEAX</a> *c, const char *id, <a class="el" href="group__TypeSystem.html#gae648e94314bab30db32badc7b2461c8b">chx_getter</a> get, <a class="el" href="group__TypeSystem.html#gaae66e3390683f6d4f6f3a3b22b687cf7">chx_setter</a> set, <a class="el" href="group__TypeSystem.html#ga5c586cd4103834e65a09aee21094ee9b">chx_finalizer</a> fin, void *user_info)</td></tr>
+<tr class="memdesc:gab415dedb11b00957d6feaa19db34d9e1"><td class="mdescLeft">&#160;</td><td class="mdescRight">Define symbol with custom getter and setter.  <a href="group__Cheax.html#gab415dedb11b00957d6feaa19db34d9e1">More...</a><br /></td></tr>
 <tr class="separator:gab415dedb11b00957d6feaa19db34d9e1"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:ga895df893b78c6e3b6c24d83e7e7351cf"><td class="memItemLeft" align="right" valign="top">void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__Cheax.html#ga895df893b78c6e3b6c24d83e7e7351cf">cheax_def</a> (<a class="el" href="group__Cheax.html#gae1a7e5521943626a5cb9f1f59f661662">CHEAX</a> *c, const char *id, struct <a class="el" href="structchx__value.html">chx_value</a> value, int flags)</td></tr>
 <tr class="memdesc:ga895df893b78c6e3b6c24d83e7e7351cf"><td class="mdescLeft">&#160;</td><td class="mdescRight">Creates a new symbol in the cheax environment.  <a href="group__Cheax.html#ga895df893b78c6e3b6c24d83e7e7351cf">More...</a><br /></td></tr>
 <tr class="separator:ga895df893b78c6e3b6c24d83e7e7351cf"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:gaa548cdf714b3dbd0c2485d0bce2c5545"><td class="memItemLeft" align="right" valign="top">struct <a class="el" href="structchx__value.html">chx_value</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__Cheax.html#gaa548cdf714b3dbd0c2485d0bce2c5545">cheax_get</a> (<a class="el" href="group__Cheax.html#gae1a7e5521943626a5cb9f1f59f661662">CHEAX</a> *c, const char *id)</td></tr>
-<tr class="memdesc:gaa548cdf714b3dbd0c2485d0bce2c5545"><td class="mdescLeft">&#160;</td><td class="mdescRight">Retrieves the value of the given symbol.  <a href="group__Cheax.html#gaa548cdf714b3dbd0c2485d0bce2c5545">More...</a><br /></td></tr>
+<tr class="memdesc:gaa548cdf714b3dbd0c2485d0bce2c5545"><td class="mdescLeft">&#160;</td><td class="mdescRight">Obtains the value of the given symbol.  <a href="group__Cheax.html#gaa548cdf714b3dbd0c2485d0bce2c5545">More...</a><br /></td></tr>
 <tr class="separator:gaa548cdf714b3dbd0c2485d0bce2c5545"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:gaa7fec06863340836bfb413d42f2ac147"><td class="memItemLeft" align="right" valign="top"><a id="gaa7fec06863340836bfb413d42f2ac147"></a>
-bool&#160;</td><td class="memItemRight" valign="bottom"><b>cheax_try_get</b> (<a class="el" href="group__Cheax.html#gae1a7e5521943626a5cb9f1f59f661662">CHEAX</a> *c, const char *id, struct <a class="el" href="structchx__value.html">chx_value</a> *out)</td></tr>
+<tr class="memitem:gaa7fec06863340836bfb413d42f2ac147"><td class="memItemLeft" align="right" valign="top">bool&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__Cheax.html#gaa7fec06863340836bfb413d42f2ac147">cheax_try_get</a> (<a class="el" href="group__Cheax.html#gae1a7e5521943626a5cb9f1f59f661662">CHEAX</a> *c, const char *id, struct <a class="el" href="structchx__value.html">chx_value</a> *out)</td></tr>
 <tr class="separator:gaa7fec06863340836bfb413d42f2ac147"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:gacbbfcf2d64e88aa0ffd2a55d2620b15d"><td class="memItemLeft" align="right" valign="top">struct <a class="el" href="structchx__value.html">chx_value</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__Cheax.html#gacbbfcf2d64e88aa0ffd2a55d2620b15d">cheax_get_from</a> (<a class="el" href="group__Cheax.html#gae1a7e5521943626a5cb9f1f59f661662">CHEAX</a> *c, struct chx_env *env, const char *id)</td></tr>
 <tr class="memdesc:gacbbfcf2d64e88aa0ffd2a55d2620b15d"><td class="mdescLeft">&#160;</td><td class="mdescRight">Retrieves the value of the given symbol, performing symbol lookup only in the specified environment.  <a href="group__Cheax.html#gacbbfcf2d64e88aa0ffd2a55d2620b15d">More...</a><br /></td></tr>
 <tr class="separator:gacbbfcf2d64e88aa0ffd2a55d2620b15d"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:gaeb322b3b1e5ca08d9503b32e9cb8184a"><td class="memItemLeft" align="right" valign="top"><a id="gaeb322b3b1e5ca08d9503b32e9cb8184a"></a>
-bool&#160;</td><td class="memItemRight" valign="bottom"><b>cheax_try_get_from</b> (<a class="el" href="group__Cheax.html#gae1a7e5521943626a5cb9f1f59f661662">CHEAX</a> *c, struct chx_env *env, const char *id, struct <a class="el" href="structchx__value.html">chx_value</a> *out)</td></tr>
+<tr class="memitem:gaeb322b3b1e5ca08d9503b32e9cb8184a"><td class="memItemLeft" align="right" valign="top">bool&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__Cheax.html#gaeb322b3b1e5ca08d9503b32e9cb8184a">cheax_try_get_from</a> (<a class="el" href="group__Cheax.html#gae1a7e5521943626a5cb9f1f59f661662">CHEAX</a> *c, struct chx_env *env, const char *id, struct <a class="el" href="structchx__value.html">chx_value</a> *out)</td></tr>
 <tr class="separator:gaeb322b3b1e5ca08d9503b32e9cb8184a"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:ga163176a06974bd2a4a74cfbcf942a3a7"><td class="memItemLeft" align="right" valign="top">void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__Cheax.html#ga163176a06974bd2a4a74cfbcf942a3a7">cheax_set</a> (<a class="el" href="group__Cheax.html#gae1a7e5521943626a5cb9f1f59f661662">CHEAX</a> *c, const char *id, struct <a class="el" href="structchx__value.html">chx_value</a> value)</td></tr>
 <tr class="memdesc:ga163176a06974bd2a4a74cfbcf942a3a7"><td class="mdescLeft">&#160;</td><td class="mdescRight">Sets the value of a symbol.  <a href="group__Cheax.html#ga163176a06974bd2a4a74cfbcf942a3a7">More...</a><br /></td></tr>
@@ -199,10 +178,9 @@ bool&#160;</td><td class="memItemRight" valign="bottom"><b>cheax_try_get_from</b
 <tr class="memdesc:gad08174626f139f7900aa0d06880aa97d"><td class="mdescLeft">&#160;</td><td class="mdescRight">Shorthand function to declare an external function the cheax environment.  <a href="group__Cheax.html#gad08174626f139f7900aa0d06880aa97d">More...</a><br /></td></tr>
 <tr class="separator:gad08174626f139f7900aa0d06880aa97d"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:gabfd35fccc8bd305b738150ffe0c3bbe9"><td class="memItemLeft" align="right" valign="top">void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__Cheax.html#gabfd35fccc8bd305b738150ffe0c3bbe9">cheax_def_special_form</a> (<a class="el" href="group__Cheax.html#gae1a7e5521943626a5cb9f1f59f661662">CHEAX</a> *c, const char *id, <a class="el" href="group__TypeSystem.html#gad3eb9ae38ae236189464dd2e6f2517f2">chx_func_ptr</a> perform, void *info)</td></tr>
-<tr class="memdesc:gabfd35fccc8bd305b738150ffe0c3bbe9"><td class="mdescLeft">&#160;</td><td class="mdescRight">Shorthand function to declare a special form the cheax environment.  <a href="group__Cheax.html#gabfd35fccc8bd305b738150ffe0c3bbe9">More...</a><br /></td></tr>
 <tr class="separator:gabfd35fccc8bd305b738150ffe0c3bbe9"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:gae3053bc7d80c4761838019cb309c5abb"><td class="memItemLeft" align="right" valign="top"><a id="gae3053bc7d80c4761838019cb309c5abb"></a>
-void&#160;</td><td class="memItemRight" valign="bottom"><b>cheax_def_special_tail_form</b> (<a class="el" href="group__Cheax.html#gae1a7e5521943626a5cb9f1f59f661662">CHEAX</a> *c, const char *id, chx_tail_func_ptr perform, void *info)</td></tr>
+<tr class="memitem:gae3053bc7d80c4761838019cb309c5abb"><td class="memItemLeft" align="right" valign="top">void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__Cheax.html#gae3053bc7d80c4761838019cb309c5abb">cheax_def_special_tail_form</a> (<a class="el" href="group__Cheax.html#gae1a7e5521943626a5cb9f1f59f661662">CHEAX</a> *c, const char *id, <a class="el" href="group__TypeSystem.html#ga4796fe2cd5fbea45476ab999c385a088">chx_tail_func_ptr</a> perform, void *info)</td></tr>
+<tr class="memdesc:gae3053bc7d80c4761838019cb309c5abb"><td class="mdescLeft">&#160;</td><td class="mdescRight">Creates a new special tail form the cheax environment.  <a href="group__Cheax.html#gae3053bc7d80c4761838019cb309c5abb">More...</a><br /></td></tr>
 <tr class="separator:gae3053bc7d80c4761838019cb309c5abb"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:ga27b4218aa1d98f321686d523f9e1a771"><td class="memItemLeft" align="right" valign="top">void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__Cheax.html#ga27b4218aa1d98f321686d523f9e1a771">cheax_sync_int</a> (<a class="el" href="group__Cheax.html#gae1a7e5521943626a5cb9f1f59f661662">CHEAX</a> *c, const char *name, int *var, int flags)</td></tr>
 <tr class="memdesc:ga27b4218aa1d98f321686d523f9e1a771"><td class="mdescLeft">&#160;</td><td class="mdescRight">Synchronizes a variable from C with a symbol in the cheax environment.  <a href="group__Cheax.html#ga27b4218aa1d98f321686d523f9e1a771">More...</a><br /></td></tr>
@@ -231,47 +209,32 @@ void&#160;</td><td class="memItemRight" valign="bottom"><b>cheax_def_special_tai
 <tr class="memitem:gabb847027e0eabb45e3e7f1ec60219805"><td class="memItemLeft" align="right" valign="top">struct <a class="el" href="structchx__value.html">chx_value</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__Cheax.html#gabb847027e0eabb45e3e7f1ec60219805">cheax_cast</a> (<a class="el" href="group__Cheax.html#gae1a7e5521943626a5cb9f1f59f661662">CHEAX</a> *c, struct <a class="el" href="structchx__value.html">chx_value</a> v, int type)</td></tr>
 <tr class="memdesc:gabb847027e0eabb45e3e7f1ec60219805"><td class="mdescLeft">&#160;</td><td class="mdescRight">Attempts to cast an expression to a given type.  <a href="group__Cheax.html#gabb847027e0eabb45e3e7f1ec60219805">More...</a><br /></td></tr>
 <tr class="separator:gabb847027e0eabb45e3e7f1ec60219805"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:gac8333bc9100964a7dbfdb2b26d4a9bfc"><td class="memItemLeft" align="right" valign="top"><a id="gac8333bc9100964a7dbfdb2b26d4a9bfc"></a>
-int&#160;</td><td class="memItemRight" valign="bottom"><b>cheax_config_get_int</b> (<a class="el" href="group__Cheax.html#gae1a7e5521943626a5cb9f1f59f661662">CHEAX</a> *c, const char *opt)</td></tr>
-<tr class="separator:gac8333bc9100964a7dbfdb2b26d4a9bfc"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:ga2668e4bacb8264ff16ef8f3513c4bcdc"><td class="memItemLeft" align="right" valign="top"><a id="ga2668e4bacb8264ff16ef8f3513c4bcdc"></a>
-int&#160;</td><td class="memItemRight" valign="bottom"><b>cheax_config_int</b> (<a class="el" href="group__Cheax.html#gae1a7e5521943626a5cb9f1f59f661662">CHEAX</a> *c, const char *opt, int value)</td></tr>
-<tr class="separator:ga2668e4bacb8264ff16ef8f3513c4bcdc"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:gac5b2e81862817f316206a4d2b81790df"><td class="memItemLeft" align="right" valign="top"><a id="gac5b2e81862817f316206a4d2b81790df"></a>
-bool&#160;</td><td class="memItemRight" valign="bottom"><b>cheax_config_get_bool</b> (<a class="el" href="group__Cheax.html#gae1a7e5521943626a5cb9f1f59f661662">CHEAX</a> *c, const char *opt)</td></tr>
-<tr class="separator:gac5b2e81862817f316206a4d2b81790df"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:ga47768681fe09ac94318621a863af4f28"><td class="memItemLeft" align="right" valign="top"><a id="ga47768681fe09ac94318621a863af4f28"></a>
-int&#160;</td><td class="memItemRight" valign="bottom"><b>cheax_config_bool</b> (<a class="el" href="group__Cheax.html#gae1a7e5521943626a5cb9f1f59f661662">CHEAX</a> *c, const char *opt, bool value)</td></tr>
-<tr class="separator:ga47768681fe09ac94318621a863af4f28"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:ga9c14cefa592ad38fc0895c4aef28577f"><td class="memItemLeft" align="right" valign="top">int&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__Cheax.html#ga9c14cefa592ad38fc0895c4aef28577f">cheax_config_help</a> (struct <a class="el" href="structchx__config__help.html">chx_config_help</a> **help, size_t *num_opts)</td></tr>
-<tr class="memdesc:ga9c14cefa592ad38fc0895c4aef28577f"><td class="mdescLeft">&#160;</td><td class="mdescRight">Load information about all cheax config options.  <a href="group__Cheax.html#ga9c14cefa592ad38fc0895c4aef28577f">More...</a><br /></td></tr>
-<tr class="separator:ga9c14cefa592ad38fc0895c4aef28577f"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:gadad11b9b0781ba548e45161de4a1b8ae"><td class="memItemLeft" align="right" valign="top">struct <a class="el" href="structchx__value.html">chx_value</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__Cheax.html#gadad11b9b0781ba548e45161de4a1b8ae">cheax_read</a> (<a class="el" href="group__Cheax.html#gae1a7e5521943626a5cb9f1f59f661662">CHEAX</a> *c, FILE *f)</td></tr>
-<tr class="memdesc:gadad11b9b0781ba548e45161de4a1b8ae"><td class="mdescLeft">&#160;</td><td class="mdescRight">Reads cheax expression from file.  <a href="group__Cheax.html#gadad11b9b0781ba548e45161de4a1b8ae">More...</a><br /></td></tr>
+<tr class="memdesc:gadad11b9b0781ba548e45161de4a1b8ae"><td class="mdescLeft">&#160;</td><td class="mdescRight">Reads value from file.  <a href="group__Cheax.html#gadad11b9b0781ba548e45161de4a1b8ae">More...</a><br /></td></tr>
 <tr class="separator:gadad11b9b0781ba548e45161de4a1b8ae"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:gacae907683cdf8eb75d8e993727675703"><td class="memItemLeft" align="right" valign="top"><a id="gacae907683cdf8eb75d8e993727675703"></a>
-struct <a class="el" href="structchx__value.html">chx_value</a>&#160;</td><td class="memItemRight" valign="bottom"><b>cheax_read_at</b> (<a class="el" href="group__Cheax.html#gae1a7e5521943626a5cb9f1f59f661662">CHEAX</a> *c, FILE *f, const char *path, int *line, int *pos)</td></tr>
+<tr class="memitem:gacae907683cdf8eb75d8e993727675703"><td class="memItemLeft" align="right" valign="top">struct <a class="el" href="structchx__value.html">chx_value</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__Cheax.html#gacae907683cdf8eb75d8e993727675703">cheax_read_at</a> (<a class="el" href="group__Cheax.html#gae1a7e5521943626a5cb9f1f59f661662">CHEAX</a> *c, FILE *f, const char *path, int *line, int *pos)</td></tr>
+<tr class="memdesc:gacae907683cdf8eb75d8e993727675703"><td class="mdescLeft">&#160;</td><td class="mdescRight">Reads value from file and reports back line and column information.  <a href="group__Cheax.html#gacae907683cdf8eb75d8e993727675703">More...</a><br /></td></tr>
 <tr class="separator:gacae907683cdf8eb75d8e993727675703"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:ga41a6006e8ea353a180f0b2a9eeb8b11b"><td class="memItemLeft" align="right" valign="top">struct <a class="el" href="structchx__value.html">chx_value</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__Cheax.html#ga41a6006e8ea353a180f0b2a9eeb8b11b">cheax_readstr</a> (<a class="el" href="group__Cheax.html#gae1a7e5521943626a5cb9f1f59f661662">CHEAX</a> *c, const char *str)</td></tr>
-<tr class="memdesc:ga41a6006e8ea353a180f0b2a9eeb8b11b"><td class="mdescLeft">&#160;</td><td class="mdescRight">Reads cheax expression from string.  <a href="group__Cheax.html#ga41a6006e8ea353a180f0b2a9eeb8b11b">More...</a><br /></td></tr>
+<tr class="memdesc:ga41a6006e8ea353a180f0b2a9eeb8b11b"><td class="mdescLeft">&#160;</td><td class="mdescRight">Reads value from string.  <a href="group__Cheax.html#ga41a6006e8ea353a180f0b2a9eeb8b11b">More...</a><br /></td></tr>
 <tr class="separator:ga41a6006e8ea353a180f0b2a9eeb8b11b"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:ga32bcc94c1b5778c149b1da41be5fd757"><td class="memItemLeft" align="right" valign="top"><a id="ga32bcc94c1b5778c149b1da41be5fd757"></a>
-struct <a class="el" href="structchx__value.html">chx_value</a>&#160;</td><td class="memItemRight" valign="bottom"><b>cheax_readstr_at</b> (<a class="el" href="group__Cheax.html#gae1a7e5521943626a5cb9f1f59f661662">CHEAX</a> *c, const char **str, const char *path, int *line, int *pos)</td></tr>
+<tr class="memitem:ga32bcc94c1b5778c149b1da41be5fd757"><td class="memItemLeft" align="right" valign="top">struct <a class="el" href="structchx__value.html">chx_value</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__Cheax.html#ga32bcc94c1b5778c149b1da41be5fd757">cheax_readstr_at</a> (<a class="el" href="group__Cheax.html#gae1a7e5521943626a5cb9f1f59f661662">CHEAX</a> *c, const char **str, const char *path, int *line, int *pos)</td></tr>
+<tr class="memdesc:ga32bcc94c1b5778c149b1da41be5fd757"><td class="mdescLeft">&#160;</td><td class="mdescRight">Reads value from string, updates the string to reference the byte where it left off reading, and reports back line and column information.  <a href="group__Cheax.html#ga32bcc94c1b5778c149b1da41be5fd757">More...</a><br /></td></tr>
 <tr class="separator:ga32bcc94c1b5778c149b1da41be5fd757"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:ga1c2798f34fd2207d035d787c27531705"><td class="memItemLeft" align="right" valign="top"><a id="ga1c2798f34fd2207d035d787c27531705"></a>
-struct <a class="el" href="structchx__value.html">chx_value</a>&#160;</td><td class="memItemRight" valign="bottom"><b>cheax_macroexpand</b> (<a class="el" href="group__Cheax.html#gae1a7e5521943626a5cb9f1f59f661662">CHEAX</a> *c, struct <a class="el" href="structchx__value.html">chx_value</a> expr)</td></tr>
+<tr class="memitem:ga1c2798f34fd2207d035d787c27531705"><td class="memItemLeft" align="right" valign="top">struct <a class="el" href="structchx__value.html">chx_value</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__Cheax.html#ga1c2798f34fd2207d035d787c27531705">cheax_macroexpand</a> (<a class="el" href="group__Cheax.html#gae1a7e5521943626a5cb9f1f59f661662">CHEAX</a> *c, struct <a class="el" href="structchx__value.html">chx_value</a> expr)</td></tr>
+<tr class="memdesc:ga1c2798f34fd2207d035d787c27531705"><td class="mdescLeft">&#160;</td><td class="mdescRight">Expand all macro forms in given expression.  <a href="group__Cheax.html#ga1c2798f34fd2207d035d787c27531705">More...</a><br /></td></tr>
 <tr class="separator:ga1c2798f34fd2207d035d787c27531705"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:gad7fcf1d7564062a0aebc1791d2e16ea6"><td class="memItemLeft" align="right" valign="top"><a id="gad7fcf1d7564062a0aebc1791d2e16ea6"></a>
-struct <a class="el" href="structchx__value.html">chx_value</a>&#160;</td><td class="memItemRight" valign="bottom"><b>cheax_macroexpand_once</b> (<a class="el" href="group__Cheax.html#gae1a7e5521943626a5cb9f1f59f661662">CHEAX</a> *c, struct <a class="el" href="structchx__value.html">chx_value</a> expr)</td></tr>
+<tr class="memitem:gad7fcf1d7564062a0aebc1791d2e16ea6"><td class="memItemLeft" align="right" valign="top">struct <a class="el" href="structchx__value.html">chx_value</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__Cheax.html#gad7fcf1d7564062a0aebc1791d2e16ea6">cheax_macroexpand_once</a> (<a class="el" href="group__Cheax.html#gae1a7e5521943626a5cb9f1f59f661662">CHEAX</a> *c, struct <a class="el" href="structchx__value.html">chx_value</a> expr)</td></tr>
+<tr class="memdesc:gad7fcf1d7564062a0aebc1791d2e16ea6"><td class="mdescLeft">&#160;</td><td class="mdescRight">Expand first macro form in given expression.  <a href="group__Cheax.html#gad7fcf1d7564062a0aebc1791d2e16ea6">More...</a><br /></td></tr>
 <tr class="separator:gad7fcf1d7564062a0aebc1791d2e16ea6"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:ga46ecfc59560c9b24cb0313e62876ec31"><td class="memItemLeft" align="right" valign="top">struct <a class="el" href="structchx__value.html">chx_value</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__Cheax.html#ga46ecfc59560c9b24cb0313e62876ec31">cheax_eval</a> (<a class="el" href="group__Cheax.html#gae1a7e5521943626a5cb9f1f59f661662">CHEAX</a> *c, struct <a class="el" href="structchx__value.html">chx_value</a> expr)</td></tr>
 <tr class="memdesc:ga46ecfc59560c9b24cb0313e62876ec31"><td class="mdescLeft">&#160;</td><td class="mdescRight">Evaluates given cheax expression.  <a href="group__Cheax.html#ga46ecfc59560c9b24cb0313e62876ec31">More...</a><br /></td></tr>
 <tr class="separator:ga46ecfc59560c9b24cb0313e62876ec31"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:ga7dc3751e8f199c38bdf1e1bd4fc135fe"><td class="memItemLeft" align="right" valign="top"><a id="ga7dc3751e8f199c38bdf1e1bd4fc135fe"></a>
-struct <a class="el" href="structchx__value.html">chx_value</a>&#160;</td><td class="memItemRight" valign="bottom"><b>cheax_apply</b> (<a class="el" href="group__Cheax.html#gae1a7e5521943626a5cb9f1f59f661662">CHEAX</a> *c, struct <a class="el" href="structchx__value.html">chx_value</a> func, struct <a class="el" href="structchx__list.html">chx_list</a> *list)</td></tr>
+<tr class="memitem:ga7dc3751e8f199c38bdf1e1bd4fc135fe"><td class="memItemLeft" align="right" valign="top">struct <a class="el" href="structchx__value.html">chx_value</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__Cheax.html#ga7dc3751e8f199c38bdf1e1bd4fc135fe">cheax_apply</a> (<a class="el" href="group__Cheax.html#gae1a7e5521943626a5cb9f1f59f661662">CHEAX</a> *c, struct <a class="el" href="structchx__value.html">chx_value</a> func, struct <a class="el" href="structchx__list.html">chx_list</a> *list)</td></tr>
+<tr class="memdesc:ga7dc3751e8f199c38bdf1e1bd4fc135fe"><td class="mdescLeft">&#160;</td><td class="mdescRight">Invokes function with given argument list.  <a href="group__Cheax.html#ga7dc3751e8f199c38bdf1e1bd4fc135fe">More...</a><br /></td></tr>
 <tr class="separator:ga7dc3751e8f199c38bdf1e1bd4fc135fe"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:ga17e9211ce271836d8139767202119259"><td class="memItemLeft" align="right" valign="top">void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__Cheax.html#ga17e9211ce271836d8139767202119259">cheax_print</a> (<a class="el" href="group__Cheax.html#gae1a7e5521943626a5cb9f1f59f661662">CHEAX</a> *c, FILE *output, struct <a class="el" href="structchx__value.html">chx_value</a> expr)</td></tr>
-<tr class="memdesc:ga17e9211ce271836d8139767202119259"><td class="mdescLeft">&#160;</td><td class="mdescRight">Prints given cheax expression to file.  <a href="group__Cheax.html#ga17e9211ce271836d8139767202119259">More...</a><br /></td></tr>
+<tr class="memdesc:ga17e9211ce271836d8139767202119259"><td class="mdescLeft">&#160;</td><td class="mdescRight">Prints given value to file.  <a href="group__Cheax.html#ga17e9211ce271836d8139767202119259">More...</a><br /></td></tr>
 <tr class="separator:ga17e9211ce271836d8139767202119259"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:gaa71e7c33f3d109c5753c6e2d8c956398"><td class="memItemLeft" align="right" valign="top">struct <a class="el" href="structchx__value.html">chx_value</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__Cheax.html#gaa71e7c33f3d109c5753c6e2d8c956398">cheax_format</a> (<a class="el" href="group__Cheax.html#gae1a7e5521943626a5cb9f1f59f661662">CHEAX</a> *c, struct chx_string *fmt, struct <a class="el" href="structchx__list.html">chx_list</a> *args)</td></tr>
 <tr class="memdesc:gaa71e7c33f3d109c5753c6e2d8c956398"><td class="mdescLeft">&#160;</td><td class="mdescRight">Expresses given cheax values as a <em>chx_string</em>, using given format string.  <a href="group__Cheax.html#gaa71e7c33f3d109c5753c6e2d8c956398">More...</a><br /></td></tr>
@@ -279,18 +242,16 @@ struct <a class="el" href="structchx__value.html">chx_value</a>&#160;</td><td cl
 <tr class="memitem:ga3849163d416def668213e7765c30dc0c"><td class="memItemLeft" align="right" valign="top">void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__Cheax.html#ga3849163d416def668213e7765c30dc0c">cheax_exec</a> (<a class="el" href="group__Cheax.html#gae1a7e5521943626a5cb9f1f59f661662">CHEAX</a> *c, const char *f)</td></tr>
 <tr class="memdesc:ga3849163d416def668213e7765c30dc0c"><td class="mdescLeft">&#160;</td><td class="mdescRight">Reads a file and executes it.  <a href="group__Cheax.html#ga3849163d416def668213e7765c30dc0c">More...</a><br /></td></tr>
 <tr class="separator:ga3849163d416def668213e7765c30dc0c"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:ga626dfbd6f6ff796485a6e7525bedb9a2"><td class="memItemLeft" align="right" valign="top"><a id="ga626dfbd6f6ff796485a6e7525bedb9a2"></a>
-void *&#160;</td><td class="memItemRight" valign="bottom"><b>cheax_malloc</b> (<a class="el" href="group__Cheax.html#gae1a7e5521943626a5cb9f1f59f661662">CHEAX</a> *c, size_t size)</td></tr>
+<tr class="memitem:ga626dfbd6f6ff796485a6e7525bedb9a2"><td class="memItemLeft" align="right" valign="top">void *&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__Cheax.html#ga626dfbd6f6ff796485a6e7525bedb9a2">cheax_malloc</a> (<a class="el" href="group__Cheax.html#gae1a7e5521943626a5cb9f1f59f661662">CHEAX</a> *c, size_t size)</td></tr>
 <tr class="separator:ga626dfbd6f6ff796485a6e7525bedb9a2"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:gae2f91a6087745bf4fe679568d6622149"><td class="memItemLeft" align="right" valign="top"><a id="gae2f91a6087745bf4fe679568d6622149"></a>
-void *&#160;</td><td class="memItemRight" valign="bottom"><b>cheax_calloc</b> (<a class="el" href="group__Cheax.html#gae1a7e5521943626a5cb9f1f59f661662">CHEAX</a> *c, size_t nmemb, size_t size)</td></tr>
+<tr class="memitem:gae2f91a6087745bf4fe679568d6622149"><td class="memItemLeft" align="right" valign="top">void *&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__Cheax.html#gae2f91a6087745bf4fe679568d6622149">cheax_calloc</a> (<a class="el" href="group__Cheax.html#gae1a7e5521943626a5cb9f1f59f661662">CHEAX</a> *c, size_t nmemb, size_t size)</td></tr>
 <tr class="separator:gae2f91a6087745bf4fe679568d6622149"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:gaae4aeb2d8ca2dc6da9d422e0b60b1140"><td class="memItemLeft" align="right" valign="top"><a id="gaae4aeb2d8ca2dc6da9d422e0b60b1140"></a>
-void *&#160;</td><td class="memItemRight" valign="bottom"><b>cheax_realloc</b> (<a class="el" href="group__Cheax.html#gae1a7e5521943626a5cb9f1f59f661662">CHEAX</a> *c, void *ptr, size_t size)</td></tr>
+<tr class="memitem:gaae4aeb2d8ca2dc6da9d422e0b60b1140"><td class="memItemLeft" align="right" valign="top">void *&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__Cheax.html#gaae4aeb2d8ca2dc6da9d422e0b60b1140">cheax_realloc</a> (<a class="el" href="group__Cheax.html#gae1a7e5521943626a5cb9f1f59f661662">CHEAX</a> *c, void *ptr, size_t size)</td></tr>
 <tr class="separator:gaae4aeb2d8ca2dc6da9d422e0b60b1140"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:gac1cbfab3c86ad757dfa6a357972c64e4"><td class="memItemLeft" align="right" valign="top"><a id="gac1cbfab3c86ad757dfa6a357972c64e4"></a>
-void&#160;</td><td class="memItemRight" valign="bottom"><b>cheax_free</b> (<a class="el" href="group__Cheax.html#gae1a7e5521943626a5cb9f1f59f661662">CHEAX</a> *c, void *ptr)</td></tr>
+<tr class="memitem:gac1cbfab3c86ad757dfa6a357972c64e4"><td class="memItemLeft" align="right" valign="top">void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__Cheax.html#gac1cbfab3c86ad757dfa6a357972c64e4">cheax_free</a> (<a class="el" href="group__Cheax.html#gae1a7e5521943626a5cb9f1f59f661662">CHEAX</a> *c, void *ptr)</td></tr>
 <tr class="separator:gac1cbfab3c86ad757dfa6a357972c64e4"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:gaf0720f12e68540cac101771ff07b595b"><td class="memItemLeft" align="right" valign="top">void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__Cheax.html#gaf0720f12e68540cac101771ff07b595b">cheax_gc</a> (<a class="el" href="group__Cheax.html#gae1a7e5521943626a5cb9f1f59f661662">CHEAX</a> *c)</td></tr>
+<tr class="separator:gaf0720f12e68540cac101771ff07b595b"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table>
 <a name="details" id="details"></a><h2 class="groupheader">Detailed Description</h2>
 <p>API functions to interface with cheax from C/C++. </p>
@@ -308,8 +269,8 @@ void&#160;</td><td class="memItemRight" valign="bottom"><b>cheax_free</b> (<a cl
 </div><div class="memdoc">
 
 <p>The type of the cheax virtual machine state, a pointer to wich is needed for most cheax API functions. </p>
-<p>The virtual machine is initialized with <a class="el" href="group__Cheax.html#ga82228a8d8fbeae6e9c104e80efde84ca" title="Initializes a new cheax virtual machine instance.">cheax_init()</a>, and destroyed with <a class="el" href="group__Cheax.html#ga1639ba43e8fd1d8150b00a2b85661bca" title="Destroys a cheax virtual machine instance, freeing its resources.">cheax_destroy()</a>.</p>
-<dl class="section see"><dt>See also</dt><dd><a class="el" href="group__Cheax.html#ga82228a8d8fbeae6e9c104e80efde84ca" title="Initializes a new cheax virtual machine instance.">cheax_init()</a>, <a class="el" href="group__Cheax.html#ga1639ba43e8fd1d8150b00a2b85661bca" title="Destroys a cheax virtual machine instance, freeing its resources.">cheax_destroy()</a>, cheax_load_features(), <a class="el" href="group__Cheax.html#ga9ed440cb74b1db60d639db905845523c" title="Loads the cheax standard library.">cheax_load_prelude()</a> </dd></dl>
+<p>The virtual machine is initialized with <a class="el" href="group__SetupConfig.html#ga82228a8d8fbeae6e9c104e80efde84ca" title="Initializes a new cheax virtual machine instance.">cheax_init()</a>, and destroyed with <a class="el" href="group__SetupConfig.html#ga1639ba43e8fd1d8150b00a2b85661bca" title="Destroys a cheax virtual machine instance, freeing its resources.">cheax_destroy()</a>.</p>
+<dl class="section see"><dt>See also</dt><dd><a class="el" href="group__SetupConfig.html#ga82228a8d8fbeae6e9c104e80efde84ca" title="Initializes a new cheax virtual machine instance.">cheax_init()</a>, <a class="el" href="group__SetupConfig.html#ga1639ba43e8fd1d8150b00a2b85661bca" title="Destroys a cheax virtual machine instance, freeing its resources.">cheax_destroy()</a>, cheax_load_features(), <a class="el" href="group__SetupConfig.html#ga9ed440cb74b1db60d639db905845523c" title="Loads the cheax standard library.">cheax_load_prelude()</a> </dd></dl>
 
 </div>
 </div>
@@ -342,14 +303,14 @@ void&#160;</td><td class="memItemRight" valign="bottom"><b>cheax_free</b> (<a cl
 </div>
 </div>
 <h2 class="groupheader">Function Documentation</h2>
-<a id="gabb847027e0eabb45e3e7f1ec60219805"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#gabb847027e0eabb45e3e7f1ec60219805">&#9670;&nbsp;</a></span>cheax_cast()</h2>
+<a id="gadf2456ad59a56786cbe36db7502b1fb0"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#gadf2456ad59a56786cbe36db7502b1fb0">&#9670;&nbsp;</a></span>cheax_list_to_array()</h2>
 
 <div class="memitem">
 <div class="memproto">
       <table class="memname">
         <tr>
-          <td class="memname">struct <a class="el" href="structchx__value.html">chx_value</a> cheax_cast </td>
+          <td class="memname">int cheax_list_to_array </td>
           <td>(</td>
           <td class="paramtype"><a class="el" href="group__Cheax.html#gae1a7e5521943626a5cb9f1f59f661662">CHEAX</a> *&#160;</td>
           <td class="paramname"><em>c</em>, </td>
@@ -357,54 +318,20 @@ void&#160;</td><td class="memItemRight" valign="bottom"><b>cheax_free</b> (<a cl
         <tr>
           <td class="paramkey"></td>
           <td></td>
-          <td class="paramtype">struct <a class="el" href="structchx__value.html">chx_value</a>&#160;</td>
-          <td class="paramname"><em>v</em>, </td>
+          <td class="paramtype">struct <a class="el" href="structchx__list.html">chx_list</a> *&#160;</td>
+          <td class="paramname"><em>list</em>, </td>
         </tr>
         <tr>
           <td class="paramkey"></td>
           <td></td>
-          <td class="paramtype">int&#160;</td>
-          <td class="paramname"><em>type</em>&#160;</td>
-        </tr>
-        <tr>
-          <td></td>
-          <td>)</td>
-          <td></td><td></td>
-        </tr>
-      </table>
-</div><div class="memdoc">
-
-<p>Attempts to cast an expression to a given type. </p>
-<p>Sets <a class="el" href="group__ErrorHandling.html#ga146c925e6989b70f61a5cb798e74a0f9" title="Gets the value of the current cheax error code.">cheax_errno()</a> to <a class="el" href="group__ErrorHandling.html#gga99fb83031ce9923c84392b4e92f956b5a0638c380515dceeab48567502c8c9e7e">CHEAX_ETYPE</a> if casting is not possible.</p>
-<dl class="params"><dt>Parameters</dt><dd>
-  <table class="params">
-    <tr><td class="paramname">c</td><td>Virtual machine instance. </td></tr>
-    <tr><td class="paramname">v</td><td>Expression to cast. </td></tr>
-    <tr><td class="paramname">type</td><td>Code of the type to cast to.</td></tr>
-  </table>
-  </dd>
-</dl>
-<dl class="section return"><dt>Returns</dt><dd>The cast expression. Always <em>NULL</em> if unsuccesful. </dd></dl>
-
-</div>
-</div>
-<a id="ga9c14cefa592ad38fc0895c4aef28577f"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#ga9c14cefa592ad38fc0895c4aef28577f">&#9670;&nbsp;</a></span>cheax_config_help()</h2>
-
-<div class="memitem">
-<div class="memproto">
-      <table class="memname">
-        <tr>
-          <td class="memname">int cheax_config_help </td>
-          <td>(</td>
-          <td class="paramtype">struct <a class="el" href="structchx__config__help.html">chx_config_help</a> **&#160;</td>
-          <td class="paramname"><em>help</em>, </td>
+          <td class="paramtype">struct <a class="el" href="structchx__value.html">chx_value</a> **&#160;</td>
+          <td class="paramname"><em>array_ptr</em>, </td>
         </tr>
         <tr>
           <td class="paramkey"></td>
           <td></td>
           <td class="paramtype">size_t *&#160;</td>
-          <td class="paramname"><em>num_opts</em>&#160;</td>
+          <td class="paramname"><em>length</em>&#160;</td>
         </tr>
         <tr>
           <td></td>
@@ -414,15 +341,211 @@ void&#160;</td><td class="memItemRight" valign="bottom"><b>cheax_free</b> (<a cl
       </table>
 </div><div class="memdoc">
 
-<p>Load information about all cheax config options. </p>
+<p>Converts <a class="el" href="structchx__list.html">chx_list</a> to array. </p>
+<p>Sets <a class="el" href="group__ErrorHandling.html#ga146c925e6989b70f61a5cb798e74a0f9" title="Gets the value of the current cheax error code.">cheax_errno()</a> to <a class="el" href="group__ErrorHandling.html#gga99fb83031ce9923c84392b4e92f956b5a2dbf822a29e714713ccd9be697004ed6">CHEAX_EAPI</a> if <em>array_ptr</em> or <em>length</em> is NULL, or to <a class="el" href="group__ErrorHandling.html#gga99fb83031ce9923c84392b4e92f956b5a13fabfa6ce59d57237eb86741cbbed16">CHEAX_ENOMEM</a> if array allocation failed.</p>
 <dl class="params"><dt>Parameters</dt><dd>
   <table class="params">
-    <tr><td class="paramname">help</td><td>Output parameter. Make sure to free() after use. </td></tr>
-    <tr><td class="paramname">num_opts</td><td>Output parameter, will point to length of output array.</td></tr>
+    <tr><td class="paramname">list</td><td>List to convert. </td></tr>
+    <tr><td class="paramname">array_ptr</td><td>Output parameter, will point to array of cheax_value pointers. Make sure to <a class="el" href="group__Cheax.html#gac1cbfab3c86ad757dfa6a357972c64e4">cheax_free()</a> after use. </td></tr>
+    <tr><td class="paramname">length</td><td>Output parameter, will point to length of output array.</td></tr>
   </table>
   </dd>
 </dl>
-<dl class="section return"><dt>Returns</dt><dd>0 if everything succeeded without errors, -1 otherwise. </dd></dl>
+<dl class="section return"><dt>Returns</dt><dd>0 if everything succeeded without errors, -1 if there was an error (most likely <a class="el" href="group__ErrorHandling.html#gga99fb83031ce9923c84392b4e92f956b5a13fabfa6ce59d57237eb86741cbbed16">CHEAX_ENOMEM</a>).</dd></dl>
+<dl class="section see"><dt>See also</dt><dd><a class="el" href="group__Cheax.html#ga81b1dee2fc3b313cee8c9a38c186c721" title="Converts array to chx_list.">cheax_array_to_list()</a> </dd></dl>
+
+</div>
+</div>
+<a id="ga81b1dee2fc3b313cee8c9a38c186c721"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#ga81b1dee2fc3b313cee8c9a38c186c721">&#9670;&nbsp;</a></span>cheax_array_to_list()</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">struct <a class="el" href="structchx__value.html">chx_value</a> cheax_array_to_list </td>
+          <td>(</td>
+          <td class="paramtype"><a class="el" href="group__Cheax.html#gae1a7e5521943626a5cb9f1f59f661662">CHEAX</a> *&#160;</td>
+          <td class="paramname"><em>c</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">struct <a class="el" href="structchx__value.html">chx_value</a> *&#160;</td>
+          <td class="paramname"><em>array</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">size_t&#160;</td>
+          <td class="paramname"><em>length</em>&#160;</td>
+        </tr>
+        <tr>
+          <td></td>
+          <td>)</td>
+          <td></td><td></td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+<p>Converts array to <a class="el" href="structchx__list.html">chx_list</a>. </p>
+<p>Throws <a class="el" href="group__ErrorHandling.html#gga99fb83031ce9923c84392b4e92f956b5a2dbf822a29e714713ccd9be697004ed6">CHEAX_EAPI</a> if <em>array</em> is <code>NULL</code>.</p>
+<dl class="params"><dt>Parameters</dt><dd>
+  <table class="params">
+    <tr><td class="paramname">array</td><td>Array of <a class="el" href="structchx__value.html">chx_value</a>. </td></tr>
+    <tr><td class="paramname">length</td><td>Length of <em>array</em>.</td></tr>
+  </table>
+  </dd>
+</dl>
+<dl class="section see"><dt>See also</dt><dd><a class="el" href="group__Cheax.html#gadf2456ad59a56786cbe36db7502b1fb0" title="Converts chx_list to array.">cheax_list_to_array()</a> </dd></dl>
+
+</div>
+</div>
+<a id="ga762f81ab8ce82a5d4beb1e227763b49c"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#ga762f81ab8ce82a5d4beb1e227763b49c">&#9670;&nbsp;</a></span>cheax_push_env()</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">void cheax_push_env </td>
+          <td>(</td>
+          <td class="paramtype"><a class="el" href="group__Cheax.html#gae1a7e5521943626a5cb9f1f59f661662">CHEAX</a> *&#160;</td>
+          <td class="paramname"><em>c</em></td><td>)</td>
+          <td></td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+<p>Pushes new empty environment to environment stack. </p>
+
+</div>
+</div>
+<a id="ga8aa99cd0931d26f5bd5372f92d402bea"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#ga8aa99cd0931d26f5bd5372f92d402bea">&#9670;&nbsp;</a></span>cheax_enter_env()</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">void cheax_enter_env </td>
+          <td>(</td>
+          <td class="paramtype"><a class="el" href="group__Cheax.html#gae1a7e5521943626a5cb9f1f59f661662">CHEAX</a> *&#160;</td>
+          <td class="paramname"><em>c</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">struct chx_env *&#160;</td>
+          <td class="paramname"><em>main</em>&#160;</td>
+        </tr>
+        <tr>
+          <td></td>
+          <td>)</td>
+          <td></td><td></td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+<p>Pushes new bifurcated environment to environment stack. </p>
+<p>Lookups will first look in <em>main</em>, then look further down the stack. New symbols are declared only in <em>main</em>.</p>
+<dl class="params"><dt>Parameters</dt><dd>
+  <table class="params">
+    <tr><td class="paramname">main</td><td>Main branch of bifurcated environment. </td></tr>
+  </table>
+  </dd>
+</dl>
+
+</div>
+</div>
+<a id="ga62592dd871f03fdf5effe8034006d1e9"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#ga62592dd871f03fdf5effe8034006d1e9">&#9670;&nbsp;</a></span>cheax_pop_env()</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">void cheax_pop_env </td>
+          <td>(</td>
+          <td class="paramtype"><a class="el" href="group__Cheax.html#gae1a7e5521943626a5cb9f1f59f661662">CHEAX</a> *&#160;</td>
+          <td class="paramname"><em>c</em></td><td>)</td>
+          <td></td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+<p>Pops environment off environment stack. </p>
+<p>Sets <a class="el" href="group__ErrorHandling.html#ga146c925e6989b70f61a5cb798e74a0f9" title="Gets the value of the current cheax error code.">cheax_errno()</a> to <a class="el" href="group__ErrorHandling.html#gga99fb83031ce9923c84392b4e92f956b5a2dbf822a29e714713ccd9be697004ed6">CHEAX_EAPI</a> if environment stack is empty. </p>
+
+</div>
+</div>
+<a id="gab415dedb11b00957d6feaa19db34d9e1"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#gab415dedb11b00957d6feaa19db34d9e1">&#9670;&nbsp;</a></span>cheax_defsym()</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">struct <a class="el" href="structchx__sym.html">chx_sym</a>* cheax_defsym </td>
+          <td>(</td>
+          <td class="paramtype"><a class="el" href="group__Cheax.html#gae1a7e5521943626a5cb9f1f59f661662">CHEAX</a> *&#160;</td>
+          <td class="paramname"><em>c</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">const char *&#160;</td>
+          <td class="paramname"><em>id</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype"><a class="el" href="group__TypeSystem.html#gae648e94314bab30db32badc7b2461c8b">chx_getter</a>&#160;</td>
+          <td class="paramname"><em>get</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype"><a class="el" href="group__TypeSystem.html#gaae66e3390683f6d4f6f3a3b22b687cf7">chx_setter</a>&#160;</td>
+          <td class="paramname"><em>set</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype"><a class="el" href="group__TypeSystem.html#ga5c586cd4103834e65a09aee21094ee9b">chx_finalizer</a>&#160;</td>
+          <td class="paramname"><em>fin</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">void *&#160;</td>
+          <td class="paramname"><em>user_info</em>&#160;</td>
+        </tr>
+        <tr>
+          <td></td>
+          <td>)</td>
+          <td></td><td></td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+<p>Define symbol with custom getter and setter. </p>
+<p>Throws </p><ul>
+<li><a class="el" href="group__ErrorHandling.html#gga99fb83031ce9923c84392b4e92f956b5a2dbf822a29e714713ccd9be697004ed6">CHEAX_EAPI</a> if <em>id</em> is <code>NULL</code>, or <em>get</em> and <em>set</em> are both <code>NULL</code>; or </li>
+<li><a class="el" href="group__ErrorHandling.html#gga99fb83031ce9923c84392b4e92f956b5a586883ec5800c11d4b1c533e691400a4">CHEAX_EEXIST</a> if a symbol with name <em>id</em> already exists.</li>
+</ul>
+<dl class="params"><dt>Parameters</dt><dd>
+  <table class="params">
+    <tr><td class="paramname">id</td><td>Identifier for new symbol. </td></tr>
+    <tr><td class="paramname">get</td><td>Getter for symbol. </td></tr>
+    <tr><td class="paramname">set</td><td>Setter for symbol. </td></tr>
+    <tr><td class="paramname">fin</td><td>Finalizer for symbol. </td></tr>
+    <tr><td class="paramname">user_info</td><td>User data to be passed to getter, setter and finalizer.</td></tr>
+  </table>
+  </dd>
+</dl>
+<dl class="section return"><dt>Returns</dt><dd>The newly created symbol, or <code>NULL</code> if unsuccessful.</dd></dl>
+<dl class="section see"><dt>See also</dt><dd><a class="el" href="structchx__sym.html" title="Custom symbol.">chx_sym</a>, <a class="el" href="group__Cheax.html#ga895df893b78c6e3b6c24d83e7e7351cf" title="Creates a new symbol in the cheax environment.">cheax_def()</a> </dd></dl>
 
 </div>
 </div>
@@ -465,28 +588,67 @@ void&#160;</td><td class="memItemRight" valign="bottom"><b>cheax_free</b> (<a cl
 </div><div class="memdoc">
 
 <p>Creates a new symbol in the cheax environment. </p>
-<p>Sets <a class="el" href="group__ErrorHandling.html#ga146c925e6989b70f61a5cb798e74a0f9" title="Gets the value of the current cheax error code.">cheax_errno()</a> to <a class="el" href="group__ErrorHandling.html#gga99fb83031ce9923c84392b4e92f956b5a2dbf822a29e714713ccd9be697004ed6">CHEAX_EAPI</a> if <em>id</em> is <em>NULL</em>, or to <a class="el" href="group__ErrorHandling.html#gga99fb83031ce9923c84392b4e92f956b5a586883ec5800c11d4b1c533e691400a4">CHEAX_EEXIST</a> if a symbol with name <em>id</em> already exists.</p>
+<p>Sets <a class="el" href="group__ErrorHandling.html#ga146c925e6989b70f61a5cb798e74a0f9" title="Gets the value of the current cheax error code.">cheax_errno()</a> to <a class="el" href="group__ErrorHandling.html#gga99fb83031ce9923c84392b4e92f956b5a2dbf822a29e714713ccd9be697004ed6">CHEAX_EAPI</a> if <em>id</em> is <code>NULL</code>, or to <a class="el" href="group__ErrorHandling.html#gga99fb83031ce9923c84392b4e92f956b5a586883ec5800c11d4b1c533e691400a4">CHEAX_EEXIST</a> if a symbol with name <em>id</em> already exists.</p>
 <dl class="params"><dt>Parameters</dt><dd>
   <table class="params">
-    <tr><td class="paramname">c</td><td>Virtual machine instance. </td></tr>
     <tr><td class="paramname">id</td><td>Variable identifier. </td></tr>
-    <tr><td class="paramname">value</td><td>Initial value or the symbol. May be <em>NULL</em>. </td></tr>
+    <tr><td class="paramname">value</td><td>Initial value or the symbol. May be <code>NULL</code>. </td></tr>
     <tr><td class="paramname">flags</td><td>Variable flags. Use 0 if there are no special needs.</td></tr>
   </table>
   </dd>
 </dl>
-<dl class="section see"><dt>See also</dt><dd><a class="el" href="group__Cheax.html#gaa548cdf714b3dbd0c2485d0bce2c5545" title="Retrieves the value of the given symbol.">cheax_get()</a>, <a class="el" href="group__Cheax.html#ga163176a06974bd2a4a74cfbcf942a3a7" title="Sets the value of a symbol.">cheax_set()</a> </dd></dl>
+<dl class="section see"><dt>See also</dt><dd><a class="el" href="group__Cheax.html#gaa548cdf714b3dbd0c2485d0bce2c5545" title="Obtains the value of the given symbol.">cheax_get()</a>, <a class="el" href="group__Cheax.html#ga163176a06974bd2a4a74cfbcf942a3a7" title="Sets the value of a symbol.">cheax_set()</a> </dd></dl>
 
 </div>
 </div>
-<a id="gabfd35fccc8bd305b738150ffe0c3bbe9"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#gabfd35fccc8bd305b738150ffe0c3bbe9">&#9670;&nbsp;</a></span>cheax_def_special_form()</h2>
+<a id="gaa548cdf714b3dbd0c2485d0bce2c5545"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#gaa548cdf714b3dbd0c2485d0bce2c5545">&#9670;&nbsp;</a></span>cheax_get()</h2>
 
 <div class="memitem">
 <div class="memproto">
       <table class="memname">
         <tr>
-          <td class="memname">void cheax_def_special_form </td>
+          <td class="memname">struct <a class="el" href="structchx__value.html">chx_value</a> cheax_get </td>
+          <td>(</td>
+          <td class="paramtype"><a class="el" href="group__Cheax.html#gae1a7e5521943626a5cb9f1f59f661662">CHEAX</a> *&#160;</td>
+          <td class="paramname"><em>c</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">const char *&#160;</td>
+          <td class="paramname"><em>id</em>&#160;</td>
+        </tr>
+        <tr>
+          <td></td>
+          <td>)</td>
+          <td></td><td></td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+<p>Obtains the value of the given symbol. </p>
+<p>Sets <a class="el" href="group__ErrorHandling.html#ga146c925e6989b70f61a5cb798e74a0f9" title="Gets the value of the current cheax error code.">cheax_errno()</a> to <a class="el" href="group__ErrorHandling.html#gga99fb83031ce9923c84392b4e92f956b5a2dbf822a29e714713ccd9be697004ed6">CHEAX_EAPI</a> if <em>id</em> is <code>NULL</code>, or to <a class="el" href="group__ErrorHandling.html#gga99fb83031ce9923c84392b4e92f956b5afc0217f4bdfb93da69d4261864e990ff">CHEAX_ENOSYM</a> if no symbol with name <em>id</em> could be found.</p>
+<dl class="section note"><dt>Note</dt><dd>This function may call <a class="el" href="group__Cheax.html#gaf0720f12e68540cac101771ff07b595b">cheax_gc()</a>. Make sure to <a class="el" href="group__TypeSystem.html#ga3704845acc412e2cf4dd9b06824de380" title="Increase reference count on cheax value, preventing it from gc deletion when cheax_eval() is called.">cheax_ref()</a> your values properly.</dd></dl>
+<dl class="params"><dt>Parameters</dt><dd>
+  <table class="params">
+    <tr><td class="paramname">id</td><td>Identifier to look up.</td></tr>
+  </table>
+  </dd>
+</dl>
+<dl class="section return"><dt>Returns</dt><dd>The value of the given symbol. Always <code>NULL</code> in case of an error.</dd></dl>
+<dl class="section see"><dt>See also</dt><dd><a class="el" href="group__Cheax.html#gacbbfcf2d64e88aa0ffd2a55d2620b15d" title="Retrieves the value of the given symbol, performing symbol lookup only in the specified environment.">cheax_get_from()</a>, <a class="el" href="group__Cheax.html#ga163176a06974bd2a4a74cfbcf942a3a7" title="Sets the value of a symbol.">cheax_set()</a> </dd></dl>
+
+</div>
+</div>
+<a id="gaa7fec06863340836bfb413d42f2ac147"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#gaa7fec06863340836bfb413d42f2ac147">&#9670;&nbsp;</a></span>cheax_try_get()</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">bool cheax_try_get </td>
           <td>(</td>
           <td class="paramtype"><a class="el" href="group__Cheax.html#gae1a7e5521943626a5cb9f1f59f661662">CHEAX</a> *&#160;</td>
           <td class="paramname"><em>c</em>, </td>
@@ -500,14 +662,54 @@ void&#160;</td><td class="memItemRight" valign="bottom"><b>cheax_free</b> (<a cl
         <tr>
           <td class="paramkey"></td>
           <td></td>
-          <td class="paramtype"><a class="el" href="group__TypeSystem.html#gad3eb9ae38ae236189464dd2e6f2517f2">chx_func_ptr</a>&#160;</td>
-          <td class="paramname"><em>perform</em>, </td>
+          <td class="paramtype">struct <a class="el" href="structchx__value.html">chx_value</a> *&#160;</td>
+          <td class="paramname"><em>out</em>&#160;</td>
+        </tr>
+        <tr>
+          <td></td>
+          <td>)</td>
+          <td></td><td></td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+<p>Attempts to get the value of a given symbol.</p>
+<p>Like <a class="el" href="group__Cheax.html#gaa548cdf714b3dbd0c2485d0bce2c5545" title="Obtains the value of the given symbol.">cheax_get()</a>, but does not throw <a class="el" href="group__ErrorHandling.html#gga99fb83031ce9923c84392b4e92f956b5afc0217f4bdfb93da69d4261864e990ff">CHEAX_ENOSYM</a> if no symbol was found.</p>
+<dl class="section note"><dt>Note</dt><dd>This function may call <a class="el" href="group__Cheax.html#gaf0720f12e68540cac101771ff07b595b">cheax_gc()</a>. Make sure to <a class="el" href="group__TypeSystem.html#ga3704845acc412e2cf4dd9b06824de380" title="Increase reference count on cheax value, preventing it from gc deletion when cheax_eval() is called.">cheax_ref()</a> your values properly.</dd></dl>
+<dl class="params"><dt>Parameters</dt><dd>
+  <table class="params">
+    <tr><td class="paramname">id</td><td>Identifier to look up. </td></tr>
+    <tr><td class="paramname">out</td><td>Output value. Not written to if no symbol was found.</td></tr>
+  </table>
+  </dd>
+</dl>
+<dl class="section return"><dt>Returns</dt><dd><code>true</code> if symbol was found, <code>false</code> otherwise.</dd></dl>
+<dl class="section see"><dt>See also</dt><dd><a class="el" href="group__Cheax.html#gaa548cdf714b3dbd0c2485d0bce2c5545" title="Obtains the value of the given symbol.">cheax_get()</a> </dd></dl>
+
+</div>
+</div>
+<a id="gacbbfcf2d64e88aa0ffd2a55d2620b15d"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#gacbbfcf2d64e88aa0ffd2a55d2620b15d">&#9670;&nbsp;</a></span>cheax_get_from()</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">struct <a class="el" href="structchx__value.html">chx_value</a> cheax_get_from </td>
+          <td>(</td>
+          <td class="paramtype"><a class="el" href="group__Cheax.html#gae1a7e5521943626a5cb9f1f59f661662">CHEAX</a> *&#160;</td>
+          <td class="paramname"><em>c</em>, </td>
         </tr>
         <tr>
           <td class="paramkey"></td>
           <td></td>
-          <td class="paramtype">void *&#160;</td>
-          <td class="paramname"><em>info</em>&#160;</td>
+          <td class="paramtype">struct chx_env *&#160;</td>
+          <td class="paramname"><em>env</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">const char *&#160;</td>
+          <td class="paramname"><em>id</em>&#160;</td>
         </tr>
         <tr>
           <td></td>
@@ -517,18 +719,123 @@ void&#160;</td><td class="memItemRight" valign="bottom"><b>cheax_free</b> (<a cl
       </table>
 </div><div class="memdoc">
 
-<p>Shorthand function to declare a special form the cheax environment. </p>
-<p>Shorthand for: </p><div class="fragment"><div class="line"><a class="code" href="group__Cheax.html#ga895df893b78c6e3b6c24d83e7e7351cf">cheax_def</a>(c, <span class="keywordtype">id</span>, &amp;<a class="code" href="group__TypeSystem.html#ga34314b052007d2528d31a311322110f8">cheax_special_form</a>(c, <span class="keywordtype">id</span>, perform, info)-&gt;base, <a class="code" href="group__Cheax.html#ggabc6126af1d45847bc59afa0aa3216b04a8b12625616c2297a571bfbf9be95a53f">CHEAX_READONLY</a>);</div>
-</div><!-- fragment --><dl class="params"><dt>Parameters</dt><dd>
+<p>Retrieves the value of the given symbol, performing symbol lookup only in the specified environment. </p>
+<p>Sets <a class="el" href="group__ErrorHandling.html#ga146c925e6989b70f61a5cb798e74a0f9" title="Gets the value of the current cheax error code.">cheax_errno()</a> to <a class="el" href="group__ErrorHandling.html#gga99fb83031ce9923c84392b4e92f956b5a2dbf822a29e714713ccd9be697004ed6">CHEAX_EAPI</a> if <em>id</em> is <code>NULL</code>, or to <a class="el" href="group__ErrorHandling.html#gga99fb83031ce9923c84392b4e92f956b5afc0217f4bdfb93da69d4261864e990ff">CHEAX_ENOSYM</a> if no symbol with name <em>id</em> could be found.</p>
+<dl class="section note"><dt>Note</dt><dd>This function may call <a class="el" href="group__Cheax.html#gaf0720f12e68540cac101771ff07b595b">cheax_gc()</a>. Make sure to <a class="el" href="group__TypeSystem.html#ga3704845acc412e2cf4dd9b06824de380" title="Increase reference count on cheax value, preventing it from gc deletion when cheax_eval() is called.">cheax_ref()</a> your values properly.</dd></dl>
+<dl class="params"><dt>Parameters</dt><dd>
   <table class="params">
-    <tr><td class="paramname">c</td><td>Virtual machine instance. </td></tr>
-    <tr><td class="paramname">id</td><td>Identifier for the special form. </td></tr>
-    <tr><td class="paramname">perform</td><td>Callback for the new special form. </td></tr>
-    <tr><td class="paramname">info</td><td>Callback info for the new special form.</td></tr>
+    <tr><td class="paramname">env</td><td>Environment to look up identifier in. </td></tr>
+    <tr><td class="paramname">id</td><td>Identifier to look up.</td></tr>
   </table>
   </dd>
 </dl>
-<dl class="section see"><dt>See also</dt><dd><a class="el" href="structchx__form.html" title="Cheax external/user function expression.">chx_form</a>, <a class="el" href="group__TypeSystem.html#ga34314b052007d2528d31a311322110f8" title="Creates a cheax special form.">cheax_special_form()</a>, <a class="el" href="group__Cheax.html#ga895df893b78c6e3b6c24d83e7e7351cf" title="Creates a new symbol in the cheax environment.">cheax_def()</a>, <a class="el" href="group__Cheax.html#gad08174626f139f7900aa0d06880aa97d" title="Shorthand function to declare an external function the cheax environment.">cheax_defun()</a> </dd></dl>
+<dl class="section return"><dt>Returns</dt><dd>The value of the given symbol. Always <code>NULL</code> in case of an error.</dd></dl>
+<dl class="section see"><dt>See also</dt><dd><a class="el" href="group__Cheax.html#gaa548cdf714b3dbd0c2485d0bce2c5545" title="Obtains the value of the given symbol.">cheax_get()</a>, <a class="el" href="group__Cheax.html#gaeb322b3b1e5ca08d9503b32e9cb8184a">cheax_try_get_from()</a> </dd></dl>
+
+</div>
+</div>
+<a id="gaeb322b3b1e5ca08d9503b32e9cb8184a"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#gaeb322b3b1e5ca08d9503b32e9cb8184a">&#9670;&nbsp;</a></span>cheax_try_get_from()</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">bool cheax_try_get_from </td>
+          <td>(</td>
+          <td class="paramtype"><a class="el" href="group__Cheax.html#gae1a7e5521943626a5cb9f1f59f661662">CHEAX</a> *&#160;</td>
+          <td class="paramname"><em>c</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">struct chx_env *&#160;</td>
+          <td class="paramname"><em>env</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">const char *&#160;</td>
+          <td class="paramname"><em>id</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">struct <a class="el" href="structchx__value.html">chx_value</a> *&#160;</td>
+          <td class="paramname"><em>out</em>&#160;</td>
+        </tr>
+        <tr>
+          <td></td>
+          <td>)</td>
+          <td></td><td></td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+<p>Attempts to get the value of a given symbol, performing symbol lookup only in the specified environment.</p>
+<p>Like <a class="el" href="group__Cheax.html#gacbbfcf2d64e88aa0ffd2a55d2620b15d" title="Retrieves the value of the given symbol, performing symbol lookup only in the specified environment.">cheax_get_from()</a>, but does not throw <a class="el" href="group__ErrorHandling.html#gga99fb83031ce9923c84392b4e92f956b5afc0217f4bdfb93da69d4261864e990ff">CHEAX_ENOSYM</a> if no symbol was found.</p>
+<dl class="section note"><dt>Note</dt><dd>This function may call <a class="el" href="group__Cheax.html#gaf0720f12e68540cac101771ff07b595b">cheax_gc()</a>. Make sure to <a class="el" href="group__TypeSystem.html#ga3704845acc412e2cf4dd9b06824de380" title="Increase reference count on cheax value, preventing it from gc deletion when cheax_eval() is called.">cheax_ref()</a> your values properly.</dd></dl>
+<dl class="params"><dt>Parameters</dt><dd>
+  <table class="params">
+    <tr><td class="paramname">env</td><td>Environment to look up identifier in. </td></tr>
+    <tr><td class="paramname">id</td><td>Identifier to look up. </td></tr>
+    <tr><td class="paramname">out</td><td>Output value. Not written to if no symbol was found.</td></tr>
+  </table>
+  </dd>
+</dl>
+<dl class="section return"><dt>Returns</dt><dd><code>true</code> if symbol was found, <code>false</code> otherwise.</dd></dl>
+<dl class="section see"><dt>See also</dt><dd><a class="el" href="group__Cheax.html#gacbbfcf2d64e88aa0ffd2a55d2620b15d" title="Retrieves the value of the given symbol, performing symbol lookup only in the specified environment.">cheax_get_from()</a> </dd></dl>
+
+</div>
+</div>
+<a id="ga163176a06974bd2a4a74cfbcf942a3a7"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#ga163176a06974bd2a4a74cfbcf942a3a7">&#9670;&nbsp;</a></span>cheax_set()</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">void cheax_set </td>
+          <td>(</td>
+          <td class="paramtype"><a class="el" href="group__Cheax.html#gae1a7e5521943626a5cb9f1f59f661662">CHEAX</a> *&#160;</td>
+          <td class="paramname"><em>c</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">const char *&#160;</td>
+          <td class="paramname"><em>id</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">struct <a class="el" href="structchx__value.html">chx_value</a>&#160;</td>
+          <td class="paramname"><em>value</em>&#160;</td>
+        </tr>
+        <tr>
+          <td></td>
+          <td>)</td>
+          <td></td><td></td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+<p>Sets the value of a symbol. </p>
+<p>Sets <a class="el" href="group__ErrorHandling.html#ga146c925e6989b70f61a5cb798e74a0f9" title="Gets the value of the current cheax error code.">cheax_errno()</a> to </p><ul>
+<li><a class="el" href="group__ErrorHandling.html#gga99fb83031ce9923c84392b4e92f956b5a2dbf822a29e714713ccd9be697004ed6">CHEAX_EAPI</a> if <em>id</em> is <code>NULL</code>; </li>
+<li><a class="el" href="group__ErrorHandling.html#gga99fb83031ce9923c84392b4e92f956b5afc0217f4bdfb93da69d4261864e990ff">CHEAX_ENOSYM</a> if no symol with name <em>id</em> could be found; </li>
+<li><a class="el" href="group__ErrorHandling.html#gga99fb83031ce9923c84392b4e92f956b5aa2d122f6c373978a55fa426ff948968d">CHEAX_EREADONLY</a> if the given symbol was declared read-only; or </li>
+<li><a class="el" href="group__ErrorHandling.html#gga99fb83031ce9923c84392b4e92f956b5a0638c380515dceeab48567502c8c9e7e">CHEAX_ETYPE</a> if symbol is synchronised and type of <em>value</em> is invalid.</li>
+</ul>
+<p><a class="el" href="group__Cheax.html#ga163176a06974bd2a4a74cfbcf942a3a7" title="Sets the value of a symbol.">cheax_set()</a> cannot be used to declare a new symbol, use <a class="el" href="group__Cheax.html#ga895df893b78c6e3b6c24d83e7e7351cf" title="Creates a new symbol in the cheax environment.">cheax_def()</a> instead.</p>
+<dl class="section note"><dt>Note</dt><dd>This function may call <a class="el" href="group__Cheax.html#gaf0720f12e68540cac101771ff07b595b">cheax_gc()</a>. Make sure to <a class="el" href="group__TypeSystem.html#ga3704845acc412e2cf4dd9b06824de380" title="Increase reference count on cheax value, preventing it from gc deletion when cheax_eval() is called.">cheax_ref()</a> your values properly.</dd></dl>
+<dl class="params"><dt>Parameters</dt><dd>
+  <table class="params">
+    <tr><td class="paramname">id</td><td>Identifier of the symbol to look up and set. </td></tr>
+    <tr><td class="paramname">value</td><td>New value for the symbol with the given identifier.</td></tr>
+  </table>
+  </dd>
+</dl>
+<dl class="section see"><dt>See also</dt><dd><a class="el" href="group__Cheax.html#gaa548cdf714b3dbd0c2485d0bce2c5545" title="Obtains the value of the given symbol.">cheax_get()</a>, <a class="el" href="group__Cheax.html#ga895df893b78c6e3b6c24d83e7e7351cf" title="Creates a new symbol in the cheax environment.">cheax_def()</a> </dd></dl>
 
 </div>
 </div>
@@ -574,794 +881,24 @@ void&#160;</td><td class="memItemRight" valign="bottom"><b>cheax_free</b> (<a cl
 <p>Shorthand for: </p><div class="fragment"><div class="line"><a class="code" href="group__Cheax.html#ga895df893b78c6e3b6c24d83e7e7351cf">cheax_def</a>(c, <span class="keywordtype">id</span>, &amp;<a class="code" href="group__TypeSystem.html#ga11362f68ec411035f70d1b4d19eb0337">cheax_ext_func</a>(c, <span class="keywordtype">id</span>, perform, info)-&gt;base, <a class="code" href="group__Cheax.html#ggabc6126af1d45847bc59afa0aa3216b04a8b12625616c2297a571bfbf9be95a53f">CHEAX_READONLY</a>);</div>
 </div><!-- fragment --><dl class="params"><dt>Parameters</dt><dd>
   <table class="params">
-    <tr><td class="paramname">c</td><td>Virtual machine instance. </td></tr>
     <tr><td class="paramname">id</td><td>Identifier for the external functions. </td></tr>
     <tr><td class="paramname">perform</td><td>Callback for the new external functions. </td></tr>
     <tr><td class="paramname">info</td><td>Callback info for the new external functions.</td></tr>
   </table>
   </dd>
 </dl>
-<dl class="section see"><dt>See also</dt><dd><a class="el" href="structchx__form.html" title="Cheax external/user function expression.">chx_form</a>, <a class="el" href="group__TypeSystem.html#ga11362f68ec411035f70d1b4d19eb0337" title="Creates a cheax external/user function expression.">cheax_ext_func()</a>, <a class="el" href="group__Cheax.html#ga895df893b78c6e3b6c24d83e7e7351cf" title="Creates a new symbol in the cheax environment.">cheax_def()</a>, <a class="el" href="group__Cheax.html#gabfd35fccc8bd305b738150ffe0c3bbe9" title="Shorthand function to declare a special form the cheax environment.">cheax_def_special_form()</a> </dd></dl>
+<dl class="section see"><dt>See also</dt><dd><a class="el" href="structchx__form.html" title="Cheax external/user function expression.">chx_form</a>, <a class="el" href="group__TypeSystem.html#ga11362f68ec411035f70d1b4d19eb0337" title="Creates a cheax external/user function expression.">cheax_ext_func()</a>, <a class="el" href="group__Cheax.html#ga895df893b78c6e3b6c24d83e7e7351cf" title="Creates a new symbol in the cheax environment.">cheax_def()</a>, <a class="el" href="group__Cheax.html#gabfd35fccc8bd305b738150ffe0c3bbe9">cheax_def_special_form()</a> </dd></dl>
 
 </div>
 </div>
-<a id="ga1639ba43e8fd1d8150b00a2b85661bca"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#ga1639ba43e8fd1d8150b00a2b85661bca">&#9670;&nbsp;</a></span>cheax_destroy()</h2>
+<a id="gabfd35fccc8bd305b738150ffe0c3bbe9"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#gabfd35fccc8bd305b738150ffe0c3bbe9">&#9670;&nbsp;</a></span>cheax_def_special_form()</h2>
 
 <div class="memitem">
 <div class="memproto">
       <table class="memname">
         <tr>
-          <td class="memname">void cheax_destroy </td>
-          <td>(</td>
-          <td class="paramtype"><a class="el" href="group__Cheax.html#gae1a7e5521943626a5cb9f1f59f661662">CHEAX</a> *&#160;</td>
-          <td class="paramname"><em>c</em></td><td>)</td>
-          <td></td>
-        </tr>
-      </table>
-</div><div class="memdoc">
-
-<p>Destroys a cheax virtual machine instance, freeing its resources. </p>
-<p>Any use of <em>c</em> after calling <a class="el" href="group__Cheax.html#ga1639ba43e8fd1d8150b00a2b85661bca" title="Destroys a cheax virtual machine instance, freeing its resources.">cheax_destroy()</a> on it results in undefined behavior.</p>
-<dl class="params"><dt>Parameters</dt><dd>
-  <table class="params">
-    <tr><td class="paramname">c</td><td>Virtual machine instance to be destroyed. </td></tr>
-  </table>
-  </dd>
-</dl>
-
-</div>
-</div>
-<a id="ga8aa99cd0931d26f5bd5372f92d402bea"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#ga8aa99cd0931d26f5bd5372f92d402bea">&#9670;&nbsp;</a></span>cheax_enter_env()</h2>
-
-<div class="memitem">
-<div class="memproto">
-      <table class="memname">
-        <tr>
-          <td class="memname">void cheax_enter_env </td>
-          <td>(</td>
-          <td class="paramtype"><a class="el" href="group__Cheax.html#gae1a7e5521943626a5cb9f1f59f661662">CHEAX</a> *&#160;</td>
-          <td class="paramname"><em>c</em>, </td>
-        </tr>
-        <tr>
-          <td class="paramkey"></td>
-          <td></td>
-          <td class="paramtype">struct chx_env *&#160;</td>
-          <td class="paramname"><em>main</em>&#160;</td>
-        </tr>
-        <tr>
-          <td></td>
-          <td>)</td>
-          <td></td><td></td>
-        </tr>
-      </table>
-</div><div class="memdoc">
-
-<p>Pushes new bifurcated environment to environment stack. </p>
-<p>Lookups will first look in <em>main</em>, then look further down the stack. New symbols are declared only in <em>main</em>.</p>
-<dl class="params"><dt>Parameters</dt><dd>
-  <table class="params">
-    <tr><td class="paramname">c</td><td>Virtual machine instance. </td></tr>
-    <tr><td class="paramname">main</td><td>Main branch of bifurcated environment. </td></tr>
-  </table>
-  </dd>
-</dl>
-
-</div>
-</div>
-<a id="gad136b8845b2a77aacfe4587e2380ca6d"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#gad136b8845b2a77aacfe4587e2380ca6d">&#9670;&nbsp;</a></span>cheax_eq()</h2>
-
-<div class="memitem">
-<div class="memproto">
-      <table class="memname">
-        <tr>
-          <td class="memname">bool cheax_eq </td>
-          <td>(</td>
-          <td class="paramtype"><a class="el" href="group__Cheax.html#gae1a7e5521943626a5cb9f1f59f661662">CHEAX</a> *&#160;</td>
-          <td class="paramname"><em>c</em>, </td>
-        </tr>
-        <tr>
-          <td class="paramkey"></td>
-          <td></td>
-          <td class="paramtype">struct <a class="el" href="structchx__value.html">chx_value</a>&#160;</td>
-          <td class="paramname"><em>l</em>, </td>
-        </tr>
-        <tr>
-          <td class="paramkey"></td>
-          <td></td>
-          <td class="paramtype">struct <a class="el" href="structchx__value.html">chx_value</a>&#160;</td>
-          <td class="paramname"><em>r</em>&#160;</td>
-        </tr>
-        <tr>
-          <td></td>
-          <td>)</td>
-          <td></td><td></td>
-        </tr>
-      </table>
-</div><div class="memdoc">
-
-<p>Tests whether two given cheax expressions are equal. </p>
-<dl class="params"><dt>Parameters</dt><dd>
-  <table class="params">
-    <tr><td class="paramname">c</td><td>Virtual machine instance. </td></tr>
-    <tr><td class="paramname">l</td><td>Left. </td></tr>
-    <tr><td class="paramname">r</td><td>Right.</td></tr>
-  </table>
-  </dd>
-</dl>
-<dl class="section return"><dt>Returns</dt><dd>Whether the given cheax expressions are equal in value. </dd></dl>
-
-</div>
-</div>
-<a id="ga46ecfc59560c9b24cb0313e62876ec31"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#ga46ecfc59560c9b24cb0313e62876ec31">&#9670;&nbsp;</a></span>cheax_eval()</h2>
-
-<div class="memitem">
-<div class="memproto">
-      <table class="memname">
-        <tr>
-          <td class="memname">struct <a class="el" href="structchx__value.html">chx_value</a> cheax_eval </td>
-          <td>(</td>
-          <td class="paramtype"><a class="el" href="group__Cheax.html#gae1a7e5521943626a5cb9f1f59f661662">CHEAX</a> *&#160;</td>
-          <td class="paramname"><em>c</em>, </td>
-        </tr>
-        <tr>
-          <td class="paramkey"></td>
-          <td></td>
-          <td class="paramtype">struct <a class="el" href="structchx__value.html">chx_value</a>&#160;</td>
-          <td class="paramname"><em>expr</em>&#160;</td>
-        </tr>
-        <tr>
-          <td></td>
-          <td>)</td>
-          <td></td><td></td>
-        </tr>
-      </table>
-</div><div class="memdoc">
-
-<p>Evaluates given cheax expression. </p>
-<p>Core element of the read, eval, print loop.</p>
-<dl class="params"><dt>Parameters</dt><dd>
-  <table class="params">
-    <tr><td class="paramname">c</td><td>Virtual machine instance. </td></tr>
-    <tr><td class="paramname">expr</td><td>Cheax expression to evaluate.</td></tr>
-  </table>
-  </dd>
-</dl>
-<dl class="section return"><dt>Returns</dt><dd>The evaluated expression.</dd></dl>
-<dl class="section see"><dt>See also</dt><dd><a class="el" href="group__Cheax.html#gadad11b9b0781ba548e45161de4a1b8ae" title="Reads cheax expression from file.">cheax_read()</a>, <a class="el" href="group__Cheax.html#ga17e9211ce271836d8139767202119259" title="Prints given cheax expression to file.">cheax_print()</a> </dd></dl>
-
-</div>
-</div>
-<a id="ga3849163d416def668213e7765c30dc0c"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#ga3849163d416def668213e7765c30dc0c">&#9670;&nbsp;</a></span>cheax_exec()</h2>
-
-<div class="memitem">
-<div class="memproto">
-      <table class="memname">
-        <tr>
-          <td class="memname">void cheax_exec </td>
-          <td>(</td>
-          <td class="paramtype"><a class="el" href="group__Cheax.html#gae1a7e5521943626a5cb9f1f59f661662">CHEAX</a> *&#160;</td>
-          <td class="paramname"><em>c</em>, </td>
-        </tr>
-        <tr>
-          <td class="paramkey"></td>
-          <td></td>
-          <td class="paramtype">const char *&#160;</td>
-          <td class="paramname"><em>f</em>&#160;</td>
-        </tr>
-        <tr>
-          <td></td>
-          <td>)</td>
-          <td></td><td></td>
-        </tr>
-      </table>
-</div><div class="memdoc">
-
-<p>Reads a file and executes it. </p>
-<dl class="params"><dt>Parameters</dt><dd>
-  <table class="params">
-    <tr><td class="paramname">c</td><td>Virtual machine instance. </td></tr>
-    <tr><td class="paramname">f</td><td>Input file path. </td></tr>
-  </table>
-  </dd>
-</dl>
-
-</div>
-</div>
-<a id="gaa71e7c33f3d109c5753c6e2d8c956398"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#gaa71e7c33f3d109c5753c6e2d8c956398">&#9670;&nbsp;</a></span>cheax_format()</h2>
-
-<div class="memitem">
-<div class="memproto">
-      <table class="memname">
-        <tr>
-          <td class="memname">struct <a class="el" href="structchx__value.html">chx_value</a> cheax_format </td>
-          <td>(</td>
-          <td class="paramtype"><a class="el" href="group__Cheax.html#gae1a7e5521943626a5cb9f1f59f661662">CHEAX</a> *&#160;</td>
-          <td class="paramname"><em>c</em>, </td>
-        </tr>
-        <tr>
-          <td class="paramkey"></td>
-          <td></td>
-          <td class="paramtype">struct chx_string *&#160;</td>
-          <td class="paramname"><em>fmt</em>, </td>
-        </tr>
-        <tr>
-          <td class="paramkey"></td>
-          <td></td>
-          <td class="paramtype">struct <a class="el" href="structchx__list.html">chx_list</a> *&#160;</td>
-          <td class="paramname"><em>args</em>&#160;</td>
-        </tr>
-        <tr>
-          <td></td>
-          <td>)</td>
-          <td></td><td></td>
-        </tr>
-      </table>
-</div><div class="memdoc">
-
-<p>Expresses given cheax values as a <em>chx_string</em>, using given format string. </p>
-<p>Sets <a class="el" href="group__ErrorHandling.html#ga146c925e6989b70f61a5cb798e74a0f9" title="Gets the value of the current cheax error code.">cheax_errno()</a> to </p><ul>
-<li><a class="el" href="group__ErrorHandling.html#gga99fb83031ce9923c84392b4e92f956b5a2dbf822a29e714713ccd9be697004ed6">CHEAX_EAPI</a> if <em>fmt</em> is NULL; </li>
-<li><a class="el" href="group__ErrorHandling.html#gga99fb83031ce9923c84392b4e92f956b5a64e94a2e04c8d3f229f4bd9dccac88d5">CHEAX_EVALUE</a> if format string is otherwise invalid; </li>
-<li>or <a class="el" href="group__ErrorHandling.html#gga99fb83031ce9923c84392b4e92f956b5ac4f5f8af93301a5e4ee542706ca0b32d">CHEAX_EINDEX</a> if an index occurs in the format string (either implicitly or explicitly) that is out of bounds for <em>args</em>.</li>
-</ul>
-<dl class="params"><dt>Parameters</dt><dd>
-  <table class="params">
-    <tr><td class="paramname">c</td><td>Virtual machine instance. </td></tr>
-    <tr><td class="paramname">fmt</td><td>Python-esque format string. </td></tr>
-    <tr><td class="paramname">args</td><td>List of arguments to format into the output string.</td></tr>
-  </table>
-  </dd>
-</dl>
-<dl class="section return"><dt>Returns</dt><dd>A <em>chx_string</em> representing the formatted result, or NULL if an error occurred.</dd></dl>
-<dl class="section see"><dt>See also</dt><dd><a class="el" href="group__Cheax.html#ga17e9211ce271836d8139767202119259" title="Prints given cheax expression to file.">cheax_print()</a> </dd></dl>
-
-</div>
-</div>
-<a id="gaa548cdf714b3dbd0c2485d0bce2c5545"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#gaa548cdf714b3dbd0c2485d0bce2c5545">&#9670;&nbsp;</a></span>cheax_get()</h2>
-
-<div class="memitem">
-<div class="memproto">
-      <table class="memname">
-        <tr>
-          <td class="memname">struct <a class="el" href="structchx__value.html">chx_value</a> cheax_get </td>
-          <td>(</td>
-          <td class="paramtype"><a class="el" href="group__Cheax.html#gae1a7e5521943626a5cb9f1f59f661662">CHEAX</a> *&#160;</td>
-          <td class="paramname"><em>c</em>, </td>
-        </tr>
-        <tr>
-          <td class="paramkey"></td>
-          <td></td>
-          <td class="paramtype">const char *&#160;</td>
-          <td class="paramname"><em>id</em>&#160;</td>
-        </tr>
-        <tr>
-          <td></td>
-          <td>)</td>
-          <td></td><td></td>
-        </tr>
-      </table>
-</div><div class="memdoc">
-
-<p>Retrieves the value of the given symbol. </p>
-<p>Sets <a class="el" href="group__ErrorHandling.html#ga146c925e6989b70f61a5cb798e74a0f9" title="Gets the value of the current cheax error code.">cheax_errno()</a> to <a class="el" href="group__ErrorHandling.html#gga99fb83031ce9923c84392b4e92f956b5a2dbf822a29e714713ccd9be697004ed6">CHEAX_EAPI</a> if <em>id</em> is <em>NULL</em>, or to <a class="el" href="group__ErrorHandling.html#gga99fb83031ce9923c84392b4e92f956b5afc0217f4bdfb93da69d4261864e990ff">CHEAX_ENOSYM</a> if no symbol with name <em>id</em> could be found.</p>
-<dl class="params"><dt>Parameters</dt><dd>
-  <table class="params">
-    <tr><td class="paramname">c</td><td>Virtual machine instance. </td></tr>
-    <tr><td class="paramname">id</td><td>Identifier to look up.</td></tr>
-  </table>
-  </dd>
-</dl>
-<dl class="section return"><dt>Returns</dt><dd>The value of the given symbol. Always <em>NULL</em> in case of an error.</dd></dl>
-<dl class="section see"><dt>See also</dt><dd><a class="el" href="group__Cheax.html#gacbbfcf2d64e88aa0ffd2a55d2620b15d" title="Retrieves the value of the given symbol, performing symbol lookup only in the specified environment.">cheax_get_from()</a>, <a class="el" href="group__Cheax.html#ga163176a06974bd2a4a74cfbcf942a3a7" title="Sets the value of a symbol.">cheax_set()</a> </dd></dl>
-
-</div>
-</div>
-<a id="gacbbfcf2d64e88aa0ffd2a55d2620b15d"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#gacbbfcf2d64e88aa0ffd2a55d2620b15d">&#9670;&nbsp;</a></span>cheax_get_from()</h2>
-
-<div class="memitem">
-<div class="memproto">
-      <table class="memname">
-        <tr>
-          <td class="memname">struct <a class="el" href="structchx__value.html">chx_value</a> cheax_get_from </td>
-          <td>(</td>
-          <td class="paramtype"><a class="el" href="group__Cheax.html#gae1a7e5521943626a5cb9f1f59f661662">CHEAX</a> *&#160;</td>
-          <td class="paramname"><em>c</em>, </td>
-        </tr>
-        <tr>
-          <td class="paramkey"></td>
-          <td></td>
-          <td class="paramtype">struct chx_env *&#160;</td>
-          <td class="paramname"><em>env</em>, </td>
-        </tr>
-        <tr>
-          <td class="paramkey"></td>
-          <td></td>
-          <td class="paramtype">const char *&#160;</td>
-          <td class="paramname"><em>id</em>&#160;</td>
-        </tr>
-        <tr>
-          <td></td>
-          <td>)</td>
-          <td></td><td></td>
-        </tr>
-      </table>
-</div><div class="memdoc">
-
-<p>Retrieves the value of the given symbol, performing symbol lookup only in the specified environment. </p>
-<p>Sets <a class="el" href="group__ErrorHandling.html#ga146c925e6989b70f61a5cb798e74a0f9" title="Gets the value of the current cheax error code.">cheax_errno()</a> to <a class="el" href="group__ErrorHandling.html#gga99fb83031ce9923c84392b4e92f956b5a2dbf822a29e714713ccd9be697004ed6">CHEAX_EAPI</a> if <em>id</em> is <em>NULL</em>, or to <a class="el" href="group__ErrorHandling.html#gga99fb83031ce9923c84392b4e92f956b5afc0217f4bdfb93da69d4261864e990ff">CHEAX_ENOSYM</a> if no symbol with name <em>id</em> could be found.</p>
-<dl class="params"><dt>Parameters</dt><dd>
-  <table class="params">
-    <tr><td class="paramname">c</td><td>Virtual machine instance. </td></tr>
-    <tr><td class="paramname">env</td><td>Environment to look up identifier in. </td></tr>
-    <tr><td class="paramname">id</td><td>Identifier to look up.</td></tr>
-  </table>
-  </dd>
-</dl>
-<dl class="section return"><dt>Returns</dt><dd>The value of the given symbol. Always <em>NULL</em> in case of an error.</dd></dl>
-<dl class="section see"><dt>See also</dt><dd><a class="el" href="group__Cheax.html#gaa548cdf714b3dbd0c2485d0bce2c5545" title="Retrieves the value of the given symbol.">cheax_get()</a>, <a class="el" href="group__Cheax.html#ga163176a06974bd2a4a74cfbcf942a3a7" title="Sets the value of a symbol.">cheax_set()</a> </dd></dl>
-
-</div>
-</div>
-<a id="ga82228a8d8fbeae6e9c104e80efde84ca"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#ga82228a8d8fbeae6e9c104e80efde84ca">&#9670;&nbsp;</a></span>cheax_init()</h2>
-
-<div class="memitem">
-<div class="memproto">
-      <table class="memname">
-        <tr>
-          <td class="memname"><a class="el" href="group__Cheax.html#gae1a7e5521943626a5cb9f1f59f661662">CHEAX</a>* cheax_init </td>
-          <td>(</td>
-          <td class="paramtype">void&#160;</td>
-          <td class="paramname"></td><td>)</td>
-          <td></td>
-        </tr>
-      </table>
-</div><div class="memdoc">
-
-<p>Initializes a new cheax virtual machine instance. </p>
-<dl class="section see"><dt>See also</dt><dd>cheax_load_features(), <a class="el" href="group__Cheax.html#ga9ed440cb74b1db60d639db905845523c" title="Loads the cheax standard library.">cheax_load_prelude()</a>, <a class="el" href="group__Cheax.html#ga1639ba43e8fd1d8150b00a2b85661bca" title="Destroys a cheax virtual machine instance, freeing its resources.">cheax_destroy()</a>, <a class="el" href="group__Cheax.html#ga531d3caa61b7abe2296aa74c250d2b53" title="Returns cheax library version as a string in the static storage class.">cheax_version()</a> </dd></dl>
-
-</div>
-</div>
-<a id="gadf2456ad59a56786cbe36db7502b1fb0"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#gadf2456ad59a56786cbe36db7502b1fb0">&#9670;&nbsp;</a></span>cheax_list_to_array()</h2>
-
-<div class="memitem">
-<div class="memproto">
-      <table class="memname">
-        <tr>
-          <td class="memname">int cheax_list_to_array </td>
-          <td>(</td>
-          <td class="paramtype"><a class="el" href="group__Cheax.html#gae1a7e5521943626a5cb9f1f59f661662">CHEAX</a> *&#160;</td>
-          <td class="paramname"><em>c</em>, </td>
-        </tr>
-        <tr>
-          <td class="paramkey"></td>
-          <td></td>
-          <td class="paramtype">struct <a class="el" href="structchx__list.html">chx_list</a> *&#160;</td>
-          <td class="paramname"><em>list</em>, </td>
-        </tr>
-        <tr>
-          <td class="paramkey"></td>
-          <td></td>
-          <td class="paramtype">struct <a class="el" href="structchx__value.html">chx_value</a> **&#160;</td>
-          <td class="paramname"><em>array_ptr</em>, </td>
-        </tr>
-        <tr>
-          <td class="paramkey"></td>
-          <td></td>
-          <td class="paramtype">size_t *&#160;</td>
-          <td class="paramname"><em>length</em>&#160;</td>
-        </tr>
-        <tr>
-          <td></td>
-          <td>)</td>
-          <td></td><td></td>
-        </tr>
-      </table>
-</div><div class="memdoc">
-
-<p>Converts <a class="el" href="structchx__list.html" title="Cheax s-expression.">chx_list</a> to array. </p>
-<p>Sets <a class="el" href="group__ErrorHandling.html#ga146c925e6989b70f61a5cb798e74a0f9" title="Gets the value of the current cheax error code.">cheax_errno()</a> to <a class="el" href="group__ErrorHandling.html#gga99fb83031ce9923c84392b4e92f956b5a2dbf822a29e714713ccd9be697004ed6">CHEAX_EAPI</a> if <em>array_ptr</em> or <em>length</em> is NULL, or to <a class="el" href="group__ErrorHandling.html#gga99fb83031ce9923c84392b4e92f956b5a13fabfa6ce59d57237eb86741cbbed16">CHEAX_ENOMEM</a> if array allocation failed.</p>
-<dl class="params"><dt>Parameters</dt><dd>
-  <table class="params">
-    <tr><td class="paramname">c</td><td>Virtual machine instance. </td></tr>
-    <tr><td class="paramname">list</td><td>List to convert. </td></tr>
-    <tr><td class="paramname">array_ptr</td><td>Output parameter, will point to array of cheax_value pointers. Make sure to cheax_free() after use. </td></tr>
-    <tr><td class="paramname">length</td><td>Output parameter, will point to length of output array.</td></tr>
-  </table>
-  </dd>
-</dl>
-<dl class="section return"><dt>Returns</dt><dd>0 if everything succeeded without errors, -1 if there was an error (most likely <a class="el" href="group__ErrorHandling.html#gga99fb83031ce9923c84392b4e92f956b5a13fabfa6ce59d57237eb86741cbbed16">CHEAX_ENOMEM</a>). </dd></dl>
-
-</div>
-</div>
-<a id="ga16a03f0af286023ea3ca41e6c469ca75"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#ga16a03f0af286023ea3ca41e6c469ca75">&#9670;&nbsp;</a></span>cheax_load_feature()</h2>
-
-<div class="memitem">
-<div class="memproto">
-      <table class="memname">
-        <tr>
-          <td class="memname">int cheax_load_feature </td>
-          <td>(</td>
-          <td class="paramtype"><a class="el" href="group__Cheax.html#gae1a7e5521943626a5cb9f1f59f661662">CHEAX</a> *&#160;</td>
-          <td class="paramname"><em>c</em>, </td>
-        </tr>
-        <tr>
-          <td class="paramkey"></td>
-          <td></td>
-          <td class="paramtype">const char *&#160;</td>
-          <td class="paramname"><em>feat</em>&#160;</td>
-        </tr>
-        <tr>
-          <td></td>
-          <td>)</td>
-          <td></td><td></td>
-        </tr>
-      </table>
-</div><div class="memdoc">
-
-<p>Loads extra functions or language features into the cheax environment, including 'unsafe' ones. </p>
-<p>Supported values for <em>feat</em> are: </p><ul>
-<li><code>"file-io"</code> to load <code>fopen</code> and <code>fclose</code> built-ins; </li>
-<li><code>"set-max-stack-depth"</code> to load the <code>set-max-stack-depth</code> built-in; </li>
-<li><code>"gc"</code> to load the <code>gc</code> built-in function; </li>
-<li><code>"exit"</code> to load the <code>exit</code> function; </li>
-<li><code>"stdin"</code> to expose the <code>stdin</code> variable; </li>
-<li><code>"stdout"</code> to expose the <code>stdout</code> variable; </li>
-<li><code>"stderr"</code> to expose the <code>stderr</code> variable; </li>
-<li><code>"stdio"</code> to expose <code>stdin</code>, <code>stdout</code> and <code>stderr</code>; </li>
-<li><code>"all"</code> to load every feature available (think twice before using).</li>
-</ul>
-<p>A feature can only be loaded once. Attempting to load a feature more than once will cause no action.</p>
-<dl class="params"><dt>Parameters</dt><dd>
-  <table class="params">
-    <tr><td class="paramname">c</td><td>Virtual machine instance. </td></tr>
-    <tr><td class="paramname">feat</td><td>Which feature to load.</td></tr>
-  </table>
-  </dd>
-</dl>
-<dl class="section return"><dt>Returns</dt><dd>0 if the given feature was loaded succesfully, or -1 if the given feature is not supported. </dd></dl>
-
-</div>
-</div>
-<a id="ga9ed440cb74b1db60d639db905845523c"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#ga9ed440cb74b1db60d639db905845523c">&#9670;&nbsp;</a></span>cheax_load_prelude()</h2>
-
-<div class="memitem">
-<div class="memproto">
-      <table class="memname">
-        <tr>
-          <td class="memname">int cheax_load_prelude </td>
-          <td>(</td>
-          <td class="paramtype"><a class="el" href="group__Cheax.html#gae1a7e5521943626a5cb9f1f59f661662">CHEAX</a> *&#160;</td>
-          <td class="paramname"><em>c</em></td><td>)</td>
-          <td></td>
-        </tr>
-      </table>
-</div><div class="memdoc">
-
-<p>Loads the cheax standard library. </p>
-<p>Sets <a class="el" href="group__ErrorHandling.html#ga146c925e6989b70f61a5cb798e74a0f9" title="Gets the value of the current cheax error code.">cheax_errno()</a> to <a class="el" href="group__ErrorHandling.html#gga99fb83031ce9923c84392b4e92f956b5a2dbf822a29e714713ccd9be697004ed6">CHEAX_EAPI</a> if the standard library could not be found.</p>
-<dl class="params"><dt>Parameters</dt><dd>
-  <table class="params">
-    <tr><td class="paramname">c</td><td>Virtual machine instance.</td></tr>
-  </table>
-  </dd>
-</dl>
-<dl class="section return"><dt>Returns</dt><dd>0 if everything succeeded without errors, -1 if there was an error finding or loading the standard library. </dd></dl>
-
-</div>
-</div>
-<a id="gab7a74dd8bd1b7db17ac6e7872b365162"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#gab7a74dd8bd1b7db17ac6e7872b365162">&#9670;&nbsp;</a></span>cheax_match()</h2>
-
-<div class="memitem">
-<div class="memproto">
-      <table class="memname">
-        <tr>
-          <td class="memname">bool cheax_match </td>
-          <td>(</td>
-          <td class="paramtype"><a class="el" href="group__Cheax.html#gae1a7e5521943626a5cb9f1f59f661662">CHEAX</a> *&#160;</td>
-          <td class="paramname"><em>c</em>, </td>
-        </tr>
-        <tr>
-          <td class="paramkey"></td>
-          <td></td>
-          <td class="paramtype">struct <a class="el" href="structchx__value.html">chx_value</a>&#160;</td>
-          <td class="paramname"><em>pan</em>, </td>
-        </tr>
-        <tr>
-          <td class="paramkey"></td>
-          <td></td>
-          <td class="paramtype">struct <a class="el" href="structchx__value.html">chx_value</a>&#160;</td>
-          <td class="paramname"><em>match</em>, </td>
-        </tr>
-        <tr>
-          <td class="paramkey"></td>
-          <td></td>
-          <td class="paramtype">int&#160;</td>
-          <td class="paramname"><em>flags</em>&#160;</td>
-        </tr>
-        <tr>
-          <td></td>
-          <td>)</td>
-          <td></td><td></td>
-        </tr>
-      </table>
-</div><div class="memdoc">
-
-<p>Matches a cheax expression to a given pattern. </p>
-<p>May declare some symbols in currently active environment, regardless of return value, and does <em>not</em> set <a class="el" href="group__ErrorHandling.html#ga146c925e6989b70f61a5cb798e74a0f9" title="Gets the value of the current cheax error code.">cheax_errno()</a> to <a class="el" href="group__ErrorHandling.html#gga99fb83031ce9923c84392b4e92f956b5a091d5e88b195b81242df0fe4309bbd70">CHEAX_EMATCH</a> if the expression did not match the pattern.</p>
-<dl class="params"><dt>Parameters</dt><dd>
-  <table class="params">
-    <tr><td class="paramname">c</td><td>Virtual machine instance. </td></tr>
-    <tr><td class="paramname">pan</td><td>Pattern to match against. </td></tr>
-    <tr><td class="paramname">match</td><td>Expression to match against <em>pan</em>. </td></tr>
-    <tr><td class="paramname">flags</td><td>Variable flags for newly defined matched symbols. Use 0 if there are no special needs, although you should probably use <a class="el" href="group__Cheax.html#ggabc6126af1d45847bc59afa0aa3216b04a8b12625616c2297a571bfbf9be95a53f">CHEAX_READONLY</a>.</td></tr>
-  </table>
-  </dd>
-</dl>
-<dl class="section return"><dt>Returns</dt><dd>Whether <em>match</em> matched the pattern <em>pan</em>. </dd></dl>
-
-</div>
-</div>
-<a id="ga9850aeda8ff76df77fd8ce5c06122f94"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#ga9850aeda8ff76df77fd8ce5c06122f94">&#9670;&nbsp;</a></span>cheax_match_in()</h2>
-
-<div class="memitem">
-<div class="memproto">
-      <table class="memname">
-        <tr>
-          <td class="memname">bool cheax_match_in </td>
-          <td>(</td>
-          <td class="paramtype"><a class="el" href="group__Cheax.html#gae1a7e5521943626a5cb9f1f59f661662">CHEAX</a> *&#160;</td>
-          <td class="paramname"><em>c</em>, </td>
-        </tr>
-        <tr>
-          <td class="paramkey"></td>
-          <td></td>
-          <td class="paramtype">struct chx_env *&#160;</td>
-          <td class="paramname"><em>env</em>, </td>
-        </tr>
-        <tr>
-          <td class="paramkey"></td>
-          <td></td>
-          <td class="paramtype">struct <a class="el" href="structchx__value.html">chx_value</a>&#160;</td>
-          <td class="paramname"><em>pan</em>, </td>
-        </tr>
-        <tr>
-          <td class="paramkey"></td>
-          <td></td>
-          <td class="paramtype">struct <a class="el" href="structchx__value.html">chx_value</a>&#160;</td>
-          <td class="paramname"><em>match</em>, </td>
-        </tr>
-        <tr>
-          <td class="paramkey"></td>
-          <td></td>
-          <td class="paramtype">int&#160;</td>
-          <td class="paramname"><em>flags</em>&#160;</td>
-        </tr>
-        <tr>
-          <td></td>
-          <td>)</td>
-          <td></td><td></td>
-        </tr>
-      </table>
-</div><div class="memdoc">
-
-<p>Matches a cheax expression to a given pattern. </p>
-<p>May declare some symbols in currently active environment, regardless of return value, and does <em>not</em> set <a class="el" href="group__ErrorHandling.html#ga146c925e6989b70f61a5cb798e74a0f9" title="Gets the value of the current cheax error code.">cheax_errno()</a> to <a class="el" href="group__ErrorHandling.html#gga99fb83031ce9923c84392b4e92f956b5a091d5e88b195b81242df0fe4309bbd70">CHEAX_EMATCH</a> if the expression did not match the pattern. If <em>flags</em> contains <a class="el" href="group__Cheax.html#ggabc6126af1d45847bc59afa0aa3216b04a5409c64fb8e8e41fb477199800eb9963">CHEAX_EVAL_NODES</a>, evaluation of node values occurs in environment <em>env</em>.</p>
-<dl class="params"><dt>Parameters</dt><dd>
-  <table class="params">
-    <tr><td class="paramname">c</td><td>Virtual machine instance. </td></tr>
-    <tr><td class="paramname">env</td><td>Environment to evaluate nodes in. </td></tr>
-    <tr><td class="paramname">pan</td><td>Pattern to match against. </td></tr>
-    <tr><td class="paramname">match</td><td>Expression to match against <em>pan</em>. </td></tr>
-    <tr><td class="paramname">flags</td><td>Variable flags for newly defined matched symbols. Use 0 if there are no special needs, although you should probably use <a class="el" href="group__Cheax.html#ggabc6126af1d45847bc59afa0aa3216b04a8b12625616c2297a571bfbf9be95a53f">CHEAX_READONLY</a>.</td></tr>
-  </table>
-  </dd>
-</dl>
-<dl class="section return"><dt>Returns</dt><dd>Whether <em>match</em> matched the pattern <em>pan</em>. </dd></dl>
-
-</div>
-</div>
-<a id="ga62592dd871f03fdf5effe8034006d1e9"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#ga62592dd871f03fdf5effe8034006d1e9">&#9670;&nbsp;</a></span>cheax_pop_env()</h2>
-
-<div class="memitem">
-<div class="memproto">
-      <table class="memname">
-        <tr>
-          <td class="memname">void cheax_pop_env </td>
-          <td>(</td>
-          <td class="paramtype"><a class="el" href="group__Cheax.html#gae1a7e5521943626a5cb9f1f59f661662">CHEAX</a> *&#160;</td>
-          <td class="paramname"><em>c</em></td><td>)</td>
-          <td></td>
-        </tr>
-      </table>
-</div><div class="memdoc">
-
-<p>Pops environment off environment stack. </p>
-<p>Sets <a class="el" href="group__ErrorHandling.html#ga146c925e6989b70f61a5cb798e74a0f9" title="Gets the value of the current cheax error code.">cheax_errno()</a> to <a class="el" href="group__ErrorHandling.html#gga99fb83031ce9923c84392b4e92f956b5a2dbf822a29e714713ccd9be697004ed6">CHEAX_EAPI</a> if environment stack is empty.</p>
-<dl class="params"><dt>Parameters</dt><dd>
-  <table class="params">
-    <tr><td class="paramname">c</td><td>Virtual machine instance. </td></tr>
-  </table>
-  </dd>
-</dl>
-
-</div>
-</div>
-<a id="ga17e9211ce271836d8139767202119259"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#ga17e9211ce271836d8139767202119259">&#9670;&nbsp;</a></span>cheax_print()</h2>
-
-<div class="memitem">
-<div class="memproto">
-      <table class="memname">
-        <tr>
-          <td class="memname">void cheax_print </td>
-          <td>(</td>
-          <td class="paramtype"><a class="el" href="group__Cheax.html#gae1a7e5521943626a5cb9f1f59f661662">CHEAX</a> *&#160;</td>
-          <td class="paramname"><em>c</em>, </td>
-        </tr>
-        <tr>
-          <td class="paramkey"></td>
-          <td></td>
-          <td class="paramtype">FILE *&#160;</td>
-          <td class="paramname"><em>output</em>, </td>
-        </tr>
-        <tr>
-          <td class="paramkey"></td>
-          <td></td>
-          <td class="paramtype">struct <a class="el" href="structchx__value.html">chx_value</a>&#160;</td>
-          <td class="paramname"><em>expr</em>&#160;</td>
-        </tr>
-        <tr>
-          <td></td>
-          <td>)</td>
-          <td></td><td></td>
-        </tr>
-      </table>
-</div><div class="memdoc">
-
-<p>Prints given cheax expression to file. </p>
-<p>Core element of the read, eval, print loop.</p>
-<dl class="params"><dt>Parameters</dt><dd>
-  <table class="params">
-    <tr><td class="paramname">c</td><td>Virtual machine instance. </td></tr>
-    <tr><td class="paramname">output</td><td>Output file handle. </td></tr>
-    <tr><td class="paramname">expr</td><td>Cheax expression to print.</td></tr>
-  </table>
-  </dd>
-</dl>
-<dl class="section see"><dt>See also</dt><dd><a class="el" href="group__Cheax.html#gaa71e7c33f3d109c5753c6e2d8c956398" title="Expresses given cheax values as a chx_string, using given format string.">cheax_format()</a>, <a class="el" href="group__Cheax.html#gadad11b9b0781ba548e45161de4a1b8ae" title="Reads cheax expression from file.">cheax_read()</a>, <a class="el" href="group__Cheax.html#ga46ecfc59560c9b24cb0313e62876ec31" title="Evaluates given cheax expression.">cheax_eval()</a> </dd></dl>
-
-</div>
-</div>
-<a id="ga762f81ab8ce82a5d4beb1e227763b49c"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#ga762f81ab8ce82a5d4beb1e227763b49c">&#9670;&nbsp;</a></span>cheax_push_env()</h2>
-
-<div class="memitem">
-<div class="memproto">
-      <table class="memname">
-        <tr>
-          <td class="memname">void cheax_push_env </td>
-          <td>(</td>
-          <td class="paramtype"><a class="el" href="group__Cheax.html#gae1a7e5521943626a5cb9f1f59f661662">CHEAX</a> *&#160;</td>
-          <td class="paramname"><em>c</em></td><td>)</td>
-          <td></td>
-        </tr>
-      </table>
-</div><div class="memdoc">
-
-<p>Pushes new empty environment to environment stack. </p>
-<dl class="params"><dt>Parameters</dt><dd>
-  <table class="params">
-    <tr><td class="paramname">c</td><td>Virtual machine instance. </td></tr>
-  </table>
-  </dd>
-</dl>
-
-</div>
-</div>
-<a id="gadad11b9b0781ba548e45161de4a1b8ae"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#gadad11b9b0781ba548e45161de4a1b8ae">&#9670;&nbsp;</a></span>cheax_read()</h2>
-
-<div class="memitem">
-<div class="memproto">
-      <table class="memname">
-        <tr>
-          <td class="memname">struct <a class="el" href="structchx__value.html">chx_value</a> cheax_read </td>
-          <td>(</td>
-          <td class="paramtype"><a class="el" href="group__Cheax.html#gae1a7e5521943626a5cb9f1f59f661662">CHEAX</a> *&#160;</td>
-          <td class="paramname"><em>c</em>, </td>
-        </tr>
-        <tr>
-          <td class="paramkey"></td>
-          <td></td>
-          <td class="paramtype">FILE *&#160;</td>
-          <td class="paramname"><em>f</em>&#160;</td>
-        </tr>
-        <tr>
-          <td></td>
-          <td>)</td>
-          <td></td><td></td>
-        </tr>
-      </table>
-</div><div class="memdoc">
-
-<p>Reads cheax expression from file. </p>
-<p>Core element of the read, eval, print loop.</p>
-<dl class="params"><dt>Parameters</dt><dd>
-  <table class="params">
-    <tr><td class="paramname">c</td><td>Virtual machine instance. </td></tr>
-    <tr><td class="paramname">f</td><td>File handle to read from.</td></tr>
-  </table>
-  </dd>
-</dl>
-<dl class="section return"><dt>Returns</dt><dd>The cheax expression that was read from the file. <em>NULL</em> if unsuccesful.</dd></dl>
-<dl class="section see"><dt>See also</dt><dd><a class="el" href="group__Cheax.html#ga41a6006e8ea353a180f0b2a9eeb8b11b" title="Reads cheax expression from string.">cheax_readstr()</a>, <a class="el" href="group__Cheax.html#ga46ecfc59560c9b24cb0313e62876ec31" title="Evaluates given cheax expression.">cheax_eval()</a>, <a class="el" href="group__Cheax.html#ga17e9211ce271836d8139767202119259" title="Prints given cheax expression to file.">cheax_print()</a> </dd></dl>
-
-</div>
-</div>
-<a id="ga41a6006e8ea353a180f0b2a9eeb8b11b"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#ga41a6006e8ea353a180f0b2a9eeb8b11b">&#9670;&nbsp;</a></span>cheax_readstr()</h2>
-
-<div class="memitem">
-<div class="memproto">
-      <table class="memname">
-        <tr>
-          <td class="memname">struct <a class="el" href="structchx__value.html">chx_value</a> cheax_readstr </td>
-          <td>(</td>
-          <td class="paramtype"><a class="el" href="group__Cheax.html#gae1a7e5521943626a5cb9f1f59f661662">CHEAX</a> *&#160;</td>
-          <td class="paramname"><em>c</em>, </td>
-        </tr>
-        <tr>
-          <td class="paramkey"></td>
-          <td></td>
-          <td class="paramtype">const char *&#160;</td>
-          <td class="paramname"><em>str</em>&#160;</td>
-        </tr>
-        <tr>
-          <td></td>
-          <td>)</td>
-          <td></td><td></td>
-        </tr>
-      </table>
-</div><div class="memdoc">
-
-<p>Reads cheax expression from string. </p>
-<p>Core element of the read, eval, print loop.</p>
-<dl class="params"><dt>Parameters</dt><dd>
-  <table class="params">
-    <tr><td class="paramname">c</td><td>Virtual machine instance. </td></tr>
-    <tr><td class="paramname">str</td><td>String to read from.</td></tr>
-  </table>
-  </dd>
-</dl>
-<dl class="section return"><dt>Returns</dt><dd>The cheax expression that was read from the string. <em>NULL</em> if unsuccesful.</dd></dl>
-<dl class="section see"><dt>See also</dt><dd><a class="el" href="group__Cheax.html#gadad11b9b0781ba548e45161de4a1b8ae" title="Reads cheax expression from file.">cheax_read()</a>, <a class="el" href="group__Cheax.html#ga46ecfc59560c9b24cb0313e62876ec31" title="Evaluates given cheax expression.">cheax_eval()</a>, <a class="el" href="group__Cheax.html#ga17e9211ce271836d8139767202119259" title="Prints given cheax expression to file.">cheax_print()</a> </dd></dl>
-
-</div>
-</div>
-<a id="ga163176a06974bd2a4a74cfbcf942a3a7"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#ga163176a06974bd2a4a74cfbcf942a3a7">&#9670;&nbsp;</a></span>cheax_set()</h2>
-
-<div class="memitem">
-<div class="memproto">
-      <table class="memname">
-        <tr>
-          <td class="memname">void cheax_set </td>
+          <td class="memname">void cheax_def_special_form </td>
           <td>(</td>
           <td class="paramtype"><a class="el" href="group__Cheax.html#gae1a7e5521943626a5cb9f1f59f661662">CHEAX</a> *&#160;</td>
           <td class="paramname"><em>c</em>, </td>
@@ -1375,8 +912,14 @@ void&#160;</td><td class="memItemRight" valign="bottom"><b>cheax_free</b> (<a cl
         <tr>
           <td class="paramkey"></td>
           <td></td>
-          <td class="paramtype">struct <a class="el" href="structchx__value.html">chx_value</a>&#160;</td>
-          <td class="paramname"><em>value</em>&#160;</td>
+          <td class="paramtype"><a class="el" href="group__TypeSystem.html#gad3eb9ae38ae236189464dd2e6f2517f2">chx_func_ptr</a>&#160;</td>
+          <td class="paramname"><em>perform</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">void *&#160;</td>
+          <td class="paramname"><em>info</em>&#160;</td>
         </tr>
         <tr>
           <td></td>
@@ -1386,23 +929,107 @@ void&#160;</td><td class="memItemRight" valign="bottom"><b>cheax_free</b> (<a cl
       </table>
 </div><div class="memdoc">
 
-<p>Sets the value of a symbol. </p>
-<p>Sets <a class="el" href="group__ErrorHandling.html#ga146c925e6989b70f61a5cb798e74a0f9" title="Gets the value of the current cheax error code.">cheax_errno()</a> to </p><ul>
-<li><a class="el" href="group__ErrorHandling.html#gga99fb83031ce9923c84392b4e92f956b5a2dbf822a29e714713ccd9be697004ed6">CHEAX_EAPI</a> if <em>id</em> is <em>NULL</em>; </li>
-<li><a class="el" href="group__ErrorHandling.html#gga99fb83031ce9923c84392b4e92f956b5afc0217f4bdfb93da69d4261864e990ff">CHEAX_ENOSYM</a> if no symol with name <em>id</em> could be found; </li>
-<li><a class="el" href="group__ErrorHandling.html#gga99fb83031ce9923c84392b4e92f956b5aa2d122f6c373978a55fa426ff948968d">CHEAX_EREADONLY</a> if the given symbol was declared read-only; </li>
-<li>or <a class="el" href="group__ErrorHandling.html#gga99fb83031ce9923c84392b4e92f956b5a0638c380515dceeab48567502c8c9e7e">CHEAX_ETYPE</a> if symbol is synchronised and type of <em>value</em> is invalid.</li>
-</ul>
-<p><a class="el" href="group__Cheax.html#ga163176a06974bd2a4a74cfbcf942a3a7" title="Sets the value of a symbol.">cheax_set()</a> cannot be used to declare a new symbol, use <a class="el" href="group__Cheax.html#ga895df893b78c6e3b6c24d83e7e7351cf" title="Creates a new symbol in the cheax environment.">cheax_def()</a> instead.</p>
+</div>
+</div>
+<a id="gae3053bc7d80c4761838019cb309c5abb"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#gae3053bc7d80c4761838019cb309c5abb">&#9670;&nbsp;</a></span>cheax_def_special_tail_form()</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">void cheax_def_special_tail_form </td>
+          <td>(</td>
+          <td class="paramtype"><a class="el" href="group__Cheax.html#gae1a7e5521943626a5cb9f1f59f661662">CHEAX</a> *&#160;</td>
+          <td class="paramname"><em>c</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">const char *&#160;</td>
+          <td class="paramname"><em>id</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype"><a class="el" href="group__TypeSystem.html#ga4796fe2cd5fbea45476ab999c385a088">chx_tail_func_ptr</a>&#160;</td>
+          <td class="paramname"><em>perform</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">void *&#160;</td>
+          <td class="paramname"><em>info</em>&#160;</td>
+        </tr>
+        <tr>
+          <td></td>
+          <td>)</td>
+          <td></td><td></td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+<p>Creates a new special tail form the cheax environment. </p>
+<p>Special forms are available both at runtime and during macro expansion time. Unlike extenal functions, arguments to special forms are left unevaluated before the callback is invoked. Furthermore, special forms, like macros, are not "first-class" objects in cheax. E.g. they cannot be passed to other functions as arguments.</p>
 <dl class="params"><dt>Parameters</dt><dd>
   <table class="params">
-    <tr><td class="paramname">c</td><td>Virtual machine instance. </td></tr>
-    <tr><td class="paramname">id</td><td>Identifier of the symbol to look up and set. </td></tr>
-    <tr><td class="paramname">value</td><td>New value for the symbol with the given identifier.</td></tr>
+    <tr><td class="paramname">id</td><td>Identifier for the special form. </td></tr>
+    <tr><td class="paramname">perform</td><td>Callback for the new special form. </td></tr>
+    <tr><td class="paramname">info</td><td>Callback info for the new special form.</td></tr>
   </table>
   </dd>
 </dl>
-<dl class="section see"><dt>See also</dt><dd><a class="el" href="group__Cheax.html#gaa548cdf714b3dbd0c2485d0bce2c5545" title="Retrieves the value of the given symbol.">cheax_get()</a>, <a class="el" href="group__Cheax.html#ga895df893b78c6e3b6c24d83e7e7351cf" title="Creates a new symbol in the cheax environment.">cheax_def()</a> </dd></dl>
+<dl class="section see"><dt>See also</dt><dd><a class="el" href="structchx__form.html" title="Cheax external/user function expression.">chx_form</a>, <a class="el" href="group__TypeSystem.html#ga34314b052007d2528d31a311322110f8" title="Creates a cheax special form.">cheax_special_form()</a>, <a class="el" href="group__Cheax.html#ga895df893b78c6e3b6c24d83e7e7351cf" title="Creates a new symbol in the cheax environment.">cheax_def()</a>, <a class="el" href="group__Cheax.html#gad08174626f139f7900aa0d06880aa97d" title="Shorthand function to declare an external function the cheax environment.">cheax_defun()</a> </dd></dl>
+
+</div>
+</div>
+<a id="ga27b4218aa1d98f321686d523f9e1a771"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#ga27b4218aa1d98f321686d523f9e1a771">&#9670;&nbsp;</a></span>cheax_sync_int()</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">void cheax_sync_int </td>
+          <td>(</td>
+          <td class="paramtype"><a class="el" href="group__Cheax.html#gae1a7e5521943626a5cb9f1f59f661662">CHEAX</a> *&#160;</td>
+          <td class="paramname"><em>c</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">const char *&#160;</td>
+          <td class="paramname"><em>name</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">int *&#160;</td>
+          <td class="paramname"><em>var</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">int&#160;</td>
+          <td class="paramname"><em>flags</em>&#160;</td>
+        </tr>
+        <tr>
+          <td></td>
+          <td>)</td>
+          <td></td><td></td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+<p>Synchronizes a variable from C with a symbol in the cheax environment. </p>
+<dl class="params"><dt>Parameters</dt><dd>
+  <table class="params">
+    <tr><td class="paramname">name</td><td>Identifier for the symbol in the cheax environment. </td></tr>
+    <tr><td class="paramname">var</td><td>Reference to the C variable to synchronize. </td></tr>
+    <tr><td class="paramname">flags</td><td>Symbol flags. Use 0 if there are no special needs. </td></tr>
+  </table>
+  </dd>
+</dl>
 
 </div>
 </div>
@@ -1447,58 +1074,6 @@ void&#160;</td><td class="memItemRight" valign="bottom"><b>cheax_free</b> (<a cl
 <p>Synchronizes a variable from C with a symbol in the cheax environment. </p>
 <dl class="params"><dt>Parameters</dt><dd>
   <table class="params">
-    <tr><td class="paramname">c</td><td>Virtual machine instance. </td></tr>
-    <tr><td class="paramname">name</td><td>Identifier for the symbol in the cheax environment. </td></tr>
-    <tr><td class="paramname">var</td><td>Reference to the C variable to synchronize. </td></tr>
-    <tr><td class="paramname">flags</td><td>Symbol flags. Use 0 if there are no special needs. </td></tr>
-  </table>
-  </dd>
-</dl>
-
-</div>
-</div>
-<a id="gaf396efc65d90904edc3be1229e962c93"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#gaf396efc65d90904edc3be1229e962c93">&#9670;&nbsp;</a></span>cheax_sync_double()</h2>
-
-<div class="memitem">
-<div class="memproto">
-      <table class="memname">
-        <tr>
-          <td class="memname">void cheax_sync_double </td>
-          <td>(</td>
-          <td class="paramtype"><a class="el" href="group__Cheax.html#gae1a7e5521943626a5cb9f1f59f661662">CHEAX</a> *&#160;</td>
-          <td class="paramname"><em>c</em>, </td>
-        </tr>
-        <tr>
-          <td class="paramkey"></td>
-          <td></td>
-          <td class="paramtype">const char *&#160;</td>
-          <td class="paramname"><em>name</em>, </td>
-        </tr>
-        <tr>
-          <td class="paramkey"></td>
-          <td></td>
-          <td class="paramtype">double *&#160;</td>
-          <td class="paramname"><em>var</em>, </td>
-        </tr>
-        <tr>
-          <td class="paramkey"></td>
-          <td></td>
-          <td class="paramtype">int&#160;</td>
-          <td class="paramname"><em>flags</em>&#160;</td>
-        </tr>
-        <tr>
-          <td></td>
-          <td>)</td>
-          <td></td><td></td>
-        </tr>
-      </table>
-</div><div class="memdoc">
-
-<p>Synchronizes a variable from C with a symbol in the cheax environment. </p>
-<dl class="params"><dt>Parameters</dt><dd>
-  <table class="params">
-    <tr><td class="paramname">c</td><td>Virtual machine instance. </td></tr>
     <tr><td class="paramname">name</td><td>Identifier for the symbol in the cheax environment. </td></tr>
     <tr><td class="paramname">var</td><td>Reference to the C variable to synchronize. </td></tr>
     <tr><td class="paramname">flags</td><td>Symbol flags. Use 0 if there are no special needs. </td></tr>
@@ -1549,7 +1124,6 @@ void&#160;</td><td class="memItemRight" valign="bottom"><b>cheax_free</b> (<a cl
 <p>Synchronizes a variable from C with a symbol in the cheax environment. </p>
 <dl class="params"><dt>Parameters</dt><dd>
   <table class="params">
-    <tr><td class="paramname">c</td><td>Virtual machine instance. </td></tr>
     <tr><td class="paramname">name</td><td>Identifier for the symbol in the cheax environment. </td></tr>
     <tr><td class="paramname">var</td><td>Reference to the C variable to synchronize. </td></tr>
     <tr><td class="paramname">flags</td><td>Symbol flags. Use 0 if there are no special needs. </td></tr>
@@ -1559,14 +1133,14 @@ void&#160;</td><td class="memItemRight" valign="bottom"><b>cheax_free</b> (<a cl
 
 </div>
 </div>
-<a id="ga27b4218aa1d98f321686d523f9e1a771"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#ga27b4218aa1d98f321686d523f9e1a771">&#9670;&nbsp;</a></span>cheax_sync_int()</h2>
+<a id="gaf396efc65d90904edc3be1229e962c93"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#gaf396efc65d90904edc3be1229e962c93">&#9670;&nbsp;</a></span>cheax_sync_double()</h2>
 
 <div class="memitem">
 <div class="memproto">
       <table class="memname">
         <tr>
-          <td class="memname">void cheax_sync_int </td>
+          <td class="memname">void cheax_sync_double </td>
           <td>(</td>
           <td class="paramtype"><a class="el" href="group__Cheax.html#gae1a7e5521943626a5cb9f1f59f661662">CHEAX</a> *&#160;</td>
           <td class="paramname"><em>c</em>, </td>
@@ -1580,7 +1154,7 @@ void&#160;</td><td class="memItemRight" valign="bottom"><b>cheax_free</b> (<a cl
         <tr>
           <td class="paramkey"></td>
           <td></td>
-          <td class="paramtype">int *&#160;</td>
+          <td class="paramtype">double *&#160;</td>
           <td class="paramname"><em>var</em>, </td>
         </tr>
         <tr>
@@ -1600,7 +1174,6 @@ void&#160;</td><td class="memItemRight" valign="bottom"><b>cheax_free</b> (<a cl
 <p>Synchronizes a variable from C with a symbol in the cheax environment. </p>
 <dl class="params"><dt>Parameters</dt><dd>
   <table class="params">
-    <tr><td class="paramname">c</td><td>Virtual machine instance. </td></tr>
     <tr><td class="paramname">name</td><td>Identifier for the symbol in the cheax environment. </td></tr>
     <tr><td class="paramname">var</td><td>Reference to the C variable to synchronize. </td></tr>
     <tr><td class="paramname">flags</td><td>Symbol flags. Use 0 if there are no special needs. </td></tr>
@@ -1657,7 +1230,6 @@ void&#160;</td><td class="memItemRight" valign="bottom"><b>cheax_free</b> (<a cl
 <p>Synchronizes a null-terminated string buffer from C with a symbol in the cheax environment. </p>
 <dl class="params"><dt>Parameters</dt><dd>
   <table class="params">
-    <tr><td class="paramname">c</td><td>Virtual machine instance. </td></tr>
     <tr><td class="paramname">name</td><td>Identifier for the symbol in the cheax environment. </td></tr>
     <tr><td class="paramname">var</td><td>String buffer to synchronize. </td></tr>
     <tr><td class="paramname">size</td><td>Capacity of buffer, including null byte. </td></tr>
@@ -1668,10 +1240,853 @@ void&#160;</td><td class="memItemRight" valign="bottom"><b>cheax_free</b> (<a cl
 
 </div>
 </div>
+<a id="ga9850aeda8ff76df77fd8ce5c06122f94"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#ga9850aeda8ff76df77fd8ce5c06122f94">&#9670;&nbsp;</a></span>cheax_match_in()</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">bool cheax_match_in </td>
+          <td>(</td>
+          <td class="paramtype"><a class="el" href="group__Cheax.html#gae1a7e5521943626a5cb9f1f59f661662">CHEAX</a> *&#160;</td>
+          <td class="paramname"><em>c</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">struct chx_env *&#160;</td>
+          <td class="paramname"><em>env</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">struct <a class="el" href="structchx__value.html">chx_value</a>&#160;</td>
+          <td class="paramname"><em>pan</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">struct <a class="el" href="structchx__value.html">chx_value</a>&#160;</td>
+          <td class="paramname"><em>match</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">int&#160;</td>
+          <td class="paramname"><em>flags</em>&#160;</td>
+        </tr>
+        <tr>
+          <td></td>
+          <td>)</td>
+          <td></td><td></td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+<p>Matches a cheax expression to a given pattern. </p>
+<p>May declare some symbols in currently active environment, regardless of return value, and does <em>not</em> set <a class="el" href="group__ErrorHandling.html#ga146c925e6989b70f61a5cb798e74a0f9" title="Gets the value of the current cheax error code.">cheax_errno()</a> to <a class="el" href="group__ErrorHandling.html#gga99fb83031ce9923c84392b4e92f956b5a091d5e88b195b81242df0fe4309bbd70">CHEAX_EMATCH</a> if the expression did not match the pattern. If <em>flags</em> contains <a class="el" href="group__Cheax.html#ggabc6126af1d45847bc59afa0aa3216b04a5409c64fb8e8e41fb477199800eb9963">CHEAX_EVAL_NODES</a>, evaluation of node values occurs in environment <em>env</em>.</p>
+<dl class="params"><dt>Parameters</dt><dd>
+  <table class="params">
+    <tr><td class="paramname">env</td><td>Environment to evaluate nodes in. </td></tr>
+    <tr><td class="paramname">pan</td><td>Pattern to match against. </td></tr>
+    <tr><td class="paramname">match</td><td>Expression to match against <em>pan</em>. </td></tr>
+    <tr><td class="paramname">flags</td><td>Variable flags for newly defined matched symbols. Use 0 if there are no special needs, although you should probably use <a class="el" href="group__Cheax.html#ggabc6126af1d45847bc59afa0aa3216b04a8b12625616c2297a571bfbf9be95a53f">CHEAX_READONLY</a>.</td></tr>
+  </table>
+  </dd>
+</dl>
+<dl class="section return"><dt>Returns</dt><dd>Whether <em>match</em> matched the pattern <em>pan</em>. </dd></dl>
+
+</div>
+</div>
+<a id="gab7a74dd8bd1b7db17ac6e7872b365162"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#gab7a74dd8bd1b7db17ac6e7872b365162">&#9670;&nbsp;</a></span>cheax_match()</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">bool cheax_match </td>
+          <td>(</td>
+          <td class="paramtype"><a class="el" href="group__Cheax.html#gae1a7e5521943626a5cb9f1f59f661662">CHEAX</a> *&#160;</td>
+          <td class="paramname"><em>c</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">struct <a class="el" href="structchx__value.html">chx_value</a>&#160;</td>
+          <td class="paramname"><em>pan</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">struct <a class="el" href="structchx__value.html">chx_value</a>&#160;</td>
+          <td class="paramname"><em>match</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">int&#160;</td>
+          <td class="paramname"><em>flags</em>&#160;</td>
+        </tr>
+        <tr>
+          <td></td>
+          <td>)</td>
+          <td></td><td></td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+<p>Matches a cheax expression to a given pattern. </p>
+<p>May declare some symbols in currently active environment, regardless of return value, and does <em>not</em> set <a class="el" href="group__ErrorHandling.html#ga146c925e6989b70f61a5cb798e74a0f9" title="Gets the value of the current cheax error code.">cheax_errno()</a> to <a class="el" href="group__ErrorHandling.html#gga99fb83031ce9923c84392b4e92f956b5a091d5e88b195b81242df0fe4309bbd70">CHEAX_EMATCH</a> if the expression did not match the pattern.</p>
+<dl class="params"><dt>Parameters</dt><dd>
+  <table class="params">
+    <tr><td class="paramname">pan</td><td>Pattern to match against. </td></tr>
+    <tr><td class="paramname">match</td><td>Expression to match against <em>pan</em>. </td></tr>
+    <tr><td class="paramname">flags</td><td>Variable flags for newly defined matched symbols. Use 0 if there are no special needs, although you should probably use <a class="el" href="group__Cheax.html#ggabc6126af1d45847bc59afa0aa3216b04a8b12625616c2297a571bfbf9be95a53f">CHEAX_READONLY</a>.</td></tr>
+  </table>
+  </dd>
+</dl>
+<dl class="section return"><dt>Returns</dt><dd>Whether <em>match</em> matched the pattern <em>pan</em>. </dd></dl>
+
+</div>
+</div>
+<a id="gad136b8845b2a77aacfe4587e2380ca6d"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#gad136b8845b2a77aacfe4587e2380ca6d">&#9670;&nbsp;</a></span>cheax_eq()</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">bool cheax_eq </td>
+          <td>(</td>
+          <td class="paramtype"><a class="el" href="group__Cheax.html#gae1a7e5521943626a5cb9f1f59f661662">CHEAX</a> *&#160;</td>
+          <td class="paramname"><em>c</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">struct <a class="el" href="structchx__value.html">chx_value</a>&#160;</td>
+          <td class="paramname"><em>l</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">struct <a class="el" href="structchx__value.html">chx_value</a>&#160;</td>
+          <td class="paramname"><em>r</em>&#160;</td>
+        </tr>
+        <tr>
+          <td></td>
+          <td>)</td>
+          <td></td><td></td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+<p>Tests whether two given cheax expressions are equal. </p>
+<dl class="params"><dt>Parameters</dt><dd>
+  <table class="params">
+    <tr><td class="paramname">l</td><td>Left. </td></tr>
+    <tr><td class="paramname">r</td><td>Right.</td></tr>
+  </table>
+  </dd>
+</dl>
+<dl class="section return"><dt>Returns</dt><dd>Whether the given cheax expressions are equal in value. </dd></dl>
+
+</div>
+</div>
+<a id="gabb847027e0eabb45e3e7f1ec60219805"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#gabb847027e0eabb45e3e7f1ec60219805">&#9670;&nbsp;</a></span>cheax_cast()</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">struct <a class="el" href="structchx__value.html">chx_value</a> cheax_cast </td>
+          <td>(</td>
+          <td class="paramtype"><a class="el" href="group__Cheax.html#gae1a7e5521943626a5cb9f1f59f661662">CHEAX</a> *&#160;</td>
+          <td class="paramname"><em>c</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">struct <a class="el" href="structchx__value.html">chx_value</a>&#160;</td>
+          <td class="paramname"><em>v</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">int&#160;</td>
+          <td class="paramname"><em>type</em>&#160;</td>
+        </tr>
+        <tr>
+          <td></td>
+          <td>)</td>
+          <td></td><td></td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+<p>Attempts to cast an expression to a given type. </p>
+<p>Sets <a class="el" href="group__ErrorHandling.html#ga146c925e6989b70f61a5cb798e74a0f9" title="Gets the value of the current cheax error code.">cheax_errno()</a> to <a class="el" href="group__ErrorHandling.html#gga99fb83031ce9923c84392b4e92f956b5a0638c380515dceeab48567502c8c9e7e">CHEAX_ETYPE</a> if casting is not possible.</p>
+<dl class="params"><dt>Parameters</dt><dd>
+  <table class="params">
+    <tr><td class="paramname">v</td><td>Expression to cast. </td></tr>
+    <tr><td class="paramname">type</td><td>Code of the type to cast to.</td></tr>
+  </table>
+  </dd>
+</dl>
+<dl class="section return"><dt>Returns</dt><dd>The cast expression. Always <code>NULL</code> if unsuccessful. </dd></dl>
+
+</div>
+</div>
+<a id="gadad11b9b0781ba548e45161de4a1b8ae"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#gadad11b9b0781ba548e45161de4a1b8ae">&#9670;&nbsp;</a></span>cheax_read()</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">struct <a class="el" href="structchx__value.html">chx_value</a> cheax_read </td>
+          <td>(</td>
+          <td class="paramtype"><a class="el" href="group__Cheax.html#gae1a7e5521943626a5cb9f1f59f661662">CHEAX</a> *&#160;</td>
+          <td class="paramname"><em>c</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">FILE *&#160;</td>
+          <td class="paramname"><em>f</em>&#160;</td>
+        </tr>
+        <tr>
+          <td></td>
+          <td>)</td>
+          <td></td><td></td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+<p>Reads value from file. </p>
+<p>Core element of the read, eval, print loop.</p>
+<p>Throws </p><ul>
+<li><a class="el" href="group__ErrorHandling.html#gga99fb83031ce9923c84392b4e92f956b5a2dbf822a29e714713ccd9be697004ed6">CHEAX_EAPI</a> if <em>f</em> is <code>NULL</code>; </li>
+<li><a class="el" href="group__ErrorHandling.html#gga99fb83031ce9923c84392b4e92f956b5ace1128b95cf70696d7d26f1c40c8dd08">CHEAX_EREAD</a> upon syntax error; or </li>
+<li><a class="el" href="group__ErrorHandling.html#gga99fb83031ce9923c84392b4e92f956b5aa45d7a68897a13092be4b62780e6cd5f">CHEAX_EEOF</a> if (and only if) end-of-file was encountered before an S-expression was closed.</li>
+</ul>
+<dl class="params"><dt>Parameters</dt><dd>
+  <table class="params">
+    <tr><td class="paramname">f</td><td>File handle to read from.</td></tr>
+  </table>
+  </dd>
+</dl>
+<dl class="section return"><dt>Returns</dt><dd>The value that was read from the file. If no value was read and end-of-file was reached, the function will return <code>nil</code> and no error will be thrown. Check <code>feof(f)</code> to test for this condition.</dd></dl>
+<dl class="section see"><dt>See also</dt><dd><a class="el" href="group__Cheax.html#gacae907683cdf8eb75d8e993727675703" title="Reads value from file and reports back line and column information.">cheax_read_at()</a>, <a class="el" href="group__Cheax.html#ga41a6006e8ea353a180f0b2a9eeb8b11b" title="Reads value from string.">cheax_readstr()</a>, <a class="el" href="group__Cheax.html#ga46ecfc59560c9b24cb0313e62876ec31" title="Evaluates given cheax expression.">cheax_eval()</a>, <a class="el" href="group__Cheax.html#ga17e9211ce271836d8139767202119259" title="Prints given value to file.">cheax_print()</a> </dd></dl>
+
+</div>
+</div>
+<a id="gacae907683cdf8eb75d8e993727675703"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#gacae907683cdf8eb75d8e993727675703">&#9670;&nbsp;</a></span>cheax_read_at()</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">struct <a class="el" href="structchx__value.html">chx_value</a> cheax_read_at </td>
+          <td>(</td>
+          <td class="paramtype"><a class="el" href="group__Cheax.html#gae1a7e5521943626a5cb9f1f59f661662">CHEAX</a> *&#160;</td>
+          <td class="paramname"><em>c</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">FILE *&#160;</td>
+          <td class="paramname"><em>f</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">const char *&#160;</td>
+          <td class="paramname"><em>path</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">int *&#160;</td>
+          <td class="paramname"><em>line</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">int *&#160;</td>
+          <td class="paramname"><em>pos</em>&#160;</td>
+        </tr>
+        <tr>
+          <td></td>
+          <td>)</td>
+          <td></td><td></td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+<p>Reads value from file and reports back line and column information. </p>
+<p>Like <a class="el" href="group__Cheax.html#gadad11b9b0781ba548e45161de4a1b8ae" title="Reads value from file.">cheax_read()</a>, but with additional parameters used for error reporting and diagnostics.</p>
+<dl class="params"><dt>Parameters</dt><dd>
+  <table class="params">
+    <tr><td class="paramname">f</td><td>File handle to read from. </td></tr>
+    <tr><td class="paramname">path</td><td>Path of input file. Used for error reporting and debug info generation. </td></tr>
+    <tr><td class="paramname">line</td><td>Pointer to current line number. Will be updated as newlines are read. Will be ignored if <code>NULL</code>. </td></tr>
+    <tr><td class="paramname">pos</td><td>Pointer to current column number. Will be updated as input is read. Will be ignored if <code>NULL</code>.</td></tr>
+  </table>
+  </dd>
+</dl>
+<dl class="section see"><dt>See also</dt><dd><a class="el" href="group__Cheax.html#gadad11b9b0781ba548e45161de4a1b8ae" title="Reads value from file.">cheax_read()</a>, <a class="el" href="group__Cheax.html#ga32bcc94c1b5778c149b1da41be5fd757" title="Reads value from string, updates the string to reference the byte where it left off reading,...">cheax_readstr_at()</a> </dd></dl>
+
+</div>
+</div>
+<a id="ga41a6006e8ea353a180f0b2a9eeb8b11b"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#ga41a6006e8ea353a180f0b2a9eeb8b11b">&#9670;&nbsp;</a></span>cheax_readstr()</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">struct <a class="el" href="structchx__value.html">chx_value</a> cheax_readstr </td>
+          <td>(</td>
+          <td class="paramtype"><a class="el" href="group__Cheax.html#gae1a7e5521943626a5cb9f1f59f661662">CHEAX</a> *&#160;</td>
+          <td class="paramname"><em>c</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">const char *&#160;</td>
+          <td class="paramname"><em>str</em>&#160;</td>
+        </tr>
+        <tr>
+          <td></td>
+          <td>)</td>
+          <td></td><td></td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+<p>Reads value from string. </p>
+<p>Like <a class="el" href="group__Cheax.html#gadad11b9b0781ba548e45161de4a1b8ae" title="Reads value from file.">cheax_read()</a>, but reading directly from a string, rather than from a file.</p>
+<p>Throws </p><ul>
+<li><a class="el" href="group__ErrorHandling.html#gga99fb83031ce9923c84392b4e92f956b5a2dbf822a29e714713ccd9be697004ed6">CHEAX_EAPI</a> if <em>str</em> is <code>NULL</code>; </li>
+<li><a class="el" href="group__ErrorHandling.html#gga99fb83031ce9923c84392b4e92f956b5ace1128b95cf70696d7d26f1c40c8dd08">CHEAX_EREAD</a> upon syntax error; or </li>
+<li><a class="el" href="group__ErrorHandling.html#gga99fb83031ce9923c84392b4e92f956b5aa45d7a68897a13092be4b62780e6cd5f">CHEAX_EEOF</a> if (and only if) end-of-file was encountered before an S-expression was closed.</li>
+</ul>
+<dl class="params"><dt>Parameters</dt><dd>
+  <table class="params">
+    <tr><td class="paramname">str</td><td>Null-terminated string to read from.</td></tr>
+  </table>
+  </dd>
+</dl>
+<dl class="section return"><dt>Returns</dt><dd>The value that was read from the string. If no value was read and the null terminator was reached, the function will return <code>nil</code> and no error will be thrown. Unlike with <a class="el" href="group__Cheax.html#gadad11b9b0781ba548e45161de4a1b8ae" title="Reads value from file.">cheax_read()</a> and <a class="el" href="group__Cheax.html#ga32bcc94c1b5778c149b1da41be5fd757" title="Reads value from string, updates the string to reference the byte where it left off reading,...">cheax_readstr_at()</a>, the API does not distinguishes this condition from a successful reading of the value <code>nil</code> from the string.</dd></dl>
+<dl class="section see"><dt>See also</dt><dd><a class="el" href="group__Cheax.html#gacae907683cdf8eb75d8e993727675703" title="Reads value from file and reports back line and column information.">cheax_read_at()</a>, <a class="el" href="group__Cheax.html#ga41a6006e8ea353a180f0b2a9eeb8b11b" title="Reads value from string.">cheax_readstr()</a>, <a class="el" href="group__Cheax.html#ga46ecfc59560c9b24cb0313e62876ec31" title="Evaluates given cheax expression.">cheax_eval()</a>, <a class="el" href="group__Cheax.html#ga17e9211ce271836d8139767202119259" title="Prints given value to file.">cheax_print()</a> </dd></dl>
+
+</div>
+</div>
+<a id="ga32bcc94c1b5778c149b1da41be5fd757"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#ga32bcc94c1b5778c149b1da41be5fd757">&#9670;&nbsp;</a></span>cheax_readstr_at()</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">struct <a class="el" href="structchx__value.html">chx_value</a> cheax_readstr_at </td>
+          <td>(</td>
+          <td class="paramtype"><a class="el" href="group__Cheax.html#gae1a7e5521943626a5cb9f1f59f661662">CHEAX</a> *&#160;</td>
+          <td class="paramname"><em>c</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">const char **&#160;</td>
+          <td class="paramname"><em>str</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">const char *&#160;</td>
+          <td class="paramname"><em>path</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">int *&#160;</td>
+          <td class="paramname"><em>line</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">int *&#160;</td>
+          <td class="paramname"><em>pos</em>&#160;</td>
+        </tr>
+        <tr>
+          <td></td>
+          <td>)</td>
+          <td></td><td></td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+<p>Reads value from string, updates the string to reference the byte where it left off reading, and reports back line and column information. </p>
+<p>Like <a class="el" href="group__Cheax.html#ga41a6006e8ea353a180f0b2a9eeb8b11b" title="Reads value from string.">cheax_readstr()</a>, but with additional parameters used for error reporting and diagnostics. Additionally, the string pointer is updated, allowing one to call the function multiple times in succession to read multiple values.</p>
+<p>Throws <a class="el" href="group__ErrorHandling.html#gga99fb83031ce9923c84392b4e92f956b5ace1128b95cf70696d7d26f1c40c8dd08">CHEAX_EREAD</a> and <a class="el" href="group__ErrorHandling.html#gga99fb83031ce9923c84392b4e92f956b5aa45d7a68897a13092be4b62780e6cd5f">CHEAX_EEOF</a> as would <a class="el" href="group__Cheax.html#ga41a6006e8ea353a180f0b2a9eeb8b11b" title="Reads value from string.">cheax_readstr()</a>, and throws <a class="el" href="group__ErrorHandling.html#gga99fb83031ce9923c84392b4e92f956b5a2dbf822a29e714713ccd9be697004ed6">CHEAX_EAPI</a> if <em>str</em> points to, or is itself, <code>NULL</code>.</p>
+<dl class="params"><dt>Parameters</dt><dd>
+  <table class="params">
+    <tr><td class="paramname">str</td><td>Pointer to string to read from. Will, if no errors were thrown, point to the first byte in the string not examined by the parser. </td></tr>
+    <tr><td class="paramname">path</td><td>"Path" of input string. Used for error reporting and debug info generation. </td></tr>
+    <tr><td class="paramname">line</td><td>Pointer to current line number. Will be updated as newlines are read. Will be ignored if <code>NULL</code>. </td></tr>
+    <tr><td class="paramname">pos</td><td>Pointer to current column number. Will be updated as input is read. Will be ignored if <code>NULL</code>.</td></tr>
+  </table>
+  </dd>
+</dl>
+<dl class="section see"><dt>See also</dt><dd><a class="el" href="group__Cheax.html#ga41a6006e8ea353a180f0b2a9eeb8b11b" title="Reads value from string.">cheax_readstr()</a>, <a class="el" href="group__Cheax.html#gacae907683cdf8eb75d8e993727675703" title="Reads value from file and reports back line and column information.">cheax_read_at()</a> </dd></dl>
+
+</div>
+</div>
+<a id="ga1c2798f34fd2207d035d787c27531705"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#ga1c2798f34fd2207d035d787c27531705">&#9670;&nbsp;</a></span>cheax_macroexpand()</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">struct <a class="el" href="structchx__value.html">chx_value</a> cheax_macroexpand </td>
+          <td>(</td>
+          <td class="paramtype"><a class="el" href="group__Cheax.html#gae1a7e5521943626a5cb9f1f59f661662">CHEAX</a> *&#160;</td>
+          <td class="paramname"><em>c</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">struct <a class="el" href="structchx__value.html">chx_value</a>&#160;</td>
+          <td class="paramname"><em>expr</em>&#160;</td>
+        </tr>
+        <tr>
+          <td></td>
+          <td>)</td>
+          <td></td><td></td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+<p>Expand all macro forms in given expression. </p>
+<p>Macros are defined using the <code>(defmacro)</code> built-in. Throws <a class="el" href="group__ErrorHandling.html#gga99fb83031ce9923c84392b4e92f956b5acc02d978e3c0366f6e1bd3a485d56645">CHEAX_EMACRO</a> in case of an internal error.</p>
+<dl class="section note"><dt>Note</dt><dd>This function may call <a class="el" href="group__Cheax.html#gaf0720f12e68540cac101771ff07b595b">cheax_gc()</a>. Make sure to <a class="el" href="group__TypeSystem.html#ga3704845acc412e2cf4dd9b06824de380" title="Increase reference count on cheax value, preventing it from gc deletion when cheax_eval() is called.">cheax_ref()</a> your values properly.</dd></dl>
+<dl class="params"><dt>Parameters</dt><dd>
+  <table class="params">
+    <tr><td class="paramname">expr</td><td>Expression in which to expand macro forms.</td></tr>
+  </table>
+  </dd>
+</dl>
+<dl class="section see"><dt>See also</dt><dd><a class="el" href="group__Cheax.html#gad7fcf1d7564062a0aebc1791d2e16ea6" title="Expand first macro form in given expression.">cheax_macroexpand_once()</a> </dd></dl>
+
+</div>
+</div>
+<a id="gad7fcf1d7564062a0aebc1791d2e16ea6"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#gad7fcf1d7564062a0aebc1791d2e16ea6">&#9670;&nbsp;</a></span>cheax_macroexpand_once()</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">struct <a class="el" href="structchx__value.html">chx_value</a> cheax_macroexpand_once </td>
+          <td>(</td>
+          <td class="paramtype"><a class="el" href="group__Cheax.html#gae1a7e5521943626a5cb9f1f59f661662">CHEAX</a> *&#160;</td>
+          <td class="paramname"><em>c</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">struct <a class="el" href="structchx__value.html">chx_value</a>&#160;</td>
+          <td class="paramname"><em>expr</em>&#160;</td>
+        </tr>
+        <tr>
+          <td></td>
+          <td>)</td>
+          <td></td><td></td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+<p>Expand first macro form in given expression. </p>
+<p>Macros are defined using the <code>(defmacro)</code> built-in. Throws <a class="el" href="group__ErrorHandling.html#gga99fb83031ce9923c84392b4e92f956b5acc02d978e3c0366f6e1bd3a485d56645">CHEAX_EMACRO</a> in case of an internal error.</p>
+<dl class="section note"><dt>Note</dt><dd>This function may call <a class="el" href="group__Cheax.html#gaf0720f12e68540cac101771ff07b595b">cheax_gc()</a>. Make sure to <a class="el" href="group__TypeSystem.html#ga3704845acc412e2cf4dd9b06824de380" title="Increase reference count on cheax value, preventing it from gc deletion when cheax_eval() is called.">cheax_ref()</a> your values properly.</dd></dl>
+<dl class="params"><dt>Parameters</dt><dd>
+  <table class="params">
+    <tr><td class="paramname">expr</td><td>Expression in which to expand the first macro form.</td></tr>
+  </table>
+  </dd>
+</dl>
+<dl class="section see"><dt>See also</dt><dd><a class="el" href="group__Cheax.html#ga1c2798f34fd2207d035d787c27531705" title="Expand all macro forms in given expression.">cheax_macroexpand()</a> </dd></dl>
+
+</div>
+</div>
+<a id="ga46ecfc59560c9b24cb0313e62876ec31"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#ga46ecfc59560c9b24cb0313e62876ec31">&#9670;&nbsp;</a></span>cheax_eval()</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">struct <a class="el" href="structchx__value.html">chx_value</a> cheax_eval </td>
+          <td>(</td>
+          <td class="paramtype"><a class="el" href="group__Cheax.html#gae1a7e5521943626a5cb9f1f59f661662">CHEAX</a> *&#160;</td>
+          <td class="paramname"><em>c</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">struct <a class="el" href="structchx__value.html">chx_value</a>&#160;</td>
+          <td class="paramname"><em>expr</em>&#160;</td>
+        </tr>
+        <tr>
+          <td></td>
+          <td>)</td>
+          <td></td><td></td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+<p>Evaluates given cheax expression. </p>
+<p>Core element of the read, eval, print loop.</p>
+<dl class="section note"><dt>Note</dt><dd>This function may call <a class="el" href="group__Cheax.html#gaf0720f12e68540cac101771ff07b595b">cheax_gc()</a>. Make sure to <a class="el" href="group__TypeSystem.html#ga3704845acc412e2cf4dd9b06824de380" title="Increase reference count on cheax value, preventing it from gc deletion when cheax_eval() is called.">cheax_ref()</a> your values properly.</dd></dl>
+<dl class="params"><dt>Parameters</dt><dd>
+  <table class="params">
+    <tr><td class="paramname">expr</td><td>Cheax expression to evaluate.</td></tr>
+  </table>
+  </dd>
+</dl>
+<dl class="section return"><dt>Returns</dt><dd>The evaluated expression.</dd></dl>
+<dl class="section see"><dt>See also</dt><dd><a class="el" href="group__Cheax.html#gadad11b9b0781ba548e45161de4a1b8ae" title="Reads value from file.">cheax_read()</a>, <a class="el" href="group__Cheax.html#ga17e9211ce271836d8139767202119259" title="Prints given value to file.">cheax_print()</a> </dd></dl>
+
+</div>
+</div>
+<a id="ga7dc3751e8f199c38bdf1e1bd4fc135fe"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#ga7dc3751e8f199c38bdf1e1bd4fc135fe">&#9670;&nbsp;</a></span>cheax_apply()</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">struct <a class="el" href="structchx__value.html">chx_value</a> cheax_apply </td>
+          <td>(</td>
+          <td class="paramtype"><a class="el" href="group__Cheax.html#gae1a7e5521943626a5cb9f1f59f661662">CHEAX</a> *&#160;</td>
+          <td class="paramname"><em>c</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">struct <a class="el" href="structchx__value.html">chx_value</a>&#160;</td>
+          <td class="paramname"><em>func</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">struct <a class="el" href="structchx__list.html">chx_list</a> *&#160;</td>
+          <td class="paramname"><em>list</em>&#160;</td>
+        </tr>
+        <tr>
+          <td></td>
+          <td>)</td>
+          <td></td><td></td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+<p>Invokes function with given argument list. </p>
+<p>Argument list will be passed to the function as-is. I.e. the individual list nodes will not be evaluated.</p>
+<p>Throws <a class="el" href="group__ErrorHandling.html#gga99fb83031ce9923c84392b4e92f956b5a0638c380515dceeab48567502c8c9e7e">CHEAX_ETYPE</a> is <em>func</em> is not <a class="el" href="group__TypeSystem.html#gga06fc87d81c62e9abb8790b6e5713c55ba22a4a45b656463c7535252045edc0144">CHEAX_FUNC</a> or <a class="el" href="group__TypeSystem.html#gga06fc87d81c62e9abb8790b6e5713c55ba41da933f2e5b9de73abfbf752114de6a">CHEAX_EXT_FUNC</a>.</p>
+<dl class="params"><dt>Parameters</dt><dd>
+  <table class="params">
+    <tr><td class="paramname">func</td><td>Function to invoke. </td></tr>
+    <tr><td class="paramname">list</td><td>Argument list to pass to <em>func</em>.</td></tr>
+  </table>
+  </dd>
+</dl>
+<dl class="section return"><dt>Returns</dt><dd>Function return value. </dd></dl>
+
+</div>
+</div>
+<a id="ga17e9211ce271836d8139767202119259"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#ga17e9211ce271836d8139767202119259">&#9670;&nbsp;</a></span>cheax_print()</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">void cheax_print </td>
+          <td>(</td>
+          <td class="paramtype"><a class="el" href="group__Cheax.html#gae1a7e5521943626a5cb9f1f59f661662">CHEAX</a> *&#160;</td>
+          <td class="paramname"><em>c</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">FILE *&#160;</td>
+          <td class="paramname"><em>output</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">struct <a class="el" href="structchx__value.html">chx_value</a>&#160;</td>
+          <td class="paramname"><em>expr</em>&#160;</td>
+        </tr>
+        <tr>
+          <td></td>
+          <td>)</td>
+          <td></td><td></td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+<p>Prints given value to file. </p>
+<p>Core element of the read, eval, print loop.</p>
+<dl class="params"><dt>Parameters</dt><dd>
+  <table class="params">
+    <tr><td class="paramname">output</td><td>Output file handle. </td></tr>
+    <tr><td class="paramname">expr</td><td>Value to print.</td></tr>
+  </table>
+  </dd>
+</dl>
+<dl class="section see"><dt>See also</dt><dd><a class="el" href="group__Cheax.html#gaa71e7c33f3d109c5753c6e2d8c956398" title="Expresses given cheax values as a chx_string, using given format string.">cheax_format()</a>, <a class="el" href="group__Cheax.html#gadad11b9b0781ba548e45161de4a1b8ae" title="Reads value from file.">cheax_read()</a>, <a class="el" href="group__Cheax.html#ga46ecfc59560c9b24cb0313e62876ec31" title="Evaluates given cheax expression.">cheax_eval()</a> </dd></dl>
+
+</div>
+</div>
+<a id="gaa71e7c33f3d109c5753c6e2d8c956398"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#gaa71e7c33f3d109c5753c6e2d8c956398">&#9670;&nbsp;</a></span>cheax_format()</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">struct <a class="el" href="structchx__value.html">chx_value</a> cheax_format </td>
+          <td>(</td>
+          <td class="paramtype"><a class="el" href="group__Cheax.html#gae1a7e5521943626a5cb9f1f59f661662">CHEAX</a> *&#160;</td>
+          <td class="paramname"><em>c</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">struct chx_string *&#160;</td>
+          <td class="paramname"><em>fmt</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">struct <a class="el" href="structchx__list.html">chx_list</a> *&#160;</td>
+          <td class="paramname"><em>args</em>&#160;</td>
+        </tr>
+        <tr>
+          <td></td>
+          <td>)</td>
+          <td></td><td></td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+<p>Expresses given cheax values as a <em>chx_string</em>, using given format string. </p>
+<p>Sets <a class="el" href="group__ErrorHandling.html#ga146c925e6989b70f61a5cb798e74a0f9" title="Gets the value of the current cheax error code.">cheax_errno()</a> to </p><ul>
+<li><a class="el" href="group__ErrorHandling.html#gga99fb83031ce9923c84392b4e92f956b5a2dbf822a29e714713ccd9be697004ed6">CHEAX_EAPI</a> if <em>fmt</em> is NULL; </li>
+<li><a class="el" href="group__ErrorHandling.html#gga99fb83031ce9923c84392b4e92f956b5a64e94a2e04c8d3f229f4bd9dccac88d5">CHEAX_EVALUE</a> if format string is otherwise invalid; or </li>
+<li><a class="el" href="group__ErrorHandling.html#gga99fb83031ce9923c84392b4e92f956b5ac4f5f8af93301a5e4ee542706ca0b32d">CHEAX_EINDEX</a> if an index occurs in the format string (either implicitly or explicitly) that is out of bounds for <em>args</em>.</li>
+</ul>
+<dl class="params"><dt>Parameters</dt><dd>
+  <table class="params">
+    <tr><td class="paramname">fmt</td><td>Python-esque format string. </td></tr>
+    <tr><td class="paramname">args</td><td>List of arguments to format into the output string.</td></tr>
+  </table>
+  </dd>
+</dl>
+<dl class="section return"><dt>Returns</dt><dd>A <em>chx_string</em> representing the formatted result, or NULL if an error occurred.</dd></dl>
+<dl class="section see"><dt>See also</dt><dd><a class="el" href="group__Cheax.html#ga17e9211ce271836d8139767202119259" title="Prints given value to file.">cheax_print()</a> </dd></dl>
+
+</div>
+</div>
+<a id="ga3849163d416def668213e7765c30dc0c"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#ga3849163d416def668213e7765c30dc0c">&#9670;&nbsp;</a></span>cheax_exec()</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">void cheax_exec </td>
+          <td>(</td>
+          <td class="paramtype"><a class="el" href="group__Cheax.html#gae1a7e5521943626a5cb9f1f59f661662">CHEAX</a> *&#160;</td>
+          <td class="paramname"><em>c</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">const char *&#160;</td>
+          <td class="paramname"><em>f</em>&#160;</td>
+        </tr>
+        <tr>
+          <td></td>
+          <td>)</td>
+          <td></td><td></td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+<p>Reads a file and executes it. </p>
+<dl class="params"><dt>Parameters</dt><dd>
+  <table class="params">
+    <tr><td class="paramname">f</td><td>Input file path. </td></tr>
+  </table>
+  </dd>
+</dl>
+
+</div>
+</div>
+<a id="ga626dfbd6f6ff796485a6e7525bedb9a2"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#ga626dfbd6f6ff796485a6e7525bedb9a2">&#9670;&nbsp;</a></span>cheax_malloc()</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">void* cheax_malloc </td>
+          <td>(</td>
+          <td class="paramtype"><a class="el" href="group__Cheax.html#gae1a7e5521943626a5cb9f1f59f661662">CHEAX</a> *&#160;</td>
+          <td class="paramname"><em>c</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">size_t&#160;</td>
+          <td class="paramname"><em>size</em>&#160;</td>
+        </tr>
+        <tr>
+          <td></td>
+          <td>)</td>
+          <td></td><td></td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+</div>
+</div>
+<a id="gae2f91a6087745bf4fe679568d6622149"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#gae2f91a6087745bf4fe679568d6622149">&#9670;&nbsp;</a></span>cheax_calloc()</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">void* cheax_calloc </td>
+          <td>(</td>
+          <td class="paramtype"><a class="el" href="group__Cheax.html#gae1a7e5521943626a5cb9f1f59f661662">CHEAX</a> *&#160;</td>
+          <td class="paramname"><em>c</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">size_t&#160;</td>
+          <td class="paramname"><em>nmemb</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">size_t&#160;</td>
+          <td class="paramname"><em>size</em>&#160;</td>
+        </tr>
+        <tr>
+          <td></td>
+          <td>)</td>
+          <td></td><td></td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+</div>
+</div>
+<a id="gaae4aeb2d8ca2dc6da9d422e0b60b1140"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#gaae4aeb2d8ca2dc6da9d422e0b60b1140">&#9670;&nbsp;</a></span>cheax_realloc()</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">void* cheax_realloc </td>
+          <td>(</td>
+          <td class="paramtype"><a class="el" href="group__Cheax.html#gae1a7e5521943626a5cb9f1f59f661662">CHEAX</a> *&#160;</td>
+          <td class="paramname"><em>c</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">void *&#160;</td>
+          <td class="paramname"><em>ptr</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">size_t&#160;</td>
+          <td class="paramname"><em>size</em>&#160;</td>
+        </tr>
+        <tr>
+          <td></td>
+          <td>)</td>
+          <td></td><td></td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+</div>
+</div>
+<a id="gac1cbfab3c86ad757dfa6a357972c64e4"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#gac1cbfab3c86ad757dfa6a357972c64e4">&#9670;&nbsp;</a></span>cheax_free()</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">void cheax_free </td>
+          <td>(</td>
+          <td class="paramtype"><a class="el" href="group__Cheax.html#gae1a7e5521943626a5cb9f1f59f661662">CHEAX</a> *&#160;</td>
+          <td class="paramname"><em>c</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">void *&#160;</td>
+          <td class="paramname"><em>ptr</em>&#160;</td>
+        </tr>
+        <tr>
+          <td></td>
+          <td>)</td>
+          <td></td><td></td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+</div>
+</div>
+<a id="gaf0720f12e68540cac101771ff07b595b"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#gaf0720f12e68540cac101771ff07b595b">&#9670;&nbsp;</a></span>cheax_gc()</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">void cheax_gc </td>
+          <td>(</td>
+          <td class="paramtype"><a class="el" href="group__Cheax.html#gae1a7e5521943626a5cb9f1f59f661662">CHEAX</a> *&#160;</td>
+          <td class="paramname"><em>c</em></td><td>)</td>
+          <td></td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+</div>
+</div>
 </div><!-- contents -->
 </div><!-- doc-content -->
-<div class="ttc" id="agroup__TypeSystem_html_ga34314b052007d2528d31a311322110f8"><div class="ttname"><a href="group__TypeSystem.html#ga34314b052007d2528d31a311322110f8">cheax_special_form</a></div><div class="ttdeci">struct chx_value cheax_special_form(CHEAX *c, const char *name, chx_func_ptr perform, void *info)</div><div class="ttdoc">Creates a cheax special form.</div></div>
-<div class="ttc" id="agroup__Cheax_html_ggabc6126af1d45847bc59afa0aa3216b04a8b12625616c2297a571bfbf9be95a53f"><div class="ttname"><a href="group__Cheax.html#ggabc6126af1d45847bc59afa0aa3216b04a8b12625616c2297a571bfbf9be95a53f">CHEAX_READONLY</a></div><div class="ttdeci">@ CHEAX_READONLY</div><div class="ttdef"><b>Definition:</b> cheax.h:821</div></div>
+<div class="ttc" id="agroup__Cheax_html_ggabc6126af1d45847bc59afa0aa3216b04a8b12625616c2297a571bfbf9be95a53f"><div class="ttname"><a href="group__Cheax.html#ggabc6126af1d45847bc59afa0aa3216b04a8b12625616c2297a571bfbf9be95a53f">CHEAX_READONLY</a></div><div class="ttdeci">@ CHEAX_READONLY</div><div class="ttdef"><b>Definition:</b> cheax.h:945</div></div>
 <div class="ttc" id="agroup__TypeSystem_html_ga11362f68ec411035f70d1b4d19eb0337"><div class="ttname"><a href="group__TypeSystem.html#ga11362f68ec411035f70d1b4d19eb0337">cheax_ext_func</a></div><div class="ttdeci">struct chx_value cheax_ext_func(CHEAX *c, const char *name, chx_func_ptr perform, void *info)</div><div class="ttdoc">Creates a cheax external/user function expression.</div></div>
 <div class="ttc" id="agroup__Cheax_html_ga895df893b78c6e3b6c24d83e7e7351cf"><div class="ttname"><a href="group__Cheax.html#ga895df893b78c6e3b6c24d83e7e7351cf">cheax_def</a></div><div class="ttdeci">void cheax_def(CHEAX *c, const char *id, struct chx_value value, int flags)</div><div class="ttdoc">Creates a new symbol in the cheax environment.</div></div>
 <!-- start footer part -->

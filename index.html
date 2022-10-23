@@ -125,17 +125,17 @@ C API example</h1>
 <div class="line"><span class="keywordtype">int</span> main(<span class="keywordtype">void</span>)</div>
 <div class="line">{</div>
 <div class="line">        <span class="keywordtype">int</span> result;</div>
-<div class="line">        <a class="code" href="group__Cheax.html#gae1a7e5521943626a5cb9f1f59f661662">CHEAX</a> *c = <a class="code" href="group__Cheax.html#ga82228a8d8fbeae6e9c104e80efde84ca">cheax_init</a>();</div>
+<div class="line">        <a class="code" href="group__Cheax.html#gae1a7e5521943626a5cb9f1f59f661662">CHEAX</a> *c = <a class="code" href="group__SetupConfig.html#ga82228a8d8fbeae6e9c104e80efde84ca">cheax_init</a>();</div>
 <div class="line"> </div>
 <div class="line">        <span class="comment">/* Load some &quot;unsafe&quot; functions, e.g. file io and the program</span></div>
 <div class="line"><span class="comment">         * exit function */</span></div>
-<div class="line">        <a class="code" href="group__Cheax.html#ga16a03f0af286023ea3ca41e6c469ca75">cheax_load_feature</a>(c, <span class="stringliteral">&quot;all&quot;</span>);</div>
+<div class="line">        <a class="code" href="group__SetupConfig.html#ga16a03f0af286023ea3ca41e6c469ca75">cheax_load_feature</a>(c, <span class="stringliteral">&quot;all&quot;</span>);</div>
 <div class="line"> </div>
 <div class="line">        <span class="comment">/* Make sure cheax doesn&#39;t cause a stack overflow */</span></div>
-<div class="line">        cheax_config_int(c, <span class="stringliteral">&quot;stack-limit&quot;</span>, 4096);</div>
+<div class="line">        <a class="code" href="group__SetupConfig.html#ga2668e4bacb8264ff16ef8f3513c4bcdc">cheax_config_int</a>(c, <span class="stringliteral">&quot;stack-limit&quot;</span>, 4096);</div>
 <div class="line"> </div>
 <div class="line">        <span class="comment">/* Load the standard library */</span></div>
-<div class="line">        <span class="keywordflow">if</span> (<a class="code" href="group__Cheax.html#ga9ed440cb74b1db60d639db905845523c">cheax_load_prelude</a>(c) &lt; 0) {</div>
+<div class="line">        <span class="keywordflow">if</span> (<a class="code" href="group__SetupConfig.html#ga9ed440cb74b1db60d639db905845523c">cheax_load_prelude</a>(c) &lt; 0) {</div>
 <div class="line">                <span class="comment">/* Display error message on behalf of &quot;example&quot; program */</span></div>
 <div class="line">                <a class="code" href="group__ErrorHandling.html#gaf1d17c5c1c4bce01616bd414fddfe3e4">cheax_perror</a>(c, <span class="stringliteral">&quot;example&quot;</span>);</div>
 <div class="line">                <span class="keywordflow">return</span> EXIT_FAILURE;</div>
@@ -147,7 +147,7 @@ C API example</h1>
 <div class="line"> </div>
 <div class="line">        <a class="code" href="group__Cheax.html#ga46ecfc59560c9b24cb0313e62876ec31">cheax_eval</a>(c, <a class="code" href="group__Cheax.html#ga41a6006e8ea353a180f0b2a9eeb8b11b">cheax_readstr</a>(c, <span class="stringliteral">&quot;(set result (sum (.. 1 100)))&quot;</span>));</div>
 <div class="line"> </div>
-<div class="line">        <a class="code" href="group__Cheax.html#ga1639ba43e8fd1d8150b00a2b85661bca">cheax_destroy</a>(c);</div>
+<div class="line">        <a class="code" href="group__SetupConfig.html#ga1639ba43e8fd1d8150b00a2b85661bca">cheax_destroy</a>(c);</div>
 <div class="line"> </div>
 <div class="line">        printf(<span class="stringliteral">&quot;1 + 2 + ... + 100 = %d\n&quot;</span>, result);</div>
 <div class="line">        <span class="keywordflow">return</span> 0;</div>
@@ -155,15 +155,16 @@ C API example</h1>
 </div><!-- fragment --> </div></div><!-- PageDoc -->
 </div><!-- contents -->
 </div><!-- doc-content -->
-<div class="ttc" id="agroup__Cheax_html_ga82228a8d8fbeae6e9c104e80efde84ca"><div class="ttname"><a href="group__Cheax.html#ga82228a8d8fbeae6e9c104e80efde84ca">cheax_init</a></div><div class="ttdeci">CHEAX * cheax_init(void)</div><div class="ttdoc">Initializes a new cheax virtual machine instance.</div></div>
-<div class="ttc" id="agroup__Cheax_html_ga16a03f0af286023ea3ca41e6c469ca75"><div class="ttname"><a href="group__Cheax.html#ga16a03f0af286023ea3ca41e6c469ca75">cheax_load_feature</a></div><div class="ttdeci">int cheax_load_feature(CHEAX *c, const char *feat)</div><div class="ttdoc">Loads extra functions or language features into the cheax environment, including 'unsafe' ones.</div></div>
+<div class="ttc" id="agroup__SetupConfig_html_ga1639ba43e8fd1d8150b00a2b85661bca"><div class="ttname"><a href="group__SetupConfig.html#ga1639ba43e8fd1d8150b00a2b85661bca">cheax_destroy</a></div><div class="ttdeci">void cheax_destroy(CHEAX *c)</div><div class="ttdoc">Destroys a cheax virtual machine instance, freeing its resources.</div></div>
 <div class="ttc" id="agroup__Cheax_html_gae1a7e5521943626a5cb9f1f59f661662"><div class="ttname"><a href="group__Cheax.html#gae1a7e5521943626a5cb9f1f59f661662">CHEAX</a></div><div class="ttdeci">struct cheax CHEAX</div><div class="ttdoc">The type of the cheax virtual machine state, a pointer to wich is needed for most cheax API functions...</div><div class="ttdef"><b>Definition:</b> cheax.h:28</div></div>
 <div class="ttc" id="agroup__Cheax_html_ga27b4218aa1d98f321686d523f9e1a771"><div class="ttname"><a href="group__Cheax.html#ga27b4218aa1d98f321686d523f9e1a771">cheax_sync_int</a></div><div class="ttdeci">void cheax_sync_int(CHEAX *c, const char *name, int *var, int flags)</div><div class="ttdoc">Synchronizes a variable from C with a symbol in the cheax environment.</div></div>
-<div class="ttc" id="agroup__Cheax_html_ga41a6006e8ea353a180f0b2a9eeb8b11b"><div class="ttname"><a href="group__Cheax.html#ga41a6006e8ea353a180f0b2a9eeb8b11b">cheax_readstr</a></div><div class="ttdeci">struct chx_value cheax_readstr(CHEAX *c, const char *str)</div><div class="ttdoc">Reads cheax expression from string.</div></div>
-<div class="ttc" id="agroup__Cheax_html_ga1639ba43e8fd1d8150b00a2b85661bca"><div class="ttname"><a href="group__Cheax.html#ga1639ba43e8fd1d8150b00a2b85661bca">cheax_destroy</a></div><div class="ttdeci">void cheax_destroy(CHEAX *c)</div><div class="ttdoc">Destroys a cheax virtual machine instance, freeing its resources.</div></div>
-<div class="ttc" id="agroup__Cheax_html_ga9ed440cb74b1db60d639db905845523c"><div class="ttname"><a href="group__Cheax.html#ga9ed440cb74b1db60d639db905845523c">cheax_load_prelude</a></div><div class="ttdeci">int cheax_load_prelude(CHEAX *c)</div><div class="ttdoc">Loads the cheax standard library.</div></div>
+<div class="ttc" id="agroup__Cheax_html_ga41a6006e8ea353a180f0b2a9eeb8b11b"><div class="ttname"><a href="group__Cheax.html#ga41a6006e8ea353a180f0b2a9eeb8b11b">cheax_readstr</a></div><div class="ttdeci">struct chx_value cheax_readstr(CHEAX *c, const char *str)</div><div class="ttdoc">Reads value from string.</div></div>
+<div class="ttc" id="agroup__SetupConfig_html_ga16a03f0af286023ea3ca41e6c469ca75"><div class="ttname"><a href="group__SetupConfig.html#ga16a03f0af286023ea3ca41e6c469ca75">cheax_load_feature</a></div><div class="ttdeci">int cheax_load_feature(CHEAX *c, const char *feat)</div><div class="ttdoc">Loads extra functions or language features into the cheax environment, including 'unsafe' ones.</div></div>
+<div class="ttc" id="agroup__SetupConfig_html_ga9ed440cb74b1db60d639db905845523c"><div class="ttname"><a href="group__SetupConfig.html#ga9ed440cb74b1db60d639db905845523c">cheax_load_prelude</a></div><div class="ttdeci">int cheax_load_prelude(CHEAX *c)</div><div class="ttdoc">Loads the cheax standard library.</div></div>
 <div class="ttc" id="acheax_8h_html"><div class="ttname"><a href="cheax_8h.html">cheax.h</a></div><div class="ttdoc">The header for the cheax C API.</div></div>
 <div class="ttc" id="agroup__ErrorHandling_html_gaf1d17c5c1c4bce01616bd414fddfe3e4"><div class="ttname"><a href="group__ErrorHandling.html#gaf1d17c5c1c4bce01616bd414fddfe3e4">cheax_perror</a></div><div class="ttdeci">void cheax_perror(CHEAX *c, const char *s)</div><div class="ttdoc">Prints the current cheax error code and error message.</div></div>
+<div class="ttc" id="agroup__SetupConfig_html_ga82228a8d8fbeae6e9c104e80efde84ca"><div class="ttname"><a href="group__SetupConfig.html#ga82228a8d8fbeae6e9c104e80efde84ca">cheax_init</a></div><div class="ttdeci">CHEAX * cheax_init(void)</div><div class="ttdoc">Initializes a new cheax virtual machine instance.</div></div>
+<div class="ttc" id="agroup__SetupConfig_html_ga2668e4bacb8264ff16ef8f3513c4bcdc"><div class="ttname"><a href="group__SetupConfig.html#ga2668e4bacb8264ff16ef8f3513c4bcdc">cheax_config_int</a></div><div class="ttdeci">int cheax_config_int(CHEAX *c, const char *opt, int value)</div><div class="ttdoc">Set value of integer configuration option.</div></div>
 <div class="ttc" id="agroup__Cheax_html_ga46ecfc59560c9b24cb0313e62876ec31"><div class="ttname"><a href="group__Cheax.html#ga46ecfc59560c9b24cb0313e62876ec31">cheax_eval</a></div><div class="ttdeci">struct chx_value cheax_eval(CHEAX *c, struct chx_value expr)</div><div class="ttdoc">Evaluates given cheax expression.</div></div>
 <!-- start footer part -->
 <div id="nav-path" class="navpath"><!-- id is needed for treeview function! -->
