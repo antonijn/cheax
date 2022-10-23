@@ -548,6 +548,8 @@ cheax_read(CHEAX *c, FILE *infile)
 struct chx_value
 cheax_read_at(CHEAX *c, FILE *infile, const char *path, int *line, int *pos)
 {
+	ASSERT_NOT_NULL("read_at", infile, cheax_nil());
+
 	struct fistrm fs;
 	fistrm_init(&fs, infile, c);
 	return istrm_read_at(c, &fs.strm, path, line, pos);
@@ -560,6 +562,9 @@ cheax_readstr(CHEAX *c, const char *str)
 struct chx_value
 cheax_readstr_at(CHEAX *c, const char **str, const char *path, int *line, int *pos)
 {
+	ASSERT_NOT_NULL("readstr_at", str, cheax_nil());
+	ASSERT_NOT_NULL("readstr_at", *str, cheax_nil());
+
 	struct sistrm ss;
 	sistrm_init(&ss, *str);
 	struct chx_value res = istrm_read_at(c, &ss.strm, path, line, pos);

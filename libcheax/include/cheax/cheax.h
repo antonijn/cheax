@@ -35,13 +35,13 @@ typedef struct cheax CHEAX;
  */
 
 /*! \brief Types of expressions within cheax.
- * \sa cheax_new_type(), cheax_type_of()
+ * \sa cheax_new_type(), chx_value::type
  */
 enum {
-	CHEAX_LIST,          /*!< List type. */
-	CHEAX_INT,           /*!< Integral type. */
-	CHEAX_BOOL,          /*!< Boolean type. */
-	CHEAX_DOUBLE,        /*!< Floating point type. */
+	CHEAX_LIST,          /*!< List type code. */
+	CHEAX_INT,           /*!< Integral type code. */
+	CHEAX_BOOL,          /*!< Boolean type code. */
+	CHEAX_DOUBLE,        /*!< Floating point type code. */
 
 	/*! \brief Type of user pointers defined from outside the cheax
 	 * environment.
@@ -52,15 +52,15 @@ enum {
 	 */
 	CHEAX_USER_PTR,
 
-	CHEAX_ID,            /*!< Identifier type. */
-	CHEAX_FUNC,          /*!< Function type. */
-	CHEAX_EXT_FUNC,      /*!< Type of functions defined through the C API. */
-	CHEAX_SPECIAL_FORM,  /*!< Type of special forms, which are defined through the C API. */
+	CHEAX_ID,            /*!< Identifier type code. */
+	CHEAX_FUNC,          /*!< Function type code. */
+	CHEAX_EXT_FUNC,      /*!< Type code for functions defined through the C API. */
+	CHEAX_SPECIAL_FORM,  /*!< Type code for special forms, defined through the C API. */
 	CHEAX_SPECIAL_TAIL_FORM,
-	CHEAX_QUOTE,         /*!< Type of quoted expressions. */
-	CHEAX_BACKQUOTE,     /*!< Type of backquoted expressions. */
-	CHEAX_COMMA,         /*!< Type of comma expressions. */
-	CHEAX_SPLICE,        /*!< Type of comma splice (i.e. ,@) expressions. */
+	CHEAX_QUOTE,         /*!< Type for quoted expressions. */
+	CHEAX_BACKQUOTE,     /*!< Type for backquoted expressions. */
+	CHEAX_COMMA,         /*!< Type for comma expressions. */
+	CHEAX_SPLICE,        /*!< Type for comma splice (i.e. ,@) expressions. */
 	CHEAX_STRING,        /*!< String type. */
 	CHEAX_ENV,           /*!< Environment type. */
 
@@ -72,11 +72,21 @@ enum {
 	CHEAX_ERRORCODE,     /*!< Error code type. A type alias of \ref CHEAX_INT. */
 };
 
+/*! \brief Minimum value for \ref chx_int. */
 #define CHX_INT_MIN INT_LEAST64_MIN
+/*! \brief Maximum value for \ref chx_int. */
 #define CHX_INT_MAX INT_LEAST64_MAX
 
+/*! \brief Integer type.
+ * \sa CHEAX_INT, cheax_int(), CHX_INT_MIN, CHX_INT_MAX, chx_value
+ */
 typedef int_least64_t chx_int;
+
+/*! \brief Floating point type.
+ * \sa CHEAX_DOUBLE, cheax_double(), chx_value
+ */
 typedef double chx_double;
+
 struct chx_list;
 struct chx_id;
 struct chx_string;
@@ -85,9 +95,11 @@ struct chx_func;
 struct chx_form;
 struct chx_env;
 
-/*! \brief Base type of cheax expressions. */
+/*! \brief Represents a value in the cheax environment.
+ *
+ * Consists of a tuple of the value's type and the value's data. */
 struct chx_value {
-	int type;
+	int type; /*!< Type code. Indicates how to intepret chx_value::data field. */
 #if __STDC_VERSION__ + 0 >= 201112L
 	union {
 		chx_int as_int;
@@ -103,18 +115,33 @@ struct chx_value {
 
 		unsigned *rtflags_ptr;
 #endif
+
+	/*! \brief Data stored in the value. */
 	union {
+		/*! \brief Data when type is \ref CHEAX_INT or \ref CHEAX_BOOL. */
 		chx_int as_int;
+		/*! \brief Data when type is \ref CHEAX_DOUBLE. */
 		chx_double as_double;
+		/*! \brief Data when type is \ref CHEAX_LIST. */
 		struct chx_list *as_list;
+		/*! \brief Data when type is \ref CHEAX_ID. */
 		struct chx_id *as_id;
+		/*! \brief Data when type is \ref CHEAX_STRING. */
 		struct chx_string *as_string;
+		/*! \brief Data when type is \ref CHEAX_QUOTE, \ref CHEAX_COMMA
+		 *         or \ref CHEAX_SPLICE.. */
 		struct chx_quote *as_quote;
+		/*! \brief Data when type is \ref CHEAX_FUNC. */
 		struct chx_func *as_func;
+		/*! \brief Data when type is \ref CHEAX_SPECIAL_FORM or
+		 *         \ref CHEAX_SPECIAL_TAIL_FORM. */
 		struct chx_form *as_form;
+		/*! \brief Data when type is \ref CHEAX_ENV. */
 		struct chx_env *as_env;
+		/*! \brief Data when type is \ref CHEAX_USER_PTR. */
 		void *user_ptr;
 
+		/*! \brief Runtime flags. \note For internal use. */
 		unsigned *rtflags_ptr;
 	} data;
 #if __STDC_VERSION__ + 0 >= 201112L
@@ -122,103 +149,140 @@ struct chx_value {
 #endif
 };
 
+/*! \brief Creates a `nil` value. */
 #define cheax_nil() ((struct chx_value){ .type = CHEAX_LIST, .data.as_list = NULL })
 
+/*! \brief Tests whether given value is `nil`.
+ *
+ * \returns Whether \a v.type is \ref CHEAX_LIST and \a v.data.as_list is `NULL`.
+ */
 CHX_API bool cheax_is_nil(struct chx_value v);
 
+/*! \brief Identifier type.
+ */
 struct chx_id {
-	unsigned rtflags;
-	char *value;
-};
-struct chx_quote {
-	unsigned rtflags;
-	struct chx_value value;
+	unsigned rtflags;       /*!< Runtime flags. \note For internal use. */
+	char *value;            /*!< Null-terminated value. */
 };
 
-/*! \brief Creates a cheax identifier expression.
+/*! \brief Quoted value type.
  *
- * \param c  Virtual machine instance.
+ * Also used for values of type \ref CHEAX_BACKQUOTE, \ref CHEAX_COMMA
+ * and \ref CHEAX_SPLICE.
+ */
+struct chx_quote {
+	unsigned rtflags;       /*!< Runtime flags. \note For internal use. */
+	struct chx_value value; /*!< (Back)quoted/comma'd/spliced value. */
+};
+
+/*! \brief Creates a \ref chx_value of type \ref CHEAX_ID.
+ *
  * \param id Identifier value for the expression.
  *
- * \sa cheax_id(), CHEAX_ID
+ * \sa chx_id, CHEAX_ID, cheax_id_value_proc()
  */
 CHX_API struct chx_value cheax_id(CHEAX *c, const char *id);
 
+/*! \brief Turns \ref chx_id into \ref chx_value.
+ * \sa cheax_id_value_proc()
+ */
 #define cheax_id_value(X) ((struct chx_value){ .type = CHEAX_ID, .data.as_id = (X) })
+
+/*! \brief Turns \ref chx_id into \ref chx_value.
+ * Like cheax_id_value(), but a function and not a macro.
+ */
 CHX_API struct chx_value cheax_id_value_proc(struct chx_id *id);
 
-/*! \brief Creates a cheax integer expression.
+/*! \brief Creates a \ref chx_value of type \ref CHEAX_INT.
  *
- * \param value Integral value for the expression.
+ * \param value Integral value for the object.
  *
- * \sa chx_int, CHEAX_INT
+ * \sa chx_int, CHEAX_INT, cheax_int_proc()
  */
 #define cheax_int(X) ((struct chx_value){ .type = CHEAX_INT, .data.as_int = (X) })
+
+/*! \brief Creates a \ref chx_value of type \ref CHEAX_INT.
+ * Like cheax_int(), but a function and not a macro.
+ */
 CHX_API struct chx_value cheax_int_proc(chx_int value);
 
-/*! \brief Creates a cheax boolean with value true.
- *
+/*! \brief Creates \ref chx_value `true`.
  * \sa cheax_false(), cheax_bool(), chx_int, CHEAX_BOOL
  */
 #define cheax_true() ((struct chx_value){ .type = CHEAX_BOOL, .data.as_int = 1 })
 
-/*! \brief Creates a cheax boolean with value false.
- *
+/*! \brief Creates \ref chx_value `false`.
  * \sa cheax_true(), cheax_bool(), chx_int, CHEAX_BOOL
  */
 #define cheax_false() ((struct chx_value){ .type = CHEAX_BOOL, .data.as_int = 0 })
 
-/*! \brief Creates a cheax boolean expression.
+/*! \brief Creates \ref chx_value of type \ref CHEAX_BOOL.
  *
- * \param value Boolean value for the expression.
+ * \param value Boolean value for the object.
  *
  * \sa cheax_true(), cheax_false(), chx_int, CHEAX_BOOL
  */
 #define cheax_bool(X) ((struct chx_value){ .type = CHEAX_BOOL, .data.as_int = (X) ? 1 : 0 })
+
+/*! \brief Creates a \ref chx_value of type \ref CHEAX_BOOL.
+ * Like cheax_bool(), but a function and not a macro.
+ */
 CHX_API struct chx_value cheax_bool_proc(bool value);
 
-/*! \brief Creates a cheax floating point expression.
+/*! \brief Creates a \ref chx_value of type \ref CHEAX_DOUBLE.
  *
- * \param value Floating point value for the expression.
+ * \param value Floating point value for the object.
  *
  * \sa chx_double, CHEAX_DOUBLE
  */
 #define cheax_double(X) ((struct chx_value){ .type = CHEAX_DOUBLE, .data.as_double = (X) })
+
+/*! \brief Creates a \ref chx_value of type \ref CHEAX_DOUBLE.
+ * Like cheax_double(), but a function and not a macro.
+ */
 CHX_API struct chx_value cheax_double_proc(chx_double value);
 
-/*! \brief Cheax s-expression.
- * \sa cheax_list(), CHEAX_LIST
+/*! \brief List type.
+ *
+ * Also known as a cons cell, an S-expression or a singly-linked list.
+ *
+ * \sa CHEAX_LIST, cheax_list(), chx_value
  */
 struct chx_list {
-	unsigned rtflags;
+	unsigned rtflags;       /*!< Runtime flags. \note For internal use. */
 	struct chx_value value; /*!< The value of the s-expression node. */
 	struct chx_list *next;  /*!< The next node in the s-expression. */
 };
 
-/*! \brief Creates a cheax s-expression.
+/*! \brief Creates a list.
  *
- * \param c   Virtual machine instance.
  * \param car Node value.
- * \param cdr Next node or \a NULL.
+ * \param cdr Next node or `NULL`.
  *
  * \sa chx_list, CHEAX_LIST
  */
 CHX_API struct chx_value cheax_list(CHEAX *c, struct chx_value car, struct chx_list *cdr);
 
+/*! \brief Turns \ref chx_list into \ref chx_value.
+ * \sa cheax_list_value_proc()
+ */
 #define cheax_list_value(X) ((struct chx_value){ .type = CHEAX_LIST, .data.as_list = (X) })
+
+/*! \brief Turns \ref chx_list into \ref chx_value.
+ * Like \ref cheax_list_value(), but a function and not a macro.
+ */
 CHX_API struct chx_value cheax_list_value_proc(struct chx_list *list);
 
-/*! \brief Cheax function or macro lambda expression.
+/*! \brief Function or macro type.
  *
- * Functions are created with the <tt>(fn args body)</tt> built-in, and
- * macros with the <tt>(macro args body)</tt> built-in. The two types of
- * lambdas differ in whether their argument list is evaluated or not
- * when the lambda is invoked. For functions (most common), all
- * arguments are pre-evaluated, for macros they are not.
+ * Functions are created with the `(fn)` built-in, and cannot be
+ * constructed through the C API. Macros are created through the
+ * `(defmacro)` built-in, and live only inside a special-purpose
+ * environment.
  *
- * Lambdas cannot be constructed by the C API.
+ * Functions and macros cannot be constructed through the C API.
  *
- * \sa CHEAX_FUNC, chx_form, cheax_special_form()
+ * \sa CHEAX_FUNC, cheax_apply(), cheax_macroexpand(), cheax_macroexpand_once()
  */
 struct chx_func {
 	unsigned rtflags;
@@ -232,13 +296,12 @@ CHX_API struct chx_value cheax_func_value_proc(struct chx_func *fn);
 
 /*! \brief Type for C functions to be invoked from cheax.
  *
- * \param c    Virtual machine instance.
  * \param args The argument list as the function was invoked. The
  *             arguments are given as is, not pre-evaluated. E.g. if
  *             cheax passes an identifier to the function as an
  *             argument, it will apear as an identifier in the argument
  *             list, not as the value of the symbol it may represent.
- * \param info User info.
+ * \param info User-provided data.
  *
  * \returns The function's return value to be delivered back to cheax.
  *
@@ -284,7 +347,6 @@ struct chx_form {
  * External functions, unlike special forms, have their arguments
  * pre-evaluated.
  *
- * \param c       Virtual machine instance.
  * \param perform Function pointer to be invoked.
  * \param name    Function name as will be used by cheax_print().
  * \param info    Callback info to be passed upon invocation.
@@ -302,7 +364,6 @@ CHX_API struct chx_value cheax_ext_func_value_proc(struct chx_form *sf);
  * Special forms, unlike external functions, do not have their arguments
  * pre-evaluated.
  *
- * \param c       Virtual machine instance.
  * \param perform Function pointer to be invoked.
  * \param name    Function name as will be used by cheax_print().
  * \param info    Callback info to be passed upon invocation.
@@ -325,7 +386,6 @@ CHX_API struct chx_value cheax_special_tail_form_value_proc(struct chx_form *sf)
 
 /*! \brief Creates a quoted cheax expression.
  *
- * \param c     Virtual machine instance.
  * \param value Expression to be quoted.
  *
  * \sa chx_quote, CHEAX_QUOTE
@@ -337,7 +397,6 @@ CHX_API struct chx_value cheax_quote_value_proc(struct chx_quote *quote);
 
 /*! \brief Creates a backquoted cheax expression.
  *
- * \param c     Virtual machine instance.
  * \param value Expression to be backquoted.
  *
  * \sa chx_quote, CHEAX_BACKQUOTE
@@ -349,7 +408,6 @@ CHX_API struct chx_value cheax_backquote_value_proc(struct chx_quote *bkquote);
 
 /*! \brief Creates a cheax comma expression.
  *
- * \param c     Virtual machine instance.
  * \param value Expression following comma.
  *
  * \sa chx_quote, CHEAX_COMMA
@@ -361,7 +419,6 @@ CHX_API struct chx_value cheax_comma_value_proc(struct chx_quote *comma);
 
 /*! \brief Creates a cheax comma splice expression.
  *
- * \param c     Virtual machine instance.
  * \param value Expression following comma splice.
  *
  * \sa chx_quote, CHEAX_SPLICE
@@ -379,16 +436,14 @@ struct chx_string;
 
 /*! \brief Size of string in number of bytes.
  *
- * \param c   Virtual machine instance.
  * \param str String.
  *
- * \returns Size of given string, or zero if \a str is \a NULL.
+ * \returns Size of given string, or zero if \a str is `NULL`.
  */
 CHX_API size_t cheax_strlen(CHEAX *c, struct chx_string *str);
 
 /*! \brief Creates a cheax string expression.
  *
- * \param c     Virtual machine instance.
  * \param value Null-terminated value for the string.
  *
  * \sa chx_string, cheax_nstring(), CHEAX_STRING
@@ -397,7 +452,6 @@ CHX_API struct chx_value cheax_string(CHEAX *c, const char *value);
 
 /*! \brief Creates a cheax string expression of given length.
  *
- * \param c     Virtual machine instance.
  * \param value Value for the string.
  * \param len   Length of the string.
  *
@@ -412,7 +466,6 @@ CHX_API struct chx_value cheax_string_value_proc(struct chx_string *string);
  *
  * Sets cheax_errno() to \ref CHEAX_EINDEX if substring is out of bounds.
  *
- * \param c   Virtual machine instance.
  * \param str Initial string.
  * \param pos Substring starting offset in number of bytes.
  * \param len Substring length in number of bytes.
@@ -425,13 +478,12 @@ CHX_API struct chx_value cheax_substr(CHEAX *c, struct chx_string *str, size_t p
  *
  * \param str String.
  *
- * \returns Null terminated string or \a NULL or \a str is \a NULL.
+ * \returns Null terminated string or `NULL` if \a str is `NULL`.
  */
 CHX_API char *cheax_strdup(struct chx_string *str);
 
 /*! \brief Creates a cheax user pointer expression.
  *
- * \param c     Virtual machine instance.
  * \param value Pointer value for the expression.
  * \param type  Type alias for the expression. Must not be a basic type,
  *              and must resolve to \ref CHEAX_USER_PTR.
@@ -451,7 +503,7 @@ struct chx_env;
  *
  * \sa cheax_push_env(), cheax_enter_env(), cheax_pop_env()
  *
- * \returns Currently active \ref chx_env, or \a NULL if currently
+ * \returns Currently active \ref chx_env, or `NULL` if currently
  *          running in the global scope.
  */
 CHX_API struct chx_value cheax_env(CHEAX *c);
@@ -478,12 +530,15 @@ typedef struct chx_value (*chx_getter)(CHEAX *c, struct chx_sym *sym);
 typedef void (*chx_setter)(CHEAX *c, struct chx_sym *sym, struct chx_value value);
 typedef void (*chx_finalizer)(CHEAX *c, struct chx_sym *sym);
 
+/*! \brief Custom symbol. */
 struct chx_sym {
-	void *user_info;
-	chx_getter get;
-	chx_setter set;
-	chx_finalizer fin;
-	struct chx_value protect;
+	void *user_info;          /*!< User-provided data to be passed along to
+				       \a get, \a set and \a fin */
+	chx_getter get;           /*!< Getter. */
+	chx_setter set;           /*!< Setter. */
+	chx_finalizer fin;        /*!< Finalizer. */
+	struct chx_value protect; /*!< Value that remains protected from garbage
+	                               collection as long as the symbol exists. */
 };
 
 typedef int chx_ref;
@@ -505,15 +560,14 @@ CHX_API void cheax_unref_ptr(CHEAX *c, void *obj, chx_ref ref);
 /*! \brief Creates a new type code as an alias for another.
  *
  * Sets cheax_errno() to \ref CHEAX_EAPI if
- * \li \a name is \a NULL;
- * \li \a base_type is not a valid type code;
- * \li or \a name already names a type.
+ * \li \a name is `NULL`;
+ * \li \a base_type is not a valid type code; or
+ * \li \a name already names a type.
  *
- * \param c         Virtual machine instance.
  * \param name      Name for the new type code in the cheax environment.
  * \param base_type Base type code to create an alias for.
  *
- * \returns The new type code. -1 if unsuccesful.
+ * \returns The new type code. -1 if unsuccessful.
  */
 CHX_API int cheax_new_type(CHEAX *c, const char *name, int base_type);
 
@@ -521,17 +575,15 @@ CHX_API int cheax_new_type(CHEAX *c, const char *name, int base_type);
  *
  * Sets cheax_errno() to \ref CHEAX_EAPI if \a name is NULL.
  *
- * \param c    Virtual machine instance.
  * \param name Type name.
  *
  * \returns The type code of a type with the given name, or -1 if
- *          unsuccesful.
+ *          unsuccessful.
  */
 CHX_API int cheax_find_type(CHEAX *c, const char *name);
 
 /*! \brief Checks whether a given type code is valid.
  *
- * \param c    Virtual machine instance.
  * \param type Code to check.
  *
  * \returns Whether \a type is a valid type code.
@@ -540,7 +592,6 @@ CHX_API bool cheax_is_valid_type(CHEAX *c, int type);
 
 /*! \brief Checks whether a given type code is a basic type.
  *
- * \param c    Virtual machine instance.
  * \param type Type code to check.
  *
  * \returns Whether \a type is a basic type.
@@ -549,7 +600,6 @@ CHX_API bool cheax_is_basic_type(CHEAX *c, int type);
 
 /*! \brief Checks whether a given type code is a user-defined type code.
  *
- * \param c    Virtual machine instance.
  * \param type Type code to check.
  *
  * \returns Whether \a type is a user-defined type code.
@@ -566,10 +616,9 @@ CHX_API bool cheax_is_user_type(CHEAX *c, int type);
  * Sets cheax_errno() to \ref CHEAX_EEVAL if \a type could not be
  * resolved.
  *
- * \param c    Virtual machine instance.
  * \param type Type code to get the base type of.
  *
- * \returns The base type of \a type, or -1 if unsuccesful.
+ * \returns The base type of \a type, or -1 if unsuccessful.
  *
  * \sa cheax_resolve_type()
  */
@@ -583,10 +632,9 @@ CHX_API int cheax_get_base_type(CHEAX *c, int type);
  * Sets cheax_errno() to \ref CHEAX_EEVAL if \a type could not be
  * resolved.
  *
- * \param c    Virtual machine instance.
  * \param type Type code to resolve.
  *
- * \returns The basic type to which \a type refers, or -1 if unsuccesful.
+ * \returns The basic type to which \a type refers, or -1 if unsuccessful.
  *
  * \sa cheax_get_base_type()
  */
@@ -653,7 +701,6 @@ static const struct { const char *name; int code; } var[] = { \
 
 /*! \brief Gets the value of the current cheax error code.
  *
- * \param c Virtual machine instance.
  *
  * \sa cheax_throw(), cheax_new_error_code(), cheax_ft()
  */
@@ -664,14 +711,12 @@ CHX_API int cheax_errno(CHEAX *c);
  * Jumps to \a pad if cheax_errno() is not 0. Most commonly used after
  * cheax_eval().
  *
- * \param c   Virtual machine instance.
  * \param pad Label to jump to in case of an error.
  */
 #define cheax_ft(c, pad) { if (cheax_errno(c) != 0) goto pad; }
 
 /*! \brief Prints the current cheax error code and error message.
  *
- * \param c Virtual machine instance.
  * \param s Argument string, will be printed followed by a colon and an
  *          error description.
  */
@@ -679,7 +724,6 @@ CHX_API void cheax_perror(CHEAX *c, const char *s);
 
 /*! \brief Sets cheax_errno() to 0.
  *
- * \param c Virtual machine instance.
  *
  * \sa cheax_errno()
  */
@@ -689,9 +733,8 @@ CHX_API void cheax_clear_errno(CHEAX *c);
  *
  * Sets cheax_errno() to \ref CHEAX_EAPI if \a code is 0.
  *
- * \param c    Virtual machine instance.
  * \param code Error code.
- * \param msg  Error message string or \a NULL.
+ * \param msg  Error message string or `NULL`.
  *
  * \sa cheax_errno(), cheax_clear_errno()
  */
@@ -707,7 +750,6 @@ CHX_API void cheax_add_bt(CHEAX *c);
  * Does not change cheax_errno(), except when \a name is NULL, in which
  * case it is set to \ref CHEAX_EAPI.
  *
- * \param c    Virtual machine instance
  * \param name The error code's name. Used to make the error code
  *             available in cheax, and for error reporting by
  *             cheax_perror().
@@ -720,15 +762,21 @@ CHX_API int cheax_new_error_code(CHEAX *c, const char *name);
  *
  * Sets cheax_errno() to \ref CHEAX_EAPI if \a name is NULL.
  *
- * \param c    Virtual machine instance.
  * \param name Error code name.
  *
  * \returns The error code carrying the given name, or -1 if
- *          unsuccesful.
+ *          unsuccessful.
  */
 CHX_API int cheax_find_error_code(CHEAX *c, const char *name);
 
 /*! @} */
+
+/*!
+ * \defgroup SetupConfig Setup and configuration
+ * \brief Functions and datastructures to initialize, clean up and
+ *        configure a cheax virtual machine instance.
+ * @{
+ */
 
 /*! \brief Initializes a new cheax virtual machine instance.
  * \sa cheax_load_features(), cheax_load_prelude(), cheax_destroy(),
@@ -745,23 +793,22 @@ CHX_API const char *cheax_version(void);
  *         environment, including 'unsafe' ones.
  *
  * Supported values for \a feat are:
- * \li \c "file-io" to load \c fopen and \c fclose built-ins;
- * \li <tt>"set-max-stack-depth"</tt> to load the <tt>set-max-stack-depth</tt> built-in;
- * \li \c "gc" to load the \c gc built-in function;
- * \li \c "exit" to load the \c exit function;
- * \li \c "stdin" to expose the \c stdin variable;
- * \li \c "stdout" to expose the \c stdout variable;
- * \li \c "stderr" to expose the \c stderr variable;
- * \li \c "stdio" to expose \c stdin, \c stdout and \c stderr;
- * \li \c "all" to load every feature available (think twice before using).
+ * \li `"file-io"` to load `fopen` and `fclose` built-ins;
+ * \li `"set-max-stack-depth"` to load the <tt>set-max-stack-depth</tt> built-in;
+ * \li `"gc"` to load the `gc` built-in function;
+ * \li `"exit"` to load the `exit` function;
+ * \li `"stdin"` to expose the `stdin` variable;
+ * \li `"stdout"` to expose the `stdout` variable;
+ * \li `"stderr"` to expose the `stderr` variable;
+ * \li `"stdio"` to expose `stdin`, `stdout` and `stderr`;
+ * \li `"all"` to load every feature available (think twice before using).
  *
  * A feature can only be loaded once. Attempting to load a feature more
  * than once will cause no action.
  *
- * \param c    Virtual machine instance.
  * \param feat Which feature to load.
  *
- * \returns 0 if the given feature was loaded succesfully, or -1 if the
+ * \returns 0 if the given feature was loaded successfully, or -1 if the
  *          given feature is not supported.
  */
 CHX_API int cheax_load_feature(CHEAX *c, const char *feat);
@@ -771,7 +818,6 @@ CHX_API int cheax_load_feature(CHEAX *c, const char *feat);
  * Sets cheax_errno() to \ref CHEAX_EAPI if the standard library
  * could not be found.
  *
- * \param c Virtual machine instance.
  *
  * \returns 0 if everything succeeded without errors, -1 if there was an
  *          error finding or loading the standard library.
@@ -784,16 +830,82 @@ CHX_API int cheax_load_prelude(CHEAX *c);
  * Any use of \a c after calling cheax_destroy() on it results in
  * undefined behavior.
  *
- * \param c Virtual machine instance to be destroyed.
  */
 CHX_API void cheax_destroy(CHEAX *c);
 
-/*! \brief Converts chx_list to array.
+/*! \brief Get value of integer configuration option.
+ *
+ * Sets cheax_errno() to \ref CHEAX_EAPI if no option of integer type
+ * with name \a opt exists.
+ *
+ * \param opt Option name.
+ *
+ * \returns Option value, or 0 upon failure.
+ */
+CHX_API int cheax_config_get_int(CHEAX *c, const char *opt);
+
+/*! \brief Set value of integer configuration option.
+ *
+ * Sets cheax_errno() to \ref CHEAX_EAPI if option \a opt does not have
+ * integer type, or if \a value is otherwise invalid for option \a opt.
+ * Fails silently in case no option with name \a opt could be found.
+ *
+ * \param opt   Option name.
+ * \param value Option value.
+ *
+ * \returns 0 if an integer option with name \a opt was found, -1 otherwise.
+ */
+CHX_API int cheax_config_int(CHEAX *c, const char *opt, int value);
+
+/*! \brief Get value of boolean configuration option.
+ *
+ * Sets cheax_errno() to \ref CHEAX_EAPI if no option of boolean type
+ * with name \a opt exists.
+ *
+ * \param opt Option name.
+ *
+ * \returns Option value, or \c false upon failure.
+ */
+CHX_API bool cheax_config_get_bool(CHEAX *c, const char *opt);
+
+/*! \brief Set value of boolean configuration option.
+ *
+ * Sets cheax_errno() to \ref CHEAX_EAPI if option \a opt does not have
+ * boolean type, or if \a value is otherwise invalid for option \a opt.
+ * Fails silently in case no option with name \a opt could be found.
+ *
+ * \param opt   Option name.
+ * \param value Option value.
+ *
+ * \returns 0 if a boolean option with name \a opt was found, -1 otherwise.
+ */
+CHX_API int cheax_config_bool(CHEAX *c, const char *opt, bool value);
+
+/*! \brief Information about cheax config option. */
+struct chx_config_help {
+	const char *name;    /*!< Option name. */
+	int type;            /*!< Option type. */
+	const char *metavar; /*!< Printable argument name. */
+	const char *help;    /*!< Help text. */
+};
+
+/*! \brief Load information about all cheax config options.
+ *
+ * \param help     Output parameter. Make sure to free() after use.
+ * \param num_opts Output parameter, will point to length of output
+ *                 array.
+ *
+ * \returns 0 if everything succeeded without errors, -1 otherwise.
+ */
+CHX_API int cheax_config_help(struct chx_config_help **help, size_t *num_opts);
+
+/*! @} */
+
+/*! \brief Converts \ref chx_list to array.
  *
  * Sets cheax_errno() to \ref CHEAX_EAPI if \a array_ptr or \a length
  * is NULL, or to \ref CHEAX_ENOMEM if array allocation failed.
  *
- * \param c         Virtual machine instance.
  * \param list      List to convert.
  * \param array_ptr Output parameter, will point to array of cheax_value
  *                  pointers. Make sure to cheax_free() after use.
@@ -802,11 +914,23 @@ CHX_API void cheax_destroy(CHEAX *c);
  *
  * \returns 0 if everything succeeded without errors, -1 if there was an
  *          error (most likely \ref CHEAX_ENOMEM).
+ *
+ * \sa cheax_array_to_list()
  */
 CHX_API int cheax_list_to_array(CHEAX *c,
                                 struct chx_list *list,
                                 struct chx_value **array_ptr,
                                 size_t *length);
+
+/*! \brief Converts array to \ref chx_list.
+ *
+ * Throws \ref CHEAX_EAPI if \a array is `NULL`.
+ *
+ * \param array  Array of \ref chx_value.
+ * \param length Length of \a array.
+ *
+ * \sa cheax_list_to_array()
+ */
 CHX_API struct chx_value cheax_array_to_list(CHEAX *c,
                                              struct chx_value *array,
                                              size_t length);
@@ -828,7 +952,6 @@ enum {
 
 /*! \brief Pushes new empty environment to environment stack.
  *
- * \param c  Virtual machine instance.
  */
 CHX_API void cheax_push_env(CHEAX *c);
 
@@ -837,7 +960,6 @@ CHX_API void cheax_push_env(CHEAX *c);
  * Lookups will first look in \a main, then look further down the stack.
  * New symbols are declared only in \a main.
  *
- * \param c     Virtual machine instance.
  * \param main  Main branch of bifurcated environment.
  */
 CHX_API void cheax_enter_env(CHEAX *c, struct chx_env *main);
@@ -846,60 +968,113 @@ CHX_API void cheax_enter_env(CHEAX *c, struct chx_env *main);
  *
  * Sets cheax_errno() to \ref CHEAX_EAPI if environment stack is empty.
  *
- * \param c  Virtual machine instance.
  */
 CHX_API void cheax_pop_env(CHEAX *c);
 
+/*! \brief Define symbol with custom getter and setter.
+ *
+ * Throws
+ * \li \ref CHEAX_EAPI if \a id is `NULL`, or \a get and \a set are
+ *      both `NULL`; or
+ * \li \ref CHEAX_EEXIST if a symbol with name \a id already exists.
+ *
+ * \param id        Identifier for new symbol.
+ * \param get       Getter for symbol.
+ * \param set       Setter for symbol.
+ * \param fin       Finalizer for symbol.
+ * \param user_info User data to be passed to getter, setter and finalizer.
+ *
+ * \returns The newly created symbol, or `NULL` if unsuccessful.
+ *
+ * \sa chx_sym, cheax_def()
+ */
 CHX_API struct chx_sym *cheax_defsym(CHEAX *c, const char *id,
                                      chx_getter get, chx_setter set,
                                      chx_finalizer fin, void *user_info);
 
 /*! \brief Creates a new symbol in the cheax environment.
  *
- * Sets cheax_errno() to \ref CHEAX_EAPI if \a id is \a NULL, or to
+ * Sets cheax_errno() to \ref CHEAX_EAPI if \a id is `NULL`, or to
  * \ref CHEAX_EEXIST if a symbol with name \a id already exists.
  *
- * \param c      Virtual machine instance.
  * \param id     Variable identifier.
- * \param value  Initial value or the symbol. May be \a NULL.
+ * \param value  Initial value or the symbol. May be `NULL`.
  * \param flags  Variable flags. Use 0 if there are no special needs.
  *
  * \sa cheax_get(), cheax_set()
  */
 CHX_API void cheax_def(CHEAX *c, const char *id, struct chx_value value, int flags);
 
-/*! \brief Retrieves the value of the given symbol.
+/*! \brief Obtains the value of the given symbol.
  *
- * Sets cheax_errno() to \ref CHEAX_EAPI if \a id is \a NULL, or to
+ * Sets cheax_errno() to \ref CHEAX_EAPI if \a id is `NULL`, or to
  * \ref CHEAX_ENOSYM if no symbol with name \a id could be found.
  *
- * \param c  Virtual machine instance.
+ * \note This function may call cheax_gc(). Make sure to cheax_ref()
+ *       your values properly.
+ *
  * \param id Identifier to look up.
  *
- * \returns The value of the given symbol. Always \a NULL in case of an
+ * \returns The value of the given symbol. Always `NULL` in case of an
  *          error.
  *
  * \sa cheax_get_from(), cheax_set()
  */
 CHX_API struct chx_value cheax_get(CHEAX *c, const char *id);
+
+/*! Attempts to get the value of a given symbol.
+ *
+ * Like cheax_get(), but does not throw \ref CHEAX_ENOSYM if no symbol
+ * was found.
+ *
+ * \note This function may call cheax_gc(). Make sure to cheax_ref()
+ *       your values properly.
+ *
+ * \param id  Identifier to look up.
+ * \param out Output value. Not written to if no symbol was found.
+ *
+ * \returns `true` if symbol was found, `false` otherwise.
+ *
+ * \sa cheax_get()
+ */
 CHX_API bool cheax_try_get(CHEAX *c, const char *id, struct chx_value *out);
 
 /*! \brief Retrieves the value of the given symbol, performing symbol
  *         lookup only in the specified environment.
  *
- * Sets cheax_errno() to \ref CHEAX_EAPI if \a id is \a NULL, or to
+ * Sets cheax_errno() to \ref CHEAX_EAPI if \a id is `NULL`, or to
  * \ref CHEAX_ENOSYM if no symbol with name \a id could be found.
  *
- * \param c   Virtual machine instance.
+ * \note This function may call cheax_gc(). Make sure to cheax_ref()
+ *       your values properly.
+ *
  * \param env Environment to look up identifier in.
  * \param id  Identifier to look up.
  *
- * \returns The value of the given symbol. Always \a NULL in case of an
+ * \returns The value of the given symbol. Always `NULL` in case of an
  *          error.
  *
- * \sa cheax_get(), cheax_set()
+ * \sa cheax_get(), cheax_try_get_from()
  */
 CHX_API struct chx_value cheax_get_from(CHEAX *c, struct chx_env *env, const char *id);
+
+/*! Attempts to get the value of a given symbol, performing symbol
+ *           lookup only in the specified environment.
+ *
+ * Like cheax_get_from(), but does not throw \ref CHEAX_ENOSYM if no
+ * symbol was found.
+ *
+ * \note This function may call cheax_gc(). Make sure to cheax_ref()
+ *       your values properly.
+ *
+ * \param env Environment to look up identifier in.
+ * \param id  Identifier to look up.
+ * \param out Output value. Not written to if no symbol was found.
+ *
+ * \returns `true` if symbol was found, `false` otherwise.
+ *
+ * \sa cheax_get_from()
+ */
 CHX_API bool cheax_try_get_from(CHEAX *c,
                                 struct chx_env *env,
                                 const char *id,
@@ -908,16 +1083,18 @@ CHX_API bool cheax_try_get_from(CHEAX *c,
 /*! \brief Sets the value of a symbol.
  *
  * Sets cheax_errno() to
- * \li \ref CHEAX_EAPI if \a id is \a NULL;
+ * \li \ref CHEAX_EAPI if \a id is `NULL`;
  * \li \ref CHEAX_ENOSYM if no symol with name \a id could be found;
- * \li \ref CHEAX_EREADONLY if the given symbol was declared read-only;
- * \li or \ref CHEAX_ETYPE if symbol is synchronised and type of
+ * \li \ref CHEAX_EREADONLY if the given symbol was declared read-only; or
+ * \li \ref CHEAX_ETYPE if symbol is synchronised and type of
  *     \a value is invalid.
  *
  * cheax_set() cannot be used to declare a new symbol, use
  * cheax_def() instead.
  *
- * \param c     Virtual machine instance.
+ * \note This function may call cheax_gc(). Make sure to cheax_ref()
+ *       your values properly.
+ *
  * \param id    Identifier of the symbol to look up and set.
  * \param value New value for the symbol with the given identifier.
  *
@@ -933,7 +1110,6 @@ CHX_API void cheax_set(CHEAX *c, const char *id, struct chx_value value);
 cheax_def(c, id, &cheax_ext_func(c, id, perform, info)->base, CHEAX_READONLY);
 \endcode
  *
- * \param c       Virtual machine instance.
  * \param id      Identifier for the external functions.
  * \param perform Callback for the new external functions.
  * \param info    Callback info for the new external functions.
@@ -941,23 +1117,22 @@ cheax_def(c, id, &cheax_ext_func(c, id, perform, info)->base, CHEAX_READONLY);
  * \sa chx_form, cheax_ext_func(), cheax_def(), cheax_def_special_form()
  */
 CHX_API void cheax_defun(CHEAX *c, const char *id, chx_func_ptr perform, void *info);
+CHX_API void cheax_def_special_form(CHEAX *c, const char *id, chx_func_ptr perform, void *info);
 
-/*! \brief Shorthand function to declare a special form the cheax
- *         environment.
+/*! \brief Creates a new special tail form the cheax environment.
  *
- * Shorthand for:
-\code{.c}
-cheax_def(c, id, &cheax_special_form(c, id, perform, info)->base, CHEAX_READONLY);
-\endcode
+ * Special forms are available both at runtime and during macro
+ * expansion time. Unlike extenal functions, arguments to special forms
+ * are left unevaluated before the callback is invoked. Furthermore,
+ * special forms, like macros, are not "first-class" objects in cheax.
+ * E.g. they cannot be passed to other functions as arguments.
  *
- * \param c       Virtual machine instance.
  * \param id      Identifier for the special form.
  * \param perform Callback for the new special form.
  * \param info    Callback info for the new special form.
  *
  * \sa chx_form, cheax_special_form(), cheax_def(), cheax_defun()
  */
-CHX_API void cheax_def_special_form(CHEAX *c, const char *id, chx_func_ptr perform, void *info);
 CHX_API void cheax_def_special_tail_form(CHEAX *c,
                                          const char *id,
                                          chx_tail_func_ptr perform,
@@ -965,7 +1140,6 @@ CHX_API void cheax_def_special_tail_form(CHEAX *c,
 
 /*! \brief Synchronizes a variable from C with a symbol in the cheax environment.
  *
- * \param c     Virtual machine instance.
  * \param name  Identifier for the symbol in the cheax environment.
  * \param var   Reference to the C variable to synchronize.
  * \param flags Symbol flags. Use 0 if there are no special needs.
@@ -974,7 +1148,6 @@ CHX_API void cheax_sync_int(CHEAX *c, const char *name, int *var, int flags);
 
 /*! \brief Synchronizes a variable from C with a symbol in the cheax environment.
  *
- * \param c     Virtual machine instance.
  * \param name  Identifier for the symbol in the cheax environment.
  * \param var   Reference to the C variable to synchronize.
  * \param flags Symbol flags. Use 0 if there are no special needs.
@@ -983,7 +1156,6 @@ CHX_API void cheax_sync_bool(CHEAX *c, const char *name, bool *var, int flags);
 
 /*! \brief Synchronizes a variable from C with a symbol in the cheax environment.
  *
- * \param c     Virtual machine instance.
  * \param name  Identifier for the symbol in the cheax environment.
  * \param var   Reference to the C variable to synchronize.
  * \param flags Symbol flags. Use 0 if there are no special needs.
@@ -992,7 +1164,6 @@ CHX_API void cheax_sync_float(CHEAX *c, const char *name, float *var, int flags)
 
 /*! \brief Synchronizes a variable from C with a symbol in the cheax environment.
  *
- * \param c     Virtual machine instance.
  * \param name  Identifier for the symbol in the cheax environment.
  * \param var   Reference to the C variable to synchronize.
  * \param flags Symbol flags. Use 0 if there are no special needs.
@@ -1002,7 +1173,6 @@ CHX_API void cheax_sync_double(CHEAX *c, const char *name, double *var, int flag
 /*! \brief Synchronizes a null-terminated string buffer from C with a
  *         symbol in the cheax environment.
  *
- * \param c     Virtual machine instance.
  * \param name  Identifier for the symbol in the cheax environment.
  * \param var   String buffer to synchronize.
  * \param size  Capacity of buffer, including null byte.
@@ -1018,7 +1188,6 @@ CHX_API void cheax_sync_nstring(CHEAX *c, const char *name, char *buf, size_t si
  * If \a flags contains \ref CHEAX_EVAL_NODES, evaluation of node values
  * occurs in environment \a env.
  *
- * \param c     Virtual machine instance.
  * \param env   Environment to evaluate nodes in.
  * \param pan   Pattern to match against.
  * \param match Expression to match against \a pan.
@@ -1040,7 +1209,6 @@ CHX_API bool cheax_match_in(CHEAX *c,
  * of return value, and does \em not set cheax_errno() to
  * \ref CHEAX_EMATCH if the expression did not match the pattern.
  *
- * \param c     Virtual machine instance.
  * \param pan   Pattern to match against.
  * \param match Expression to match against \a pan.
  * \param flags Variable flags for newly defined matched symbols. Use 0
@@ -1053,7 +1221,6 @@ CHX_API bool cheax_match(CHEAX *c, struct chx_value pan, struct chx_value match,
 
 /*! \brief Tests whether two given cheax expressions are equal.
  *
- * \param c Virtual machine instance.
  * \param l Left.
  * \param r Right.
  *
@@ -1065,130 +1232,145 @@ CHX_API bool cheax_eq(CHEAX *c, struct chx_value l, struct chx_value r);
  *
  * Sets cheax_errno() to \ref CHEAX_ETYPE if casting is not possible.
  *
- * \param c    Virtual machine instance.
  * \param v    Expression to cast.
  * \param type Code of the type to cast to.
  *
- * \returns The cast expression. Always \a NULL if unsuccesful.
+ * \returns The cast expression. Always `NULL` if unsuccessful.
  */
 CHX_API struct chx_value cheax_cast(CHEAX *c, struct chx_value v, int type);
 
-/* \brief Get value of integer configuration option.
- *
- * Sets cheax_errno() to \ref CHEAX_EAPI if no option of integer type
- * with name \a opt exists.
- *
- * \param c   Virtual machine instance.
- * \param opt Option name.
- *
- * \returns Option value, or 0 upon failure.
- */
-CHX_API int cheax_config_get_int(CHEAX *c, const char *opt);
-
-/* \brief Set value of integer configuration option.
- *
- * Sets cheax_errno() to \ref CHEAX_EAPI if option \a opt does not have
- * integer type, or if \a value is otherwise invalid for option \a opt.
- * Fails silently in case no option with name \a opt could be found.
- *
- * \param c     Virtual machine instance.
- * \param opt   Option name.
- * \param value Option value.
- *
- * \returns 0 if an integer option with name \a opt was found, -1 otherwise.
- */
-CHX_API int cheax_config_int(CHEAX *c, const char *opt, int value);
-
-/* \brief Get value of boolean configuration option.
- *
- * Sets cheax_errno() to \ref CHEAX_EAPI if no option of boolean type
- * with name \a opt exists.
- *
- * \param c   Virtual machine instance.
- * \param opt Option name.
- *
- * \returns Option value, or \c false upon failure.
- */
-CHX_API bool cheax_config_get_bool(CHEAX *c, const char *opt);
-
-/* \brief Set value of boolean configuration option.
- *
- * Sets cheax_errno() to \ref CHEAX_EAPI if option \a opt does not have
- * boolean type, or if \a value is otherwise invalid for option \a opt.
- * Fails silently in case no option with name \a opt could be found.
- *
- * \param c     Virtual machine instance.
- * \param opt   Option name.
- * \param value Option value.
- *
- * \returns 0 if a boolean option with name \a opt was found, -1 otherwise.
- */
-CHX_API int cheax_config_bool(CHEAX *c, const char *opt, bool value);
-
-/* \brief Information about cheax config option. */
-struct chx_config_help {
-	const char *name;    /*!< Option name. */
-	int type;            /*!< Option type. */
-	const char *metavar; /*!< Printable argument name. */
-	const char *help;    /*!< Help text. */
-};
-
-/*! \brief Load information about all cheax config options.
- *
- * \param help     Output parameter. Make sure to free() after use.
- * \param num_opts Output parameter, will point to length of output
- *                 array.
- *
- * \returns 0 if everything succeeded without errors, -1 otherwise.
- */
-CHX_API int cheax_config_help(struct chx_config_help **help, size_t *num_opts);
-
-/*! \brief Reads cheax expression from file.
+/*! \brief Reads value from file.
  *
  * Core element of the read, eval, print loop.
  *
- * \param c Virtual machine instance.
+ * Throws
+ * \li \ref CHEAX_EAPI if \a f is `NULL`;
+ * \li \ref CHEAX_EREAD upon syntax error; or
+ * \li \ref CHEAX_EEOF if (and only if) end-of-file was encountered
+ *      before an S-expression was closed.
+ *
  * \param f File handle to read from.
  *
- * \returns The cheax expression that was read from the file. \a NULL
- *          if unsuccesful.
+ * \returns The value that was read from the file. If no value was read
+ *          and end-of-file was reached, the function will return `nil`
+ *          and no error will be thrown. Check `feof(f)` to test for
+ *          this condition.
  *
- * \sa cheax_readstr(), cheax_eval(), cheax_print()
+ * \sa cheax_read_at(), cheax_readstr(), cheax_eval(), cheax_print()
  */
 CHX_API struct chx_value cheax_read(CHEAX *c, FILE *f);
+
+/*! \brief Reads value from file and reports back line and column
+ *         information.
+ *
+ * Like cheax_read(), but with additional parameters used for
+ * error reporting and diagnostics.
+ *
+ * \param f    File handle to read from.
+ * \param path Path of input file. Used for error reporting and debug
+ *             info generation.
+ * \param line Pointer to current line number. Will be updated as
+ *             newlines are read. Will be ignored if `NULL`.
+ * \param pos  Pointer to current column number. Will be updated as
+ *             input is read. Will be ignored if `NULL`.
+ *
+ * \sa cheax_read(), cheax_readstr_at()
+ */
 CHX_API struct chx_value cheax_read_at(CHEAX *c,
                                        FILE *f,
                                        const char *path,
                                        int *line,
                                        int *pos);
 
-/*! \brief Reads cheax expression from string.
+/*! \brief Reads value from string.
  *
- * Core element of the read, eval, print loop.
+ * Like cheax_read(), but reading directly from a string, rather than
+ * from a file.
  *
- * \param c   Virtual machine instance.
- * \param str String to read from.
+ * Throws
+ * \li \ref CHEAX_EAPI if \a str is `NULL`;
+ * \li \ref CHEAX_EREAD upon syntax error; or
+ * \li \ref CHEAX_EEOF if (and only if) end-of-file was encountered
+ *      before an S-expression was closed.
  *
- * \returns The cheax expression that was read from the string. \a NULL
- *          if unsuccesful.
+ * \param str Null-terminated string to read from.
  *
- * \sa cheax_read(), cheax_eval(), cheax_print()
+ * \returns The value that was read from the string. If no value was read
+ *          and the null terminator was reached, the function will
+ *          return `nil` and no error will be thrown. Unlike with
+ *          cheax_read() and cheax_readstr_at(), the API does not
+ *          distinguishes this condition from a successful reading of
+ *          the value `nil` from the string.
+ *
+ * \sa cheax_read_at(), cheax_readstr(), cheax_eval(), cheax_print()
  */
 CHX_API struct chx_value cheax_readstr(CHEAX *c, const char *str);
+
+/*! \brief Reads value from string, updates the string to reference
+ *         the byte where it left off reading, and reports back line and
+ *         column information.
+ *
+ * Like cheax_readstr(), but with additional parameters used for
+ * error reporting and diagnostics. Additionally, the string pointer is
+ * updated, allowing one to call the function multiple times in
+ * succession to read multiple values.
+ *
+ * Throws \ref CHEAX_EREAD and \ref CHEAX_EEOF as would cheax_readstr(),
+ * and throws \ref CHEAX_EAPI if \a str points to, or is itself, `NULL`.
+ *
+ * \param str  Pointer to string to read from. Will, if no errors were
+ *             thrown, point to the first byte in the string not
+ *             examined by the parser.
+ * \param path "Path" of input string. Used for error reporting and
+ *             debug info generation.
+ * \param line Pointer to current line number. Will be updated as
+ *             newlines are read. Will be ignored if `NULL`.
+ * \param pos  Pointer to current column number. Will be updated as
+ *             input is read. Will be ignored if `NULL`.
+ *
+ * \sa cheax_readstr(), cheax_read_at()
+ */
 CHX_API struct chx_value cheax_readstr_at(CHEAX *c,
                                           const char **str,
                                           const char *path,
                                           int *line,
                                           int *pos);
 
+/*! \brief Expand all macro forms in given expression.
+ *
+ * Macros are defined using the `(defmacro)` built-in. Throws
+ * \ref CHEAX_EMACRO in case of an internal error.
+ *
+ * \note This function may call cheax_gc(). Make sure to cheax_ref()
+ *       your values properly.
+ *
+ * \param expr Expression in which to expand macro forms.
+ *
+ * \sa cheax_macroexpand_once()
+ */
 CHX_API struct chx_value cheax_macroexpand(CHEAX *c, struct chx_value expr);
+
+/*! \brief Expand first macro form in given expression.
+ *
+ * Macros are defined using the `(defmacro)` built-in. Throws
+ * \ref CHEAX_EMACRO in case of an internal error.
+ *
+ * \note This function may call cheax_gc(). Make sure to cheax_ref()
+ *       your values properly.
+ *
+ * \param expr Expression in which to expand the first macro form.
+ *
+ * \sa cheax_macroexpand()
+ */
 CHX_API struct chx_value cheax_macroexpand_once(CHEAX *c, struct chx_value expr);
 
 /*! \brief Evaluates given cheax expression.
  *
  * Core element of the read, eval, print loop.
  *
- * \param c    Virtual machine instance.
+ * \note This function may call cheax_gc(). Make sure to cheax_ref()
+ *       your values properly.
+ *
  * \param expr Cheax expression to evaluate.
  *
  * \returns The evaluated expression.
@@ -1197,15 +1379,27 @@ CHX_API struct chx_value cheax_macroexpand_once(CHEAX *c, struct chx_value expr)
  */
 CHX_API struct chx_value cheax_eval(CHEAX *c, struct chx_value expr);
 
+/*! \brief Invokes function with given argument list.
+ *
+ * Argument list will be passed to the function as-is. I.e. the
+ * individual list nodes will not be evaluated.
+ *
+ * Throws \ref CHEAX_ETYPE is \a func is not \ref CHEAX_FUNC or
+ * \ref CHEAX_EXT_FUNC.
+ *
+ * \param func Function to invoke.
+ * \param list Argument list to pass to \a func.
+ *
+ * \returns Function return value.
+ */
 CHX_API struct chx_value cheax_apply(CHEAX *c, struct chx_value func, struct chx_list *list);
 
-/*! \brief Prints given cheax expression to file.
+/*! \brief Prints given value to file.
  *
  * Core element of the read, eval, print loop.
  *
- * \param c      Virtual machine instance.
  * \param output Output file handle.
- * \param expr   Cheax expression to print.
+ * \param expr   Value to print.
  *
  * \sa cheax_format(), cheax_read(), cheax_eval()
  */
@@ -1216,14 +1410,13 @@ CHX_API void cheax_print(CHEAX *c, FILE *output, struct chx_value expr);
  *
  * Sets cheax_errno() to
  * \li \ref CHEAX_EAPI if \a fmt is NULL;
- * \li \ref CHEAX_EVALUE if format string is otherwise invalid;
- * \li or \ref CHEAX_EINDEX if an index occurs in the format string
+ * \li \ref CHEAX_EVALUE if format string is otherwise invalid; or
+ * \li \ref CHEAX_EINDEX if an index occurs in the format string
  *     (either implicitly or explicitly) that is out of bounds for
  *     \a args.
  *
- * \param c      Virtual machine instance.
- * \param fmt    Python-esque format string.
- * \param args   List of arguments to format into the output string.
+ * \param fmt  Python-esque format string.
+ * \param args List of arguments to format into the output string.
  *
  * \returns A \a chx_string representing the formatted result, or NULL
  *          if an error occurred.
@@ -1234,7 +1427,6 @@ CHX_API struct chx_value cheax_format(CHEAX *c, struct chx_string *fmt, struct c
 
 /*! \brief Reads a file and executes it.
  *
- * \param c Virtual machine instance.
  * \param f Input file path.
  */
 CHX_API void cheax_exec(CHEAX *c, const char *f);
@@ -1243,6 +1435,7 @@ CHX_API void *cheax_malloc(CHEAX *c, size_t size);
 CHX_API void *cheax_calloc(CHEAX *c, size_t nmemb, size_t size);
 CHX_API void *cheax_realloc(CHEAX *c, void *ptr, size_t size);
 CHX_API void cheax_free(CHEAX *c, void *ptr);
+CHX_API void cheax_gc(CHEAX *c);
 
 /*! @} */
 
