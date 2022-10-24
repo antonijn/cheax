@@ -21,12 +21,11 @@
 
 typedef uint_least64_t chx_uint;
 
+typedef chx_int (*iop_cb)(CHEAX *, chx_int, chx_int);
+typedef chx_double (*fop_cb)(CHEAX *, chx_double, chx_double);
+
 static struct chx_value
-do_aop_once(CHEAX *c,
-            struct chx_value l,
-            struct chx_value r,
-            chx_int (*iop)(CHEAX *, chx_int, chx_int),
-            chx_double (*fop)(CHEAX *, chx_double, chx_double))
+do_aop_once(CHEAX *c, struct chx_value l, struct chx_value r, iop_cb iop, fop_cb fop)
 {
 	if (l.type == CHEAX_INT && r.type == CHEAX_INT)
 		return bt_wrap(c, cheax_int(iop(c, l.data.as_int, r.data.as_int)));
@@ -43,10 +42,7 @@ do_aop_once(CHEAX *c,
 }
 
 static struct chx_value
-do_aop(CHEAX *c,
-       struct chx_list *args,
-       chx_int (*iop)(CHEAX *, chx_int, chx_int),
-       chx_double (*fop)(CHEAX *, chx_double, chx_double))
+do_aop(CHEAX *c, struct chx_list *args, iop_cb iop, fop_cb fop)
 {
 	struct chx_value l, r;
 	return (0 == unpack(c, args, "[ID][ID]", &l, &r))
@@ -55,10 +51,7 @@ do_aop(CHEAX *c,
 }
 
 static struct chx_value
-do_assoc_aop(CHEAX *c,
-             struct chx_list *args,
-             chx_int (*iop)(CHEAX *, chx_int, chx_int),
-             chx_double (*fop)(CHEAX *, chx_double, chx_double))
+do_assoc_aop(CHEAX *c, struct chx_list *args, iop_cb iop, fop_cb fop)
 {
 	struct chx_value accum;
 	if (unpack(c, args, "[ID]_+", &accum, &args) < 0)
