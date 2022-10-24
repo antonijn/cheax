@@ -691,22 +691,11 @@ err_pad:
 static struct chx_value
 sf_def(CHEAX *c, struct chx_list *args, void *info)
 {
+	int flags = (intptr_t)info;
+
 	struct chx_value idval, setto;
-	if (0 == unpack(c, args, "_.", &idval, &setto)
-	 && !cheax_match(c, idval, setto, CHEAX_READONLY)
-	 && cheax_errno(c) == 0)
-	{
-		cheax_throwf(c, CHEAX_EMATCH, "invalid pattern");
-		cheax_add_bt(c);
-	}
-	return cheax_nil();
-}
-static struct chx_value
-sf_var(CHEAX *c, struct chx_list *args, void *info)
-{
-	struct chx_value idval, setto;
-	if (0 == unpack(c, args, "_.?", &idval, &setto)
-	 && !cheax_match(c, idval, setto, 0)
+	if (0 == unpack(c, args, has_flag(flags, CHEAX_READONLY) ? "_." : "_.?", &idval, &setto)
+	 && !cheax_match(c, idval, setto, flags)
 	 && cheax_errno(c) == 0)
 	{
 		cheax_throwf(c, CHEAX_EMATCH, "invalid pattern");
@@ -808,8 +797,8 @@ void
 export_sym_bltns(CHEAX *c)
 {
 	cheax_def_special_form(c, "defsym",  sf_defsym, NULL);
-	cheax_def_special_form(c, "var",     sf_var,    NULL);
-	cheax_def_special_form(c, "def",     sf_def,    NULL);
+	cheax_def_special_form(c, "var",     sf_def,    (void *)0);
+	cheax_def_special_form(c, "def",     sf_def,    (void *)CHEAX_READONLY);
 	cheax_def_special_tail_form(c, "let",  sf_let, NULL);
 	cheax_def_special_tail_form(c, "let*", sf_let, (void *)1);
 	cheax_def_special_form(c, "set",     sf_set,    NULL);
