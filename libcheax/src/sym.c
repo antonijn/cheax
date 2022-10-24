@@ -728,8 +728,16 @@ sf_let(CHEAX *c,
 		return CHEAX_VALUE_OUT;
 	}
 
+	/* whether we're (let*) rather than (let) */
+	bool star = (info != NULL);
+
+	struct chx_env *outer_env = c->env;
+
 	cheax_push_env(c);
 	cheax_ft(c, pad2);
+
+	struct chx_env *inner_env = c->env;
+	chx_ref inner_env_ref = cheax_ref_ptr(c, inner_env);
 
 	for (; pairs != NULL; pairs = pairs->next) {
 		struct chx_value pairv = pairs->value;
@@ -739,8 +747,16 @@ sf_let(CHEAX *c,
 			goto pad;
 		}
 
+		if (!star)
+			c->env = outer_env;
+
 		struct chx_value idval, setto;
-		if (0 == unpack(c, pairv.data.as_list, "_.", &idval, &setto)
+		int upck = unpack(c, pairv.data.as_list, "_.", &idval, &setto);
+
+		if (!star)
+			c->env = inner_env;
+
+		if (upck == 0
 		 && !cheax_match(c, idval, setto, CHEAX_READONLY)
 		 && cheax_errno(c) == 0)
 		{
@@ -761,6 +777,7 @@ sf_let(CHEAX *c,
 		return CHEAX_TAIL_OUT;
 	}
 pad:
+	cheax_unref_ptr(c, inner_env, inner_env_ref);
 	cheax_pop_env(c);
 pad2:
 	out->value = cheax_nil();
@@ -793,7 +810,8 @@ export_sym_bltns(CHEAX *c)
 	cheax_def_special_form(c, "defsym",  sf_defsym, NULL);
 	cheax_def_special_form(c, "var",     sf_var,    NULL);
 	cheax_def_special_form(c, "def",     sf_def,    NULL);
-	cheax_def_special_tail_form(c, "let", sf_let,    NULL);
+	cheax_def_special_tail_form(c, "let",  sf_let, NULL);
+	cheax_def_special_tail_form(c, "let*", sf_let, (void *)1);
 	cheax_def_special_form(c, "set",     sf_set,    NULL);
 	cheax_defun(c, "env", bltn_env, NULL);
 }
