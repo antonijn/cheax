@@ -165,6 +165,26 @@
     (do (type-assert xs List)
         (unsafe-find e xs 0))))
 
+(defun unsafe-strrfind (e s le ls)
+  (cond
+    ((> le ls)     nil)
+    ((suffix? e s) (- ls le))
+    (true          (unsafe-strrfind e (substr s 0 (- ls 1)) le (- ls 1)))))
+(defun rev-and-len (xs rev len)
+  (case xs
+    ((: t ts) (rev-and-len ts (: t rev) (+ len 1)))
+    (() (list rev len))))
+(defun rfind (e xs)
+  (if (= (type-of xs) String)
+    (do (type-assert e String)
+        (let ((le (string-length e)) (lxs (string-length xs)))
+          (unsafe-strrfind e xs le lxs)))
+    (do (type-assert xs List)
+        (let* (((rev len) (rev-and-len xs () 0))
+               (pos (find e rev)))
+          (unless (= nil pos)
+            (- (- len 1) pos))))))
+
 (defun unsafe-zip-with (: op args)
   (case args
     ((as ()) ())
