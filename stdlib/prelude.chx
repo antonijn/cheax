@@ -66,12 +66,23 @@
 
 (defun unsafe-map (f xs)
   (case xs
-    (() ())
-    ((: z zs) (: (f z) (unsafe-map f zs)))))
+    ((: z zs) (: (f z) (unsafe-map f zs)))
+    (() ())))
 (defun map (f xs)
   (type-assert f Func ExtFunc)
   (type-assert xs List)
   (unsafe-map f xs))
+
+(defun unsafe-mapc (f xs)
+  (case xs
+    ((: z zs)
+      (f z)
+      (unsafe-mapc f zs))
+    (() ())))
+(defun mapc (f xs)
+  (type-assert f Func ExtFunc)
+  (type-assert xs List)
+  (unsafe-mapc f xs))
 
 (defun head (xs)
   (type-assert xs List)
@@ -96,8 +107,8 @@
 
 (defun unsafe-any? (p xs)
   (case xs
-    (() false)
-    ((: y ys) (if (p y) true (unsafe-any? p ys)))))
+    ((: y ys) (or (p y) (unsafe-any? p ys)))
+    (() false)))
 (defun any? (p xs)
   (type-assert p Func ExtFunc)
   (type-assert xs List)
@@ -105,8 +116,8 @@
 
 (defun unsafe-all? (p xs)
   (case xs
-    (() true)
-    ((: y ys) (and (p y) (unsafe-all? p ys)))))
+    ((: y ys) (and (p y) (unsafe-all? p ys)))
+    (() true)))
 (defun all? (p xs)
   (type-assert p Func ExtFunc)
   (type-assert xs List)
@@ -114,8 +125,8 @@
 
 (defun unsafe-foldr (f start lst)
   (case lst
-    (() start)
-    ((: z zs) (f z (unsafe-foldr f start zs)))))
+    ((: z zs) (f z (unsafe-foldr f start zs)))
+    (() start)))
 (defun foldr (f start lst)
   (type-assert f Func ExtFunc)
   (type-assert lst List)
@@ -123,12 +134,14 @@
 
 (defun unsafe-foldl (f start lst)
   (case lst
-    (() start)
-    ((: z zs) (unsafe-foldl f (f start z) zs))))
+    ((: z zs) (unsafe-foldl f (f start z) zs))
+    (() start)))
 (defun foldl (f start lst)
   (type-assert f Func ExtFunc)
   (type-assert lst List)
   (unsafe-foldl f start lst))
+
+(defun repeat (x n) (map (const x) (.. n)))
 
 (defun element? (e xs)
   (any? (fn (x) (= e x)) xs))
@@ -185,8 +198,8 @@
 
 (defun rev-helper (xs ys)
   (case xs
-    (() ys)
-    ((: z zs) (rev-helper zs (: z ys)))))
+    ((: z zs) (rev-helper zs (: z ys)))
+    (() ys)))
 (defun reverse (xs)
   (type-assert xs List)
   (rev-helper xs ()))

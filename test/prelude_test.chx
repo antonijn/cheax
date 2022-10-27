@@ -16,6 +16,17 @@
   (assert-error EVALUE (map (fn (e) (throw e)) (list EVALUE ENOSYM EDIVZERO)))
   (assert-takes-only map `((,Func ,ExtFunc) ,List)))
 
+(test "function (mapc)"
+  (assert-eq () (mapc (fn (n) (+ n 1)) (.. 5)))
+  (assert-eq () (mapc throw ()))
+
+  (var t 0)
+  (assert-eq () (mapc (fn (n) (set t (+ n t))) (.. 10)))
+  (assert-eq t 55)
+
+  (assert-error EVALUE (mapc (fn (e) (throw e)) (list EVALUE ENOSYM EDIVZERO)))
+  (assert-takes-only map `((,Func ,ExtFunc) ,List)))
+
 (test "function (const)"
   (assert-type (const 'foo) Func)
   (assert-eq "bar" ((const "bar")))
@@ -104,6 +115,12 @@
   (assert-eq 'init (foldr (const nil) 'init ()))
   (assert-eq 5050 (foldr + 0 (.. 100)))
   (assert-takes-only foldr `((,Func ,ExtFunc) ,all-types ,List)))
+
+(test "function (repeat)"
+  (assert-eq '(x x x) (repeat 'x 3))
+  (assert-eq () (repeat "foo" 0))
+  (assert-error EVALUE (repeat "bar" -1))
+  (assert-takes-only (fn (n) (repeat () n)) `(,Int)))
 
 (test "function (element?)"
   (assert-true  (element? 5 (.. 10)))
