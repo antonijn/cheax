@@ -203,10 +203,10 @@ main(void)
 
 	cheax_load_feature(c, "all");
 
-	cheax_def_special_form(c, "show-w", show_w, NULL);
-	cheax_def_special_form(c, "show-c", show_c, NULL);
+	cheax_defun(c, "show-w", show_w, NULL);
+	cheax_defun(c, "show-c", show_c, NULL);
 
-	cheax_def_special_form(c, "clear", clear_fun, NULL);
+	cheax_defun(c, "clear", clear_fun, NULL);
 
 	bool hide_nil = true;
 	cheax_sync_bool(c, "cheaky-hide-nil", &hide_nil, 0);
@@ -230,7 +230,7 @@ main(void)
 		/* read error */
 		cheax_ft(c, pad);
 
-		v = cheax_macroexpand(c, v);
+		v = cheax_preproc(c, v);
 		cheax_ft(c, pad);
 
 		v = cheax_eval(c, v);

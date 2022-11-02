@@ -221,58 +221,18 @@ cheax_ext_func(CHEAX *c, const char *name, chx_func_ptr perform, void *info)
 	if (perform == NULL || name == NULL)
 		return cheax_nil();
 
-	struct chx_value res = cheax_ext_func_value(gc_alloc(c, sizeof(struct chx_form), CHEAX_EXT_FUNC));
-	if (res.data.as_form == NULL)
+	struct chx_value res = cheax_ext_func_value(gc_alloc(c, sizeof(struct chx_ext_func), CHEAX_EXT_FUNC));
+	if (res.data.as_ext_func == NULL)
 		return cheax_nil();
-	res.data.as_form->name = name;
-	res.data.as_form->perform.func = perform;
-	res.data.as_form->info = info;
+	res.data.as_ext_func->name = name;
+	res.data.as_ext_func->perform = perform;
+	res.data.as_ext_func->info = info;
 	return res;
 }
 struct chx_value
-cheax_ext_func_value_proc(struct chx_form *extf)
+cheax_ext_func_value_proc(struct chx_ext_func *extf)
 {
 	return cheax_ext_func_value(extf);
-}
-
-struct chx_value
-cheax_special_form(CHEAX *c, const char *name, chx_func_ptr perform, void *info)
-{
-	if (perform == NULL || name == NULL)
-		return cheax_nil();
-
-	struct chx_value res = cheax_special_form_value(gc_alloc(c, sizeof(struct chx_form), CHEAX_SPECIAL_FORM));
-	if (res.data.as_form == NULL)
-		return cheax_nil();
-	res.data.as_form->name = name;
-	res.data.as_form->perform.func = perform;
-	res.data.as_form->info = info;
-	return res;
-}
-struct chx_value
-cheax_special_form_value_proc(struct chx_form *extf)
-{
-	return cheax_special_form_value(extf);
-}
-
-struct chx_value
-cheax_special_tail_form(CHEAX *c, const char *name, chx_tail_func_ptr perform, void *info)
-{
-	if (perform == NULL || name == NULL)
-		return cheax_nil();
-
-	struct chx_value res = cheax_special_tail_form_value(gc_alloc(c, sizeof(struct chx_form), CHEAX_SPECIAL_TAIL_FORM));
-	if (res.data.as_form == NULL)
-		return cheax_nil();
-	res.data.as_form->name = name;
-	res.data.as_form->perform.tail_func = perform;
-	res.data.as_form->info = info;
-	return res;
-}
-struct chx_value
-cheax_special_tail_form_value_proc(struct chx_form *extf)
-{
-	return cheax_special_tail_form_value(extf);
 }
 
 size_t
@@ -366,14 +326,14 @@ cheax_init(void)
 	if (res == NULL)
 		return NULL;
 
-	res->global_env_struct.rtflags = 0;
-	norm_env_init(res, &res->global_env_struct, NULL);
-	res->global_env = &res->global_env_struct;
+	res->global_ns.rtflags = 0;
+	norm_env_init(res, &res->global_ns, NULL);
+	res->global_env = &res->global_ns;
 
-	res->sf_env_struct.rtflags = 0;
-	norm_env_init(res, &res->sf_env_struct, NULL);
-	res->macro_env_struct.rtflags = 0;
-	norm_env_init(res, &res->macro_env_struct, NULL);
+	res->specop_ns.rtflags = 0;
+	norm_env_init(res, &res->specop_ns, NULL);
+	res->macro_ns.rtflags = 0;
+	norm_env_init(res, &res->macro_ns, NULL);
 
 	res->env = NULL;
 	res->stack_depth = 0;
@@ -422,9 +382,9 @@ cheax_destroy(CHEAX *c)
 	}
 
 	gc_cleanup(c);
-	norm_env_cleanup(&c->global_env_struct);
-	norm_env_cleanup(&c->sf_env_struct);
-	norm_env_cleanup(&c->macro_env_struct);
+	norm_env_cleanup(&c->global_ns);
+	norm_env_cleanup(&c->specop_ns);
+	norm_env_cleanup(&c->macro_ns);
 
 	cheax_free(c, c->bt.array);
 
@@ -717,25 +677,42 @@ bltn_defmacro(CHEAX *c, struct chx_list *args, void *info)
 	if (unpack(c, args, "N!_+", &id, &args) < 0)
 		return cheax_nil();
 
-	bool dummy;
-	struct chx_list *args_exp = macroexpand_list(c, args, false, &dummy);
+	static const uint8_t ops[] = { PP_SEQ, PP_EXPR, };
+	struct chx_value args_pp = preproc_pattern(c, cheax_list_value(args), ops, NULL);
 	cheax_ft(c, pad);
 
-	struct chx_value macro = bt_wrap(c, create_func(c, args_exp));
+	struct chx_value macro = bt_wrap(c, create_func(c, args_pp.data.as_list));
 	cheax_ft(c, pad);
 
 	struct chx_env *prev_env = c->env;
-	c->env = &c->macro_env_struct;
+	c->env = &c->macro_ns;
 	cheax_def(c, id, macro, CHEAX_READONLY);
 	c->env = prev_env;
 pad:
 	return cheax_nil();
 }
 
-static struct chx_value
-sf_fn(CHEAX *c, struct chx_list *args, void *info)
+static int
+sf_fn(CHEAX *c, struct chx_list *args, void *info, struct chx_env *ps, union chx_eval_out *out)
 {
-	return bt_wrap(c, create_func(c, args));
+	out->value = bt_wrap(c, create_func(c, args));
+	return CHEAX_VALUE_OUT;
+}
+
+static struct chx_value
+pp_sf_fn(CHEAX *c, struct chx_list *args, void *info)
+{
+	/* (node LIT (node EXPR (seq EXPR))) */
+	static const uint8_t ops[] = {
+		PP_NODE | PP_ERR(0), PP_LIT, PP_NODE | PP_ERR(1), PP_EXPR, PP_SEQ, PP_EXPR,
+	};
+
+	static const char *errors[] = {
+		"expected argument list",
+		"expected body",
+	};
+
+	return preproc_pattern(c, cheax_list_value(args), ops, errors);
 }
 
 static struct chx_list *
@@ -826,11 +803,11 @@ void
 export_core_bltns(CHEAX *c)
 {
 	struct chx_env *prev_env = c->env;
-	c->env = &c->macro_env_struct;
+	c->env = &c->macro_ns;
 	cheax_def(c, "defmacro", cheax_ext_func(c, "defmacro", bltn_defmacro, NULL), CHEAX_READONLY);
 	c->env = prev_env;
 
-	cheax_def_special_form(c, "fn", sf_fn, NULL);
+	cheax_defsyntax(c, "fn", sf_fn, pp_sf_fn, NULL);
 
 	cheax_defun(c, ":",             bltn_prepend,       NULL);
 	cheax_defun(c, "type-of",       bltn_type_of,       NULL);

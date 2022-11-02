@@ -62,7 +62,7 @@ cheax_exec(CHEAX *c, const char *path)
 	struct chx_value v;
 	while (!cheax_is_nil(v = cheax_read_at(c, f, path, &line, &pos))) {
 		cheax_ft(c, pad);
-		v = cheax_macroexpand(c, v);
+		v = cheax_preproc(c, v);
 		cheax_ft(c, pad);
 		cheax_eval(c, v);
 		cheax_ft(c, pad);
@@ -73,7 +73,7 @@ pad:
 }
 
 static struct chx_value
-eval_ext_func(CHEAX *c, struct chx_form *form, struct chx_list *args, bool eval_args)
+eval_ext_func(CHEAX *c, struct chx_ext_func *form, struct chx_list *args, bool eval_args)
 {
 	struct chx_list *true_args;
 	struct chx_list arg_buf[16], *other_args = NULL;
@@ -107,7 +107,7 @@ eval_ext_func(CHEAX *c, struct chx_form *form, struct chx_list *args, bool eval_
 	}
 
 	chx_ref other_arg_ref = cheax_ref_ptr(c, other_args);
-	res = form->perform.func(c, true_args, form->info);
+	res = form->perform(c, true_args, form->info);
 	cheax_unref_ptr(c, other_args, other_arg_ref);
 pad:
 	for (size_t j = 0; j < i; ++j)
@@ -254,14 +254,8 @@ eval_sexpr(CHEAX *c, struct chx_list *input, struct chx_env *pop_stop, union chx
 
 	chx_ref input_ref = cheax_ref_ptr(c, input);
 
-	struct chx_value head = input->value;
-
-	if (head.type != CHEAX_ID
-	 || !cheax_try_get_from(c, &c->sf_env_struct, head.data.as_id->value, &head))
-	{
-		head = cheax_eval(c, head);
-		cheax_ft(c, pad);
-	}
+	struct chx_value head = cheax_eval(c, input->value);
+	cheax_ft(c, pad);
 
 	chx_ref head_ref = cheax_ref(c, head);
 
@@ -274,22 +268,16 @@ eval_sexpr(CHEAX *c, struct chx_list *input, struct chx_env *pop_stop, union chx
 
 	switch (head.type) {
 	case CHEAX_EXT_FUNC:
-		out->value = eval_ext_func(c, head.data.as_form, args, true);
+		out->value = eval_ext_func(c, head.data.as_ext_func, args, true);
 		res = CHEAX_VALUE_OUT;
 		break;
 
-	case CHEAX_SPECIAL_FORM:
-		out->value = head.data.as_form->perform.func(c,
-		                                             args,
-		                                             head.data.as_form->info);
-		res = CHEAX_VALUE_OUT;
-		break;
-	case CHEAX_SPECIAL_TAIL_FORM:
-		res = head.data.as_form->perform.tail_func(c,
-		                                           args,
-		                                           head.data.as_form->info,
-		                                           pop_stop,
-		                                           out);
+	case CHEAX_SPECIAL_OP:
+		res = head.data.as_special_op->perform(c,
+		                                       args,
+		                                       head.data.as_special_op->info,
+		                                       pop_stop,
+		                                       out);
 		break;
 
 	case CHEAX_FUNC:
@@ -566,7 +554,7 @@ apply_func_evaluator(CHEAX *c, void *input_info, struct chx_env *pop_stop, union
 	int res;
 	switch (func.type) {
 	case CHEAX_EXT_FUNC:
-		out->value = eval_ext_func(c, func.data.as_form, args, false);
+		out->value = eval_ext_func(c, func.data.as_ext_func, args, false);
 		res = CHEAX_VALUE_OUT;
 		break;
 
@@ -647,36 +635,41 @@ cheax_eval(CHEAX *c, struct chx_value input)
 	return wrap_tail_eval(c, value_evaluator, &input);
 }
 
-static struct chx_value
-macroexpand(CHEAX *c, struct chx_value expr, bool once, bool *expanded)
+struct chx_value
+cheax_macroexpand(CHEAX *c, struct chx_value expr)
 {
-	*expanded = false;
+	struct chx_value expr_mexp = expr;
+	do {
+		expr = expr_mexp;
+		expr_mexp = cheax_macroexpand_once(c, expr);
+		cheax_ft(c, pad);
+	} while (!cheax_equiv(expr, expr_mexp));
+pad:
+	return expr_mexp;
+}
+
+struct chx_value
+cheax_macroexpand_once(CHEAX *c, struct chx_value expr)
+{
 	if (expr.type != CHEAX_LIST || expr.data.as_list == NULL)
 		return expr;
 
 	struct chx_list *lst = expr.data.as_list;
 	struct chx_value head = lst->value, macro;
 	if (head.type != CHEAX_ID
-	 || !cheax_try_get_from(c, &c->macro_env_struct, head.data.as_id->value, &macro))
+	 || !cheax_try_get_from(c, &c->macro_ns, head.data.as_id->value, &macro))
 	{
-		struct chx_list *exp_lst = macroexpand_list(c, lst, once, expanded);
-		cheax_ft(c, pad);
-
-		if (*expanded && exp_lst != NULL && c->gen_debug_info)
-			exp_lst = orig_debug_list(c, exp_lst->value, exp_lst->next, lst);
-
-		return cheax_list_value(exp_lst);
+		return expr;
 	}
 
 	if (macro.type != CHEAX_FUNC && macro.type != CHEAX_EXT_FUNC) {
-		cheax_throwf(c, CHEAX_EMACRO, "invalid macro type");
+		cheax_throwf(c, CHEAX_ESTATIC, "invalid macro type");
 		return cheax_nil();
 	}
 
 	chx_ref lst_ref = cheax_ref_ptr(c, lst);
 
 	struct chx_value res = cheax_apply(c, macro, lst->next);
-	*expanded = true;
 
 	cheax_unref_ptr(c, lst, lst_ref);
 	cheax_ft(c, pad);
@@ -686,69 +679,110 @@ macroexpand(CHEAX *c, struct chx_value expr, bool once, bool *expanded)
 		res = cheax_list_value(orig_debug_list(c, exp_lst->value, exp_lst->next, lst));
 	}
 
-	bool dummy;
-	return once ? res : macroexpand(c, res, false, &dummy);
+	return res;
 pad:
 	return cheax_nil();
 }
 
-struct chx_list *
-macroexpand_list(CHEAX *c, struct chx_list *lst, bool once, bool *expanded)
+static bool
+should_preprocess(struct chx_value expr)
 {
-	*expanded = false;
+	if (expr.type != CHEAX_LIST)
+		return false;
 
-	bool made_new_list = false;
-	struct chx_list *new_list = NULL, **new_listp = &new_list;
-	for (struct chx_list *cons = lst; cons != NULL; cons = cons->next) {
-		bool elt_expanded = false;
-		struct chx_value elt = cons->value;
+	struct chx_list *lst = expr.data.as_list;
+	if (lst == NULL || has_flag(lst->rtflags, PREPROC_BIT))
+		return false;
 
-		if (!once || !*expanded) {
-			chx_ref lst_ref = cheax_ref_ptr(c, lst);
-			chx_ref new_list_ref = cheax_ref_ptr(c, new_list);
+	return true;
+}
 
-			elt = macroexpand(c, elt, once, &elt_expanded);
+static struct chx_value
+preproc_specop(CHEAX *c, const char *id, struct chx_value specop_val, struct chx_list *call)
+{
+	struct chx_list *tail = call->next;
 
-			cheax_unref_ptr(c, new_list, new_list_ref);
-			cheax_unref_ptr(c, lst, lst_ref);
-
-			cheax_ft(c, pad);
-		}
-
-		if (elt_expanded && !made_new_list) {
-			made_new_list = *expanded = true;
-
-			for (struct chx_list *copy = lst; copy != cons; copy = copy->next) {
-				*new_listp = cheax_list(c, copy->value, NULL).data.as_list;
-				cheax_ft(c, pad);
-				new_listp = &(*new_listp)->next;
-			}
-		}
-
-		if (made_new_list) {
-			*new_listp = cheax_list(c, elt, NULL).data.as_list;
-			cheax_ft(c, pad);
-			new_listp = &(*new_listp)->next;
-		}
+	if (specop_val.type != CHEAX_SPECIAL_OP) {
+		cheax_throwf(c, CHEAX_ESTATIC, "corrupted special operation `%s'", id);
+		goto pad;
 	}
 
-	return made_new_list ? new_list : lst;
+	struct chx_special_op *specop = specop_val.data.as_special_op;
+
+	struct chx_ext_func pp_func = { 0, specop->name, specop->preproc, specop->info };
+	struct chx_value out_tail = cheax_apply(c, cheax_ext_func_value(&pp_func), tail);
+	cheax_ft(c, pad);
+
+	if (out_tail.type != CHEAX_LIST) {
+		cheax_throwf(c, CHEAX_ESTATIC, "preprocessing for `%s' did not yield list", id);
+		goto pad;
+	}
+
+	struct chx_list *out_list = c->gen_debug_info
+	                          ? orig_debug_list(c, specop_val, out_tail.data.as_list, call)
+	                          : cheax_list(c, specop_val, out_tail.data.as_list).data.as_list;
+	if (out_list != NULL)
+		out_list->rtflags |= PREPROC_BIT;
+	return cheax_list_value(out_list);
 pad:
-	return NULL;
+	return cheax_nil();
+}
+
+static struct chx_value
+preproc_fcall(CHEAX *c, struct chx_list *call)
+{
+	static const uint8_t ops[] = { PP_SEQ, PP_EXPR, };
+	struct chx_value call_out_val = preproc_pattern(c, cheax_list_value(call), ops, NULL);
+	cheax_ft(c, pad);
+
+	if (call_out_val.type != CHEAX_LIST) {
+		cheax_throwf(c, CHEAX_ESTATIC, "preproc_fcall(): eek, what happened?");
+		return cheax_nil();
+	}
+
+	struct chx_list *call_out = call_out_val.data.as_list;
+	if (call_out != NULL)
+		call_out->rtflags |= PREPROC_BIT;
+pad:
+	return call_out_val;
 }
 
 struct chx_value
-cheax_macroexpand(CHEAX *c, struct chx_value expr)
+cheax_preproc(CHEAX *c, struct chx_value expr)
 {
-	bool dummy;
-	return macroexpand(c, expr, false, &dummy);
-}
+	if (!should_preprocess(expr))
+		return expr;
 
-struct chx_value
-cheax_macroexpand_once(CHEAX *c, struct chx_value expr)
-{
-	bool dummy;
-	return macroexpand(c, expr, true, &dummy);
+	struct chx_value mac_exp = cheax_macroexpand(c, expr);
+
+	if (!cheax_equiv(mac_exp, expr)) {
+		/* Macro expansion actually did something */
+		if (!should_preprocess(mac_exp))
+			return mac_exp;
+
+		expr = mac_exp;
+	}
+
+	chx_ref expr_ref = cheax_ref(c, expr);
+
+	/* We could be dealing with a special form or a regular function
+	 * call */
+
+	struct chx_value head = expr.data.as_list->value;
+
+	struct chx_value specop, out;
+	if (head.type == CHEAX_ID
+	 && cheax_try_get_from(c, &c->specop_ns, head.data.as_id->value, &specop))
+	{
+		out = preproc_specop(c, head.data.as_id->value, specop, expr.data.as_list);
+	}
+	else
+	{
+		out = preproc_fcall(c, expr.data.as_list);
+	}
+
+	cheax_unref(c, expr, expr_ref);
+	return out;
 }
 
 struct chx_value
@@ -913,10 +947,8 @@ cheax_eq(CHEAX *c, struct chx_value l, struct chx_value r)
 	case CHEAX_LIST:
 		return list_eq(c, l.data.as_list, r.data.as_list);
 	case CHEAX_EXT_FUNC:
-	case CHEAX_SPECIAL_FORM:
-	case CHEAX_SPECIAL_TAIL_FORM:
-		return (l.data.as_form->perform.func == r.data.as_form->perform.func)
-		    && (l.data.as_form->info == r.data.as_form->info);
+		return (l.data.as_ext_func->perform == r.data.as_ext_func->perform)
+		    && (l.data.as_ext_func->info == r.data.as_ext_func->info);
 	case CHEAX_QUOTE:
 	case CHEAX_BACKQUOTE:
 	case CHEAX_COMMA:
@@ -931,6 +963,12 @@ cheax_eq(CHEAX *c, struct chx_value l, struct chx_value r)
 	default:
 		return l.data.user_ptr == r.data.user_ptr;
 	}
+}
+
+bool
+cheax_equiv(struct chx_value l, struct chx_value r)
+{
+	return l.type == r.type && l.data.as_list == r.data.as_list;
 }
 
 /*
@@ -1044,6 +1082,22 @@ pad:
 	return CHEAX_VALUE_OUT;
 }
 
+static struct chx_value
+pp_sf_case(CHEAX *c, struct chx_list *args, void *info)
+{
+	/* (node EXPR (seq (node LIT (seq EXPR)))) */
+	static const uint8_t ops[] = {
+		PP_NODE | PP_ERR(0), PP_EXPR, PP_SEQ, PP_NODE | PP_ERR(1), PP_LIT, PP_SEQ, PP_EXPR,
+	};
+
+	static const char *errors[] = {
+		"expected value",
+		"pattern-value pair expected",
+	};
+
+	return preproc_pattern(c, cheax_list_value(args), ops, errors);
+}
+
 static int
 sf_cond(CHEAX *c,
         struct chx_list *args,
@@ -1099,6 +1153,17 @@ pad:
 	return CHEAX_VALUE_OUT;
 }
 
+static struct chx_value
+pp_sf_cond(CHEAX *c, struct chx_list *args, void *info)
+{
+	/* (seq (node EXPR (seq EXPR))) */
+	static const uint8_t ops[] = {
+		PP_SEQ, PP_NODE | PP_ERR(0), PP_EXPR, PP_SEQ, PP_EXPR,
+	};
+	static const char *errors[] = { "test-value pair expected" };
+	return preproc_pattern(c, cheax_list_value(args), ops, errors);
+}
+
 void
 export_eval_bltns(CHEAX *c)
 {
@@ -1107,6 +1172,6 @@ export_eval_bltns(CHEAX *c)
 	cheax_defun(c, "=",     bltn_eq,    NULL);
 	cheax_defun(c, "!=",    bltn_ne,    NULL);
 
-	cheax_def_special_tail_form(c, "case", sf_case, NULL);
-	cheax_def_special_tail_form(c, "cond", sf_cond, NULL);
+	cheax_defsyntax(c, "case", sf_case, pp_sf_case, NULL);
+	cheax_defsyntax(c, "cond", sf_cond, pp_sf_cond, NULL);
 }

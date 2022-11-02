@@ -56,4 +56,23 @@
  */
 int unpack(CHEAX *c, struct chx_list *args, const char *fmt, ...);
 
+enum {
+	PP_NIL         = 0x00,
+	PP_NODE        = 0x01,
+	PP_SEQ         = 0x02,
+	PP_MAYBE       = 0x03,
+	PP_LIT         = 0x04,
+	PP_EXPR        = 0x05,
+	PP_INSTR_BITS  = 0x0F,
+	PP_ERRMSG_BITS = 0xF0,
+};
+
+#define PP_ERRMSG_OFS 4
+#define PP_ERR(n) ((((n) + 1) << PP_ERRMSG_OFS) & PP_ERRMSG_BITS)
+
+struct chx_value preproc_pattern(CHEAX *c,
+                                 struct chx_value input,
+                                 const uint8_t *prog,
+                                 const char **errors);
+
 #endif

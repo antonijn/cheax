@@ -275,19 +275,26 @@ cheax_defun(CHEAX *c, const char *id, chx_func_ptr perform, void *info)
 	cheax_def(c, id, cheax_ext_func(c, id, perform, info), CHEAX_READONLY);
 }
 void
-cheax_def_special_form(CHEAX *c, const char *id, chx_func_ptr perform, void *info)
+cheax_defsyntax(CHEAX *c,
+                const char *id,
+                chx_tail_func_ptr perform,
+                chx_func_ptr preproc,
+                void *info)
 {
+	struct chx_value specop;
+	specop.type = CHEAX_SPECIAL_OP;
+	specop.data.as_special_op = gc_alloc(c, sizeof(struct chx_special_op), CHEAX_SPECIAL_OP);
+	if (specop.data.as_special_op == NULL)
+		return;
+
+	specop.data.as_special_op->name = id;
+	specop.data.as_special_op->perform = perform;
+	specop.data.as_special_op->preproc = preproc;
+	specop.data.as_special_op->info = info;
+
 	struct chx_env *prev_env = c->env;
-	c->env = &c->sf_env_struct;
-	cheax_def(c, id, cheax_special_form(c, id, perform, info), CHEAX_READONLY);
-	c->env = prev_env;
-}
-void
-cheax_def_special_tail_form(CHEAX *c, const char *id, chx_tail_func_ptr perform, void *info)
-{
-	struct chx_env *prev_env = c->env;
-	c->env = &c->sf_env_struct;
-	cheax_def(c, id, cheax_special_tail_form(c, id, perform, info), CHEAX_READONLY);
+	c->env = &c->specop_ns;
+	cheax_def(c, id, specop, CHEAX_READONLY);
 	c->env = prev_env;
 }
 
@@ -571,25 +578,6 @@ defgetset(CHEAX *c, const char *name,
 }
 
 static struct chx_value
-sf_defget(CHEAX *c, struct chx_list *args, void *info)
-{
-	struct defsym_info *dinfo = info;
-	defgetset(c, "defget", cheax_nil(), args, dinfo, &dinfo->get, &dinfo->get_ref);
-	return bt_wrap(c, cheax_nil());
-}
-static struct chx_value
-sf_defset(CHEAX *c, struct chx_list *args, void *info)
-{
-	static struct chx_id id = { 0, "value" };
-	static struct chx_list set_args = { 0, { .type = CHEAX_ID, .data.as_id = &id }, NULL };
-	static struct chx_value set_args_val = { .type = CHEAX_LIST, .data = { .as_list = &set_args } };
-
-	struct defsym_info *dinfo = info;
-	defgetset(c, "defset", set_args_val, args, dinfo, &dinfo->set, &dinfo->set_ref);
-	return bt_wrap(c, cheax_nil());
-}
-
-static struct chx_value
 defsym_get(CHEAX *c, struct chx_sym *sym)
 {
 	struct defsym_info *info = sym->user_info;
@@ -611,54 +599,86 @@ defsym_finalizer(CHEAX *c, struct chx_sym *sym)
 	cheax_free(c, sym->user_info);
 }
 
-static struct chx_value
-sf_defsym(CHEAX *c, struct chx_list *args, void *info)
+static void
+eval_defsym_stat(CHEAX *c, struct chx_value stat, struct defsym_info *info)
+{
+	if (stat.type != CHEAX_LIST) {
+		cheax_eval(c, stat);
+		return;
+	}
+
+	struct chx_list *lst = stat.data.as_list;
+	if (lst == NULL)
+		return;
+
+	struct chx_value head = lst->value;
+	struct chx_list *tail = lst->next;
+
+	if (head.type != CHEAX_ID) {
+		cheax_eval(c, stat);
+		return;
+	}
+
+	const char *id = head.data.as_id->value;
+
+	if (0 == strcmp(id, "defget")) {
+		defgetset(c, "defget", cheax_nil(), tail, info, &info->get, &info->get_ref);
+		return;
+	}
+
+	if (0 == strcmp(id, "defset")) {
+		static struct chx_id id = { 0, "value" };
+		static struct chx_list set_args = { 0, { .type = CHEAX_ID, .data.as_id = &id }, NULL };
+		static struct chx_value set_args_val = { .type = CHEAX_LIST, .data = { .as_list = &set_args } };
+
+		defgetset(c, "defset", set_args_val, tail, info, &info->set, &info->set_ref);
+		return;
+	}
+
+	cheax_eval(c, stat);
+}
+
+static int
+sf_defsym(CHEAX *c, struct chx_list *args, void *info, struct chx_env *ps, union chx_eval_out *out)
 {
 	if (args == NULL) {
 		cheax_throwf(c, CHEAX_EMATCH, "expected symbol name");
-		return bt_wrap(c, cheax_nil());
+		out->value = bt_wrap(c, cheax_nil());
+		return CHEAX_VALUE_OUT;
 	}
 
 	struct chx_value idval = args->value;
 	if (idval.type != CHEAX_ID) {
 		cheax_throwf(c, CHEAX_ETYPE, "expected identifier");
-		return bt_wrap(c, cheax_nil());
+		out->value = bt_wrap(c, cheax_nil());
+		return CHEAX_VALUE_OUT;
 	}
 
 	struct chx_id *id = idval.data.as_id;
-	bool body_ok = false, add_bt = true;
+	bool body_ok = false;
 
 	struct defsym_info *dinfo = cheax_malloc(c, sizeof(struct defsym_info));
-	if (dinfo == NULL)
-		return bt_wrap(c, cheax_nil());
+	if (dinfo == NULL) {
+		out->value = bt_wrap(c, cheax_nil());
+		return CHEAX_VALUE_OUT;
+	}
 	dinfo->get = dinfo->set = NULL;
 
-	struct chx_value defget, defset;
-	defget = cheax_special_form(c, "defget", sf_defget, dinfo);
-	defset = cheax_special_form(c, "defset", sf_defset, dinfo);
-	cheax_ft(c, err_pad); /* alloc failure */
-
 	cheax_push_env(c);
-	cheax_ft(c, err_pad);
+	cheax_ft(c, pad);
 
-	cheax_def(c, "defget", defget, CHEAX_READONLY);
-	cheax_def(c, "defset", defset, CHEAX_READONLY);
-	cheax_ft(c, pad); /* alloc failure */
-
-	add_bt = false;
 	for (struct chx_list *cons = args->next; cons != NULL; cons = cons->next) {
-		cheax_eval(c, cons->value);
+		eval_defsym_stat(c, cons->value, dinfo);
 		cheax_ft(c, pad);
 	}
 
-	body_ok = add_bt = true;
+	body_ok = true;
 pad:
 	if (dinfo->get != NULL)
 		cheax_unref_ptr(c, dinfo->get, dinfo->get_ref);
 	if (dinfo->set != NULL)
 		cheax_unref_ptr(c, dinfo->set, dinfo->set_ref);
 
-	defget.data.as_form->info = defset.data.as_form->info = NULL;
 	cheax_pop_env(c);
 
 	if (!body_ok)
@@ -682,14 +702,76 @@ pad:
 		protect = cheax_list(c, cheax_func_value(dinfo->set), protect).data.as_list;
 	sym->protect = cheax_list_value(protect);
 
-	return cheax_nil();
+	out->value = cheax_nil();
+	return CHEAX_VALUE_OUT;
 err_pad:
 	cheax_free(c, dinfo);
-	return add_bt ? bt_wrap(c, cheax_nil()) : cheax_nil();
+	out->value = bt_wrap(c, cheax_nil());
+	return CHEAX_VALUE_OUT;
 }
 
 static struct chx_value
-sf_def(CHEAX *c, struct chx_list *args, void *info)
+pp_defsym_stat(CHEAX *c, struct chx_value stat)
+{
+	if (stat.type != CHEAX_LIST)
+		return cheax_preproc(c, stat);
+
+	struct chx_list *lst = stat.data.as_list;
+	if (lst == NULL)
+		return cheax_nil();
+
+	struct chx_value head = lst->value;
+
+	if (head.type == CHEAX_ID
+	 && (0 == strcmp(head.data.as_id->value, "defget")
+	 ||  0 == strcmp(head.data.as_id->value, "defset")))
+	{
+		/* (node LIT (node EXPR (seq EXPR))) */
+		static const uint8_t ops[] = {
+			PP_NODE, PP_LIT, PP_NODE | PP_ERR(0), PP_EXPR, PP_SEQ, PP_EXPR,
+		};
+		static const char *errors[] = { "expected body" };
+		return preproc_pattern(c, stat, ops, errors);
+	}
+
+	return cheax_preproc(c, stat);
+}
+
+static struct chx_value
+pp_sf_defsym(CHEAX *c, struct chx_list *args, void *info)
+{
+	struct chx_list *out = NULL, **nextp = &out;
+
+	if (args == NULL) {
+		cheax_throwf(c, CHEAX_ESTATIC, "expected identifier");
+		return cheax_nil();
+	}
+
+	out = cheax_list(c, args->value, NULL).data.as_list;
+	nextp = &out->next;
+	cheax_ft(c, pad);
+
+	for (args = args->next; args != NULL; args = args->next) {
+		chx_ref ref = cheax_ref_ptr(c, out);
+		struct chx_value stat = pp_defsym_stat(c, args->value);
+		cheax_unref_ptr(c, out, ref);
+
+		cheax_ft(c, pad);
+
+		*nextp = cheax_list(c, stat, NULL).data.as_list;
+		nextp = &(*nextp)->next;
+
+		/* Allocation failure */
+		cheax_ft(c, pad);
+	}
+
+	return cheax_list_value(out);
+pad:
+	return cheax_nil();
+}
+
+static int
+sf_def(CHEAX *c, struct chx_list *args, void *info, struct chx_env *ps, union chx_eval_out *out)
 {
 	int flags = (intptr_t)info;
 
@@ -701,7 +783,56 @@ sf_def(CHEAX *c, struct chx_list *args, void *info)
 		cheax_throwf(c, CHEAX_EMATCH, "invalid pattern");
 		cheax_add_bt(c);
 	}
-	return cheax_nil();
+	out->value = cheax_nil();
+	return CHEAX_VALUE_OUT;
+}
+
+static struct chx_value
+pp_sf_def(CHEAX *c, struct chx_list *args, void *info)
+{
+	/* (node LIT (node EXPR NIL)) */
+	static const uint8_t ops[] = {
+		PP_NODE | PP_ERR(0), PP_LIT, PP_NODE | PP_ERR(1), PP_EXPR, PP_NIL | PP_ERR(2),
+	};
+
+	static const char *errors[] = {
+		"expected identifier",
+		"expected value",
+		"unexpected expression after value",
+	};
+
+	return preproc_pattern(c, cheax_list_value(args), ops, errors);
+}
+
+static struct chx_value
+pp_sf_var(CHEAX *c, struct chx_list *args, void *info)
+{
+	/* (node LIT (maybe (node EXPR NIL))) */
+	static const uint8_t ops[] = {
+		PP_NODE | PP_ERR(0), PP_LIT, PP_MAYBE, PP_NODE, PP_EXPR, PP_NIL | PP_ERR(1),
+	};
+
+	static const char *errors[] = {
+		"expected identifier",
+		"unexpected expression after value",
+	};
+
+	return preproc_pattern(c, cheax_list_value(args), ops, errors);
+}
+
+static int
+sf_set(CHEAX *c, struct chx_list *args, void *info, struct chx_env *ps, union chx_eval_out *out)
+{
+	const char *id;
+	struct chx_value setto;
+	if (unpack(c, args, "N!.", &id, &setto) < 0) {
+		out->value = cheax_nil();
+		return CHEAX_VALUE_OUT;
+	}
+
+	cheax_set(c, id, setto);
+	out->value = bt_wrap(c, cheax_nil());
+	return CHEAX_VALUE_OUT;
 }
 
 static int
@@ -774,15 +905,26 @@ pad2:
 }
 
 static struct chx_value
-sf_set(CHEAX *c, struct chx_list *args, void *info)
+pp_sf_let(CHEAX *c, struct chx_list *args, void *info)
 {
-	const char *id;
-	struct chx_value setto;
-	if (unpack(c, args, "N!.", &id, &setto) < 0)
-		return cheax_nil();
+	/* (node (seq (node LIT (node EXPR NIL))) (node EXPR (seq EXPR))) */
+	static const uint8_t ops[] = {
+		/* sequence of... */
+		PP_NODE | PP_ERR(0), PP_SEQ | PP_ERR(1),
+		/* ...pairs */
+		PP_NODE | PP_ERR(2), PP_LIT, PP_NODE | PP_ERR(2), PP_EXPR, PP_NIL | PP_ERR(2),
+		/* body */
+		PP_NODE | PP_ERR(3), PP_EXPR, PP_SEQ, PP_EXPR,
+	};
 
-	cheax_set(c, id, setto);
-	return bt_wrap(c, cheax_nil());
+	static const char *errors[] = {
+		"expected pair list",
+		"expected list of pairs in second argument",
+		"each let-pair must contain two values",
+		"expected body",
+	};
+
+	return preproc_pattern(c, cheax_list_value(args), ops, errors);
 }
 
 static struct chx_value
@@ -796,11 +938,11 @@ bltn_env(CHEAX *c, struct chx_list *args, void *info)
 void
 export_sym_bltns(CHEAX *c)
 {
-	cheax_def_special_form(c, "defsym",  sf_defsym, NULL);
-	cheax_def_special_form(c, "var",     sf_def,    (void *)0);
-	cheax_def_special_form(c, "def",     sf_def,    (void *)CHEAX_READONLY);
-	cheax_def_special_tail_form(c, "let",  sf_let, NULL);
-	cheax_def_special_tail_form(c, "let*", sf_let, (void *)1);
-	cheax_def_special_form(c, "set",     sf_set,    NULL);
+	cheax_defsyntax(c, "defsym",  sf_defsym, pp_sf_defsym, NULL);
+	cheax_defsyntax(c, "var",     sf_def,    pp_sf_var,    (void *)0);
+	cheax_defsyntax(c, "def",     sf_def,    pp_sf_def,    (void *)CHEAX_READONLY);
+	cheax_defsyntax(c, "set",     sf_set,    pp_sf_def,    NULL);
+	cheax_defsyntax(c, "let",     sf_let,    pp_sf_let,    NULL);
+	cheax_defsyntax(c, "let*",    sf_let,    pp_sf_let,    (void *)1);
 	cheax_defun(c, "env", bltn_env, NULL);
 }

@@ -488,27 +488,35 @@ pad2:
 		cheax_unref(c, amv, active_msg_ref);
 }
 
-static struct chx_value
-sf_try(CHEAX *c, struct chx_list *args, void *info)
+static int
+sf_try(CHEAX *c,
+       struct chx_list *args,
+       void *info,
+       struct chx_env *pop_stop,
+       union chx_eval_out *out)
 {
 	if (args == NULL) {
 		cheax_throwf(c, CHEAX_EMATCH, "expected at least two arguments");
-		return bt_wrap(c, cheax_nil());
+		out->value = bt_wrap(c, cheax_nil());
+		return CHEAX_VALUE_OUT;
 	}
 
 	struct chx_value block = args->value;
 	struct chx_list *catch_blocks = args->next;
 	if (catch_blocks == NULL) {
 		cheax_throwf(c, CHEAX_EMATCH, "expected at least one catch/finally block");
-		return bt_wrap(c, cheax_nil());
+		out->value = bt_wrap(c, cheax_nil());
+		return CHEAX_VALUE_OUT;
 	}
 
 	/* The item such that for the final catch block cb, we have
 	 * cb->next == finally_block */
 	struct chx_list *finally_block = NULL;
 
-	if (validate_catch_blocks(c, catch_blocks, &finally_block) < 0)
-		return cheax_nil();
+	if (validate_catch_blocks(c, catch_blocks, &finally_block) < 0) {
+		out->value = cheax_nil();
+		return CHEAX_VALUE_OUT;
+	}
 
 	struct chx_value retval = cheax_nil();
 
@@ -570,21 +578,83 @@ pad:
 		cheax_unref(c, retval, retval_ref);
 	}
 pad2:
-	return retval;
+	out->value = retval;
+	return CHEAX_VALUE_OUT;
 }
 
 static struct chx_value
-sf_new_error_code(CHEAX *c, struct chx_list *args, void *info)
+pp_sf_try(CHEAX *c, struct chx_list *args, void *info)
+{
+	/* (node
+	 *   EXPR
+	 *   (node
+	 *     (node
+	 *       LIT
+	 *       (node EXPR (seq EXPR)))
+	 *     (seq
+	 *       (node
+	 *         LIT
+	 *         (node EXPR (seq EXPR))))))
+	 */
+	static const uint8_t ops[] = {
+		PP_NODE | PP_ERR(0), PP_EXPR,
+
+		/* first catch/finally block */
+		PP_NODE | PP_ERR(1), PP_NODE | PP_ERR(2), PP_LIT,
+		/* body of first catch/finally block */
+		PP_NODE | PP_ERR(3), PP_EXPR, PP_SEQ, PP_EXPR,
+
+		/* other catch/finally blocks */
+		PP_SEQ, PP_NODE | PP_ERR(2), PP_LIT,
+		/* body of first catch/finally blocks */
+		PP_NODE | PP_ERR(3), PP_EXPR, PP_SEQ, PP_EXPR,
+	};
+
+	static const char *errors[] = {
+		"expected value",
+		"expected at least one catch/finally block",
+		"expected try/catch keyword",
+		"expected body",
+	};
+
+	return preproc_pattern(c, cheax_list_value(args), ops, errors);
+}
+
+static int
+sf_new_error_code(CHEAX *c,
+                  struct chx_list *args,
+                  void *info,
+                  struct chx_env *pop_stop,
+                  union chx_eval_out *out)
 {
 	const char *errname;
-	if (unpack(c, args, "N!", &errname) < 0)
-		return cheax_nil();
+	if (unpack(c, args, "N!", &errname) < 0) {
+		out->value = cheax_nil();
+		return CHEAX_VALUE_OUT;
+	}
 
 	if (cheax_find_error_code(c, errname) >= 0)
 		cheax_throwf(c, CHEAX_EEXIST, "error with name %s already exists", errname);
 	else
 		cheax_new_error_code(c, errname);
-	return bt_wrap(c, cheax_nil());
+	out->value = bt_wrap(c, cheax_nil());
+	return CHEAX_VALUE_OUT;
+}
+
+static struct chx_value
+pp_sf_new_error_code(CHEAX *c, struct chx_list *args, void *info)
+{
+	/* (node LIT NIL) */
+	static const uint8_t ops[] = {
+		PP_NODE | PP_ERR(0), PP_LIT, PP_NIL | PP_ERR(1),
+	};
+
+	static const char *errors[] = {
+		"expected error code name",
+		"unexpected values after error code name",
+	};
+
+	return preproc_pattern(c, cheax_list_value(args), ops, errors);
 }
 
 static void
@@ -604,8 +674,8 @@ void
 export_err_bltns(CHEAX *c)
 {
 	cheax_defun(c, "throw", bltn_throw, NULL);
-	cheax_def_special_form(c, "try",            sf_try,            NULL);
-	cheax_def_special_form(c, "new-error-code", sf_new_error_code, NULL);
+	cheax_defsyntax(c, "try",            sf_try,            pp_sf_try,            NULL);
+	cheax_defsyntax(c, "new-error-code", sf_new_error_code, pp_sf_new_error_code, NULL);
 
 	export_error_names(c);
 }

@@ -55,8 +55,7 @@ enum {
 	CHEAX_ID,            /*!< Identifier type code. */
 	CHEAX_FUNC,          /*!< Function type code. */
 	CHEAX_EXT_FUNC,      /*!< Type code for functions defined through the C API. */
-	CHEAX_SPECIAL_FORM,  /*!< Type code for special forms, defined through the C API. */
-	CHEAX_SPECIAL_TAIL_FORM,
+	CHEAX_SPECIAL_OP,    /*!< Type code for special operations, defined through the C API. */
 	CHEAX_QUOTE,         /*!< Type for quoted expressions. */
 	CHEAX_BACKQUOTE,     /*!< Type for backquoted expressions. */
 	CHEAX_COMMA,         /*!< Type for comma expressions. */
@@ -92,7 +91,8 @@ struct chx_id;
 struct chx_string;
 struct chx_quote;
 struct chx_func;
-struct chx_form;
+struct chx_ext_func;
+struct chx_special_op;
 struct chx_env;
 
 /*! \brief Represents a value in the cheax environment.
@@ -109,7 +109,8 @@ struct chx_value {
 		struct chx_string *as_string;
 		struct chx_quote *as_quote;
 		struct chx_func *as_func;
-		struct chx_form *as_form;
+		struct chx_ext_func *as_ext_func;
+		struct chx_special_op *as_special_op;
 		struct chx_env *as_env;
 		void *user_ptr;
 
@@ -133,9 +134,10 @@ struct chx_value {
 		struct chx_quote *as_quote;
 		/*! \brief Data when type is \ref CHEAX_FUNC. */
 		struct chx_func *as_func;
-		/*! \brief Data when type is \ref CHEAX_SPECIAL_FORM or
-		 *         \ref CHEAX_SPECIAL_TAIL_FORM. */
-		struct chx_form *as_form;
+		/*! \brief Data when type is \ref CHEAX_SPECIAL_OP or
+		 *         \ref CHEAX_EXT_FUNC. */
+		struct chx_ext_func *as_ext_func;
+		struct chx_special_op *as_special_op;
 		/*! \brief Data when type is \ref CHEAX_ENV. */
 		struct chx_env *as_env;
 		/*! \brief Data when type is \ref CHEAX_USER_PTR. */
@@ -305,8 +307,7 @@ CHX_API struct chx_value cheax_func_value_proc(struct chx_func *fn);
  *
  * \returns The function's return value to be delivered back to cheax.
  *
- * \sa chx_form, cheax_special_form(), cheax_def_special_form(),
- *     cheax_ext_func(), cheax_defun()
+ * \sa chx_ext_form, cheax_defsyntax(), cheax_ext_func(), cheax_defun()
  */
 typedef struct chx_value (*chx_func_ptr)(CHEAX *c, struct chx_list *args, void *info);
 
@@ -330,21 +331,18 @@ typedef int (*chx_tail_func_ptr)(CHEAX *c,
                                  union chx_eval_out *out);
 
 /*! \brief Cheax external/user function expression.
- * \sa cheax_special_form(), CHEAX_SPECIAL_FORM, cheax_def_special_form(), chx_func_ptr
+ * \sa cheax_defun(), CHEAX_EXT_FUNC, chx_func_ptr
  */
-struct chx_form {
+struct chx_ext_func {
 	unsigned rtflags;
-	const char *name;      /*!< The function's name, used by cheax_print(). */
-	union {
-		chx_func_ptr func;
-		chx_tail_func_ptr tail_func;
-	} perform;
-	void *info;            /*!< Callback info to be passed upon invocation. */
+	const char *name;     /*!< The function's name, used by cheax_print(). */
+	chx_func_ptr perform;
+	void *info;           /*!< Callback info to be passed upon invocation. */
 };
 
 /*! \brief Creates a cheax external/user function expression.
  *
- * External functions, unlike special forms, have their arguments
+ * External functions, unlike special operators, have their arguments
  * pre-evaluated.
  *
  * \param perform Function pointer to be invoked.
@@ -356,33 +354,8 @@ CHX_API struct chx_value cheax_ext_func(CHEAX *c,
                                         chx_func_ptr perform,
                                         void *info);
 
-#define cheax_ext_func_value(X) ((struct chx_value){ .type = CHEAX_EXT_FUNC, .data.as_form = (X) })
-CHX_API struct chx_value cheax_ext_func_value_proc(struct chx_form *sf);
-
-/*! \brief Creates a cheax special form.
- *
- * Special forms, unlike external functions, do not have their arguments
- * pre-evaluated.
- *
- * \param perform Function pointer to be invoked.
- * \param name    Function name as will be used by cheax_print().
- * \param info    Callback info to be passed upon invocation.
- */
-CHX_API struct chx_value cheax_special_form(CHEAX *c,
-                                            const char *name,
-                                            chx_func_ptr perform,
-                                            void *info);
-
-#define cheax_special_form_value(X) ((struct chx_value){ .type = CHEAX_SPECIAL_FORM, .data.as_form = (X) })
-CHX_API struct chx_value cheax_special_form_value_proc(struct chx_form *sf);
-
-CHX_API struct chx_value cheax_special_tail_form(CHEAX *c,
-                                                 const char *name,
-                                                 chx_tail_func_ptr perform,
-                                                 void *info);
-
-#define cheax_special_tail_form_value(X) ((struct chx_value){ .type = CHEAX_SPECIAL_TAIL_FORM, .data.as_form = (X) })
-CHX_API struct chx_value cheax_special_tail_form_value_proc(struct chx_form *sf);
+#define cheax_ext_func_value(X) ((struct chx_value){ .type = CHEAX_EXT_FUNC, .data.as_ext_func = (X) })
+CHX_API struct chx_value cheax_ext_func_value_proc(struct chx_ext_func *sf);
 
 /*! \brief Creates a quoted cheax expression.
  *
@@ -664,7 +637,7 @@ enum {
 	CHEAX_ESTACK     = 0x0103, /*!< Stack overflow error. */
 	CHEAX_ETYPE      = 0x0104, /*!< Invalid type error. */
 	CHEAX_EMATCH     = 0x0105, /*!< Unable to match expression error. */
-	CHEAX_EMACRO     = 0x0106, /*!< Internal error while trying to expand macro. */
+	CHEAX_ESTATIC    = 0x0106, /*!< Preprocessing failed. */
 	CHEAX_EDIVZERO   = 0x0107, /*!< Division by zero error. */
 	CHEAX_EREADONLY  = 0x0108, /*!< Attempted write to read-only symbol error. */
 	CHEAX_EWRITEONLY = 0x0109, /*!< Attempted read from write-only symbol error. */
@@ -690,7 +663,7 @@ static const struct { const char *name; int code; } var[] = { \
 	                                                      \
 	ERR_NAME_PAIR(EEVAL), ERR_NAME_PAIR(ENOSYM),          \
 	ERR_NAME_PAIR(ESTACK), ERR_NAME_PAIR(ETYPE),          \
-	ERR_NAME_PAIR(EMATCH), ERR_NAME_PAIR(EMACRO),         \
+	ERR_NAME_PAIR(EMATCH), ERR_NAME_PAIR(ESTATIC),        \
 	ERR_NAME_PAIR(EDIVZERO), ERR_NAME_PAIR(EREADONLY),    \
 	ERR_NAME_PAIR(EWRITEONLY), ERR_NAME_PAIR(EEXIST),     \
 	ERR_NAME_PAIR(EVALUE), ERR_NAME_PAIR(EOVERFLOW),      \
@@ -1114,29 +1087,14 @@ cheax_def(c, id, &cheax_ext_func(c, id, perform, info)->base, CHEAX_READONLY);
  * \param perform Callback for the new external functions.
  * \param info    Callback info for the new external functions.
  *
- * \sa chx_form, cheax_ext_func(), cheax_def(), cheax_def_special_form()
+ * \sa chx_ext_func, cheax_ext_func(), cheax_def(), cheax_defsyntax()
  */
 CHX_API void cheax_defun(CHEAX *c, const char *id, chx_func_ptr perform, void *info);
-CHX_API void cheax_def_special_form(CHEAX *c, const char *id, chx_func_ptr perform, void *info);
-
-/*! \brief Creates a new special tail form the cheax environment.
- *
- * Special forms are available both at runtime and during macro
- * expansion time. Unlike extenal functions, arguments to special forms
- * are left unevaluated before the callback is invoked. Furthermore,
- * special forms, like macros, are not "first-class" objects in cheax.
- * E.g. they cannot be passed to other functions as arguments.
- *
- * \param id      Identifier for the special form.
- * \param perform Callback for the new special form.
- * \param info    Callback info for the new special form.
- *
- * \sa chx_form, cheax_special_form(), cheax_def(), cheax_defun()
- */
-CHX_API void cheax_def_special_tail_form(CHEAX *c,
-                                         const char *id,
-                                         chx_tail_func_ptr perform,
-                                         void *info);
+CHX_API void cheax_defsyntax(CHEAX *c,
+                             const char *id,
+                             chx_tail_func_ptr perform,
+                             chx_func_ptr preproc,
+                             void *info);
 
 /*! \brief Synchronizes a variable from C with a symbol in the cheax environment.
  *
@@ -1227,6 +1185,7 @@ CHX_API bool cheax_match(CHEAX *c, struct chx_value pan, struct chx_value match,
  * \returns Whether the given cheax expressions are equal in value.
  */
 CHX_API bool cheax_eq(CHEAX *c, struct chx_value l, struct chx_value r);
+CHX_API bool cheax_equiv(struct chx_value l, struct chx_value r);
 
 /*! \brief Attempts to cast an expression to a given type.
  *
@@ -1336,10 +1295,10 @@ CHX_API struct chx_value cheax_readstr_at(CHEAX *c,
                                           int *line,
                                           int *pos);
 
-/*! \brief Expand all macro forms in given expression.
+/*! \brief Expand given expression until it is no longer a macro form.
  *
  * Macros are defined using the `(defmacro)` built-in. Throws
- * \ref CHEAX_EMACRO in case of an internal error.
+ * \ref CHEAX_ESTATIC in case of an internal error.
  *
  * \note This function may call cheax_gc(). Make sure to cheax_ref()
  *       your values properly.
@@ -1350,19 +1309,21 @@ CHX_API struct chx_value cheax_readstr_at(CHEAX *c,
  */
 CHX_API struct chx_value cheax_macroexpand(CHEAX *c, struct chx_value expr);
 
-/*! \brief Expand first macro form in given expression.
+/*! \brief Expand expression if it is a macro form.
  *
  * Macros are defined using the `(defmacro)` built-in. Throws
- * \ref CHEAX_EMACRO in case of an internal error.
+ * \ref CHEAX_ESTATIC in case of an internal error.
  *
  * \note This function may call cheax_gc(). Make sure to cheax_ref()
  *       your values properly.
  *
- * \param expr Expression in which to expand the first macro form.
+ * \param expr Expression to expand.
  *
  * \sa cheax_macroexpand()
  */
 CHX_API struct chx_value cheax_macroexpand_once(CHEAX *c, struct chx_value expr);
+
+CHX_API struct chx_value cheax_preproc(CHEAX *c, struct chx_value expr);
 
 /*! \brief Evaluates given cheax expression.
  *

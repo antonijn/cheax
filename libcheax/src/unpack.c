@@ -329,3 +329,137 @@ unpack(CHEAX *c, struct chx_list *args, const char *fmt, ...)
 
 	return res;
 }
+
+static struct chx_value pp_pan_value(CHEAX *c,
+                                     struct chx_value value,
+                                     const uint8_t **prog_p,
+                                     const char **errors);
+
+static size_t
+pp_pan_len(const uint8_t *prog)
+{
+	size_t len1;
+	switch (*prog & PP_INSTR_BITS) {
+	case PP_NIL:
+	case PP_LIT:
+	case PP_EXPR:
+		return 1;
+	case PP_NODE:
+		len1 = pp_pan_len(prog + 1);
+		return 1 + len1 + pp_pan_len(prog + 1 + len1);
+	case PP_SEQ:
+	case PP_MAYBE:
+		return 1 + pp_pan_len(prog + 1);
+	}
+
+	abort();
+}
+
+static void
+pp_error(CHEAX *c, uint8_t op, const char **errors, const char *deflt)
+{
+	const char *msg = deflt;
+	if ((op & PP_ERRMSG_BITS) != 0)
+		msg = errors[((op & PP_ERRMSG_BITS) >> PP_ERRMSG_OFS) - 1];
+	cheax_throwf(c, CHEAX_ESTATIC, "%s", msg);
+	cheax_add_bt(c);
+}
+
+static struct chx_list *
+pp_pan_list(CHEAX *c, struct chx_value value, const uint8_t **prog_p, const char **errors)
+{
+	struct chx_value head;
+	struct chx_list *tail, *lst, *out, **nextp;
+	uint8_t op = *(*prog_p)++;
+
+	if (value.type != CHEAX_LIST) {
+		pp_error(c, op, errors, "failed to match list");
+		return NULL;
+	}
+
+	lst = value.data.as_list;
+
+	switch (op & PP_INSTR_BITS) {
+	case PP_NIL:
+		if (lst != NULL)
+			pp_error(c, op, errors, "failed to match nil");
+		return NULL;
+
+	case PP_NODE:
+		if (lst == NULL) {
+			pp_error(c, op, errors, "failed to match node");
+			return NULL;
+		}
+
+		head = pp_pan_value(c, lst->value, prog_p, errors);
+		cheax_ft(c, pad);
+
+		chx_ref head_ref = cheax_ref(c, head);
+		tail = pp_pan_list(c, cheax_list_value(lst->next), prog_p, errors);
+		cheax_unref(c, head, head_ref);
+		cheax_ft(c, pad);
+
+		return cheax_list(c, head, tail).data.as_list;
+
+	case PP_MAYBE:
+		if (lst == NULL) {
+			*prog_p += pp_pan_len(*prog_p);
+			return NULL;
+		}
+
+		return pp_pan_list(c, value, prog_p, errors);
+
+	case PP_SEQ:
+		out = NULL;
+		nextp = &out;
+
+		for (; lst != NULL; lst = lst->next) {
+			const uint8_t *prog_cpy = *prog_p;
+
+			chx_ref ref = cheax_ref_ptr(c, out);
+			head = pp_pan_value(c, lst->value, &prog_cpy, errors);
+			cheax_unref_ptr(c, out, ref);
+
+			cheax_ft(c, pad);
+
+			*nextp = cheax_list(c, head, NULL).data.as_list;
+			nextp = &(*nextp)->next;
+
+			/* Allocation failure */
+			cheax_ft(c, pad);
+		}
+
+		*prog_p += pp_pan_len(*prog_p);
+		return out;
+
+	default:
+		cheax_throwf(c, CHEAX_ESTATIC, "unsupported list pattern operator");
+		cheax_add_bt(c);
+		return NULL;
+	}
+pad:
+	return NULL;
+}
+
+static struct chx_value
+pp_pan_value(CHEAX *c, struct chx_value value, const uint8_t **prog_p, const char **errors)
+{
+	switch (*(*prog_p)++ & PP_INSTR_BITS) {
+	case PP_LIT:
+		return value;
+
+	case PP_EXPR:
+		return cheax_preproc(c, value);
+
+	default:
+		--*prog_p;
+		return cheax_list_value(pp_pan_list(c, value, prog_p, errors));
+	}
+}
+
+struct chx_value
+preproc_pattern(CHEAX *c, struct chx_value input, const uint8_t *prog, const char **errors)
+{
+	/* TODO optimise in case preprocess didn't change syntax */
+	return pp_pan_value(c, input, &prog, errors);
+}

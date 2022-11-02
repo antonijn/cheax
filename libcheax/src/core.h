@@ -43,6 +43,7 @@ enum {
 	LOC_INFO    = 0x0020, /* list is struct loc_debug_list */
 	ORIG_INFO   = 0x0040, /* list is struct orig_debug_list */
 	DEBUG_BITS  = 0x0060,
+	PREPROC_BIT = 0x0080, /* This form has been preprocessed */
 };
 
 static inline bool
@@ -50,6 +51,14 @@ has_flag(int i, int f)
 {
 	return (i & f) == f;
 }
+
+struct chx_special_op {
+	unsigned rtflags;
+	const char *name;
+	chx_tail_func_ptr perform;
+	chx_func_ptr preproc;
+	void *info;
+};
 
 struct chx_string {
 	unsigned rtflags;
@@ -93,11 +102,11 @@ struct type_alias {
 
 struct cheax {
 	/* contains all global symbols defined at runtime */
-	struct chx_env global_env_struct;
-	/* contains all special forms (not directly accessible) */
-	struct chx_env sf_env_struct;
+	struct chx_env global_ns;
+	/* contains all special operators (not directly accessible) */
+	struct chx_env specop_ns;
 	/* contains all macros */
-	struct chx_env macro_env_struct;
+	struct chx_env macro_ns;
 
 	/* current environment */
 	struct chx_env *env;
@@ -159,8 +168,5 @@ double vtod(struct chx_value value);
 #define errorcode(X) ((struct chx_value){ .type = CHEAX_ERRORCODE, .data.as_int = (X) })
 
 void export_core_bltns(CHEAX *c);
-
-/* defined in eval.c */
-struct chx_list *macroexpand_list(CHEAX *c, struct chx_list *lst, bool once, bool *expanded);
 
 #endif

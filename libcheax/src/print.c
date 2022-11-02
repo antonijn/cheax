@@ -37,7 +37,8 @@ static void
 ostrm_show_basic(CHEAX *c, struct ostrm *s, struct chx_value val)
 {
 	struct chx_env *env;
-	struct chx_form *macro;
+	struct chx_ext_func *macro;
+	struct chx_special_op *specop;
 
 	int ty = cheax_resolve_type(c, val.type);
 	switch (ty) {
@@ -104,13 +105,18 @@ ostrm_show_basic(CHEAX *c, struct ostrm *s, struct chx_value val)
 		ostrm_putc(s, '"');
 		break;
 	case CHEAX_EXT_FUNC:
-	case CHEAX_SPECIAL_FORM:
-	case CHEAX_SPECIAL_TAIL_FORM:
-		macro = val.data.as_form;
+		macro = val.data.as_ext_func;
 		if (macro->name == NULL)
-			ostrm_printf(s, "[native form]");
+			ostrm_printf(s, "[external function]");
 		else
 			ostrm_printf(s, "%s", macro->name);
+		break;
+	case CHEAX_SPECIAL_OP:
+		specop = val.data.as_special_op;
+		if (specop->name == NULL)
+			ostrm_printf(s, "[special operator]");
+		else
+			ostrm_printf(s, "%s", specop->name);
 		break;
 	case CHEAX_USER_PTR:
 		ostrm_printf(s, "%p", val.data.user_ptr);
