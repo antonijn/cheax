@@ -36,6 +36,20 @@ static int eval_bkquoted(CHEAX *c,
                          struct chx_value quoted,
                          int nest);
 
+static void
+rmshebang(FILE *f)
+{
+	char shebang[2] = { 0 };
+	size_t bytes = fread(shebang, 1, 2, f);
+	if (shebang[0] == '#' && shebang[1] == '!') {
+		while (fgetc(f) != '\n')
+			;
+	} else {
+		for (; bytes > 0; --bytes)
+			ungetc(shebang[bytes - 1], f);
+	}
+}
+
 void
 cheax_exec(CHEAX *c, const char *path)
 {
@@ -47,21 +61,15 @@ cheax_exec(CHEAX *c, const char *path)
 		return;
 	}
 
-	char shebang[2] = { 0 };
-	fread(shebang, 2, 1, f);
-	if (shebang[0] == '#' && shebang[1] == '!') {
-		while (fgetc(f) != '\n')
-			;
-	} else {
-		ungetc(shebang[1], f);
-		ungetc(shebang[0], f);
-	}
+	rmshebang(f);
 
 	int line = 1, pos = 0;
-
-	struct chx_value v;
-	while (!cheax_is_nil(v = cheax_read_at(c, f, path, &line, &pos))) {
+	for (;;) {
+		struct chx_value v = cheax_read_at(c, f, path, &line, &pos);
 		cheax_ft(c, pad);
+		if (cheax_is_nil(v) && feof(f))
+			break;
+
 		v = cheax_preproc(c, v);
 		cheax_ft(c, pad);
 		cheax_eval(c, v);
