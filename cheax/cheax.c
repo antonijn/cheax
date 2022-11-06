@@ -23,6 +23,10 @@
 #include <stdlib.h>
 #include <string.h>
 
+typedef void (*cmd_action)(CHEAX *c, const char *cmd);
+typedef void (*stdin_action)(CHEAX *c);
+typedef void (*path_action)(CHEAX *c, const char *path);
+
 #define MAX_INPUT_FILES 16
 #define TERM_WIDTH      80
 #define HELP_MARGIN     24
@@ -38,9 +42,10 @@ static const char *input_files[MAX_INPUT_FILES];
 /* -c CMD */
 static const char *cmd = NULL;
 
-static bool read_stdin = false, use_prelude = true;
+static bool read_stdin = false, use_prelude = true, preproc_only = false;
 
 static CHEAX *c;
+static const char *progname;
 
 /*
  * Print text as column, with left margin HELP_MARGIN, and right margin
@@ -68,7 +73,7 @@ print_column(const char *msg, int head_start)
 		buf[lnwidth] = '\0';
 
 		if (isgraph(msg[lnwidth])) {
-			/* need to break-off word */
+			/* need to break off word */
 			char *space = strrchr(buf, ' ');
 			if (space == NULL)
 				space = buf + lnwidth;
@@ -87,28 +92,46 @@ print_column(const char *msg, int head_start)
 }
 
 static void
+print_opt_info(const char *name, const char *metavar, const char *help)
+{
+	int head_start = 0;
+	head_start += printf("  %s%s ", (strlen(name) > 1) ? "--" : "-", name);
+	if (metavar != NULL)
+		head_start += printf("%s ", metavar);
+
+	if (head_start > HELP_MARGIN) {
+		/* scoot to next line */
+		putchar('\n');
+		head_start = 0;
+	}
+
+	print_column(help, head_start);
+}
+
+static void
 print_usage(void)
 {
 	static const char usage[] =
 		"Usage: cheax [OPTION]... [FILE]...\n"
 		"Executes cheax programs.\n\n"
-		"Options:\n"
-		"  -c CMD                Read and evaluate command CMD.\n"
-		"  -p                    Don't load prelude.\n"
-		"  --help                Show this message.\n"
-		"  --version             Show cheax version information.";
+		"Options:";
 
 	puts(usage);
 
-	for (size_t i = 0; i < num_cfg_opts; ++i) {
-		int head_start = printf("  --%s %s ", cfg_help[i].name, cfg_help[i].metavar);
-		if (head_start > HELP_MARGIN) {
-			/* scoot to next line */
-			putchar('\n');
-			head_start = 0;
-		}
-		print_column(cfg_help[i].help, head_start);
-	}
+	struct { const char *name, *metavar, *help; } opts[] = {
+		{ "c",       "CMD", "Read and evaluate command CMD."                },
+		{ "E",       NULL,  "Preprocess only, don't evaluate expressions. "
+		                    "Output written to stdout."                     },
+		{ "p",       NULL,  "Don't load prelude."                           },
+		{ "help",    NULL,  "Show this message"                             },
+		{ "version", NULL,  "Show cheax version information."               },
+	};
+
+	for (size_t i = 0; i < sizeof(opts) / sizeof(opts[0]); ++i)
+		print_opt_info(opts[i].name, opts[i].metavar, opts[i].help);
+
+	for (size_t i = 0; i < num_cfg_opts; ++i)
+		print_opt_info(cfg_help[i].name, cfg_help[i].metavar, cfg_help[i].help);
 
 	putchar('\n');
 }
@@ -234,9 +257,6 @@ static int
 handle_option(char opt, int *arg_idx, int argc, char **argv)
 {
 	switch (opt) {
-	case 'p':
-		use_prelude = false;
-		break;
 	case 'c':
 		if (*arg_idx + 1 >= argc) {
 			fprintf(stderr, "expected command after `-c'\n");
@@ -244,6 +264,12 @@ handle_option(char opt, int *arg_idx, int argc, char **argv)
 		}
 
 		cmd = argv[++*arg_idx];
+		break;
+	case 'E':
+		preproc_only = true;
+		break;
+	case 'p':
+		use_prelude = false;
 		break;
 	default:
 		fprintf(stderr, "unknown option '%c'\n", opt);
@@ -298,6 +324,100 @@ handle_args(int argc, char **argv)
 }
 
 static void
+exec_path(CHEAX *c, const char *path)
+{
+	cheax_exec(c, path);
+}
+
+static void
+preproc_handle(CHEAX *c, FILE *f, const char *name)
+{
+	int line = 1, pos = 0;
+	for (;;) {
+		struct chx_value v = cheax_read_at(c, f, name, &line, &pos);
+		cheax_ft(c, pad);
+		if (cheax_is_nil(v) && feof(f))
+			break;
+
+		v = cheax_preproc(c, v);
+		cheax_ft(c, pad);
+
+		cheax_print(c, stdout, v);
+		fputc('\n', stdout);
+	}
+
+	fflush(stdout);
+pad:
+	return;
+}
+
+static void
+preproc_path(CHEAX *c, const char *path)
+{
+	FILE *f = fopen(path, "rb");
+	if (f == NULL) {
+		perror(progname);
+		return;
+	}
+
+	char shebang[2] = { 0 };
+	size_t bytes = fread(shebang, 1, 2, f);
+	if (shebang[0] == '#' && shebang[1] == '!') {
+		while (fgetc(f) != '\n')
+			;
+	} else {
+		for (; bytes > 0; --bytes)
+			ungetc(shebang[bytes - 1], f);
+	}
+
+	preproc_handle(c, f, path);
+	fclose(f);
+}
+
+static void
+exec_stdin(CHEAX *c)
+{
+	int line = 1, pos = 0;
+	for (;;) {
+		struct chx_value v = cheax_read_at(c, stdin, "<stdin>", &line, &pos);
+		cheax_ft(c, pad);
+		if (cheax_is_nil(v) && feof(stdin))
+			break;
+
+		cheax_eval(c, v);
+		cheax_ft(c, pad);
+	}
+pad:
+	return;
+}
+
+static void
+preproc_stdin(CHEAX *c)
+{
+	preproc_handle(c, stdin, "<stdin>");
+}
+
+static void
+exec_cmd(CHEAX *c, const char *cmd)
+{
+	struct chx_value v = cheax_readstr(c, cmd);
+	if (cheax_errno(c) != 0)
+		cheax_eval(c, v);
+}
+
+static void
+preproc_cmd(CHEAX *c, const char *cmd)
+{
+	struct chx_value v = cheax_readstr(c, cmd);
+	cheax_ft(c, pad);
+	v = cheax_preproc(c, v);
+	cheax_ft(c, pad);
+	cheax_print(c, stdout, v);
+pad:
+	return;
+}
+
+static void
 cleanup(void)
 {
 	cheax_destroy(c);
@@ -307,7 +427,7 @@ cleanup(void)
 int
 main(int argc, char **argv)
 {
-	const char *errstr = argv[0];
+	const char *errstr = progname = argv[0];
 
 	c = cheax_init();
 	atexit(cleanup);
@@ -323,25 +443,29 @@ main(int argc, char **argv)
 	if (use_prelude && cheax_load_prelude(c) < 0)
 		goto pad;
 
+	cmd_action cmd_act = exec_cmd;
+	stdin_action stdin_act = exec_stdin;
+	path_action path_act = exec_path;
+
+	if (preproc_only) {
+		cmd_act = preproc_cmd;
+		stdin_act = preproc_stdin;
+		path_act = preproc_path;
+	}
+
 	if (cmd != NULL) {
-		cheax_eval(c, cheax_readstr(c, cmd));
+		cmd_act(c, cmd);
 		cheax_ft(c, pad);
 	}
 
 	if (read_stdin) {
 		errstr = "-";
-		int line = 1, pos = 0;
-		struct chx_value v;
-		while (!cheax_is_nil(v = cheax_read_at(c, stdin, "<stdin>", &line, &pos))) {
-			cheax_ft(c, pad);
-			cheax_eval(c, v);
-			cheax_ft(c, pad);
-		}
+		stdin_act(c);
 	}
 
 	for (size_t i = 0; i < num_input_files; ++i) {
 		errstr = input_files[i];
-		cheax_exec(c, input_files[i]);
+		path_act(c, input_files[i]);
 		cheax_ft(c, pad);
 	}
 
