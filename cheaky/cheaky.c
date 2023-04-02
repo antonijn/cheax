@@ -126,6 +126,9 @@ main(void)
 
 	cheax_def_special_form(c, "quit", quit_fun, NULL);
 
+	bool hide_nil = true;
+	cheax_sync_bool(c, "cheaky-hide-nil", &hide_nil, 0);
+
 	if (cheax_load_prelude(c)) {
 		cheax_perror(c, "cheaky");
 		return EXIT_FAILURE;
@@ -154,8 +157,11 @@ main(void)
 		if (quit)
 			break;
 
-		cheax_print(c, stdout, v);
-		printf("\n");
+		if (!cheax_is_nil(v) || !hide_nil) {
+			cheax_print(c, stdout, v);
+			printf("\n");
+		}
+
 		continue;
 pad:
 		cheax_perror(c, "cheaky");
