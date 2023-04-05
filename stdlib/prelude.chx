@@ -323,6 +323,8 @@
 (defun read () (read-from stdin))
 (defun print (arg) (print-to stdout arg))
 (defun put (arg) (put-to stdout arg))
+(defun putf-to (: fd args) (put-to fd (apply format args)))
+(defun putf args (put (apply format args)))
 (defun get-line () (get-line-from stdin))
 (defun get-byte () (get-byte-from stdin))
 
