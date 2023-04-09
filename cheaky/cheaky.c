@@ -185,12 +185,6 @@ stop:
 }
 
 static struct chx_value
-quit_fun(CHEAX *c, struct chx_list *args, void *info)
-{
-	return quit = true, cheax_nil();
-}
-
-static struct chx_value
 clear_fun(CHEAX *c, struct chx_list *args, void *info)
 {
 	return clear = true, cheax_nil();
@@ -207,7 +201,6 @@ main(void)
 	cheax_def_special_form(c, "show-w", show_w, NULL);
 	cheax_def_special_form(c, "show-c", show_c, NULL);
 
-	cheax_def_special_form(c, "quit", quit_fun, NULL);
 	cheax_def_special_form(c, "clear", clear_fun, NULL);
 
 	bool hide_nil = true;
