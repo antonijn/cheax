@@ -21,8 +21,11 @@
 #include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include <readline/readline.h>
-#include <readline/history.h>
+#include <string.h>
+#ifdef CHEAKY_USE_READLINE
+#  include <readline/readline.h>
+#  include <readline/history.h>
+#endif
 
 static void
 show_file(const char *path)
@@ -56,6 +59,71 @@ show_c(CHEAX *c, struct chx_list *args, void *info)
 
 static bool quit = false, clear = false;
 
+#ifndef CHEAKY_USE_READLINE
+
+static int
+expand_buf(char **buf, size_t new_len, size_t *cap)
+{
+	size_t old_cap = *cap;
+
+	if (new_len <= old_cap)
+		return 0;
+
+	size_t new_cap = old_cap;
+	while (new_len > old_cap) {
+		new_cap *= 2;
+		if (new_cap <= old_cap) {
+			/* overflow */
+			goto fail;
+		}
+	}
+
+	char *new_buf = realloc(*buf, new_cap);
+	if (new_buf == NULL)
+		goto fail;
+
+	*buf = new_buf;
+	*cap = new_cap;
+	return 0;
+
+fail:
+	free(*buf);
+	*buf = NULL;
+	*cap = 0;
+	return -1;
+}
+
+static char *
+cheaky_readline(char *prompt)
+{
+	fputs(prompt, stdout);
+
+	size_t len = 1, cap = 128;
+
+	char *res = malloc(cap);
+	if (res == NULL)
+		return res;
+
+	int c;
+	while ((c = getchar()) != '\n') {
+		if (c == EOF) {
+			putchar('\n');
+			free(res);
+			return NULL;
+		}
+
+		if (expand_buf(&res, ++len, &cap) < 0)
+			break;
+
+		res[len - 2] = c;
+		res[len - 1] = '\0';
+	}
+
+	return res;
+}
+
+#endif
+
 static struct chx_value
 read_with_readline(CHEAX *c, int *line, int *pos)
 {
@@ -68,7 +136,12 @@ read_with_readline(CHEAX *c, int *line, int *pos)
 	do {
 		out_line = *line;
 		out_pos = *pos;
+
+#ifdef CHEAKY_USE_READLINE
 		char *input = readline(prompt);
+#else
+		char *input = cheaky_readline(prompt);
+#endif
 		if (!input) {
 			quit = true;
 			free(input);
@@ -78,7 +151,10 @@ read_with_readline(CHEAX *c, int *line, int *pos)
 			free(input);
 			goto stop;
 		}
+
+#ifdef CHEAKY_USE_READLINE
 		add_history(input);
+#endif
 
 		int size_fullstr = (fullstr != NULL) ? strlen(fullstr) : 0;
 		int size_input = strlen(input);

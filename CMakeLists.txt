@@ -1,14 +1,15 @@
 cmake_minimum_required (VERSION 3.10)
 project (cheax LANGUAGES C)
 
-option (BUILD_SHARED_LIBS "Build shared libraries"   ON)
-option (BUILD_DOCS        "Build Doxygen html pages" ON)
+option (BUILD_SHARED_LIBS   "Build shared libraries"   ON)
+option (BUILD_DOCS          "Build Doxygen html pages" ON)
+option (CHEAKY_USE_READLINE "Use readline in cheaky"   ON)
 
 set (CMAKE_C_STANDARD 99)
 
 if (NOT MSVC)
 	add_compile_options (-Wall -Wextra -Wno-unused-parameter -pedantic-errors)
-endif()
+endif ()
 
 if (BUILD_DOCS)
 	set (DOXYGEN_SKIP_DOT TRUE)
