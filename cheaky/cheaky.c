@@ -57,7 +57,7 @@ show_c(CHEAX *c, struct chx_list *args, void *info)
 	return cheax_nil();
 }
 
-static bool quit = false, clear = false;
+static bool clear = false;
 
 #ifndef CHEAKY_USE_READLINE
 
@@ -104,6 +104,8 @@ cheaky_readline(char *prompt)
 	if (res == NULL)
 		return res;
 
+	res[0] = '\0';
+
 	int c;
 	while ((c = getchar()) != '\n') {
 		if (c == EOF) {
@@ -124,14 +126,15 @@ cheaky_readline(char *prompt)
 
 #endif
 
-static struct chx_value
-read_with_readline(CHEAX *c, int *line, int *pos)
+static int
+read_with_readline(CHEAX *c, int *line, int *pos, struct chx_value *out)
 {
 	char *prompt = "> ";
 	char *fullstr = NULL;
-	struct chx_value res = cheax_nil();
-
+	int res = 0;
 	int out_line, out_pos;
+
+	*out = cheax_nil();
 
 	do {
 		out_line = *line;
@@ -142,14 +145,14 @@ read_with_readline(CHEAX *c, int *line, int *pos)
 #else
 		char *input = cheaky_readline(prompt);
 #endif
-		if (!input) {
-			quit = true;
-			free(input);
-			goto stop;
+		if (input == NULL) {
+			res = -1;
+			break;
 		}
+
 		if (input[0] == '\0') {
 			free(input);
-			goto stop;
+			break;
 		}
 
 #ifdef CHEAKY_USE_READLINE
@@ -166,7 +169,7 @@ read_with_readline(CHEAX *c, int *line, int *pos)
 
 		cheax_clear_errno(c);
 		const char *to_read = fullstr;
-		res = cheax_readstr_at(c, &to_read, "<stdin>", &out_line, &out_pos);
+		*out = cheax_readstr_at(c, &to_read, "<stdin>", &out_line, &out_pos);
 
 		/* only one expression is read, but we should still
 		 * consider the remaining string for our line count
@@ -175,9 +178,8 @@ read_with_readline(CHEAX *c, int *line, int *pos)
 			out_line += (*to_read == '\n');
 
 		prompt = "… ";
-	} while (cheax_is_nil(res) && cheax_errno(c) == CHEAX_EEOF);
+	} while (cheax_is_nil(*out) && cheax_errno(c) == CHEAX_EEOF);
 
-stop:
 	free(fullstr);
 	*line = out_line;
 	*pos = out_pos;
@@ -220,19 +222,16 @@ main(void)
 	fputs("This is free software, and you are welcome to redistribute it\n", stderr);
 	fputs("under certain conditions; type `(show-c)' for details.\n", stderr);
 
-	while (!quit) {
-		struct chx_value v = read_with_readline(c, &line, &pos);
+	struct chx_value v;
+	while (0 == read_with_readline(c, &line, &pos, &v)) {
+		/* read error */
 		cheax_ft(c, pad);
-		if (quit)
-			break;
 
 		v = cheax_macroexpand(c, v);
 		cheax_ft(c, pad);
 
 		v = cheax_eval(c, v);
 		cheax_ft(c, pad);
-		if (quit)
-			break;
 
 		if (!cheax_is_nil(v) || !hide_nil) {
 			cheax_print(c, stdout, v);
