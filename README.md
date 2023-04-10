@@ -23,7 +23,6 @@ Run the `cheaky` program for an interactive prompt.
 ```
 > (put "hello, world!\n")
 hello, world!
-()
 
 > (print '(1 2 3))          ; quote syntax: evaluates to the quoted expression
 (1 2 3)
