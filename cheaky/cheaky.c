@@ -145,12 +145,15 @@ read_with_readline(CHEAX *c, int *line, int *pos, struct chx_value *out)
 #else
 		char *input = cheaky_readline(prompt);
 #endif
+		/* end of file */
 		if (input == NULL) {
 			res = -1;
 			break;
 		}
 
+		/* empty line */
 		if (input[0] == '\0') {
+			++out_line;
 			free(input);
 			break;
 		}
