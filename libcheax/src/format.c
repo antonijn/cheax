@@ -38,21 +38,34 @@ read_int(CHEAX *c, const char *desc, struct scnr *fmt, int *out)
 	return 0;
 }
 
+static int
+type_is_num(int type)
+{
+	return type == CHEAX_INT || type == CHEAX_DOUBLE;
+}
+
 /* format (or field) specifier */
 struct fspec {
-	int index;       /* field index (default -1) */
+	int index;          /* field index (default -1) */
 
 	/* conversion specifier */
 	enum {
 		CONV_NONE,
-		CONV_S,  /* for {!s} */
-		CONV_R,  /* for {!r} */
+		CONV_S,     /* for {!s} */
+		CONV_R,     /* for {!r} */
 	} conv;
 
-	char pad_char;   /* character to pad with: ' ' (default) or '0' */
-	int field_width; /* width (number of bytes) to pad to (default 0) */
-	int precision;   /* floating point precision spec (default -1) */
-	char misc_spec;  /* xXobcd for int, eEfFgG for double (default 0) */
+	enum {
+		ALN_NONE,
+		ALN_LEFT,   /* for {:<} */
+		ALN_CENTER, /* for {:^} */
+		ALN_RIGHT,  /* for {:>} */
+	} aln;
+
+	char pad_char;      /* character to pad with: ' ' (default) or '0' */
+	int field_width;    /* width (number of bytes) to pad to (default 0) */
+	int precision;      /* floating point precision spec (default -1) */
+	char misc_spec;     /* xXobcd for int, eEfFgG for double (default 0) */
 };
 
 static int
@@ -60,6 +73,7 @@ read_fspec(CHEAX *c, struct scnr *fmt, struct fspec *sp)
 {
 	sp->index = -1;
 	sp->conv = CONV_NONE;
+	sp->aln = ALN_NONE;
 	sp->pad_char = ' ';
 	sp->field_width = 0;
 	sp->precision = -1;
@@ -80,6 +94,16 @@ read_fspec(CHEAX *c, struct scnr *fmt, struct fspec *sp)
 
 	if (fmt->ch == ':') {
 		scnr_adv(fmt);
+		if (fmt->ch == '<')
+			sp->aln = ALN_LEFT;
+		else if (fmt->ch == '^')
+			sp->aln = ALN_CENTER;
+		else if (fmt->ch == '>')
+			sp->aln = ALN_RIGHT;
+
+		if (sp->aln != ALN_NONE)
+			scnr_adv(fmt);
+
 		if (fmt->ch == ' ' || fmt->ch == '0')
 			sp->pad_char = scnr_adv(fmt);
 
@@ -110,7 +134,93 @@ read_fspec(CHEAX *c, struct scnr *fmt, struct fspec *sp)
 }
 
 static int
-show_env(CHEAX *c, struct sostrm *ss, struct chx_env *env, const char *func_desc)
+check_spec(CHEAX *c, struct fspec *sp, struct chx_value arg, int *etp)
+{
+	int eff_type = arg.type;
+	if (sp->conv != CONV_NONE)
+		eff_type = CHEAX_STRING;
+
+	*etp = eff_type;
+
+	bool can_int = true, can_double = true, can_other = true;
+
+	if (sp->precision != -1)
+		can_int = can_other = false;
+
+	if (sp->misc_spec != '\0') {
+		if (strchr("xXobcd", sp->misc_spec) != NULL)
+			can_double = can_other = false;
+		else if (strchr("eEfFgG", sp->misc_spec) != NULL)
+			can_int = can_other = false;
+	}
+
+	const char *invalid_for = NULL;
+
+	if (eff_type == CHEAX_INT) {
+		if (!can_int)
+			invalid_for = "integer";
+	} else if (eff_type == CHEAX_DOUBLE) {
+		if (!can_double)
+			invalid_for = "double";
+	} else if (!can_other) {
+		invalid_for = "given value";
+	}
+
+	if (invalid_for != NULL) {
+		cheax_throwf(c, CHEAX_EVALUE, "invalid specifiers for %s", invalid_for);
+		return -1;
+	}
+
+	return 0;
+}
+
+static int
+format_num(CHEAX *c, struct ostrm *strm, struct fspec *sp, struct chx_value arg)
+{
+	int field_width = sp->field_width;
+	if (sp->aln != ALN_RIGHT) {
+		/* wrapper function must deal with padding */
+		field_width = 0;
+	}
+
+	char ms = sp->misc_spec;
+	char fmt_buf[32];
+
+	switch (arg.type) {
+	case CHEAX_INT:
+		if (sp->misc_spec == 'c') {
+			if (arg.data.as_int < 0 || arg.data.as_int >= 256) {
+				cheax_throwf(c, CHEAX_EVALUE, "invalid character %d", arg.data.as_int);
+				return -1;
+			}
+
+			ostrm_putc(strm, arg.data.as_int);
+		} else {
+			ostrm_printi(strm, arg.data.as_int, sp->pad_char, field_width, ms);
+		}
+
+		return 0;
+
+	case CHEAX_DOUBLE:
+		if (ms == '\0')
+			ms = 'g';
+
+		if (sp->pad_char == ' ')
+			snprintf(fmt_buf, sizeof(fmt_buf), "%%*.*%c", ms);
+		else
+			snprintf(fmt_buf, sizeof(fmt_buf), "%%%c*.*%c", sp->pad_char, ms);
+
+		ostrm_printf(strm, fmt_buf, field_width, sp->precision, arg.data.as_double);
+		return 0;
+
+	default:
+		cheax_throwf(c, CHEAX_EEVAL, "internal error");
+		return -1;
+	}
+}
+
+static int
+show_env(CHEAX *c, struct ostrm *strm, struct chx_env *env, const char *func_desc)
 {
 	struct chx_value showf = cheax_get_from(c, env, func_desc);
 	cheax_ft(c, pad);
@@ -129,102 +239,118 @@ show_env(CHEAX *c, struct sostrm *ss, struct chx_env *env, const char *func_desc
 	}
 
 	for (size_t i = 0; i < ret.data.as_string->len; ++i)
-		ostrm_putc(&ss->strm, ret.data.as_string->value[i]);
+		ostrm_putc(strm, ret.data.as_string->value[i]);
 
 	return 0;
 pad:
 	return -1;
 }
 
+/* Does not do padding or alignment. */
 static int
-format_fspec(CHEAX *c, struct sostrm *ss, struct fspec *sp, struct chx_value arg)
+format_noalign(CHEAX *c, struct ostrm *strm, struct fspec *sp, struct chx_value arg, int eff_type)
 {
-	struct ostrm *strm = &ss->strm;
-	bool can_int = true, can_double = true, can_other = true;
+	struct fspec nsp = *sp;
+	nsp.field_width = 0;
+	nsp.aln = ALN_LEFT;
 
-	if (sp->precision != -1)
-		can_int = can_other = false;
-
-	if (sp->misc_spec != '\0') {
-		if (strchr("xXobcd", sp->misc_spec) != NULL)
-			can_double = can_other = false;
-		else if (strchr("eEfFgG", sp->misc_spec) != NULL)
-			can_int = can_other = false;
-	}
-
-	/* this is primarily so we can catch any ENOMEM early if
-	 * field_width is too big, instead of letting the mem use slowly
-	 * creep up as we add more and more padding. */
-	size_t ufield_width = sp->field_width;
-	if (ss->idx > SIZE_MAX - ufield_width || sostrm_expand(ss, ss->idx + ufield_width) < 0)
-		return -1;
-
-	/* Used to gauge if padding is necessary. With numbers, the
-	 * padding should be correct as it is, but there can still be
-	 * edge-cases (like the `:c' specifier to integers). */
-	int prev_idx = ss->idx;
-
-	if (sp->conv == CONV_NONE && arg.type == CHEAX_INT) {
-		if (!can_int) {
-			cheax_throwf(c, CHEAX_EVALUE, "invalid specifiers for integer");
+	if (type_is_num(eff_type)) {
+		if (format_num(c, strm, &nsp, arg) < 0)
 			return -1;
-		}
-
-		chx_int num = arg.data.as_int;
-
-		if (sp->misc_spec == 'c') {
-			if (num < 0 || num >= 256) {
-				cheax_throwf(c, CHEAX_EVALUE, "invalid character %d", num);
-				return -1;
-			}
-
-			ostrm_putc(strm, num);
-		} else {
-			ostrm_printi(strm, num, sp->pad_char, sp->field_width, sp->misc_spec);
-		}
-	} else if (sp->conv == CONV_NONE && arg.type == CHEAX_DOUBLE) {
-		if (!can_double) {
-			cheax_throwf(c, CHEAX_EVALUE, "invalid specifiers for double");
-			return -1;
-		}
-
-		double num = arg.data.as_double;
-		char ms = (sp->misc_spec != '\0') ? sp->misc_spec : 'g';
-
-		char fmt_buf[32];
-		if (sp->pad_char == ' ')
-			snprintf(fmt_buf, sizeof(fmt_buf), "%%*.*%c", ms);
-		else
-			snprintf(fmt_buf, sizeof(fmt_buf), "%%%c*.*%c", sp->pad_char, ms);
-
-		ostrm_printf(strm, fmt_buf, sp->field_width, sp->precision, num);
 	} else {
-		if (!can_other) {
-			cheax_throwf(c, CHEAX_EVALUE, "invalid specifiers for given value");
-			return -1;
-		}
-
-		if (arg.type == CHEAX_STRING && sp->conv != CONV_R) {
+		if (arg.type == CHEAX_STRING && nsp.conv != CONV_R) {
 			/* can't do ostrm_printf() in case string
 			 * contains null character */
 			for (size_t i = 0; i < arg.data.as_string->len; ++i)
 				ostrm_putc(strm, arg.data.as_string->value[i]);
-		} else if (arg.type == CHEAX_ENV && sp->conv != CONV_NONE) {
-			const char *func = (sp->conv == CONV_S) ? "show" : "repr";
-			if (show_env(c, ss, arg.data.as_env, func) < 0)
+		} else if (arg.type == CHEAX_ENV && nsp.conv != CONV_NONE) {
+			const char *func = (nsp.conv == CONV_S) ? "show" : "repr";
+			if (show_env(c, strm, arg.data.as_env, func) < 0)
 				return -1;
 		} else {
 			ostrm_show(c, strm, arg);
 		}
 	}
 
-	/* Add padding if necessary.
-	 * TODO this should probably count graphemes rather than bytes */
+	return 0;
+}
+
+/* TODO this should probably count graphemes rather than bytes */
+static void
+do_padding(struct ostrm *strm, int padding, char pad_char)
+{
+	for (int i = 0; i < padding; ++i)
+		ostrm_putc(strm, pad_char);
+
+}
+
+static int
+format_fspec(CHEAX *c, struct sostrm *ss, struct fspec *sp, struct chx_value arg)
+{
+	struct ostrm *strm = &ss->strm;
+	int eff_type;
+
+	if (check_spec(c, sp, arg, &eff_type) < 0)
+		return -1;
+
+	if (sp->aln == ALN_NONE)
+		sp->aln = type_is_num(eff_type) ? ALN_RIGHT : ALN_LEFT;
+
+	/* This is primarily so we can catch any ENOMEM early if
+	 * field_width is too big, instead of letting the mem use slowly
+	 * creep up as we add more and more padding. */
+	size_t ufield_width = sp->field_width;
+	if (ss->idx > SIZE_MAX - ufield_width || sostrm_expand(ss, ss->idx + ufield_width) < 0)
+		return -1;
+
+	/* Used to gauge if padding is necessary */
+	int prev_idx = ss->idx;
+
+	if (sp->aln != ALN_CENTER && type_is_num(eff_type)) {
+		if (format_num(c, strm, sp, arg) < 0)
+			return -1;
+	} else if (sp->aln == ALN_LEFT) {
+		if (format_noalign(c, strm, sp, arg, eff_type) < 0)
+			return -1;
+	} else if (arg.type == CHEAX_STRING && sp->conv != CONV_R) {
+		size_t prepad = (size_t)sp->field_width;
+		if (prepad >= arg.data.as_string->len)
+			prepad -= arg.data.as_string->len;
+		else
+			prepad = 0;
+
+		do_padding(strm, (int)prepad, sp->pad_char);
+		if (format_noalign(c, strm, sp, arg, eff_type) < 0)
+			return -1;
+	} else {
+		/* This should be seen as the default way to format
+		 * and align, the cases above are just optimizations. */
+
+		struct sostrm temp_ss;
+		sostrm_init(&temp_ss, c);
+
+		if (format_noalign(c, &temp_ss.strm, sp, arg, eff_type) < 0) {
+			cheax_free(c, temp_ss.buf);
+			return -1;
+		}
+
+		int prepad = sp->field_width - temp_ss.idx;
+		if (prepad < 0)
+			prepad = 0;
+
+		if (sp->aln == ALN_CENTER)
+			prepad /= 2;
+
+		do_padding(strm, prepad, sp->pad_char);
+		for (size_t i = 0; i < temp_ss.idx; ++i)
+			ostrm_putc(strm, temp_ss.buf[i]);
+
+		cheax_free(c, temp_ss.buf);
+	}
+
 	int written = ss->idx - prev_idx;
 	int padding = sp->field_width - written;
-
-	for (int i = 0; i < padding; ++i)
-		ostrm_putc(strm, sp->pad_char);
+	do_padding(strm, padding, sp->pad_char);
 
 	return 0;
 }
