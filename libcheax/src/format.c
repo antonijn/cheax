@@ -280,9 +280,8 @@ do_padding(struct ostrm *strm, int padding, char pad_char)
 }
 
 static int
-format_fspec(CHEAX *c, struct sostrm *ss, struct fspec *sp, struct chx_value arg)
+format_fspec(CHEAX *c, struct ostrm *strm, struct fspec *sp, struct chx_value arg)
 {
-	struct ostrm *strm = &ss->strm;
 	int eff_type;
 
 	if (check_spec(c, sp, arg, &eff_type) < 0)
@@ -295,11 +294,15 @@ format_fspec(CHEAX *c, struct sostrm *ss, struct fspec *sp, struct chx_value arg
 	 * field_width is too big, instead of letting the mem use slowly
 	 * creep up as we add more and more padding. */
 	size_t ufield_width = sp->field_width;
-	if (ss->idx > SIZE_MAX - ufield_width || sostrm_expand(ss, ss->idx + ufield_width) < 0)
+	if (ostrm_expand(strm, ufield_width) < 0)
 		return -1;
 
-	/* Used to gauge if padding is necessary */
-	int prev_idx = ss->idx;
+	/* Count output bytes to gauge how much padding is necessary. */
+	struct costrm cs;
+	if (ufield_width > 0) {
+		costrm_init(&cs, strm);
+		strm = &cs.strm;
+	}
 
 	if (sp->aln != ALN_CENTER && type_is_num(eff_type)) {
 		if (format_num(c, strm, sp, arg) < 0)
@@ -345,20 +348,19 @@ format_fspec(CHEAX *c, struct sostrm *ss, struct fspec *sp, struct chx_value arg
 		cheax_free(c, temp_ss.buf);
 	}
 
-	int written = ss->idx - prev_idx;
-	int padding = sp->field_width - written;
-	do_padding(strm, padding, sp->pad_char);
+	if (ufield_width > 0 && ufield_width > cs.written)
+		do_padding(strm, ufield_width - cs.written, sp->pad_char);
 
 	return 0;
 }
 
-static struct chx_value
-scnr_format(CHEAX *c, struct scnr *fmt, struct chx_list *args, size_t size_hint)
+static int
+format(CHEAX *c, struct ostrm *strm, struct chx_string *fmt_str, struct chx_list *args)
 {
 	struct chx_value *arg_array;
 	size_t arg_count;
 	if (0 != cheax_list_to_array(c, args, &arg_array, &arg_count))
-		return cheax_nil();
+		return -1;
 
 	struct chx_value args_val;
 	args_val.type = CHEAX_LIST;
@@ -367,36 +369,38 @@ scnr_format(CHEAX *c, struct scnr *fmt, struct chx_list *args, size_t size_hint)
 
 	struct sostrm ss;
 	sostrm_init(&ss, c);
-
-	ss.cap = size_hint;
+	ss.cap = fmt_str->len;
 	ss.buf = cheax_malloc(c, ss.cap);
 
 	enum { UNSPECIFIED, AUTO_IDX, MAN_IDX } indexing = UNSPECIFIED;
 	size_t auto_idx = 0;
-	struct chx_value res = cheax_nil();
+
+	struct sistrm is;
+	sistrm_initn(&is, fmt_str->value, fmt_str->len);
+
+	struct scnr fmt;
+	scnr_init(&fmt, &is.strm, 0, NULL, 1, 0);
 
 	for (;;) {
-		if (fmt->ch == EOF) {
-			res = cheax_nstring(c, ss.buf, ss.idx);
+		if (fmt.ch == EOF)
 			break;
-		}
 
-		if (fmt->ch == '}' && (scnr_adv(fmt), fmt->ch) != '}') {
+		if (fmt.ch == '}' && (scnr_adv(&fmt), fmt.ch) != '}') {
 			cheax_throwf(c, CHEAX_EVALUE, "encountered single `}' in format string");
 			break;
 		}
 
-		if (fmt->ch != '{' || (scnr_adv(fmt), fmt->ch) == '{') {
+		if (fmt.ch != '{' || (scnr_adv(&fmt), fmt.ch) == '{') {
 			/* most likely condition: 'regular' character or
 			 * double "{{" */
-			ostrm_putc(&ss.strm, scnr_adv(fmt));
+			ostrm_putc(strm, scnr_adv(&fmt));
 			continue;
 		}
 
 		/* we're dealing with a field specifier */
 
 		struct fspec spec;
-		if (read_fspec(c, fmt, &spec) < 0)
+		if (read_fspec(c, &fmt, &spec) < 0)
 			break;
 
 		if (indexing == AUTO_IDX && spec.index != -1) {
@@ -418,14 +422,13 @@ scnr_format(CHEAX *c, struct scnr *fmt, struct chx_list *args, size_t size_hint)
 			break;
 		}
 
-		if (format_fspec(c, &ss, &spec, arg_array[idx]) < 0)
+		if (format_fspec(c, strm, &spec, arg_array[idx]) < 0)
 			break;
 	}
 
 	cheax_unref(c, args_val, args_ref);
 	cheax_free(c, arg_array);
-	cheax_free(c, ss.buf);
-	return res;
+	return (cheax_errno(c) == CHEAX_ENOERR) ? 0 : -1;
 }
 
 struct chx_value
@@ -433,12 +436,16 @@ cheax_format(CHEAX *c, struct chx_string *fmt, struct chx_list *args)
 {
 	ASSERT_NOT_NULL("format", fmt, cheax_nil());
 
-	struct sistrm ss;
-	sistrm_initn(&ss, fmt->value, fmt->len);
+	struct sostrm out;
+	sostrm_init(&out, c);
 
-	struct scnr s;
-	scnr_init(&s, &ss.strm, 0, NULL, 1, 0);
-	return scnr_format(c, &s, args, ss.len + 1);
+	struct chx_value res = cheax_nil();
+
+	if (0 == format(c, &out.strm, fmt, args))
+		res = cheax_nstring(c, out.buf, out.idx);
+
+	cheax_free(c, out.buf);
+	return res;
 }
 
 static struct chx_value
@@ -451,8 +458,25 @@ bltn_format(CHEAX *c, struct chx_list *args, void *info)
 	     : cheax_nil();
 }
 
+static struct chx_value
+bltn_putf_to(CHEAX *c, struct chx_list *args, void *info)
+{
+	FILE *f;
+	struct chx_string *fmt;
+	struct chx_list *lst;
+	if (0 == unpack(c, args, "FS_*", &f, &fmt, &lst)) {
+		struct fostrm fs;
+		fostrm_init(&fs, f, c);
+
+		format(c, &fs.strm, fmt, lst);
+	}
+	return cheax_nil();
+}
+
+
 void
 export_format_bltns(CHEAX *c)
 {
-	cheax_defun(c, "format", bltn_format, NULL);
+	cheax_defun(c, "format",  bltn_format,  NULL);
+	cheax_defun(c, "putf-to", bltn_putf_to, NULL);
 }

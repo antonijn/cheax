@@ -32,11 +32,15 @@ struct ostrm {
 
 	/* Optional: fallback is sputc. */
 	int (*write)(void *info, const char *buf, size_t len);
+
+	/* Optional */
+	int (*expand)(void *info, size_t req);
 };
 
 int ostrm_printf(struct ostrm *strm, const char *frmt, ...);
 int ostrm_putc(struct ostrm *strm, int ch);
 int ostrm_write(struct ostrm *strm, const char *buf, size_t len);
+int ostrm_expand(struct ostrm *strm, size_t extra);
 
 /* Write unicode code point `cp' to output stream in UTF-8 encoding. */
 void ostrm_put_utf8(struct ostrm *ostr, unsigned cp);
@@ -67,7 +71,6 @@ struct sostrm {
 };
 
 void sostrm_init(struct sostrm *ss, CHEAX *c);
-int sostrm_expand(struct sostrm *stream, size_t req_buf);
 
 /* buffer (string-n) output stream.
  * or snowstorm, whichever you prefer. */
@@ -89,6 +92,14 @@ struct fostrm {
 };
 
 void fostrm_init(struct fostrm *fs, FILE *f, CHEAX *c);
+
+/* counting output stream */
+struct costrm {
+	struct ostrm strm, *base;
+	size_t written;
+};
+
+void costrm_init(struct costrm *cs, struct ostrm *base);
 
 /* input stream */
 struct istrm {

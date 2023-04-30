@@ -23,6 +23,8 @@
 static int sostrm_vprintf(void *info, const char *frmt, va_list ap);
 static int sostrm_putc(void *info, int ch);
 static int sostrm_write(void *info, const char *buf, size_t len);
+static int sostrm_expand(void *info, size_t extra);
+static int sostrm_alloc(struct sostrm *ss, size_t req_buf);
 
 static int snostrm_vprintf(void *info, const char *frmt, va_list ap);
 static int snostrm_putc(void *info, int ch);
@@ -31,6 +33,11 @@ static int snostrm_write(void *info, const char *buf, size_t len);
 static int fostrm_vprintf(void *info, const char *frmt, va_list ap);
 static int fostrm_putc(void *info, int ch);
 static int fostrm_write(void *info, const char *buf, size_t len);
+
+static int costrm_vprintf(void *info, const char *frmt, va_list ap);
+static int costrm_putc(void *info, int ch);
+static int costrm_write(void *info, const char *buf, size_t len);
+static int costrm_expand(void *info, size_t extra);
 
 static int sistrm_getc(void *info);
 
@@ -49,10 +56,9 @@ ostrm_printf(struct ostrm *strm, const char *frmt, ...)
 int
 ostrm_putc(struct ostrm *strm, int ch)
 {
-	if (strm->sputc != NULL)
-		return strm->sputc(strm->info, ch);
-
-	return ostrm_printf(strm, "%c", ch);
+	return (strm->sputc != NULL)
+	     ? strm->sputc(strm->info, ch)
+	     : ostrm_printf(strm, "%c", ch);
 }
 
 int
@@ -70,6 +76,14 @@ ostrm_write(struct ostrm *strm, const char *buf, size_t len)
 	}
 
 	return 0;
+}
+
+int
+ostrm_expand(struct ostrm *strm, size_t extra)
+{
+	return (strm->expand != NULL)
+	     ? strm->expand(strm->info, extra)
+	     : 0;
 }
 
 void
@@ -172,33 +186,7 @@ sostrm_init(struct sostrm *ss, CHEAX *c)
 	ss->strm.vprintf = sostrm_vprintf;
 	ss->strm.sputc = sostrm_putc;
 	ss->strm.write = sostrm_write;
-}
-
-int
-sostrm_expand(struct sostrm *strm, size_t req_buf)
-{
-	if (req_buf <= strm->cap)
-		return 0;
-
-	strm->cap = req_buf + req_buf / 2;
-	size_t alloc = req_buf;
-	if (alloc <= SIZE_MAX - alloc / 2)
-		alloc += alloc / 2;
-	else
-		alloc = SIZE_MAX;
-
-	char *new_buf = cheax_realloc(strm->c, strm->buf, alloc);
-	if (new_buf == NULL) {
-		cheax_free(strm->c, strm->buf);
-		strm->buf = NULL;
-		strm->cap = strm->idx = 0;
-		return -1;
-	}
-
-	strm->buf = new_buf;
-	strm->cap = alloc;
-
-	return 0;
+	ss->strm.expand = sostrm_expand;
 }
 
 static int
@@ -226,7 +214,7 @@ sostrm_vprintf(void *info, const char *frmt, va_list ap)
 
 	size_t req_buf = strm->idx + msg_len + 1; /* +1 for null byte */
 	if (req_buf > strm->cap) {
-		if (sostrm_expand(strm, req_buf) < 0)
+		if (sostrm_alloc(strm, req_buf) < 0)
 			return -1;
 
 #if defined(HAVE_VSNPRINTF_L)
@@ -259,7 +247,7 @@ static int
 sostrm_putc(void *info, int ch)
 {
 	struct sostrm *strm = info;
-	if (sostrm_expand(strm, strm->idx + 1) < 0)
+	if (sostrm_alloc(strm, strm->idx + 1) < 0)
 		return -1;
 
 	strm->buf[strm->idx++] = ch;
@@ -273,11 +261,49 @@ sostrm_write(void *info, const char *buf, size_t len)
 	if (len > SIZE_MAX - strm->idx)
 		return -1;
 
-	if (sostrm_expand(strm, strm->idx + len) < 0)
+	if (sostrm_alloc(strm, strm->idx + len) < 0)
 		return -1;
 
 	memcpy(strm->buf + strm->idx, buf, len);
 	strm->idx += len;
+	return 0;
+}
+
+static int
+sostrm_expand(void *info, size_t extra)
+{
+	struct sostrm *strm = info;
+	if (extra > SIZE_MAX - strm->idx) {
+		cheax_throwf(strm->c, CHEAX_ENOMEM, "sostrm_expand(): overflow");
+		return -1;
+	}
+
+	return sostrm_alloc(strm, strm->idx + extra);
+}
+
+static int
+sostrm_alloc(struct sostrm *strm, size_t req_buf)
+{
+	if (req_buf <= strm->cap)
+		return 0;
+
+	size_t alloc = req_buf;
+	if (alloc <= SIZE_MAX - alloc / 2)
+		alloc += alloc / 2;
+	else
+		alloc = SIZE_MAX;
+
+	char *new_buf = cheax_realloc(strm->c, strm->buf, alloc);
+	if (new_buf == NULL) {
+		cheax_free(strm->c, strm->buf);
+		strm->buf = NULL;
+		strm->cap = strm->idx = 0;
+		return -1;
+	}
+
+	strm->buf = new_buf;
+	strm->cap = alloc;
+
 	return 0;
 }
 
@@ -293,6 +319,7 @@ snostrm_init(struct snostrm *ss, char *buf, size_t cap)
 	ss->strm.vprintf = snostrm_vprintf;
 	ss->strm.sputc = snostrm_putc;
 	ss->strm.write = snostrm_write;
+	ss->strm.expand = NULL;
 }
 
 static int
@@ -349,6 +376,7 @@ fostrm_init(struct fostrm *fs, FILE *f, CHEAX *c)
 	fs->strm.vprintf = fostrm_vprintf;
 	fs->strm.sputc = fostrm_putc;
 	fs->strm.write = fostrm_write;
+	fs->strm.expand = NULL;
 }
 
 static int
@@ -383,12 +411,67 @@ static int
 fostrm_write(void *info, const char *buf, size_t len)
 {
 	struct fostrm *fs = info;
-	if (fwrite(buf, len, 1, fs->f) < len) {
+	if (fwrite(buf, len, 1, fs->f) < 1) {
 		cheax_throwf(fs->c, CHEAX_EIO, "fostrm_putc(): fwrite() unsuccessful");
 		return -1;
 	}
 
 	return 0;
+}
+
+
+void
+costrm_init(struct costrm *cs, struct ostrm *base)
+{
+	cs->base = base;
+	cs->written = 0;
+
+	cs->strm.info = cs;
+	cs->strm.vprintf = costrm_vprintf;
+	cs->strm.sputc = costrm_putc;
+	cs->strm.write = costrm_write;
+	cs->strm.expand = costrm_expand;
+}
+
+static int
+costrm_vprintf(void *info, const char *frmt, va_list ap)
+{
+	struct costrm *cs = info;
+	int written = cs->base->vprintf(cs->base->info, frmt, ap);
+	if (written < 0)
+		return -1;
+
+	cs->written += written;
+	return written;
+}
+
+static int
+costrm_putc(void *info, int ch)
+{
+	struct costrm *cs = info;
+	if (ostrm_putc(cs->base, ch) < 0)
+		return -1;
+
+	++cs->written;
+	return 0;
+}
+
+static int
+costrm_write(void *info, const char *buf, size_t len)
+{
+	struct costrm *cs = info;
+	if (ostrm_write(cs->base, buf, len) < 0)
+		return -1;
+
+	cs->written += len;
+	return 0;
+}
+
+static int
+costrm_expand(void *info, size_t req)
+{
+	struct costrm *cs = info;
+	return ostrm_expand(cs->base, req);
 }
 
 
