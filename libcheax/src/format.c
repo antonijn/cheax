@@ -177,11 +177,9 @@ check_spec(CHEAX *c, struct fspec *sp, struct chx_value arg, int *etp)
 static int
 format_num(CHEAX *c, struct ostrm *strm, struct fspec *sp, struct chx_value arg)
 {
-	int field_width = sp->field_width;
-	if (sp->aln != ALN_RIGHT) {
-		/* wrapper function must deal with padding */
-		field_width = 0;
-	}
+	/* wrapper function must deal with padding for anything but
+	 * ALN_RIGHT */
+	int field_width = (sp->aln == ALN_RIGHT) ? sp->field_width : 0;
 
 	char ms = sp->misc_spec;
 	char fmt_buf[32];
@@ -318,6 +316,9 @@ format_fspec(CHEAX *c, struct sostrm *ss, struct fspec *sp, struct chx_value arg
 			prepad -= arg.data.as_string->len;
 		else
 			prepad = 0;
+
+		if (sp->aln == ALN_CENTER)
+			prepad /= 2;
 
 		do_padding(strm, (int)prepad, sp->pad_char);
 		if (format_noalign(c, strm, sp, arg, eff_type) < 0)
