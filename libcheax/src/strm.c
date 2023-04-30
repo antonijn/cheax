@@ -14,10 +14,63 @@
  */
 
 #include <limits.h>
+#include <string.h>
 
 #include "err.h"
 #include "loc.h"
 #include "strm.h"
+
+static int sostrm_vprintf(void *info, const char *frmt, va_list ap);
+static int sostrm_putc(void *info, int ch);
+static int sostrm_write(void *info, const char *buf, size_t len);
+
+static int snostrm_vprintf(void *info, const char *frmt, va_list ap);
+static int snostrm_putc(void *info, int ch);
+static int snostrm_write(void *info, const char *buf, size_t len);
+
+static int fostrm_vprintf(void *info, const char *frmt, va_list ap);
+static int fostrm_putc(void *info, int ch);
+static int fostrm_write(void *info, const char *buf, size_t len);
+
+static int sistrm_getc(void *info);
+
+static int fistrm_getc(void *info);
+
+int
+ostrm_printf(struct ostrm *strm, const char *frmt, ...)
+{
+	va_list ap;
+	va_start(ap, frmt);
+	int res = strm->vprintf(strm->info, frmt, ap);
+	va_end(ap);
+	return res;
+}
+
+int
+ostrm_putc(struct ostrm *strm, int ch)
+{
+	if (strm->sputc != NULL)
+		return strm->sputc(strm->info, ch);
+
+	return ostrm_printf(strm, "%c", ch);
+}
+
+int
+ostrm_write(struct ostrm *strm, const char *buf, size_t len)
+{
+	if (strm->write != NULL)
+		return strm->write(strm->info, buf, len);
+
+	if (len == 0)
+		return 0;
+
+	for (size_t i = 0; i <= (len - 1); ++i) {
+		if (ostrm_putc(strm, buf[i]) < 0)
+			return -1;
+	}
+
+	return 0;
+}
 
 void
 ostrm_put_utf8(struct ostrm *ostr, unsigned cp)
@@ -107,6 +160,20 @@ ostrm_printi(struct ostrm *strm, chx_int num, char pad_char, int field_width, ch
 	ostrm_printf(strm, "%s", buf + i);
 }
 
+
+void
+sostrm_init(struct sostrm *ss, CHEAX *c)
+{
+	ss->c = c;
+	ss->buf = NULL;
+	ss->idx = ss->cap = 0;
+
+	ss->strm.info = ss;
+	ss->strm.vprintf = sostrm_vprintf;
+	ss->strm.sputc = sostrm_putc;
+	ss->strm.write = sostrm_write;
+}
+
 int
 sostrm_expand(struct sostrm *strm, size_t req_buf)
 {
@@ -134,7 +201,7 @@ sostrm_expand(struct sostrm *strm, size_t req_buf)
 	return 0;
 }
 
-int
+static int
 sostrm_vprintf(void *info, const char *frmt, va_list ap)
 {
 	struct sostrm *strm = info;
@@ -188,7 +255,7 @@ msg_len_error:
 	return -1;
 }
 
-int
+static int
 sostrm_putc(void *info, int ch)
 {
 	struct sostrm *strm = info;
@@ -199,7 +266,36 @@ sostrm_putc(void *info, int ch)
 	return ch;
 }
 
-int
+static int
+sostrm_write(void *info, const char *buf, size_t len)
+{
+	struct sostrm *strm = info;
+	if (len > SIZE_MAX - strm->idx)
+		return -1;
+
+	if (sostrm_expand(strm, strm->idx + len) < 0)
+		return -1;
+
+	memcpy(strm->buf + strm->idx, buf, len);
+	strm->idx += len;
+	return 0;
+}
+
+
+void
+snostrm_init(struct snostrm *ss, char *buf, size_t cap)
+{
+	ss->buf = memset(buf, 0, cap);
+	ss->idx = 0;
+	ss->cap = cap;
+
+	ss->strm.info = ss;
+	ss->strm.vprintf = snostrm_vprintf;
+	ss->strm.sputc = snostrm_putc;
+	ss->strm.write = snostrm_write;
+}
+
+static int
 snostrm_vprintf(void *info, const char *frmt, va_list ap)
 {
 	struct snostrm *strm = info;
@@ -219,7 +315,7 @@ snostrm_vprintf(void *info, const char *frmt, va_list ap)
 	return msg_len;
 }
 
-int
+static int
 snostrm_putc(void *info, int ch)
 {
 	struct snostrm *strm = info;
@@ -230,7 +326,32 @@ snostrm_putc(void *info, int ch)
 	return ch;
 }
 
-int
+static int
+snostrm_write(void *info, const char *buf, size_t len)
+{
+	struct snostrm *strm = info;
+	if (len > SIZE_MAX - strm->idx || strm->idx + len >= strm->cap)
+		return -1;
+
+	memcpy(strm->buf + strm->idx, buf, len);
+	strm->idx += len;
+	return 0;
+}
+
+
+void
+fostrm_init(struct fostrm *fs, FILE *f, CHEAX *c)
+{
+	fs->c = c;
+	fs->f = f;
+
+	fs->strm.info = fs;
+	fs->strm.vprintf = fostrm_vprintf;
+	fs->strm.sputc = fostrm_putc;
+	fs->strm.write = fostrm_write;
+}
+
+static int
 fostrm_vprintf(void *info, const char *frmt, va_list ap)
 {
 	struct fostrm *fs = info;
@@ -248,7 +369,7 @@ fostrm_vprintf(void *info, const char *frmt, va_list ap)
 	return res;
 }
 
-int
+static int
 fostrm_putc(void *info, int ch)
 {
 	struct fostrm *fs = info;
@@ -258,7 +379,44 @@ fostrm_putc(void *info, int ch)
 	return res;
 }
 
+static int
+fostrm_write(void *info, const char *buf, size_t len)
+{
+	struct fostrm *fs = info;
+	if (fwrite(buf, len, 1, fs->f) < len) {
+		cheax_throwf(fs->c, CHEAX_EIO, "fostrm_putc(): fwrite() unsuccessful");
+		return -1;
+	}
+
+	return 0;
+}
+
+
 int
+istrm_getc(struct istrm *strm)
+{
+	return strm->sgetc(strm->info);
+}
+
+
+void
+sistrm_initn(struct sistrm *ss, const char *str, size_t len)
+{
+	ss->str = str;
+	ss->len = len;
+	ss->idx = 0;
+
+	ss->strm.info = ss;
+	ss->strm.sgetc = sistrm_getc;
+}
+
+void
+sistrm_init(struct sistrm *ss, const char *str)
+{
+	sistrm_initn(ss, str, strlen(str));
+}
+
+static int
 sistrm_getc(void *info)
 {
 	struct sistrm *ss = info;
@@ -268,11 +426,36 @@ sistrm_getc(void *info)
 	return ss->str[ss->idx++];
 }
 
-int
+
+void
+fistrm_init(struct fistrm *fs, FILE *f, CHEAX *c)
+{
+	fs->c = c;
+	fs->f = f;
+
+	fs->strm.info = fs;
+	fs->strm.sgetc = fistrm_getc;
+}
+
+static int
 fistrm_getc(void *info)
 {
 	struct fistrm *ff = info;
 	return fgetc(ff->f);
+}
+
+
+void
+scnr_init(struct scnr *s, struct istrm *strm, size_t max_lah, int *lah_buf, int line, int pos)
+{
+	s->ch = 0;
+	s->strm = strm;
+	s->max_lah = max_lah;
+	s->lah_buf = lah_buf;
+	s->lah = 0;
+	s->line = line;
+	s->pos = pos;
+	scnr_adv(s);
 }
 
 int

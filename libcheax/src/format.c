@@ -257,10 +257,7 @@ format_noalign(CHEAX *c, struct ostrm *strm, struct fspec *sp, struct chx_value 
 			return -1;
 	} else {
 		if (arg.type == CHEAX_STRING && nsp.conv != CONV_R) {
-			/* can't do ostrm_printf() in case string
-			 * contains null character */
-			for (size_t i = 0; i < arg.data.as_string->len; ++i)
-				ostrm_putc(strm, arg.data.as_string->value[i]);
+			ostrm_write(strm, arg.data.as_string->value, arg.data.as_string->len);
 		} else if (arg.type == CHEAX_ENV && nsp.conv != CONV_NONE) {
 			const char *func = (nsp.conv == CONV_S) ? "show" : "repr";
 			if (show_env(c, strm, arg.data.as_env, func) < 0)
@@ -321,7 +318,7 @@ format_fspec(CHEAX *c, struct sostrm *ss, struct fspec *sp, struct chx_value arg
 			prepad /= 2;
 
 		do_padding(strm, (int)prepad, sp->pad_char);
-		if (format_noalign(c, strm, sp, arg, eff_type) < 0)
+		if (ostrm_write(strm, arg.data.as_string->value, arg.data.as_string->len) < 0)
 			return -1;
 	} else {
 		/* This should be seen as the default way to format
@@ -343,8 +340,7 @@ format_fspec(CHEAX *c, struct sostrm *ss, struct fspec *sp, struct chx_value arg
 			prepad /= 2;
 
 		do_padding(strm, prepad, sp->pad_char);
-		for (size_t i = 0; i < temp_ss.idx; ++i)
-			ostrm_putc(strm, temp_ss.buf[i]);
+		ostrm_write(strm, temp_ss.buf, temp_ss.idx);
 
 		cheax_free(c, temp_ss.buf);
 	}
@@ -393,7 +389,7 @@ scnr_format(CHEAX *c, struct scnr *fmt, struct chx_list *args, size_t size_hint)
 		if (fmt->ch != '{' || (scnr_adv(fmt), fmt->ch) == '{') {
 			/* most likely condition: 'regular' character or
 			 * double "{{" */
-			sostrm_putc(&ss, scnr_adv(fmt));
+			ostrm_putc(&ss.strm, scnr_adv(fmt));
 			continue;
 		}
 

@@ -18,7 +18,6 @@
 
 #include <stdarg.h>
 #include <stdio.h>
-#include <string.h>
 
 #include "core.h"
 
@@ -26,24 +25,18 @@
 struct ostrm {
 	void *info;
 	int (*vprintf)(void *info, const char *frmt, va_list ap);
-	/* can't use identifier putc; might be macro */
+
+	/* Optional; fallback is vprintf.
+	 * Can't use identifier putc; might be macro */
 	int (*sputc)(void *info, int ch);
+
+	/* Optional: fallback is sputc. */
+	int (*write)(void *info, const char *buf, size_t len);
 };
 
-static inline int
-ostrm_printf(struct ostrm *strm, const char *frmt, ...)
-{
-	va_list ap;
-	va_start(ap, frmt);
-	int res = strm->vprintf(strm->info, frmt, ap);
-	va_end(ap);
-	return res;
-}
-static inline int
-ostrm_putc(struct ostrm *strm, int ch)
-{
-	return strm->sputc(strm->info, ch);
-}
+int ostrm_printf(struct ostrm *strm, const char *frmt, ...);
+int ostrm_putc(struct ostrm *strm, int ch);
+int ostrm_write(struct ostrm *strm, const char *buf, size_t len);
 
 /* Write unicode code point `cp' to output stream in UTF-8 encoding. */
 void ostrm_put_utf8(struct ostrm *ostr, unsigned cp);
@@ -73,21 +66,8 @@ struct sostrm {
 	size_t idx, cap;
 };
 
+void sostrm_init(struct sostrm *ss, CHEAX *c);
 int sostrm_expand(struct sostrm *stream, size_t req_buf);
-int sostrm_vprintf(void *info, const char *frmt, va_list ap);
-int sostrm_putc(void *info, int ch);
-
-static inline void
-sostrm_init(struct sostrm *ss, CHEAX *c)
-{
-	ss->c = c;
-	ss->buf = NULL;
-	ss->idx = ss->cap = 0;
-
-	ss->strm.info = ss;
-	ss->strm.vprintf = sostrm_vprintf;
-	ss->strm.sputc = sostrm_putc;
-}
 
 /* buffer (string-n) output stream.
  * or snowstorm, whichever you prefer. */
@@ -98,20 +78,7 @@ struct snostrm {
 	size_t idx, cap;
 };
 
-int snostrm_vprintf(void *info, const char *frmt, va_list ap);
-int snostrm_putc(void *info, int ch);
-
-static inline void
-snostrm_init(struct snostrm *ss, char *buf, size_t cap)
-{
-	ss->buf = memset(buf, 0, cap);
-	ss->idx = 0;
-	ss->cap = cap;
-
-	ss->strm.info = ss;
-	ss->strm.vprintf = snostrm_vprintf;
-	ss->strm.sputc = snostrm_putc;
-}
+void snostrm_init(struct snostrm *ss, char *buf, size_t cap);
 
 /* file output stream */
 struct fostrm {
@@ -121,19 +88,7 @@ struct fostrm {
 	FILE *f;
 };
 
-int fostrm_vprintf(void *info, const char *frmt, va_list ap);
-int fostrm_putc(void *info, int ch);
-
-static inline void
-fostrm_init(struct fostrm *fs, FILE *f, CHEAX *c)
-{
-	fs->c = c;
-	fs->f = f;
-
-	fs->strm.info = fs;
-	fs->strm.vprintf = fostrm_vprintf;
-	fs->strm.sputc = fostrm_putc;
-}
+void fostrm_init(struct fostrm *fs, FILE *f, CHEAX *c);
 
 /* input stream */
 struct istrm {
@@ -142,11 +97,7 @@ struct istrm {
 	int (*sgetc)(void *info);
 };
 
-static inline int
-istrm_getc(struct istrm *strm)
-{
-	return strm->sgetc(strm->info);
-}
+int istrm_getc(struct istrm *strm);
 
 /* string input stream */
 struct sistrm {
@@ -156,24 +107,8 @@ struct sistrm {
 	size_t idx, len;
 };
 
-int sistrm_getc(void *info);
-
-static inline void
-sistrm_initn(struct sistrm *ss, const char *str, size_t len)
-{
-	ss->str = str;
-	ss->len = len;
-	ss->idx = 0;
-
-	ss->strm.info = ss;
-	ss->strm.sgetc = sistrm_getc;
-}
-
-static inline void
-sistrm_init(struct sistrm *ss, const char *str)
-{
-	sistrm_initn(ss, str, strlen(str));
-}
+void sistrm_initn(struct sistrm *ss, const char *str, size_t len);
+void sistrm_init(struct sistrm *ss, const char *str);
 
 /* file input stream */
 struct fistrm {
@@ -183,17 +118,7 @@ struct fistrm {
 	FILE *f;
 };
 
-int fistrm_getc(void *info);
-
-static inline void
-fistrm_init(struct fistrm *fs, FILE *f, CHEAX *c)
-{
-	fs->c = c;
-	fs->f = f;
-
-	fs->strm.info = fs;
-	fs->strm.sgetc = fistrm_getc;
-}
+void fistrm_init(struct fistrm *fs, FILE *f, CHEAX *c);
 
 /* scanner */
 struct scnr {
@@ -205,20 +130,8 @@ struct scnr {
 	int pos, line;
 };
 
+void scnr_init(struct scnr *s, struct istrm *strm, size_t max_lah, int *lah_buf, int line, int pos);
 int scnr_adv(struct scnr *s);
 int scnr_backup(struct scnr *s, int to);
-
-static inline void
-scnr_init(struct scnr *s, struct istrm *strm, size_t max_lah, int *lah_buf, int line, int pos)
-{
-	s->ch = 0;
-	s->strm = strm;
-	s->max_lah = max_lah;
-	s->lah_buf = lah_buf;
-	s->lah = 0;
-	s->line = line;
-	s->pos = pos;
-	scnr_adv(s);
-}
 
 #endif
