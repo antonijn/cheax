@@ -320,7 +320,7 @@ bt_print(CHEAX *c)
 struct chx_value
 bt_wrap(CHEAX *c, struct chx_value v)
 {
-	return (cheax_errno(c) == 0) ? v : (cheax_add_bt(c), cheax_nil());
+	return (cheax_errno(c) == 0) ? v : (cheax_add_bt(c), CHEAX_NIL);
 }
 
 /*
@@ -338,14 +338,14 @@ bltn_throw(CHEAX *c, struct chx_list *args, void *info)
 	chx_int code;
 	struct chx_value msg;
 	if (unpack(c, args, "X[S-]?", &code, &msg) < 0)
-		return cheax_nil();
+		return CHEAX_NIL;
 
 	if (code == 0)
 		cheax_throwf(c, CHEAX_EVALUE, "cannot throw ENOERR");
 	else
 		cheax_throw(c, code, cheax_is_nil(msg) ? NULL : msg.data.as_string);
 
-	return bt_wrap(c, cheax_nil());
+	return bt_wrap(c, CHEAX_NIL);
 }
 
 static int
@@ -437,7 +437,7 @@ pad:
 static struct chx_value
 run_catch(CHEAX *c, struct chx_list *match)
 {
-	struct chx_value retval = cheax_nil();
+	struct chx_value retval = CHEAX_NIL;
 
 	/* match, so run catch block code */
 	struct chx_list *run_blocks = match->next->next;
@@ -461,7 +461,7 @@ run_finally(CHEAX *c, struct chx_list *finally_block)
 {
 	int active_errno = c->error.code;
 	struct chx_string *active_msg = c->error.msg;
-	struct chx_value amv = cheax_nil();
+	struct chx_value amv = CHEAX_NIL;
 	chx_ref active_msg_ref = 0;
 	if (active_msg != NULL) {
 		amv = cheax_string_value(active_msg);
@@ -500,7 +500,7 @@ sf_try(CHEAX *c,
 {
 	if (args == NULL) {
 		cheax_throwf(c, CHEAX_EMATCH, "expected at least two arguments");
-		out->value = bt_wrap(c, cheax_nil());
+		out->value = bt_wrap(c, CHEAX_NIL);
 		return CHEAX_VALUE_OUT;
 	}
 
@@ -508,7 +508,7 @@ sf_try(CHEAX *c,
 	struct chx_list *catch_blocks = args->next;
 	if (catch_blocks == NULL) {
 		cheax_throwf(c, CHEAX_EMATCH, "expected at least one catch/finally block");
-		out->value = bt_wrap(c, cheax_nil());
+		out->value = bt_wrap(c, CHEAX_NIL);
 		return CHEAX_VALUE_OUT;
 	}
 
@@ -517,11 +517,11 @@ sf_try(CHEAX *c,
 	struct chx_list *finally_block = NULL;
 
 	if (validate_catch_blocks(c, catch_blocks, &finally_block) < 0) {
-		out->value = cheax_nil();
+		out->value = CHEAX_NIL;
 		return CHEAX_VALUE_OUT;
 	}
 
-	struct chx_value retval = cheax_nil();
+	struct chx_value retval = CHEAX_NIL;
 
 	cheax_push_env(c);
 	cheax_ft(c, pad2);
@@ -540,7 +540,7 @@ sf_try(CHEAX *c,
 		/* protected against gc deletion by declaring it as a
 		 * symbol later on */
 		struct chx_string *active_msg = c->error.msg;
-		struct chx_value amv = cheax_nil();
+		struct chx_value amv = CHEAX_NIL;
 		if (active_msg != NULL)
 			amv = cheax_string_value(active_msg);
 
@@ -632,7 +632,7 @@ sf_new_error_code(CHEAX *c,
 {
 	const char *errname;
 	if (unpack(c, args, "N!", &errname) < 0) {
-		out->value = cheax_nil();
+		out->value = CHEAX_NIL;
 		return CHEAX_VALUE_OUT;
 	}
 
@@ -640,7 +640,7 @@ sf_new_error_code(CHEAX *c,
 		cheax_throwf(c, CHEAX_EEXIST, "error with name %s already exists", errname);
 	else
 		cheax_new_error_code(c, errname);
-	out->value = bt_wrap(c, cheax_nil());
+	out->value = bt_wrap(c, CHEAX_NIL);
 	return CHEAX_VALUE_OUT;
 }
 

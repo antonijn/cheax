@@ -205,7 +205,7 @@ unpack_arg(CHEAX *c,
            va_list ap)
 {
 	struct chx_list *lst = NULL, **nxt = &lst;
-	struct chx_value v = cheax_nil();
+	struct chx_value v = CHEAX_NIL;
 	int res, fty;
 
 	bool needs_one = false;

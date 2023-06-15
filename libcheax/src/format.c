@@ -429,14 +429,14 @@ format(CHEAX *c, struct ostrm *strm, struct chx_string *fmt_str, struct chx_list
 struct chx_value
 cheax_format(CHEAX *c, struct chx_string *fmt, struct chx_list *args)
 {
-	ASSERT_NOT_NULL("format", fmt, cheax_nil());
+	ASSERT_NOT_NULL("format", fmt, CHEAX_NIL);
 
 	struct sostrm ss;
 	sostrm_init(&ss, c);
 	ss.cap = fmt->len;
 	ss.buf = cheax_malloc(c, ss.cap);
 
-	struct chx_value res = cheax_nil();
+	struct chx_value res = CHEAX_NIL;
 
 	if (0 == format(c, &ss.strm, fmt, args))
 		res = cheax_nstring(c, ss.buf, ss.idx);
@@ -452,7 +452,7 @@ bltn_format(CHEAX *c, struct chx_list *args, void *info)
 	struct chx_list *lst;
 	return (0 == unpack(c, args, "S_*", &fmt, &lst))
 	     ? bt_wrap(c, cheax_format(c, fmt, lst))
-	     : cheax_nil();
+	     : CHEAX_NIL;
 }
 
 static struct chx_value
@@ -462,13 +462,13 @@ bltn_putf_to(CHEAX *c, struct chx_list *args, void *info)
 	struct chx_string *fmt;
 	struct chx_list *lst;
 	if (unpack(c, args, "FS_*", &f, &fmt, &lst) < 0)
-		return cheax_nil();
+		return CHEAX_NIL;
 
 	struct fostrm fs;
 	fostrm_init(&fs, f, c);
 
 	format(c, &fs.strm, fmt, lst);
-	return bt_wrap(c, cheax_nil());
+	return bt_wrap(c, CHEAX_NIL);
 }
 
 

@@ -199,12 +199,12 @@ bltn_fopen(CHEAX *c, struct chx_list *args, void *info)
 {
 	struct chx_string *fname_val, *mode_val;
 	if (unpack(c, args, "SS", &fname_val, &mode_val) < 0)
-		return cheax_nil();
+		return CHEAX_NIL;
 
 	int prev_errno = errno;
 	errno = 0;
 
-	struct chx_value res = cheax_nil();
+	struct chx_value res = CHEAX_NIL;
 	char *fname = NULL, *mode = NULL;
 
 	fname = cheax_malloc(c, fname_val->len + 1);
@@ -242,7 +242,7 @@ bltn_fclose(CHEAX *c, struct chx_list *args, void *info)
 	FILE *f;
 	if (0 == unpack(c, args, "F", &f))
 		fclose(f);
-	return cheax_nil();
+	return CHEAX_NIL;
 }
 
 static struct chx_value
@@ -251,7 +251,7 @@ bltn_eof(CHEAX *c, struct chx_list *args, void *info)
 	FILE *f;
 	return (0 == unpack(c, args, "F", &f))
 	     ? cheax_bool(feof(f))
-	     : cheax_nil();
+	     : CHEAX_NIL;
 }
 
 static struct chx_value
@@ -260,7 +260,7 @@ bltn_read_from(CHEAX *c, struct chx_list *args, void *info)
 	FILE *f;
 	return (0 == unpack(c, args, "F", &f))
 	     ? bt_wrap(c, cheax_read(c, f))
-	     : cheax_nil();
+	     : CHEAX_NIL;
 }
 
 static struct chx_value
@@ -268,11 +268,11 @@ bltn_read_string(CHEAX *c, struct chx_list *args, void *info)
 {
 	struct chx_string *s;
 	if (unpack(c, args, "S", &s) < 0)
-		return cheax_nil();
+		return CHEAX_NIL;
 
 	char *cstr = cheax_strdup(s);
 	if (cstr == NULL)
-		return cheax_nil();
+		return CHEAX_NIL;
 	struct chx_value res = cheax_readstr(c, cstr);
 	free(cstr);
 	return bt_wrap(c, res);
@@ -285,7 +285,7 @@ bltn_print_to(CHEAX *c, struct chx_list *args, void *info)
 	struct chx_value v;
 	if (0 == unpack(c, args, "F_", &f, &v))
 		cheax_print(c, f, v);
-	return cheax_nil();
+	return CHEAX_NIL;
 }
 
 static struct chx_value
@@ -295,7 +295,7 @@ bltn_put_to(CHEAX *c, struct chx_list *args, void *info)
 	struct chx_string *s;
 	if (0 == unpack(c, args, "FS", &f, &s))
 		fwrite(s->value, 1, s->len, f);
-	return cheax_nil();
+	return CHEAX_NIL;
 }
 
 static struct chx_value
@@ -303,10 +303,10 @@ bltn_get_byte_from(CHEAX *c, struct chx_list *args, void *info)
 {
 	FILE *f;
 	if (unpack(c, args, "F", &f) < 0)
-		return cheax_nil();
+		return CHEAX_NIL;
 
 	int ch = fgetc(f);
-	return (ch == EOF) ? cheax_nil() : bt_wrap(c, cheax_int(ch));
+	return (ch == EOF) ? CHEAX_NIL : bt_wrap(c, cheax_int(ch));
 }
 
 static struct chx_value
@@ -318,9 +318,9 @@ bltn_get_line_from(CHEAX *c, struct chx_list *args, void *info)
 	 */
 	FILE *f;
 	if (unpack(c, args, "F", &f) < 0)
-		return cheax_nil();
+		return CHEAX_NIL;
 
-	struct chx_value res = cheax_nil();
+	struct chx_value res = CHEAX_NIL;
 	struct sostrm ss;
 	sostrm_init(&ss, c);
 

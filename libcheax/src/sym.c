@@ -150,7 +150,7 @@ cheax_env(CHEAX *c)
 {
 	escape(c->env);
 	return (c->env == NULL)
-	     ? cheax_nil()
+	     ? CHEAX_NIL
 	     : cheax_env_value(c->env);
 }
 
@@ -237,7 +237,7 @@ cheax_defsym(CHEAX *c, const char *id,
 	fs->sym.set = set;
 	fs->sym.fin = fin;
 	fs->sym.user_info = user_info;
-	fs->sym.protect = cheax_nil();
+	fs->sym.protect = CHEAX_NIL;
 
 	if (prev_fs != NULL && prev_fs->allow_redef)
 		undef_sym(c, env, prev_fs);
@@ -319,7 +319,7 @@ cheax_set(CHEAX *c, const char *id, struct chx_value value)
 struct chx_value
 cheax_get(CHEAX *c, const char *id)
 {
-	struct chx_value res = cheax_nil();
+	struct chx_value res = CHEAX_NIL;
 
 	if (!cheax_try_get(c, id, &res) && cheax_errno(c) == 0)
 		cheax_throwf(c, CHEAX_ENOSYM, "no such symbol `%s'", id);
@@ -349,7 +349,7 @@ cheax_try_get(CHEAX *c, const char *id, struct chx_value *out)
 struct chx_value
 cheax_get_from(CHEAX *c, struct chx_env *env, const char *id)
 {
-	struct chx_value res = cheax_nil();
+	struct chx_value res = CHEAX_NIL;
 
 	if (!cheax_try_get_from(c, env, id, &res) && cheax_errno(c) == 0)
 		cheax_throwf(c, CHEAX_ENOSYM, "no such symbol `%s'", id);
@@ -622,7 +622,7 @@ eval_defsym_stat(CHEAX *c, struct chx_value stat, struct defsym_info *info)
 	const char *id = head.data.as_id->value;
 
 	if (0 == strcmp(id, "defget")) {
-		defgetset(c, "defget", cheax_nil(), tail, info, &info->get, &info->get_ref);
+		defgetset(c, "defget", CHEAX_NIL, tail, info, &info->get, &info->get_ref);
 		return;
 	}
 
@@ -643,14 +643,14 @@ sf_defsym(CHEAX *c, struct chx_list *args, void *info, struct chx_env *ps, union
 {
 	if (args == NULL) {
 		cheax_throwf(c, CHEAX_EMATCH, "expected symbol name");
-		out->value = bt_wrap(c, cheax_nil());
+		out->value = bt_wrap(c, CHEAX_NIL);
 		return CHEAX_VALUE_OUT;
 	}
 
 	struct chx_value idval = args->value;
 	if (idval.type != CHEAX_ID) {
 		cheax_throwf(c, CHEAX_ETYPE, "expected identifier");
-		out->value = bt_wrap(c, cheax_nil());
+		out->value = bt_wrap(c, CHEAX_NIL);
 		return CHEAX_VALUE_OUT;
 	}
 
@@ -659,7 +659,7 @@ sf_defsym(CHEAX *c, struct chx_list *args, void *info, struct chx_env *ps, union
 
 	struct defsym_info *dinfo = cheax_malloc(c, sizeof(struct defsym_info));
 	if (dinfo == NULL) {
-		out->value = bt_wrap(c, cheax_nil());
+		out->value = bt_wrap(c, CHEAX_NIL);
 		return CHEAX_VALUE_OUT;
 	}
 	dinfo->get = dinfo->set = NULL;
@@ -702,11 +702,11 @@ pad:
 		protect = cheax_list(c, cheax_func_value(dinfo->set), protect).data.as_list;
 	sym->protect = cheax_list_value(protect);
 
-	out->value = cheax_nil();
+	out->value = CHEAX_NIL;
 	return CHEAX_VALUE_OUT;
 err_pad:
 	cheax_free(c, dinfo);
-	out->value = bt_wrap(c, cheax_nil());
+	out->value = bt_wrap(c, CHEAX_NIL);
 	return CHEAX_VALUE_OUT;
 }
 
@@ -718,7 +718,7 @@ pp_defsym_stat(CHEAX *c, struct chx_value stat)
 
 	struct chx_list *lst = stat.data.as_list;
 	if (lst == NULL)
-		return cheax_nil();
+		return CHEAX_NIL;
 
 	struct chx_value head = lst->value;
 
@@ -744,7 +744,7 @@ pp_sf_defsym(CHEAX *c, struct chx_list *args, void *info)
 
 	if (args == NULL) {
 		cheax_throwf(c, CHEAX_ESTATIC, "expected identifier");
-		return cheax_nil();
+		return CHEAX_NIL;
 	}
 
 	out = cheax_list(c, args->value, NULL).data.as_list;
@@ -767,7 +767,7 @@ pp_sf_defsym(CHEAX *c, struct chx_list *args, void *info)
 
 	return cheax_list_value(out);
 pad:
-	return cheax_nil();
+	return CHEAX_NIL;
 }
 
 static int
@@ -783,7 +783,7 @@ sf_def(CHEAX *c, struct chx_list *args, void *info, struct chx_env *ps, union ch
 		cheax_throwf(c, CHEAX_EMATCH, "invalid pattern");
 		cheax_add_bt(c);
 	}
-	out->value = cheax_nil();
+	out->value = CHEAX_NIL;
 	return CHEAX_VALUE_OUT;
 }
 
@@ -826,12 +826,12 @@ sf_set(CHEAX *c, struct chx_list *args, void *info, struct chx_env *ps, union ch
 	const char *id;
 	struct chx_value setto;
 	if (unpack(c, args, "N!.", &id, &setto) < 0) {
-		out->value = cheax_nil();
+		out->value = CHEAX_NIL;
 		return CHEAX_VALUE_OUT;
 	}
 
 	cheax_set(c, id, setto);
-	out->value = bt_wrap(c, cheax_nil());
+	out->value = bt_wrap(c, CHEAX_NIL);
 	return CHEAX_VALUE_OUT;
 }
 
@@ -844,7 +844,7 @@ sf_let(CHEAX *c,
 {
 	struct chx_list *pairs, *body;
 	if (unpack(c, args, "C_+", &pairs, &body) < 0) {
-		out->value = cheax_nil();
+		out->value = CHEAX_NIL;
 		return CHEAX_VALUE_OUT;
 	}
 
@@ -900,7 +900,7 @@ pad:
 	cheax_unref_ptr(c, inner_env, inner_env_ref);
 	cheax_pop_env(c);
 pad2:
-	out->value = cheax_nil();
+	out->value = CHEAX_NIL;
 	return CHEAX_VALUE_OUT;
 }
 
@@ -932,7 +932,7 @@ bltn_env(CHEAX *c, struct chx_list *args, void *info)
 {
 	return (0 == unpack(c, args, ""))
 	     ? cheax_env(c)
-	     : cheax_nil();
+	     : CHEAX_NIL;
 }
 
 void

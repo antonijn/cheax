@@ -48,13 +48,13 @@ static struct chx_value
 show_w(CHEAX *c, struct chx_list *args, void *info)
 {
 	show_file(CMAKE_INSTALL_PREFIX "/share/licenses/cheaky/WARRANTY");
-	return cheax_nil();
+	return CHEAX_NIL;
 }
 static struct chx_value
 show_c(CHEAX *c, struct chx_list *args, void *info)
 {
 	show_file(CMAKE_INSTALL_PREFIX "/share/licenses/cheaky/CONDITIONS");
-	return cheax_nil();
+	return CHEAX_NIL;
 }
 
 static bool clear = false;
@@ -134,7 +134,7 @@ read_with_readline(CHEAX *c, int *line, int *pos, struct chx_value *out)
 	int res = 0;
 	int out_line, out_pos;
 
-	*out = cheax_nil();
+	*out = CHEAX_NIL;
 
 	do {
 		out_line = *line;
@@ -192,7 +192,7 @@ read_with_readline(CHEAX *c, int *line, int *pos, struct chx_value *out)
 static struct chx_value
 clear_fun(CHEAX *c, struct chx_list *args, void *info)
 {
-	return clear = true, cheax_nil();
+	return clear = true, CHEAX_NIL;
 }
 
 

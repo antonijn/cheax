@@ -26,6 +26,12 @@
 #include "setup.h"
 #include "unpack.h"
 
+struct chx_value
+cheax_nil(void)
+{
+	return CHEAX_NIL;
+}
+
 bool
 cheax_is_nil(struct chx_value v)
 {
@@ -37,7 +43,7 @@ cheax_quote(CHEAX *c, struct chx_value value)
 {
 	struct chx_value res = cheax_quote_value(gc_alloc(c, sizeof(struct chx_quote), CHEAX_QUOTE));
 	if (res.data.as_quote == NULL)
-		return cheax_nil();
+		return CHEAX_NIL;
 	res.data.as_quote->value = value;
 	return res;
 }
@@ -52,7 +58,7 @@ cheax_backquote(CHEAX *c, struct chx_value value)
 {
 	struct chx_value res = cheax_backquote_value(gc_alloc(c, sizeof(struct chx_quote), CHEAX_BACKQUOTE));
 	if (res.data.as_quote == NULL)
-		return cheax_nil();
+		return CHEAX_NIL;
 	res.data.as_quote->value = value;
 	return res;
 }
@@ -67,7 +73,7 @@ cheax_comma(CHEAX *c, struct chx_value value)
 {
 	struct chx_value res = cheax_comma_value(gc_alloc(c, sizeof(struct chx_quote), CHEAX_COMMA));
 	if (res.data.as_quote == NULL)
-		return cheax_nil();
+		return CHEAX_NIL;
 	res.data.as_quote->value = value;
 	return res;
 }
@@ -82,7 +88,7 @@ cheax_splice(CHEAX *c, struct chx_value value)
 {
 	struct chx_value res = cheax_splice_value(gc_alloc(c, sizeof(struct chx_quote), CHEAX_SPLICE));
 	if (res.data.as_quote == NULL)
-		return cheax_nil();
+		return CHEAX_NIL;
 	res.data.as_quote->value = value;
 	return res;
 }
@@ -113,7 +119,7 @@ cheax_user_ptr(CHEAX *c, void *value, int type)
 {
 	if (cheax_is_basic_type(c, type) || cheax_resolve_type(c, type) != CHEAX_USER_PTR) {
 		cheax_throwf(c, CHEAX_EAPI, "user_ptr(): invalid user pointer type");
-		return cheax_nil();
+		return CHEAX_NIL;
 	}
 	return ((struct chx_value){ .type = type, .data.user_ptr = value });
 }
@@ -122,12 +128,12 @@ struct chx_value
 cheax_id(CHEAX *c, const char *id)
 {
 	if (id == NULL)
-		return cheax_nil();
+		return CHEAX_NIL;
 
 	size_t len = strlen(id) + 1;
 	struct chx_value res = cheax_id_value(gc_alloc(c, sizeof(struct chx_id) + len, CHEAX_ID));
 	if (res.data.as_id == NULL)
-		return cheax_nil();
+		return CHEAX_NIL;
 	char *buf = ((char *)res.data.as_id) + sizeof(struct chx_id);
 	memcpy(buf, id, len);
 	res.data.as_id->value = buf;
@@ -144,7 +150,7 @@ cheax_list(CHEAX *c, struct chx_value car, struct chx_list *cdr)
 {
 	struct chx_value res = cheax_list_value(gc_alloc(c, sizeof(struct chx_list), CHEAX_LIST));
 	if (res.data.as_list == NULL)
-		return cheax_nil();
+		return CHEAX_NIL;
 	res.data.as_list->value = car;
 	res.data.as_list->next = cdr;
 	return res;
@@ -225,11 +231,11 @@ struct chx_value
 cheax_ext_func(CHEAX *c, const char *name, chx_func_ptr perform, void *info)
 {
 	if (perform == NULL || name == NULL)
-		return cheax_nil();
+		return CHEAX_NIL;
 
 	struct chx_value res = cheax_ext_func_value(gc_alloc(c, sizeof(struct chx_ext_func), CHEAX_EXT_FUNC));
 	if (res.data.as_ext_func == NULL)
-		return cheax_nil();
+		return CHEAX_NIL;
 	res.data.as_ext_func->name = name;
 	res.data.as_ext_func->perform = perform;
 	res.data.as_ext_func->info = info;
@@ -249,7 +255,7 @@ cheax_strlen(CHEAX *c, struct chx_string *str)
 struct chx_value
 cheax_string(CHEAX *c, const char *value)
 {
-	ASSERT_NOT_NULL("string", value, cheax_nil());
+	ASSERT_NOT_NULL("string", value, CHEAX_NIL);
 	return cheax_nstring(c, value, strlen(value));
 }
 struct chx_value
@@ -258,11 +264,11 @@ cheax_nstring(CHEAX *c, const char *value, size_t len)
 	if (value == NULL && len == 0)
 		value = "";
 
-	ASSERT_NOT_NULL("nstring", value, cheax_nil());
+	ASSERT_NOT_NULL("nstring", value, CHEAX_NIL);
 
 	struct chx_value res = cheax_string_value(gc_alloc(c, sizeof(struct chx_string) + len + 1, CHEAX_STRING));
 	if (res.data.as_string == NULL)
-		return cheax_nil();
+		return CHEAX_NIL;
 
 	char *buf = ((char *)res.data.as_string) + sizeof(struct chx_string);
 	memcpy(buf, value, len);
@@ -281,18 +287,18 @@ cheax_string_value_proc(struct chx_string *string)
 struct chx_value
 cheax_substr(CHEAX *c, struct chx_string *str, size_t pos, size_t len)
 {
-	ASSERT_NOT_NULL("substr", str, cheax_nil());
+	ASSERT_NOT_NULL("substr", str, CHEAX_NIL);
 
 	if (pos > SIZE_MAX - len || pos + len > str->len) {
 		cheax_throwf(c, CHEAX_EINDEX, "substr(): substring out of bounds");
-		return cheax_nil();
+		return CHEAX_NIL;
 	}
 
 	struct chx_value res;
 	res.type = CHEAX_STRING;
 	res.data.as_string = gc_alloc(c, sizeof(struct chx_string), CHEAX_STRING);
 	if (res.data.as_string == NULL)
-		return cheax_nil();
+		return CHEAX_NIL;
 
 	res.data.as_string->value = str->value + pos;
 	res.data.as_string->len = len;
@@ -445,9 +451,9 @@ cheax_list_to_array(CHEAX *c, struct chx_list *list, struct chx_value **array_pt
 struct chx_value
 cheax_array_to_list(CHEAX *c, struct chx_value *array, size_t length)
 {
-	ASSERT_NOT_NULL("array_to_list", array, cheax_nil());
+	ASSERT_NOT_NULL("array_to_list", array, CHEAX_NIL);
 
-	struct chx_value res = cheax_nil();
+	struct chx_value res = CHEAX_NIL;
 	for (size_t i = length; i >= 1; --i) {
 		res = cheax_list(c, array[i - 1], res.data.as_list);
 		cheax_ft(c, pad);
@@ -455,7 +461,7 @@ cheax_array_to_list(CHEAX *c, struct chx_value *array, size_t length)
 
 	return res;
 pad:
-	return cheax_nil();
+	return CHEAX_NIL;
 }
 
 static bool
@@ -473,7 +479,7 @@ cheax_cast(CHEAX *c, struct chx_value v, int type)
 {
 	if (!can_cast(c, v, type)) {
 		cheax_throwf(c, CHEAX_ETYPE, "cast(): invalid cast");
-		return cheax_nil();
+		return CHEAX_NIL;
 	}
 
 	v.type = type;
@@ -653,7 +659,7 @@ create_func(CHEAX *c, struct chx_list *args)
 {
 	if (args == NULL) {
 		cheax_throwf(c, CHEAX_EMATCH, "expected arguments");
-		return cheax_nil();
+		return CHEAX_NIL;
 	}
 
 	struct chx_value arg_list = args->value;
@@ -661,14 +667,14 @@ create_func(CHEAX *c, struct chx_list *args)
 
 	if (body == NULL) {
 		cheax_throwf(c, CHEAX_EMATCH, "expected body");
-		return cheax_nil();
+		return CHEAX_NIL;
 	}
 
 	struct chx_value res;
 	res.type = CHEAX_FUNC;
 	res.data.as_func = gc_alloc(c, sizeof(struct chx_func), CHEAX_FUNC);
 	if (res.data.as_func == NULL)
-		return cheax_nil();
+		return CHEAX_NIL;
 
 	res.data.as_func->args = arg_list;
 	res.data.as_func->body = body;
@@ -681,7 +687,7 @@ bltn_defmacro(CHEAX *c, struct chx_list *args, void *info)
 {
 	char *id;
 	if (unpack(c, args, "N!_+", &id, &args) < 0)
-		return cheax_nil();
+		return CHEAX_NIL;
 
 	static const uint8_t ops[] = { PP_SEQ, PP_EXPR, };
 	struct chx_value args_pp = preproc_pattern(c, cheax_list_value(args), ops, NULL);
@@ -695,7 +701,7 @@ bltn_defmacro(CHEAX *c, struct chx_list *args, void *info)
 	cheax_def(c, id, macro, CHEAX_READONLY);
 	c->env = prev_env;
 pad:
-	return cheax_nil();
+	return CHEAX_NIL;
 }
 
 static int
@@ -746,7 +752,7 @@ bltn_prepend(CHEAX *c, struct chx_list *args, void *info)
 {
 	if (args == NULL) {
 		cheax_throwf(c, CHEAX_EMATCH, "expected at least one argument");
-		return bt_wrap(c, cheax_nil());
+		return bt_wrap(c, CHEAX_NIL);
 	}
 
 	return bt_wrap(c, cheax_list_value(prepend(c, args)));
@@ -758,7 +764,7 @@ bltn_type_of(CHEAX *c, struct chx_list *args, void *info)
 	struct chx_value val;
 	return (0 == unpack(c, args, "_", &val))
 	     ? bt_wrap(c, typecode(val.type))
-	     : cheax_nil();
+	     : CHEAX_NIL;
 }
 
 static struct chx_value
@@ -766,9 +772,9 @@ bltn_string_bytes(CHEAX *c, struct chx_list *args, void *info)
 {
 	struct chx_string *str;
 	if (unpack(c, args, "S", &str) < 0)
-		return cheax_nil();
+		return CHEAX_NIL;
 
-	struct chx_value bytes = cheax_nil();
+	struct chx_value bytes = CHEAX_NIL;
 	for (size_t i = str->len; i >= 1; --i)
 		bytes = cheax_list(c, cheax_int((unsigned char)str->value[i - 1]), bytes.data.as_list);
 	return bt_wrap(c, bytes);
@@ -780,7 +786,7 @@ bltn_string_length(CHEAX *c, struct chx_list *args, void *info)
 	struct chx_string *str;
 	return (0 == unpack(c, args, "S", &str))
 	     ? bt_wrap(c, cheax_int((chx_int)str->len))
-	     : cheax_nil();
+	     : CHEAX_NIL;
 }
 
 static struct chx_value
@@ -790,7 +796,7 @@ bltn_substr(CHEAX *c, struct chx_list *args, void *info)
 	chx_int pos, len = 0;
 	struct chx_value len_or_nil;
 	if (unpack(c, args, "SII?", &str, &pos, &len_or_nil) < 0)
-		return cheax_nil();
+		return CHEAX_NIL;
 
 	if (!cheax_is_nil(len_or_nil))
 		len = len_or_nil.data.as_int;
@@ -799,7 +805,7 @@ bltn_substr(CHEAX *c, struct chx_list *args, void *info)
 
 	if (pos < 0 || len < 0) {
 		cheax_throwf(c, CHEAX_EVALUE, "expected positive integer");
-		return bt_wrap(c, cheax_nil());
+		return bt_wrap(c, CHEAX_NIL);
 	}
 
 	return bt_wrap(c, cheax_substr(c, str, pos, len));

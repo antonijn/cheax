@@ -208,7 +208,7 @@ config_sym_get(CHEAX *c, struct chx_sym *sym)
 		return cheax_bool(ci->get.get_bool(c));
 	default:
 		cheax_throwf(c, CHEAX_EEVAL, "config_sym_get(): internal error");
-		return cheax_nil();
+		return CHEAX_NIL;
 	}
 }
 static void

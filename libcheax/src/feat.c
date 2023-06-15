@@ -80,7 +80,7 @@ bltn_exit(CHEAX *c, struct chx_list *args, void *info)
 {
 	struct chx_value code_val;
 	if (unpack(c, args, "I?", &code_val) < 0)
-		return cheax_nil();
+		return CHEAX_NIL;
 
 	exit(cheax_is_nil(code_val) ? 0 : (int)code_val.data.as_int);
 }

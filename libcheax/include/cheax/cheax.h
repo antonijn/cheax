@@ -151,8 +151,11 @@ struct chx_value {
 #endif
 };
 
-/*! \brief Creates a `nil` value. */
-#define cheax_nil() ((struct chx_value){ .type = CHEAX_LIST, .data.as_list = NULL })
+/*! \brief The `nil` value. \note Requires C99 to use. */
+#define CHEAX_NIL ((struct chx_value){ 0 })
+
+/*! \brief Creates a `nil` value. \deprecated In favor of \ref CHEAX_NIL. */
+CHX_API struct chx_value cheax_nil(void);
 
 /*! \brief Tests whether given value is `nil`.
  *

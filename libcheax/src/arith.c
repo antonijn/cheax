@@ -32,7 +32,7 @@ do_aop_once(CHEAX *c, struct chx_value l, struct chx_value r, iop_cb iop, fop_cb
 
 	if (fop == NULL) {
 		cheax_throwf(c, CHEAX_ETYPE, "invalid operation on floating point numbers");
-		return bt_wrap(c, cheax_nil());
+		return bt_wrap(c, CHEAX_NIL);
 	}
 
 	chx_double ld, rd;
@@ -47,7 +47,7 @@ do_aop(CHEAX *c, struct chx_list *args, iop_cb iop, fop_cb fop)
 	struct chx_value l, r;
 	return (0 == unpack(c, args, "[ID][ID]", &l, &r))
 	     ? do_aop_once(c, l, r, iop, fop)
-	     : cheax_nil();
+	     : CHEAX_NIL;
 }
 
 static struct chx_value
@@ -55,12 +55,12 @@ do_assoc_aop(CHEAX *c, struct chx_list *args, iop_cb iop, fop_cb fop)
 {
 	struct chx_value accum;
 	if (unpack(c, args, "[ID]_+", &accum, &args) < 0)
-		return cheax_nil();
+		return CHEAX_NIL;
 
 	while (args != NULL) {
 		struct chx_value val;
 		if (unpack(c, args, "[ID]_*", &val, &args) < 0)
-			return cheax_nil();
+			return CHEAX_NIL;
 		accum = do_aop_once(c, accum, val, iop, fop);
 	}
 
@@ -235,7 +235,7 @@ bltn_bit_not(CHEAX *c, struct chx_list *args, void *info)
 	chx_int i;
 	return (0 == unpack(c, args, "I", &i))
 	     ? bt_wrap(c, cheax_int(~i))
-	     : cheax_nil();
+	     : CHEAX_NIL;
 }
 
 /* shift mode */
@@ -285,13 +285,13 @@ do_shift(CHEAX *c, struct chx_list *args, bool right, int mode)
 	chx_int i, j;
 	struct chx_value jval;
 	if (unpack(c, args, "II?", &i, &jval) < 0)
-		return cheax_nil();
+		return CHEAX_NIL;
 
 	j = cheax_is_nil(jval) ? 1 : jval.data.as_int;
 	if (j < 0) {
 		if (j == CHX_INT_MIN) {
 			cheax_throwf(c, CHEAX_EOVERFLOW, "integer overflow");
-			return bt_wrap(c, cheax_nil());
+			return bt_wrap(c, CHEAX_NIL);
 		}
 
 		j = -j;
@@ -337,7 +337,7 @@ do_cmp(CHEAX *c, struct chx_list *args, bool lt, bool eq, bool gt)
 {
 	struct chx_value l, r;
 	if (unpack(c, args, "[ID][ID]", &l, &r) < 0)
-		return cheax_nil();
+		return CHEAX_NIL;
 
 	bool is_lt, is_eq, is_gt;
 

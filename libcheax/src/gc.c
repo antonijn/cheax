@@ -557,7 +557,7 @@ static struct chx_value
 bltn_gc(CHEAX *c, struct chx_list *args, void *info)
 {
 	if (unpack(c, args, "") < 0)
-		return cheax_nil();
+		return CHEAX_NIL;
 
 	static struct chx_id mem = { 0, "mem" }, to = { 0, "->" }, obj = { 0, "obj" };
 
@@ -584,7 +584,7 @@ bltn_get_used_memory(CHEAX *c, struct chx_list *args, void *info)
 {
 	return (0 == unpack(c, args, ""))
 	     ? bt_wrap(c, cheax_int(c->gc.all_mem))
-	     : cheax_nil();
+	     : CHEAX_NIL;
 }
 
 void

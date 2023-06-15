@@ -87,7 +87,7 @@ eval_ext_func(CHEAX *c, struct chx_ext_func *form, struct chx_list *args, bool e
 	struct chx_list arg_buf[16], *other_args = NULL;
 	chx_ref ref_buf[16];
 	size_t i = 0;
-	struct chx_value res = cheax_nil();
+	struct chx_value res = CHEAX_NIL;
 
 	if (eval_args) {
 		struct chx_list **next_argp = &true_args;
@@ -155,7 +155,7 @@ eval_func_call(CHEAX *c,
                union chx_eval_out *out,
                bool argeval_override)
 {
-	struct chx_value res = cheax_nil();
+	struct chx_value res = CHEAX_NIL;
 
 	struct chx_env *caller_env = c->env;
 
@@ -193,7 +193,7 @@ eval_func_call(CHEAX *c,
 
 		out->ts.tail = stat->value;
 	} else {
-		out->ts.tail = cheax_nil();
+		out->ts.tail = CHEAX_NIL;
 	}
 pad2:
 	cheax_unref_ptr(c, pop_stop, ps_ref);
@@ -219,11 +219,11 @@ eval_env_call(CHEAX *c,
 {
 	cheax_enter_env(c, env);
 	if (cheax_errno(c) != 0) {
-		out->value = bt_wrap(c, cheax_nil());
+		out->value = bt_wrap(c, CHEAX_NIL);
 		return CHEAX_VALUE_OUT;
 	}
 
-	struct chx_value res = cheax_nil();
+	struct chx_value res = CHEAX_NIL;
 	for (struct chx_list *cons = args; cons != NULL; cons = cons->next) {
 		res = bt_wrap(c, cheax_eval(c, cons->value));
 		cheax_ft(c, env_pad);
@@ -244,7 +244,7 @@ eval_cast(CHEAX *c,
 	struct chx_value cast_arg;
 	out->value = (0 == unpack(c, args, ".", &cast_arg))
 	           ? bt_wrap(c, cheax_cast(c, cast_arg, head))
-	           : cheax_nil();
+	           : CHEAX_NIL;
 	return CHEAX_VALUE_OUT;
 }
 
@@ -253,7 +253,7 @@ eval_sexpr(CHEAX *c, struct chx_list *input, struct chx_env *pop_stop, union chx
 {
 	if (c->stack_limit > 0 && c->stack_depth >= c->stack_limit) {
 		cheax_throwf(c, CHEAX_ESTACK, "stack overflow! (stack limit %d)", c->stack_limit);
-		out->value = cheax_nil();
+		out->value = CHEAX_NIL;
 		return CHEAX_VALUE_OUT;
 	}
 
@@ -302,7 +302,7 @@ eval_sexpr(CHEAX *c, struct chx_list *input, struct chx_env *pop_stop, union chx
 
 	default:
 		cheax_throwf(c, CHEAX_ETYPE, "invalid function call");
-		out->value = bt_wrap(c, cheax_nil());
+		out->value = bt_wrap(c, CHEAX_NIL);
 		res = CHEAX_VALUE_OUT;
 		break;
 	}
@@ -492,7 +492,7 @@ pad:
 static int
 eval(CHEAX *c, struct chx_value input, struct chx_env *pop_stop, union chx_eval_out *out)
 {
-	struct chx_value res = cheax_nil();
+	struct chx_value res = CHEAX_NIL;
 	chx_ref input_ref;
 	int code;
 
@@ -570,7 +570,7 @@ apply_func_evaluator(CHEAX *c, void *input_info, struct chx_env *pop_stop, union
 
 	default:
 		cheax_throwf(c, CHEAX_EEVAL, "apply_func_evaluator(): internal error");
-		out->value = cheax_nil();
+		out->value = CHEAX_NIL;
 		res = CHEAX_VALUE_OUT;
 		break;
 	}
@@ -590,7 +590,7 @@ wrap_tail_eval(CHEAX *c, tail_evaluator initial_eval, void *input_info)
 
 	struct chx_list *was_last_call = c->bt.last_call;
 	int tail_lvls = -1;
-	struct chx_value res = cheax_nil();
+	struct chx_value res = CHEAX_NIL;
 	cheax_ft(c, pad);
 
 	/* we've leapt into a tail call */
@@ -670,7 +670,7 @@ cheax_macroexpand_once(CHEAX *c, struct chx_value expr)
 
 	if (macro.type != CHEAX_FUNC && macro.type != CHEAX_EXT_FUNC) {
 		cheax_throwf(c, CHEAX_ESTATIC, "invalid macro type");
-		return cheax_nil();
+		return CHEAX_NIL;
 	}
 
 	chx_ref lst_ref = cheax_ref_ptr(c, lst);
@@ -687,7 +687,7 @@ cheax_macroexpand_once(CHEAX *c, struct chx_value expr)
 
 	return res;
 pad:
-	return cheax_nil();
+	return CHEAX_NIL;
 }
 
 static bool
@@ -724,7 +724,7 @@ preproc_specop(CHEAX *c, const char *id, struct chx_value specop_val, struct chx
 		out_list->rtflags |= PREPROC_BIT;
 	return cheax_list_value(out_list);
 pad:
-	return cheax_nil();
+	return CHEAX_NIL;
 }
 
 static struct chx_value
@@ -736,7 +736,7 @@ preproc_fcall(CHEAX *c, struct chx_list *call)
 
 	if (call_out_val.type != CHEAX_LIST) {
 		cheax_throwf(c, CHEAX_ESTATIC, "preproc_fcall(): eek, what happened?");
-		return cheax_nil();
+		return CHEAX_NIL;
 	}
 
 	struct chx_list *call_out = call_out_val.data.as_list;
@@ -802,7 +802,7 @@ cheax_apply(CHEAX *c, struct chx_value func, struct chx_list *args)
 
 	default:
 		cheax_throwf(c, CHEAX_ETYPE, "apply(): only ExtFunc and Func allowed (got type %d)", func.type);
-		return cheax_nil();
+		return CHEAX_NIL;
 	}
 }
 
@@ -985,7 +985,7 @@ bltn_eval(CHEAX *c, struct chx_list *args, void *info)
 	struct chx_value arg;
 	return (0 == unpack(c, args, "_", &arg))
 	     ? bt_wrap(c, cheax_eval(c, arg))
-	     : cheax_nil();
+	     : CHEAX_NIL;
 }
 
 static struct chx_value
@@ -996,7 +996,7 @@ bltn_apply(CHEAX *c, struct chx_list *args, void *info)
 	struct chx_value func;
 	struct chx_list *list;
 	if (unpack(c, args, "[LP]C", &func, &list) < 0)
-		return cheax_nil();
+		return CHEAX_NIL;
 
 	return cheax_apply(c, func, list);
 }
@@ -1007,7 +1007,7 @@ bltn_eq(CHEAX *c, struct chx_list *args, void *info)
 	struct chx_value l, r;
 	return (0 == unpack(c, args, "__", &l, &r))
 	     ? bt_wrap(c, cheax_bool(cheax_eq(c, l, r)))
-	     : cheax_nil();
+	     : CHEAX_NIL;
 }
 
 static struct chx_value
@@ -1016,7 +1016,7 @@ bltn_ne(CHEAX *c, struct chx_list *args, void *info)
 	struct chx_value l, r;
 	return (0 == unpack(c, args, "__", &l, &r))
 	     ? bt_wrap(c, cheax_bool(!cheax_eq(c, l, r)))
-	     : cheax_nil();
+	     : CHEAX_NIL;
 }
 
 static int
@@ -1028,7 +1028,7 @@ sf_case(CHEAX *c,
 {
 	if (args == NULL) {
 		cheax_throwf(c, CHEAX_EMATCH, "invalid case");
-		out->value = bt_wrap(c, cheax_nil());
+		out->value = bt_wrap(c, CHEAX_NIL);
 		return CHEAX_VALUE_OUT;
 	}
 
@@ -1040,7 +1040,7 @@ sf_case(CHEAX *c,
 		struct chx_value pair = pvp->value;
 		if (pair.type != CHEAX_LIST || pair.data.as_list == NULL) {
 			cheax_throwf(c, CHEAX_EMATCH, "pattern-value pair expected");
-			out->value = bt_wrap(c, cheax_nil());
+			out->value = bt_wrap(c, CHEAX_NIL);
 			return CHEAX_VALUE_OUT;
 		}
 
@@ -1077,7 +1077,7 @@ pad2:
 	cheax_throwf(c, CHEAX_EMATCH, "non-exhaustive pattern");
 	cheax_add_bt(c);
 pad:
-	out->value = cheax_nil();
+	out->value = CHEAX_NIL;
 	return CHEAX_VALUE_OUT;
 }
 
@@ -1148,7 +1148,7 @@ pad2:
 	}
 
 pad:
-	out->value = cheax_nil();
+	out->value = CHEAX_NIL;
 	return CHEAX_VALUE_OUT;
 }
 

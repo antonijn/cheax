@@ -82,7 +82,7 @@ read_id(struct read_info *ri, struct scnr *s) /* consume_final = true */
 	struct sostrm ss;
 	sostrm_init(&ss, ri->c);
 
-	struct chx_value res = cheax_nil();
+	struct chx_value res = CHEAX_NIL;
 
 	while (c_isid(s->ch))
 		ostrm_putc(&ss.strm, scnr_adv(s));
@@ -153,7 +153,7 @@ read_num(struct read_info *ri, struct scnr *s) /* consume_final = true */
 	struct sostrm ss;
 	sostrm_init(&ss, ri->c);
 
-	struct chx_value res = cheax_nil();
+	struct chx_value res = CHEAX_NIL;
 
 	/*
 	 * We optimise (slightly) for integers, whose value we parse as
@@ -334,7 +334,7 @@ read_string(struct read_info *ri, struct scnr *s, bool consume_final)
 	struct sostrm ss;
 	sostrm_init(&ss, ri->c);
 
-	struct chx_value res = cheax_nil();
+	struct chx_value res = CHEAX_NIL;
 
 	/* consume initial `"' */
 	scnr_adv(s);
@@ -407,7 +407,7 @@ read_list(struct read_info *ri, struct scnr *s, bool consume_final)
 eof_pad:
 	cheax_throwf(ri->c, CHEAX_EEOF, "unexpected end-of-file in S-expression");
 pad:
-	return cheax_nil();
+	return CHEAX_NIL;
 }
 
 static struct chx_value
@@ -483,12 +483,12 @@ read_value(struct read_info *ri, struct scnr *s, bool consume_final)
 	if (s->ch == ',') {
 		if (ri->bkquote_stack == 0) {
 			cheax_throwf(ri->c, CHEAX_EREAD, "comma is illegal outside of backquotes");
-			return cheax_nil();
+			return CHEAX_NIL;
 		}
 		/* same error, different message */
 		if (ri->comma_stack >= ri->bkquote_stack) {
 			cheax_throwf(ri->c, CHEAX_EREAD, "more commas than backquotes");
-			return cheax_nil();
+			return CHEAX_NIL;
 		}
 
 		scnr_adv(s);
@@ -496,7 +496,7 @@ read_value(struct read_info *ri, struct scnr *s, bool consume_final)
 		if (s->ch == '@') {
 			if (!ri->allow_splice) {
 				cheax_throwf(ri->c, CHEAX_EREAD, "invalid splice");
-				return cheax_nil();
+				return CHEAX_NIL;
 			}
 
 			splice = true;
@@ -515,7 +515,7 @@ read_value(struct read_info *ri, struct scnr *s, bool consume_final)
 	if (s->ch != EOF)
 		cheax_throwf(ri->c, CHEAX_EREAD, "unexpected character `%c'", s->ch);
 pad:
-	return cheax_nil();
+	return CHEAX_NIL;
 }
 
 static struct chx_value
@@ -546,7 +546,7 @@ cheax_read(CHEAX *c, FILE *infile)
 struct chx_value
 cheax_read_at(CHEAX *c, FILE *infile, const char *path, int *line, int *pos)
 {
-	ASSERT_NOT_NULL("read_at", infile, cheax_nil());
+	ASSERT_NOT_NULL("read_at", infile, CHEAX_NIL);
 
 	struct fistrm fs;
 	fistrm_init(&fs, infile, c);
@@ -560,8 +560,8 @@ cheax_readstr(CHEAX *c, const char *str)
 struct chx_value
 cheax_readstr_at(CHEAX *c, const char **str, const char *path, int *line, int *pos)
 {
-	ASSERT_NOT_NULL("readstr_at", str, cheax_nil());
-	ASSERT_NOT_NULL("readstr_at", *str, cheax_nil());
+	ASSERT_NOT_NULL("readstr_at", str, CHEAX_NIL);
+	ASSERT_NOT_NULL("readstr_at", *str, CHEAX_NIL);
 
 	struct sistrm ss;
 	sistrm_init(&ss, *str);

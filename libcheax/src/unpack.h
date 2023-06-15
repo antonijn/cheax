@@ -33,7 +33,7 @@
  * specifier) and its integer data stored in i1. The second argument is
  * _not_ evaluated (uppercase "I" specifier), and its integer data
  * stored in i2. The optional ("?" modifier) third argument gets stored
- * in i3 if present, otherwise i3 is set to cheax_nil().
+ * in i3 if present, otherwise i3 is set to CHEAX_NIL.
  *
  * Example:
  *
