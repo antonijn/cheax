@@ -11,3 +11,4 @@ Testing
 DartConfiguration.tcl
 CMakeDoxyfile.in
 CMakeDoxygenDefaults.cmake
+compile_commands.json
