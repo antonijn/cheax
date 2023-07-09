@@ -29,6 +29,8 @@
 #    include <malloc_np.h>
 #  endif
 #endif
+#include <stdalign.h>
+#include <stddef.h>
 #include <stdlib.h>
 #include <string.h>
 
@@ -39,7 +41,16 @@
 #include "rbtree.h"
 #include "unpack.h"
 
-#define RTFLAGS(obj) (*(unsigned *)(obj))
+struct gc_header {
+	struct gc_header_node node;
+	int rsvd_type;     /* Resolved cheax type of allocated value */
+	union chx_any obj; /* Only for locating the start of the user object */
+};
+
+struct gc_fin_footer {
+	chx_fin fin;
+	void *info;
+};
 
 /* values for chx_ref */
 enum {
@@ -64,7 +75,7 @@ gc_type(CHEAX *c, int type)
 #ifndef MSIZE
 struct alloc_header {
 	size_t size;
-	long obj;
+	alignas(max_align_t) char obj[1];
 };
 
 #  define HDR_SIZE (offsetof(struct alloc_header, obj))
@@ -93,7 +104,7 @@ claim_mem(CHEAX *c, alloc_ptr ptr, size_t total_size, size_t unclaim)
 	               || (mem > prev_mem && mem - prev_mem >= GC_RUN_THRESHOLD)
 	               || (c->mem_limit > 256 && mem > (size_t)(c->mem_limit - 256));
 
-	return &ptr->obj;
+	return &ptr->obj[0];
 }
 
 #else
@@ -223,11 +234,6 @@ cheax_free(CHEAX *c, void *obj)
 	}
 }
 
-struct gc_fin_footer {
-	chx_fin fin;
-	void *info;
-};
-
 static struct gc_header *
 get_header(void *obj)
 {
@@ -239,7 +245,11 @@ get_fin_footer(void *obj)
 {
 	struct gc_header *hdr = get_header(obj);
 	char *mem_ptr = (char *)get_alloc_ptr(hdr);
-	return (struct gc_fin_footer *)(mem_ptr + obj_size(hdr) - sizeof(struct gc_fin_footer));
+
+	const size_t aln_footer = alignof(struct gc_fin_footer);
+	size_t offset = obj_size(hdr) - sizeof(struct gc_fin_footer);
+	offset = offset / aln_footer * aln_footer;
+	return (struct gc_fin_footer *)(mem_ptr + offset);
 }
 
 void
@@ -294,8 +304,7 @@ gc_alloc(CHEAX *c, size_t size, int type)
 	if (rsvd_type < 0)
 		return NULL;
 	hdr->rsvd_type = rsvd_type;
-
-	RTFLAGS(&hdr->obj) = GC_BIT;
+	hdr->obj.rtflags = GC_BIT;
 
 	++c->gc.num_objects;
 
@@ -316,12 +325,17 @@ gc_alloc(CHEAX *c, size_t size, int type)
 void *
 gc_alloc_with_fin(CHEAX *c, size_t size, int type, chx_fin fin, void *info)
 {
-	void *obj = gc_alloc(c, size + sizeof(struct gc_fin_footer), type);
+	const size_t aln_footer = alignof(struct gc_fin_footer);
+	size_t total_size = size;
+	total_size = (total_size + aln_footer - 1) / aln_footer * aln_footer;
+	total_size += sizeof(struct gc_fin_footer);
+
+	union chx_any *obj = gc_alloc(c, total_size, type);
 	if (obj != NULL) {
 		struct gc_fin_footer *ftr = get_fin_footer(obj);
 		ftr->fin = fin;
 		ftr->info = info;
-		RTFLAGS(obj) |= FIN_BIT;
+		obj->rtflags |= FIN_BIT;
 	}
 	return obj;
 }
@@ -341,7 +355,7 @@ gc_free(CHEAX *c, void *obj)
 	next->prev = prev;
 	--c->gc.num_objects;
 
-	if (has_flag(RTFLAGS(obj), FIN_BIT)) {
+	if (has_flag(hdr->obj.rtflags, FIN_BIT)) {
 		struct gc_fin_footer *ftr = get_fin_footer(obj);
 		ftr->fin(obj, ftr->info);
 	}
@@ -352,8 +366,8 @@ gc_free(CHEAX *c, void *obj)
 static bool
 mark_once(CHEAX *c, void *obj)
 {
-	if (obj != NULL && (RTFLAGS(obj) & (GC_BIT | GC_MARKED)) == GC_BIT) {
-		RTFLAGS(obj) |= GC_MARKED;
+	if (obj != NULL && (*(unsigned *)obj & (GC_BIT | GC_MARKED)) == GC_BIT) {
+		*(unsigned *)obj |= GC_MARKED;
 		return true;
 	}
 	return false;
@@ -453,9 +467,10 @@ mark(CHEAX *c)
 	struct gc_header_node *n;
 	for (n = c->gc.objects.next; n != &c->gc.objects; n = n->next) {
 		struct gc_header *hdr = (struct gc_header *)n;
-		void *obj = &hdr->obj;
-		if (has_flag(RTFLAGS(obj), REF_BIT))
-			mark_obj(c, ((struct chx_value){ .type = hdr->rsvd_type, .data.user_ptr = obj }));
+		if (has_flag(hdr->obj.rtflags, REF_BIT)) {
+			mark_obj(c, ((struct chx_value){ .type          = hdr->rsvd_type,
+			                                 .data.user_ptr = &hdr->obj }));
+		}
 	}
 
 	mark_env(c, c->env);
@@ -475,11 +490,10 @@ sweep(CHEAX *c)
 	for (n = c->gc.objects.next; n != &c->gc.objects; n = nxt) {
 		nxt = n->next;
 		struct gc_header *hdr = (struct gc_header *)n;
-		void *obj = &hdr->obj;
-		if (!has_flag(RTFLAGS(obj), GC_MARKED))
-			gc_free(c, obj);
+		if (!has_flag(hdr->obj.rtflags, GC_MARKED))
+			gc_free(c, &hdr->obj);
 		else
-			RTFLAGS(obj) &= ~GC_MARKED;
+			hdr->obj.rtflags &= ~GC_MARKED;
 	}
 
 	c->gc.lock = was_locked;
@@ -509,8 +523,8 @@ cheax_ref(CHEAX *c, struct chx_value value)
 chx_ref
 cheax_ref_ptr(CHEAX *c, void *restrict value)
 {
-	if (value != NULL && (RTFLAGS(value) & (GC_BIT | REF_BIT)) == GC_BIT) {
-		RTFLAGS(value) |= REF_BIT;
+	if (value != NULL && (*(unsigned *)value & (GC_BIT | REF_BIT)) == GC_BIT) {
+		*(unsigned *)value |= REF_BIT;
 		return PLEASE_UNREF;
 	}
 
@@ -527,7 +541,7 @@ void
 cheax_unref_ptr(CHEAX *c, void *restrict value, chx_ref ref)
 {
 	if (ref == PLEASE_UNREF)
-		RTFLAGS(value) &= ~REF_BIT;
+		*(unsigned *)value &= ~REF_BIT;
 }
 
 /*

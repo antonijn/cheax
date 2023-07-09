@@ -22,14 +22,10 @@
 
 #include <stdint.h>
 
+#include "types.h"
+
 struct gc_header_node {
 	struct gc_header_node *prev, *next;
-};
-
-struct gc_header {
-	struct gc_header_node node;
-	int rsvd_type; /* Resolved cheax type of allocated value */
-	intptr_t obj;  /* Only for locating the start of the user object */
 };
 
 struct gc_info {

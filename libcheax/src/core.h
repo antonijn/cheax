@@ -17,6 +17,7 @@
 #define CORE_H
 
 #include "gc.h"
+#include "types.h"
 #include "sym.h"
 
 #define ASSERT_NOT_NULL(name, x, ret) do { \
@@ -51,21 +52,6 @@ has_flag(int i, int f)
 {
 	return (i & f) == f;
 }
-
-struct chx_special_op {
-	unsigned rtflags;
-	const char *name;
-	chx_tail_func_ptr perform;
-	chx_func_ptr preproc;
-	void *info;
-};
-
-struct chx_string {
-	unsigned rtflags;
-	char *value;
-	size_t len;
-	struct chx_string *orig;
-};
 
 struct loc_debug_info {
 	const char *file;

@@ -13,22 +13,51 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  */
 
-#ifndef SYM_H
-#define SYM_H
+#ifndef TYPES_H
+#define TYPES_H
 
 #include <cheax.h>
 
 #include "rbtree.h"
 
-struct full_sym {
+struct chx_special_op {
+	unsigned rtflags;
 	const char *name;
-	bool allow_redef;
-	struct chx_sym sym;
+	chx_tail_func_ptr perform;
+	chx_func_ptr preproc;
+	void *info;
 };
 
-struct chx_env *norm_env_init(CHEAX *c, struct chx_env *env, struct chx_env *below);
-void norm_env_cleanup(struct chx_env *env);
+struct chx_string {
+	unsigned rtflags;
+	char *value;
+	size_t len;
+	struct chx_string *orig;
+};
 
-void export_sym_bltns(CHEAX *c);
+struct chx_env {
+	unsigned rtflags;
+	bool is_bif;
+	union {
+		struct chx_env *bif[2];
+
+		struct {
+			struct rb_tree syms;
+			struct chx_env *below;
+		} norm;
+	} value;
+};
+
+union chx_any {
+	struct chx_list list;
+	struct chx_id id;
+	struct chx_string string;
+	struct chx_quote quote;
+	struct chx_func func;
+	struct chx_ext_func ext_func;
+	struct chx_special_op special_op;
+	struct chx_env env;
+	unsigned rtflags;
+};
 
 #endif
