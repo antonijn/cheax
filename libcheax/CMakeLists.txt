@@ -14,10 +14,10 @@ include (CheckSymbolExists)
 include (CheckIncludeFiles)
 include (CheckFunctionExists)
 
-check_symbol_exists (__GNU_LIBRARY__ "features.h" _GNU_SOURCE)
-if (_GNU_SOURCE)
-	string (APPEND CMAKE_C_FLAGS "-D_GNU_SOURCE")
-endif ()
+# Define _GNU_SOURCE even if we're not using glibc. Other libraries,
+# e.g. musl, will implement strtod_l (and CMake will find it) but not
+# declare it unless _GNU_SOURCE is set.
+string (APPEND CMAKE_C_FLAGS "-D_GNU_SOURCE")
 
 check_include_files ("xlocale.h"   HAVE_XLOCALE_H)
 check_include_files ("malloc.h"    HAVE_MALLOC_H)
