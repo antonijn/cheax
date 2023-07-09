@@ -10,8 +10,7 @@ Installation
 ------------
 
 ```sh
-$ cmake .
-$ make
+$ mkdir build && cd build && cmake .. && make
 # make install
 ```
 
