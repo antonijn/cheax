@@ -257,7 +257,7 @@ eval_sexpr(CHEAX *c, struct chx_list *input, struct chx_env *pop_stop, union chx
 		return CHEAX_VALUE_OUT;
 	}
 
-	int res;
+	int res = CHEAX_VALUE_OUT;
 	int prev_stack_depth = c->stack_depth++;
 
 	chx_ref input_ref = cheax_ref_ptr(c, input);
