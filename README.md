@@ -14,29 +14,9 @@ $ mkdir build && cd build && cmake .. && make
 # make install
 ```
 
-Language example
-----------------
-
-Run the `cheaky` program for an interactive prompt.
-
-```
-> (put "hello, world!\n")
-hello, world!
-
-> (print '(1 2 3))          ; quote syntax: evaluates to the quoted expression
-(1 2 3)
-
-> (print (: 4 '(5 6)))      ; (: car cdr) is the list prepend function
-(4 5 6)
-
-> (defun sum (lst)
-…  (case lst                     ; matches lst with any of the following cases
-…    ((: x xs) (+ x (sum xs)))   ; non-empty list with head x, tail xs
-…    (()       0)))              ; empty list
-
-> (sum (.. 1 100))          ; (..) is a built-in function generating a list of numbers
-5050
-```
+Language demo
+-------------
+![Made with VHS](https://vhs.charm.sh/vhs-4S0HmQsFAYuSxQuZ6i1HJE.gif)
 
 C API example
 -------------
