@@ -351,6 +351,15 @@
         ((= n 0) ())
         (true    (throw EVALUE "`n' must be non-negative"))))))
 
+(defun unsafe-iterate (f x n)
+  (if (= n 0)
+    x
+    (unsafe-iterate f (f x) (- n 1))))
+(defun iterate (f x n)
+  (when (< n 0)
+    (throw EVALUE (format "expected non-negative iteration count (got {})" n)))
+  (unsafe-iterate f x n))
+
 (defun maximum (lst)
   (type-assert lst List)
   (let (((: x xs) lst))
