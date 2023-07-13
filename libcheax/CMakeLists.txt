@@ -1,6 +1,10 @@
 cmake_minimum_required (VERSION 3.12)
 
-include(GenerateExportHeader)
+include (CheckSymbolExists)
+include (CheckIncludeFiles)
+include (CheckFunctionExists)
+include (GNUInstallDirs)
+include (GenerateExportHeader)
 
 add_custom_target (
 	generate_version_header
@@ -9,10 +13,6 @@ add_custom_target (
 	WORKING_DIRECTORY
 		${CMAKE_SOURCE_DIR}
 )
-
-include (CheckSymbolExists)
-include (CheckIncludeFiles)
-include (CheckFunctionExists)
 
 # Define _GNU_SOURCE even if we're not using glibc. Other libraries,
 # e.g. musl, will implement strtod_l (and CMake will find it) but not
@@ -126,8 +126,8 @@ generate_export_header (libcheax
 
 target_include_directories (libcheax PUBLIC include)
 set_target_properties (libcheax PROPERTIES OUTPUT_NAME "cheax")
-install (TARGETS libcheax DESTINATION lib)
-install (FILES include/cheax.h DESTINATION include)
-install (FILES include/cheax/export.h DESTINATION include/cheax/)
-install (FILES include/cheax/cheax.h DESTINATION include/cheax/)
-install (FILES COPYING DESTINATION share/licenses/libcheax/)
+install (TARGETS libcheax DESTINATION ${CMAKE_INSTALL_LIBDIR})
+install (FILES include/cheax.h DESTINATION ${CMAKE_INSTALL_INCLUDEDIR})
+install (FILES include/cheax/export.h DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/cheax/)
+install (FILES include/cheax/cheax.h DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/cheax/)
+install (FILES COPYING DESTINATION ${CMAKE_INSTALL_DATADIR}/licenses/libcheax/)

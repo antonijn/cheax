@@ -7,6 +7,8 @@ option (CHEAKY_USE_READLINE "Use readline in cheaky"   ON)
 
 set (CMAKE_C_STANDARD 11)
 
+include (GNUInstallDirs)
+
 if (NOT MSVC)
 	add_compile_options (-Wall -Wextra -Wno-unused-parameter -pedantic-errors)
 endif ()
@@ -27,5 +29,5 @@ if (DOXYGEN_FOUND AND BUILD_DOCS)
 	add_subdirectory (docs)
 endif ()
 
-install (FILES stdlib/prelude.chx DESTINATION share/cheax/)
-install (FILES stdlib/testing.chx DESTINATION share/cheax/)
+install (FILES stdlib/prelude.chx DESTINATION ${CMAKE_INSTALL_DATADIR}/cheax/)
+install (FILES stdlib/testing.chx DESTINATION ${CMAKE_INSTALL_DATADIR}/cheax/)

@@ -1,9 +1,11 @@
 cmake_minimum_required (VERSION 3.10)
 
-add_executable(cheaky cheaky.c)
-target_link_libraries (cheaky libcheax)
-
 include (CheckIncludeFiles)
+include (GNUInstallDirs)
+
+set (CMAKE_INSTALL_RPATH ${CMAKE_INSTALL_FULL_LIBDIR})
+add_executable (cheaky cheaky.c)
+target_link_libraries (cheaky libcheax)
 
 if (CHEAKY_USE_READLINE)
 	# stdio.h has to be added since readline.h and history.h depend
@@ -20,7 +22,7 @@ endif ()
 
 add_definitions (-DCMAKE_INSTALL_PREFIX="${CMAKE_INSTALL_PREFIX}")
 
-install(TARGETS cheaky DESTINATION bin)
-install(FILES COPYING DESTINATION share/licenses/cheaky/)
-install(FILES WARRANTY DESTINATION share/licenses/cheaky/)
-install(FILES CONDITIONS DESTINATION share/licenses/cheaky/)
+install(TARGETS cheaky DESTINATION ${CMAKE_INSTALL_BINDIR})
+install(FILES COPYING DESTINATION ${CMAKE_INSTALL_DATADIR}/licenses/cheaky/)
+install(FILES WARRANTY DESTINATION ${CMAKE_INSTALL_DATADIR}/licenses/cheaky/)
+install(FILES CONDITIONS DESTINATION ${CMAKE_INSTALL_DATADIR}/licenses/cheaky/)
