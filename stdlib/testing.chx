@@ -94,8 +94,8 @@
 (defun assert-arg-count-helper (f fname count msg)
   (case count
     ((least most)
-      (type-assert least Int)
-      (type-assert most Int)
+      (check-type least Int)
+      (check-type most Int)
       (when (or (> least most) (< least 0))
         (throw EVALUE "invalid arg count specification"))
       (when (> least 0)
