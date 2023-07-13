@@ -356,6 +356,8 @@
     x
     (unsafe-iterate f (f x) (- n 1))))
 (defun iterate (f x n)
+  (check-type f Func ExtFunc)
+  (check-type n Int)
   (when (< n 0)
     (throw EVALUE (format "expected non-negative iteration count (got {})" n)))
   (unsafe-iterate f x n))
