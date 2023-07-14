@@ -277,7 +277,7 @@ bt_add_tail_msg(CHEAX *c, int tail_lvls)
 {
 	if (c->bt.len >= c->bt.limit) {
 		c->bt.truncated = true;
-	} else {
+	} else if (tail_lvls > 0) {
 		size_t idx = c->bt.len++;
 		memset(&c->bt.array[idx], 0, sizeof(c->bt.array[idx]));
 		sprintf(c->bt.array[idx].line1, "  ... tail calls (%d) ...", tail_lvls);

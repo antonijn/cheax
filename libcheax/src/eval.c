@@ -365,9 +365,7 @@ eval_bkquoted_list(CHEAX *c, struct chx_list *quoted, int nest)
 		cheax_unref(c, car, car_ref);
 		cheax_ft(c, pad);
 
-		return c->gen_debug_info
-		     ? orig_debug_list(c, car, (struct chx_list *)cdr, quoted)
-		     : cheax_list(c, car, (struct chx_list *)cdr).data.as_list;
+		return orig_debug_list(c, car, (struct chx_list *)cdr, quoted);
 
 	case BKQ_SPLICED:
 		spl_list_value = cheax_list_value(spl_list);
@@ -726,9 +724,7 @@ preproc_specop(CHEAX *c, const char *id, struct chx_value specop_val, struct chx
 		goto pad;
 	}
 
-	struct chx_list *out_list = c->gen_debug_info
-	                          ? orig_debug_list(c, specop_val, out_tail.data.as_list, call)
-	                          : cheax_list(c, specop_val, out_tail.data.as_list).data.as_list;
+	struct chx_list *out_list = orig_debug_list(c, specop_val, out_tail.data.as_list, call);
 	if (out_list != NULL)
 		out_list->rtflags |= PREPROC_BIT;
 	return cheax_list_value(out_list);

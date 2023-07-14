@@ -381,9 +381,7 @@ read_list(struct read_info *ri, struct scnr *s, bool consume_final)
 		if (s->ch == EOF)
 			goto eof_pad;
 
-		lst = ri->c->gen_debug_info
-		    ? loc_debug_list(ri->c, read_value(ri, s, true), NULL, info)
-		    : cheax_list(ri->c, read_value(ri, s, true), NULL).data.as_list;
+		lst = loc_debug_list(ri->c, read_value(ri, s, true), NULL, info);
 		cheax_ft(ri->c, pad);
 
 		struct chx_list **next = &lst->next;

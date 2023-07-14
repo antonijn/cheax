@@ -168,6 +168,9 @@ struct orig_debug_list {
 struct chx_list *
 loc_debug_list(CHEAX *c, struct chx_value car, struct chx_list *cdr, struct loc_debug_info info)
 {
+	if (!c->gen_debug_info)
+		return cheax_list(c, car, cdr).data.as_list;
+
 	struct loc_debug_list *res = gc_alloc(c, sizeof(struct loc_debug_list), CHEAX_LIST);
 	if (res == NULL)
 		return NULL;
@@ -180,6 +183,9 @@ loc_debug_list(CHEAX *c, struct chx_value car, struct chx_list *cdr, struct loc_
 struct chx_list *
 orig_debug_list(CHEAX *c, struct chx_value car, struct chx_list *cdr, struct chx_list *orig_form)
 {
+	if (!c->gen_debug_info)
+		return cheax_list(c, car, cdr).data.as_list;
+
 	struct orig_debug_list *res = gc_alloc(c, sizeof(struct loc_debug_list), CHEAX_LIST);
 	if (res == NULL)
 		return NULL;

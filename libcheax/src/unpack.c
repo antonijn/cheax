@@ -399,7 +399,7 @@ pp_pan_list(CHEAX *c, struct chx_value value, const uint8_t **prog_p, const char
 		cheax_unref(c, head, head_ref);
 		cheax_ft(c, pad);
 
-		return cheax_list(c, head, tail).data.as_list;
+		return orig_debug_list(c, head, tail, lst);
 
 	case PP_MAYBE:
 		if (lst == NULL) {
@@ -422,11 +422,12 @@ pp_pan_list(CHEAX *c, struct chx_value value, const uint8_t **prog_p, const char
 
 			cheax_ft(c, pad);
 
-			*nextp = cheax_list(c, head, NULL).data.as_list;
+			*nextp = orig_debug_list(c, head, NULL, lst);
 			nextp = &(*nextp)->next;
 
 			/* Allocation failure */
 			cheax_ft(c, pad);
+
 		}
 
 		*prog_p += pp_pan_len(*prog_p);
