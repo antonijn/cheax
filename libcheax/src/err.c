@@ -256,7 +256,10 @@ cheax_add_bt(CHEAX *c)
 	if (orig_form != NULL) {
 		info = get_loc_debug_info(orig_form);
 		list_line1 = orig_form;
-		list_line2 = last_call;
+		if (cheax_eq(c, cheax_list_value(orig_form), cheax_list_value(last_call)))
+			list_line2 = NULL;
+		else
+			list_line2 = last_call;
 	} else {
 		info = get_loc_debug_info(last_call);
 		list_line1 = last_call;

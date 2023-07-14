@@ -427,7 +427,6 @@ pp_pan_list(CHEAX *c, struct chx_value value, const uint8_t **prog_p, const char
 
 			/* Allocation failure */
 			cheax_ft(c, pad);
-
 		}
 
 		*prog_p += pp_pan_len(*prog_p);

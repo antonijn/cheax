@@ -693,14 +693,9 @@ pad:
 static bool
 should_preprocess(struct chx_value expr)
 {
-	if (expr.type != CHEAX_LIST)
-		return false;
-
-	struct chx_list *lst = expr.data.as_list;
-	if (lst == NULL || has_flag(lst->rtflags, PREPROC_BIT))
-		return false;
-
-	return true;
+	return expr.type == CHEAX_LIST
+	    && expr.data.as_list != NULL
+	    && !has_flag(expr.data.as_list->rtflags, PREPROC_BIT);
 }
 
 static struct chx_value
