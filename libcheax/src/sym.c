@@ -27,7 +27,8 @@ static int
 full_sym_cmp(struct rb_tree *tree, struct rb_node *a, struct rb_node *b)
 {
 	struct full_sym *fs_a = a->value, *fs_b = b->value;
-	return strcmp(fs_a->name, fs_b->name);
+	intptr_t id_a = (intptr_t)fs_a->name, id_b = (intptr_t)fs_b->name;
+	return (id_a > id_b) - (id_a < id_b);
 }
 
 /*
@@ -43,7 +44,7 @@ norm_env(struct chx_env *env)
 }
 
 static struct full_sym *
-find_sym_in(struct chx_env *env, const char *name)
+find_sym_in(struct chx_env *env, struct chx_id *name)
 {
 	struct full_sym dummy;
 	dummy.name = name;
@@ -56,7 +57,7 @@ find_sym_in(struct chx_env *env, const char *name)
 }
 
 static struct full_sym *
-find_sym_in_or_below(struct chx_env *env, const char *name)
+find_sym_in_or_below(struct chx_env *env, struct chx_id *name)
 {
 	if (env == NULL)
 		return NULL;
@@ -79,7 +80,7 @@ find_sym_in_or_below(struct chx_env *env, const char *name)
 }
 
 static struct full_sym *
-find_sym(CHEAX *c, const char *name)
+find_sym(CHEAX *c, struct chx_id *name)
 {
 	struct full_sym *fs = find_sym_in_or_below(c->env, name);
 	return (fs != NULL) ? fs : find_sym_in(c->global_env, name);
@@ -201,9 +202,9 @@ cheax_pop_env(CHEAX *c)
 }
 
 struct chx_sym *
-cheax_defsym(CHEAX *c, const char *id,
-             chx_getter get, chx_setter set,
-             chx_finalizer fin, void *user_info)
+defsym_id(CHEAX *c, struct chx_id *id,
+          chx_getter get, chx_setter set,
+          chx_finalizer fin, void *user_info)
 {
 	ASSERT_NOT_NULL("defsym", id, NULL);
 
@@ -218,20 +219,16 @@ cheax_defsym(CHEAX *c, const char *id,
 
 	struct full_sym *prev_fs = find_sym_in(env, id);
 	if (prev_fs != NULL && !prev_fs->allow_redef) {
-		cheax_throwf(c, CHEAX_EEXIST, "symbol `%s' already exists", id);
+		cheax_throwf(c, CHEAX_EEXIST, "symbol `%s' already exists", id->value);
 		return NULL;
 	}
 
-	size_t idlen = strlen(id);
-
-	char *fs_mem = cheax_malloc(c, sizeof(struct full_sym) + idlen + 1);
+	char *fs_mem = cheax_malloc(c, sizeof(struct full_sym));
 	if (fs_mem == NULL)
 		return NULL;
-	char *idcpy = fs_mem + sizeof(struct full_sym);
-	memcpy(idcpy, id, idlen + 1);
 
 	struct full_sym *fs = (struct full_sym *)fs_mem;
-	fs->name = idcpy;
+	fs->name = id;
 	fs->allow_redef = c->allow_redef && (env == c->global_env);
 	fs->sym.get = get;
 	fs->sym.set = set;
@@ -246,6 +243,19 @@ cheax_defsym(CHEAX *c, const char *id,
 	return &fs->sym;
 }
 
+struct chx_sym *
+cheax_defsym(CHEAX *c, const char *name,
+             chx_getter get, chx_setter set,
+             chx_finalizer fin, void *user_info)
+{
+	ASSERT_NOT_NULL("defsym", name, NULL);
+
+	struct chx_id *id = cheax_id(c, name).data.as_id;
+	return id != NULL
+	     ? defsym_id(c, id, get, set, fin, user_info)
+	     : NULL;
+}
+
 static struct chx_value
 var_get(CHEAX *c, struct chx_sym *sym)
 {
@@ -258,15 +268,25 @@ var_set(CHEAX *c, struct chx_sym *sym, struct chx_value value)
 }
 
 void
-cheax_def(CHEAX *c, const char *id, struct chx_value value, int flags)
+def_id(CHEAX *c, struct chx_id *id, struct chx_value value, int flags)
 {
 	struct chx_sym *sym;
-	sym = cheax_defsym(c, id,
-	                   has_flag(flags, CHEAX_WRITEONLY) ? NULL : var_get,
-	                   has_flag(flags, CHEAX_READONLY)  ? NULL : var_set,
-	                   NULL, NULL);
+	sym = defsym_id(c, id,
+	                has_flag(flags, CHEAX_WRITEONLY) ? NULL : var_get,
+	                has_flag(flags, CHEAX_READONLY)  ? NULL : var_set,
+	                NULL, NULL);
 	if (sym != NULL)
 		sym->protect = value;
+}
+
+void
+cheax_def(CHEAX *c, const char *name, struct chx_value value, int flags)
+{
+	ASSERT_NOT_NULL_VOID("def", name);
+
+	struct chx_id *id = cheax_id(c, name).data.as_id;
+	if (id != NULL)
+		def_id(c, id, value, flags);
 }
 
 void
@@ -299,12 +319,13 @@ cheax_defsyntax(CHEAX *c,
 }
 
 void
-cheax_set(CHEAX *c, const char *id, struct chx_value value)
+cheax_set(CHEAX *c, const char *name, struct chx_value value)
 {
-	ASSERT_NOT_NULL_VOID("set", id);
+	ASSERT_NOT_NULL_VOID("set", name);
 
-	struct full_sym *fs = find_sym(c, id);
-	if (fs == NULL) {
+	struct chx_id *id = find_id(c, name);
+	struct full_sym *fs;
+	if (id == NULL || (fs = find_sym(c, id)) == NULL) {
 		cheax_throwf(c, CHEAX_ENOSYM, "no such symbol `%s'", id);
 		return;
 	}
@@ -317,18 +338,32 @@ cheax_set(CHEAX *c, const char *id, struct chx_value value)
 }
 
 struct chx_value
-cheax_get(CHEAX *c, const char *id)
+get_id(CHEAX *c, struct chx_id *id)
 {
 	struct chx_value res = CHEAX_NIL;
 
-	if (!cheax_try_get(c, id, &res) && cheax_errno(c) == 0)
+	if (!try_get_id(c, id, &res) && cheax_errno(c) == 0)
 		cheax_throwf(c, CHEAX_ENOSYM, "no such symbol `%s'", id);
 
 	return res;
 }
 
+struct chx_value
+cheax_get(CHEAX *c, const char *name)
+{
+	ASSERT_NOT_NULL("get", name, CHEAX_NIL);
+
+	struct chx_id *id = find_id(c, name);
+	if (id == NULL) {
+		cheax_throwf(c, CHEAX_ENOSYM, "no such symbol `%s'", name);
+		return CHEAX_NIL;
+	}
+
+	return get_id(c, id);
+}
+
 bool
-cheax_try_get(CHEAX *c, const char *id, struct chx_value *out)
+try_get_id(CHEAX *c, struct chx_id *id, struct chx_value *out)
 {
 	ASSERT_NOT_NULL("get", id, false);
 
@@ -346,6 +381,15 @@ cheax_try_get(CHEAX *c, const char *id, struct chx_value *out)
 	return cheax_errno(c) == 0;
 }
 
+bool
+cheax_try_get(CHEAX *c, const char *name, struct chx_value *out)
+{
+	ASSERT_NOT_NULL("get", name, false);
+
+	struct chx_id *id = find_id(c, name);
+	return id != NULL && try_get_id(c, id, out);
+}
+
 struct chx_value
 cheax_get_from(CHEAX *c, struct chx_env *env, const char *id)
 {
@@ -358,9 +402,13 @@ cheax_get_from(CHEAX *c, struct chx_env *env, const char *id)
 }
 
 bool
-cheax_try_get_from(CHEAX *c, struct chx_env *env, const char *id, struct chx_value *out)
+cheax_try_get_from(CHEAX *c, struct chx_env *env, const char *name, struct chx_value *out)
 {
-	ASSERT_NOT_NULL("get_from", id, false);
+	ASSERT_NOT_NULL("get_from", name, false);
+
+	struct chx_id *id = find_id(c, name);
+	if (id == NULL)
+		return false;
 
 	struct full_sym *fs = find_sym_in(norm_env(env), id);
 	if (fs == NULL)
@@ -627,11 +675,10 @@ eval_defsym_stat(CHEAX *c, struct chx_value stat, struct defsym_info *info)
 	}
 
 	if (0 == strcmp(id, "defset")) {
-		static struct chx_id id = { 0, "value" };
-		static struct chx_list set_args = { 0, { .type = CHEAX_ID, .data.as_id = &id }, NULL };
-		static struct chx_value set_args_val = { .type = CHEAX_LIST, .data = { .as_list = &set_args } };
+		struct chx_value id = cheax_id(c, "value");
+		struct chx_value set_args = cheax_list(c, id, NULL);
 
-		defgetset(c, "defset", set_args_val, tail, info, &info->set, &info->set_ref);
+		defgetset(c, "defset", set_args, tail, info, &info->set, &info->set_ref);
 		return;
 	}
 

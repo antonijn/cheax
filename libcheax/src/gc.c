@@ -396,6 +396,7 @@ mark_env_members(CHEAX *c, struct rb_node *root)
 {
 	while (root != NULL) {
 		struct full_sym *sym = root->value;
+		mark_obj(c, cheax_id_value(sym->name));
 		mark_obj(c, sym->sym.protect);
 
 		mark_env_members(c, root->link[0]);

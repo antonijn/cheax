@@ -21,7 +21,7 @@
 #include "rbtree.h"
 
 struct full_sym {
-	const char *name;
+	struct chx_id *name;
 	bool allow_redef;
 	struct chx_sym sym;
 };
@@ -30,5 +30,12 @@ struct chx_env *norm_env_init(CHEAX *c, struct chx_env *env, struct chx_env *bel
 void norm_env_cleanup(struct chx_env *env);
 
 void export_sym_bltns(CHEAX *c);
+
+void def_id(CHEAX *c, struct chx_id *id, struct chx_value value, int flags);
+struct chx_sym *defsym_id(CHEAX *c, struct chx_id *id,
+                          chx_getter get, chx_setter set,
+                          chx_finalizer fin, void *user_info);
+struct chx_value get_id(CHEAX *c, struct chx_id *id);
+bool try_get_id(CHEAX *c, struct chx_id *id, struct chx_value *out);
 
 #endif

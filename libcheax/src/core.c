@@ -26,12 +26,18 @@
 #include "setup.h"
 #include "unpack.h"
 
+static int
+id_cmp(struct rb_tree *tree, struct rb_node *a, struct rb_node *b)
+{
+	struct chx_id *id_a = a->value, *id_b = b->value;
+	return strcmp(id_a->value, id_b->value);
+}
+
 struct chx_value
 cheax_nil(void)
 {
 	return CHEAX_NIL;
 }
-
 bool
 cheax_is_nil(struct chx_value v)
 {
@@ -124,20 +130,41 @@ cheax_user_ptr(CHEAX *c, void *value, int type)
 	return ((struct chx_value){ .type = type, .data.user_ptr = value });
 }
 
+static void
+id_fin(void *obj, void *info)
+{
+	struct chx_id *id = obj;
+	CHEAX *c = info;
+	rb_tree_remove(&c->interned_ids, id);
+}
+
+struct chx_id *
+find_id(CHEAX *c, const char *name)
+{
+	struct chx_id ref = { 0, (char *)name };
+	return rb_tree_find(&c->interned_ids, &ref);
+}
+
 struct chx_value
 cheax_id(CHEAX *c, const char *id)
 {
 	if (id == NULL)
 		return CHEAX_NIL;
 
-	size_t len = strlen(id) + 1;
-	struct chx_value res = cheax_id_value(gc_alloc(c, sizeof(struct chx_id) + len, CHEAX_ID));
-	if (res.data.as_id == NULL)
-		return CHEAX_NIL;
-	char *buf = ((char *)res.data.as_id) + sizeof(struct chx_id);
-	memcpy(buf, id, len);
-	res.data.as_id->value = buf;
-	return res;
+	struct chx_id *res = find_id(c, id);
+	if (res == NULL) {
+		size_t len = strlen(id) + 1;
+		res = gc_alloc_with_fin(c, sizeof(struct chx_id) + len, CHEAX_ID, id_fin, c);
+		if (res == NULL)
+			return CHEAX_NIL;
+		char *buf = (char *)res + sizeof(struct chx_id);
+		memcpy(buf, id, len);
+		res->value = buf;
+
+		rb_tree_insert(&c->interned_ids, res);
+	}
+
+	return cheax_id_value(res);
 }
 struct chx_value
 cheax_id_value_proc(struct chx_id *id)
@@ -362,6 +389,8 @@ cheax_init(void)
 
 	gc_init(res);
 	bt_init(res, 32);
+
+	rb_tree_init(&res->interned_ids, id_cmp, res);
 
 	res->typestore.array = NULL;
 	res->typestore.len = res->typestore.cap = 0;

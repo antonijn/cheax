@@ -17,6 +17,7 @@
 #define CORE_H
 
 #include "gc.h"
+#include "rbtree.h"
 #include "types.h"
 #include "sym.h"
 
@@ -70,6 +71,8 @@ struct chx_list *orig_debug_list(CHEAX *c,
 struct loc_debug_info *get_loc_debug_info(struct chx_list *list);
 struct chx_list *get_orig_form(struct chx_list *list);
 
+struct chx_id *find_id(CHEAX *c, const char *name);
+
 struct type_cast {
 	int to;
 	chx_func_ptr cast;
@@ -117,6 +120,8 @@ struct cheax {
 		int code;
 		struct chx_string *msg;
 	} error;
+
+	struct rb_tree interned_ids;
 
 	struct {
 		struct bt_entry {

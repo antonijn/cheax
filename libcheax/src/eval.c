@@ -498,7 +498,7 @@ eval(CHEAX *c, struct chx_value input, struct chx_env *pop_stop, union chx_eval_
 
 	switch (input.type) {
 	case CHEAX_ID:
-		res = cheax_get(c, input.data.as_id->value);
+		res = get_id(c, input.data.as_id);
 		break;
 
 	case CHEAX_LIST:
@@ -888,7 +888,7 @@ cheax_match_in(CHEAX *c,
 				return false;
 		}
 
-		cheax_def(c, pan.data.as_id->value, match, flags);
+		def_id(c, pan.data.as_id, match, flags);
 		return cheax_errno(c) == 0; /* false if cheax_def() failed */
 	}
 
