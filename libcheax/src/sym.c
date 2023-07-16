@@ -124,10 +124,13 @@ norm_env_cleanup(struct chx_env *env)
 	rb_tree_cleanup(&env->value.norm.syms, full_sym_node_dealloc);
 }
 
-static void
-norm_env_fin(void *env_bytes, void *info)
+void
+env_fin(CHEAX *c, void *obj)
 {
-	norm_env_cleanup(env_bytes);
+	(void)c;
+	struct chx_env *env = obj;
+	if (!env->is_bif)
+		norm_env_cleanup(env);
 }
 
 static void
@@ -158,11 +161,7 @@ cheax_env(CHEAX *c)
 void
 cheax_push_env(CHEAX *c)
 {
-	struct chx_env *env = gc_alloc_with_fin(c,
-	                                        sizeof(struct chx_env),
-	                                        CHEAX_ENV,
-	                                        norm_env_fin,
-	                                        NULL);
+	struct chx_env *env = gc_alloc(c, sizeof(struct chx_env), CHEAX_ENV);
 	if (env != NULL) {
 		env->rtflags |= NO_ESC_BIT;
 		c->env = norm_env_init(c, env, c->env);

@@ -28,6 +28,7 @@ struct full_sym {
 
 struct chx_env *norm_env_init(CHEAX *c, struct chx_env *env, struct chx_env *below);
 void norm_env_cleanup(struct chx_env *env);
+void env_fin(CHEAX *c, void *obj);
 
 void export_sym_bltns(CHEAX *c);
 

@@ -38,14 +38,13 @@
 /* for rtflags field in chx_value */
 enum {
 	GC_BIT      = 0x0001, /* allocated by gc */
-	FIN_BIT     = 0x0002, /* has registered finalizer */
-	GC_MARKED   = 0x0004, /* marked in use by gc (temporary) */
-	REF_BIT     = 0x0008, /* carries cheax_ref() */
-	NO_ESC_BIT  = 0x0010, /* chx_env presumed not to have escaped */
-	LOC_INFO    = 0x0020, /* list is struct loc_debug_list */
-	ORIG_INFO   = 0x0040, /* list is struct orig_debug_list */
-	DEBUG_BITS  = 0x0060,
-	PREPROC_BIT = 0x0080, /* This form has been preprocessed */
+	GC_MARKED   = 0x0002, /* marked in use by gc (temporary) */
+	REF_BIT     = 0x0004, /* carries cheax_ref() */
+	NO_ESC_BIT  = 0x0008, /* chx_env presumed not to have escaped */
+	LOC_INFO    = 0x0010, /* list is struct loc_debug_list */
+	ORIG_INFO   = 0x0020, /* list is struct orig_debug_list */
+	DEBUG_BITS  = 0x0030,
+	PREPROC_BIT = 0x0040, /* This form has been preprocessed */
 };
 
 static inline bool

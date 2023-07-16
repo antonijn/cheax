@@ -15,6 +15,7 @@
 
 #include <limits.h>
 #include <stdarg.h>
+#include <stddef.h>
 #include <stdlib.h>
 #include <string.h>
 
@@ -131,18 +132,22 @@ cheax_user_ptr(CHEAX *c, void *value, int type)
 }
 
 static void
-id_fin(void *obj, void *info)
+id_fin(CHEAX *c, void *obj)
 {
-	struct chx_id *id = obj;
-	CHEAX *c = info;
-	rb_tree_remove(&c->interned_ids, id);
+	rb_tree_remove(&c->interned_ids, obj);
 }
 
 struct chx_id *
 find_id(CHEAX *c, const char *name)
 {
-	struct chx_id ref = { 0, (char *)name };
-	return rb_tree_find(&c->interned_ids, &ref);
+	/*
+	 * This is very nasty but we can get away with it since we know
+	 * id_cmp() doesn't rely on anything but the value field of
+	 * chx_id
+	 */
+
+	struct chx_id *ref = (struct chx_id *)(name - offsetof(struct chx_id, value));
+	return rb_tree_find(&c->interned_ids, ref);
 }
 
 struct chx_value
@@ -154,12 +159,10 @@ cheax_id(CHEAX *c, const char *id)
 	struct chx_id *res = find_id(c, id);
 	if (res == NULL) {
 		size_t len = strlen(id) + 1;
-		res = gc_alloc_with_fin(c, sizeof(struct chx_id) + len, CHEAX_ID, id_fin, c);
+		res = gc_alloc(c, offsetof(struct chx_id, value) + len, CHEAX_ID);
 		if (res == NULL)
 			return CHEAX_NIL;
-		char *buf = (char *)res + sizeof(struct chx_id);
-		memcpy(buf, id, len);
-		res->value = buf;
+		memcpy(&res->value[0], id, len);
 
 		rb_tree_insert(&c->interned_ids, res);
 	}
@@ -389,6 +392,9 @@ cheax_init(void)
 
 	gc_init(res);
 	bt_init(res, 32);
+
+	gc_register_finalizer(res, CHEAX_ID,   id_fin);
+	gc_register_finalizer(res, CHEAX_ENV, env_fin);
 
 	rb_tree_init(&res->interned_ids, id_cmp, res);
 

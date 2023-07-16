@@ -24,23 +24,24 @@
 
 #include "types.h"
 
+typedef void (*chx_fin)(CHEAX *c, void *obj);
+
 struct gc_header_node {
 	struct gc_header_node *prev, *next;
 };
 
 struct gc_info {
 	struct gc_header_node objects;
+	chx_fin finalizers[CHEAX_LAST_BASIC_TYPE + 1];
 	size_t all_mem, prev_run, num_objects;
 	bool lock, triggered;
 };
 
-typedef void (*chx_fin)(void *obj, void *info);
-
 void gc_init(CHEAX *c);
 void gc_cleanup(CHEAX *c);
 void *gc_alloc(CHEAX *c, size_t size, int type);
-void *gc_alloc_with_fin(CHEAX *c, size_t size, int type, chx_fin fin, void *info);
 void gc_free(CHEAX *c, void *obj);
+void gc_register_finalizer(CHEAX *c, int type, chx_fin fin);
 
 void cheax_gc(CHEAX *c);
 void cheax_force_gc(CHEAX *c);

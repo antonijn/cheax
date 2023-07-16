@@ -47,11 +47,6 @@ struct gc_header {
 	union chx_any obj; /* Only for locating the start of the user object */
 };
 
-struct gc_fin_footer {
-	chx_fin fin;
-	void *info;
-};
-
 /* values for chx_ref */
 enum {
 	DO_NOTHING,
@@ -240,18 +235,6 @@ get_header(void *obj)
 	return (struct gc_header *)((char *)obj - offsetof(struct gc_header, obj));
 }
 
-static struct gc_fin_footer *
-get_fin_footer(void *obj)
-{
-	struct gc_header *hdr = get_header(obj);
-	char *mem_ptr = (char *)get_alloc_ptr(hdr);
-
-	const size_t aln_footer = alignof(struct gc_fin_footer);
-	size_t offset = obj_size(hdr) - sizeof(struct gc_fin_footer);
-	offset = offset / aln_footer * aln_footer;
-	return (struct gc_fin_footer *)(mem_ptr + offset);
-}
-
 void
 gc_init(CHEAX *c)
 {
@@ -259,6 +242,8 @@ gc_init(CHEAX *c)
 
 	c->gc.all_mem = c->gc.prev_run = c->gc.num_objects = 0;
 	c->gc.lock = c->gc.triggered = false;
+
+	memset(c->gc.finalizers, 0, sizeof(c->gc.finalizers));
 }
 
 /* sets GC_MARKED bit for all reachable objects */
@@ -322,24 +307,6 @@ gc_alloc(CHEAX *c, size_t size, int type)
 	return &hdr->obj;
 }
 
-void *
-gc_alloc_with_fin(CHEAX *c, size_t size, int type, chx_fin fin, void *info)
-{
-	const size_t aln_footer = alignof(struct gc_fin_footer);
-	size_t total_size = size;
-	total_size = (total_size + aln_footer - 1) / aln_footer * aln_footer;
-	total_size += sizeof(struct gc_fin_footer);
-
-	union chx_any *obj = gc_alloc(c, total_size, type);
-	if (obj != NULL) {
-		struct gc_fin_footer *ftr = get_fin_footer(obj);
-		ftr->fin = fin;
-		ftr->info = info;
-		obj->rtflags |= FIN_BIT;
-	}
-	return obj;
-}
-
 void
 gc_free(CHEAX *c, void *obj)
 {
@@ -355,12 +322,17 @@ gc_free(CHEAX *c, void *obj)
 	next->prev = prev;
 	--c->gc.num_objects;
 
-	if (has_flag(hdr->obj.rtflags, FIN_BIT)) {
-		struct gc_fin_footer *ftr = get_fin_footer(obj);
-		ftr->fin(obj, ftr->info);
-	}
+	chx_fin fin = c->gc.finalizers[hdr->rsvd_type];
+	if (fin != NULL)
+		fin(c, obj);
 
 	cheax_free(c, hdr);
+}
+
+void
+gc_register_finalizer(CHEAX *c, int type, chx_fin fin)
+{
+	c->gc.finalizers[type] = fin;
 }
 
 static bool
@@ -560,22 +532,13 @@ bltn_gc(CHEAX *c, struct chx_list *args, void *info)
 	if (unpack(c, args, "") < 0)
 		return CHEAX_NIL;
 
-	static struct chx_id mem = { 0, "mem" }, to = { 0, "->" }, obj = { 0, "obj" };
-
 	int mem_i = c->gc.all_mem, obj_i = c->gc.num_objects;
 	cheax_force_gc(c);
 	int mem_f = c->gc.all_mem, obj_f = c->gc.num_objects;
 
 	struct chx_value res[] = {
-		{ .type = CHEAX_ID, .data = { .as_id = &mem } },
-		cheax_int(mem_i),
-		{ .type = CHEAX_ID, .data = { .as_id = &to  } },
-		cheax_int(mem_f),
-
-		{ .type = CHEAX_ID, .data = { .as_id = &obj } },
-		cheax_int(obj_i),
-		{ .type = CHEAX_ID, .data = { .as_id = &to  } },
-		cheax_int(obj_f),
+		cheax_id(c, "mem"), cheax_int(mem_i), cheax_id(c, "->"), cheax_int(mem_f),
+		cheax_id(c, "obj"), cheax_int(obj_i), cheax_id(c, "->"), cheax_int(obj_f),
 	};
 	return bt_wrap(c, cheax_array_to_list(c, res, sizeof(res) / sizeof(res[0])));
 }
