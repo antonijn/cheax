@@ -546,28 +546,13 @@ scnr_adv(struct scnr *s)
 {
 	int res = s->ch;
 	if (res != EOF) {
-		int pop;
-		/* offset by one to avoid unsigned shenanigans */
-		for (size_t i = s->lah; i >= 1; --i) {
-			int next_pop = s->lah_buf[i - 1];
-			s->lah_buf[i - 1] = pop;
-			pop = next_pop;
-		}
-
-		if (s->lah == 0) {
-			s->ch = istrm_getc(s->strm);
-		} else {
-			--s->lah;
-			s->ch = pop;
-		}
-
+		s->ch = (s->lah > 0) ? s->lah_buf[--s->lah] : istrm_getc(s->strm);
 		if (s->ch == '\n') {
 			s->pos = 0;
 			++s->line;
 		} else {
 			++s->pos;
 		}
-
 	}
 	return res;
 }
@@ -580,15 +565,7 @@ scnr_backup(struct scnr *s, int to)
 
 	/* pray that there are no newlines involved */
 	--s->pos;
-
-	++s->lah;
-
-	int push = s->ch;
-	for (size_t i = 0; i < s->lah; ++i) {
-		int next_push = s->lah_buf[i];
-		s->lah_buf[i] = push;
-		push = next_push;
-	}
+	s->lah_buf[s->lah++] = s->ch;
 	s->ch = to;
 	return 0;
 }
