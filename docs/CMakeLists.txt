@@ -13,7 +13,7 @@ configure_file (Doxyfile.in "${CMAKE_CURRENT_BINARY_DIR}/Doxyfile" @ONLY)
 add_custom_command (OUTPUT "html/index.html"
 	COMMAND "${DOXYGEN_EXECUTABLE}"
 	WORKING_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}"
-	MAIN_DEPENDENCY Doxyfile
+	MAIN_DEPENDENCY "${CMAKE_CURRENT_BINARY_DIR}/Doxyfile"
 	DEPENDS ${input_files}
 	COMMENT "Generating HTML documentation"
 	VERBATIM)
