@@ -325,7 +325,7 @@ cheax_set(CHEAX *c, const char *name, struct chx_value value)
 	struct chx_id *id = find_id(c, name);
 	struct full_sym *fs;
 	if (id == NULL || (fs = find_sym(c, id)) == NULL) {
-		cheax_throwf(c, CHEAX_ENOSYM, "no such symbol `%s'", id);
+		cheax_throwf(c, CHEAX_ENOSYM, "no such symbol `%s'", name);
 		return;
 	}
 
@@ -342,7 +342,7 @@ get_id(CHEAX *c, struct chx_id *id)
 	struct chx_value res = CHEAX_NIL;
 
 	if (!try_get_id(c, id, &res) && cheax_errno(c) == 0)
-		cheax_throwf(c, CHEAX_ENOSYM, "no such symbol `%s'", id);
+		cheax_throwf(c, CHEAX_ENOSYM, "no such symbol `%s'", id->value);
 
 	return res;
 }
