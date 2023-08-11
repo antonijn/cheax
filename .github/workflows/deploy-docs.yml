@@ -1,7 +1,7 @@
 name: Build docs and deploy to GH Pages
 on:
-  push:
-    branches: [ "deploy-docs" ]
+  schedule:
+    - cron: '0 0 1 * *'
 
 permissions:
   contents: write
