@@ -13,6 +13,7 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  */
 
+#include <inttypes.h>
 #include <limits.h>
 #include <string.h>
 
@@ -188,7 +189,7 @@ format_num(CHEAX *c, struct ostrm *strm, struct fspec *sp, struct chx_value arg)
 	case CHEAX_INT:
 		if (sp->misc_spec == 'c') {
 			if (arg.data.as_int < 0 || arg.data.as_int >= 256) {
-				cheax_throwf(c, CHEAX_EVALUE, "invalid character %d", arg.data.as_int);
+				cheax_throwf(c, CHEAX_EVALUE, "invalid character %" PRIdCHX, arg.data.as_int);
 				return -1;
 			}
 

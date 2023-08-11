@@ -86,13 +86,34 @@ enum {
 /*! \brief Maximum value for \ref chx_int. */
 #define CHX_INT_MAX INT_LEAST64_MAX
 
+/*! \brief Conversion specifier to print \ref chx_int (decimal).
+ * \note Include `inttypes.h` to use this macro.
+ */
+#define PRIdCHX PRIdLEAST64
+
+/*! \brief Conversion specifier to print \ref chx_int (decimal).
+ * \note Include `inttypes.h` to use this macro.
+ */
+#define PRIiCHX PRIiLEAST64
+
+/*! \brief Conversion specifier to scan \ref chx_int (decimal).
+ * \note Include `inttypes.h` to use this macro.
+ */
+#define SCNdCHX SCNdLEAST64
+
+/*! \brief Conversion specifier to scan \ref chx_int (decimal).
+ * \note Include `inttypes.h` to use this macro.
+ */
+#define SCNiCHX SCNiLEAST64
+
 /*! \brief Integer type.
- * \sa CHEAX_INT, cheax_int(), CHX_INT_MIN, CHX_INT_MAX, chx_value
+ * \sa CHEAX_INT, cheax_int(), CHX_INT_MIN, CHX_INT_MAX, PRIdCHX,
+ *     PRIiCHX, SCNdCHX, SCNiCHX
  */
 typedef int_least64_t chx_int;
 
 /*! \brief Floating point type.
- * \sa CHEAX_DOUBLE, cheax_double(), chx_value
+ * \sa CHEAX_DOUBLE, cheax_double()
  */
 typedef double chx_double;
 

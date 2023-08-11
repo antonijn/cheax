@@ -539,7 +539,7 @@ cheax_new_type(CHEAX *c, const char *name, int base_type)
 	int ts_idx = c->typestore.len;
 	int tycode = ts_idx + CHEAX_TYPESTORE_BIAS;
 	if (tycode > USHRT_MAX) {
-		cheax_throwf(c, CHEAX_EEVAL, "new_type(): too many types in existence", name);
+		cheax_throwf(c, CHEAX_EEVAL, "new_type(): too many types in existence");
 		return -1;
 	}
 
