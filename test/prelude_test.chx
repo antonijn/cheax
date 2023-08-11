@@ -334,7 +334,7 @@
   (assert-eq "\"foo\\x0Abar\"" (repr "foo\nbar"))
   (assert-eq "(1 foo \"bar\")" (repr '(1 foo "bar")))
   (assert-eq "()" (repr nil))
-  (map (fn (x) (= x (read-string (repr x)))) '(false one 2 0x3 'four "five" (6 7) 8.9))
+  (mapc (fn (x) (assert-eq x (read-string (repr x)))) '(false one 2 0x3 'four "five" (6 7) 8.9))
   (assert-arg-count repr 1))
 
 (test "function (split)"
