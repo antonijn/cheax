@@ -24,13 +24,15 @@
 #include "strm.h"
 
 static void
-ostrm_show_sym(CHEAX *c, struct ostrm *s, struct full_sym *fs)
+show_sym(struct htab_entry *entry, void *info)
 {
+	struct ostrm *s = info;
+	struct full_sym *fs = (struct full_sym *)entry;
 	struct chx_sym *sym = &fs->sym;
 	if (sym->get == NULL)
-		ostrm_printf(s, ";%s", fs->name);
+		ostrm_printf(s, "\n;%s", fs->name);
 	else
-		ostrm_printf(s, "(%s %s)", (sym->set == NULL) ? "def" : "var", fs->name);
+		ostrm_printf(s, "\n(%s %s)", (sym->set == NULL) ? "def" : "var", fs->name);
 }
 
 static void
@@ -138,16 +140,7 @@ ostrm_show_basic(CHEAX *c, struct ostrm *s, struct chx_value val)
 		}
 
 		ostrm_printf(s, "((fn ()");
-
-		struct rb_iter it;
-		rb_iter_init(&it);
-		for (struct full_sym *fs = rb_iter_first(&it, &env->value.norm.syms);
-		     fs != NULL;
-		     fs = rb_iter_next(&it))
-		{
-			ostrm_putc(s, '\n');
-			ostrm_show_sym(c, s, fs);
-		}
+		htab_foreach(&env->value.norm.syms, show_sym, s);
 		ostrm_printf(s, "\n(env)))");
 		break;
 	}

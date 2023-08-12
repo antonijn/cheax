@@ -198,7 +198,7 @@ CHX_API bool cheax_is_nil(struct chx_value v) CHX_CONST;
  */
 struct chx_id {
 	unsigned rtflags;       /*!< Runtime flags. \note For internal use. */
-	char value[1];          /*!< Null-terminated value. */
+	char *value;            /*!< Null-terminated value. */
 };
 
 /*! \brief Quoted value type.

@@ -18,7 +18,16 @@
 
 #include <cheax.h>
 
-#include "rbtree.h"
+#include "htab.h"
+
+struct id_entry {
+	struct chx_id id;
+	struct htab_entry entry;
+	uint32_t hash;
+	char value[1];
+};
+
+#define id_entry_container(ep) ((struct id_entry *)((char *)(ep) - offsetof(struct id_entry, entry)))
 
 struct chx_special_op {
 	unsigned rtflags;
@@ -42,7 +51,7 @@ struct chx_env {
 		struct chx_env *bif[2];
 
 		struct {
-			struct rb_tree syms;
+			struct htab syms;
 			struct chx_env *below;
 		} norm;
 	} value;

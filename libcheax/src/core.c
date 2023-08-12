@@ -24,14 +24,22 @@
 #include "err.h"
 #include "feat.h"
 #include "gc.h"
+#include "htab.h"
 #include "setup.h"
+#include "types.h"
 #include "unpack.h"
 
-static int
-id_cmp(struct rb_tree *tree, struct rb_node *a, struct rb_node *b)
+static uint32_t
+id_hash_for_htab(const struct htab_entry *item)
 {
-	struct chx_id *id_a = a->value, *id_b = b->value;
-	return strcmp(id_a->value, id_b->value);
+	return id_entry_container(item)->hash;
+}
+
+static bool
+id_eq_for_htab(const struct htab_entry *ent_a, const struct htab_entry *ent_b)
+{
+	struct id_entry *a = id_entry_container(ent_a), *b = id_entry_container(ent_b);
+	return strcmp(a->id.value, b->id.value) == 0;
 }
 
 struct chx_value
@@ -134,7 +142,10 @@ cheax_user_ptr(CHEAX *c, void *value, int type)
 static void
 id_fin(CHEAX *c, void *obj)
 {
-	rb_tree_remove(&c->interned_ids, obj);
+	struct chx_id *id = obj;
+	struct htab_entry **rm;
+	htab_get(&c->interned_ids, &((struct id_entry *)id)->entry, &rm);
+	htab_remove(&c->interned_ids, rm);
 }
 
 struct chx_id *
@@ -146,8 +157,10 @@ find_id(CHEAX *c, const char *name)
 	 * chx_id
 	 */
 
-	struct chx_id *ref = (struct chx_id *)(name - offsetof(struct chx_id, value));
-	return rb_tree_find(&c->interned_ids, ref);
+	struct id_entry ref_entry = { .hash = good_hash(name, strlen(name)), .id.value = (char *)name };
+	struct htab_entry **item;
+	htab_get(&c->interned_ids, &ref_entry.entry, &item);
+	return (*item == NULL) ? NULL : &id_entry_container(*item)->id;
 }
 
 struct chx_value
@@ -159,12 +172,18 @@ cheax_id(CHEAX *c, const char *id)
 	struct chx_id *res = find_id(c, id);
 	if (res == NULL) {
 		size_t len = strlen(id) + 1;
-		res = gc_alloc(c, offsetof(struct chx_id, value) + len, CHEAX_ID);
-		if (res == NULL)
+		uint32_t hash = good_hash(id, len - 1);
+		struct id_entry *ent = gc_alloc(c, offsetof(struct id_entry, value) + len, CHEAX_ID);
+		if (ent == NULL)
 			return CHEAX_NIL;
-		memcpy(&res->value[0], id, len);
+		memcpy(&ent->value[0], id, len);
+		ent->id.value = &ent->value[0];
+		ent->hash = hash;
 
-		rb_tree_insert(&c->interned_ids, res);
+		struct htab_entry **insert;
+		htab_get(&c->interned_ids, &ent->entry, &insert);
+		htab_set(&c->interned_ids, insert, &ent->entry, hash);
+		res = &ent->id;
 	}
 
 	return cheax_id_value(res);
@@ -368,15 +387,6 @@ cheax_init(void)
 	if (res == NULL)
 		return NULL;
 
-	res->global_ns.rtflags = 0;
-	norm_env_init(res, &res->global_ns, NULL);
-	res->global_env = &res->global_ns;
-
-	res->specop_ns.rtflags = 0;
-	norm_env_init(res, &res->specop_ns, NULL);
-	res->macro_ns.rtflags = 0;
-	norm_env_init(res, &res->macro_ns, NULL);
-
 	res->env = NULL;
 	res->stack_depth = 0;
 
@@ -391,12 +401,21 @@ cheax_init(void)
 	res->error.msg = NULL;
 
 	gc_init(res);
-	bt_init(res, 32);
-
 	gc_register_finalizer(res, CHEAX_ID,   id_fin);
 	gc_register_finalizer(res, CHEAX_ENV, env_fin);
 
-	rb_tree_init(&res->interned_ids, id_cmp, res);
+	res->global_ns.rtflags = 0;
+	norm_env_init(res, &res->global_ns, NULL);
+	res->global_env = &res->global_ns;
+
+	res->specop_ns.rtflags = 0;
+	norm_env_init(res, &res->specop_ns, NULL);
+	res->macro_ns.rtflags = 0;
+	norm_env_init(res, &res->macro_ns, NULL);
+
+	bt_init(res, 32);
+
+	htab_init(res, &res->interned_ids, id_hash_for_htab, id_eq_for_htab);
 
 	res->typestore.array = NULL;
 	res->typestore.len = res->typestore.cap = 0;
@@ -429,9 +448,9 @@ cheax_destroy(CHEAX *c)
 	}
 
 	gc_cleanup(c);
-	norm_env_cleanup(&c->global_ns);
-	norm_env_cleanup(&c->specop_ns);
-	norm_env_cleanup(&c->macro_ns);
+	norm_env_cleanup(c, &c->global_ns);
+	norm_env_cleanup(c, &c->specop_ns);
+	norm_env_cleanup(c, &c->macro_ns);
 
 	cheax_free(c, c->bt.array);
 
@@ -442,6 +461,8 @@ cheax_destroy(CHEAX *c)
 	for (size_t i = 0; i < c->user_error_names.len; ++i)
 		cheax_free(c, c->user_error_names.array[i]);
 	cheax_free(c, c->user_error_names.array);
+
+	htab_cleanup(&c->interned_ids, NULL, NULL);
 
 	free(c->config_syms);
 

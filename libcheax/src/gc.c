@@ -38,7 +38,6 @@
 #include "err.h"
 #include "feat.h"
 #include "gc.h"
-#include "rbtree.h"
 #include "unpack.h"
 
 struct gc_header {
@@ -364,16 +363,17 @@ mark_string(CHEAX *c, struct chx_string *str)
 		;
 }
 static void
-mark_env_members(CHEAX *c, struct rb_node *root)
+mark_env_member(struct htab_entry *item, void *data)
 {
-	while (root != NULL) {
-		struct full_sym *sym = root->value;
-		mark_obj(c, cheax_id_value(sym->name));
-		mark_obj(c, sym->sym.protect);
-
-		mark_env_members(c, root->link[0]);
-		root = root->link[1];
-	}
+	CHEAX *c = data;
+	struct full_sym *sym = (struct full_sym *)item;
+	mark_obj(c, cheax_id_value(sym->name));
+	mark_obj(c, sym->sym.protect);
+}
+static void
+mark_env_members(CHEAX *c, struct htab *htab)
+{
+	htab_foreach(htab, mark_env_member, c);
 }
 static void
 mark_env(CHEAX *c, struct chx_env *env)
@@ -383,7 +383,7 @@ mark_env(CHEAX *c, struct chx_env *env)
 			mark_env(c, env->value.bif[0]);
 			env = env->value.bif[1];
 		} else {
-			mark_env_members(c, env->value.norm.syms.root);
+			mark_env_members(c, &env->value.norm.syms);
 			env = env->value.norm.below;
 		}
 	}
@@ -447,9 +447,9 @@ mark(CHEAX *c)
 	}
 
 	mark_env(c, c->env);
-	mark_env_members(c, c->global_ns.value.norm.syms.root);
-	mark_env_members(c, c->specop_ns.value.norm.syms.root);
-	mark_env_members(c, c->macro_ns.value.norm.syms.root);
+	mark_env_members(c, &c->global_ns.value.norm.syms);
+	mark_env_members(c, &c->specop_ns.value.norm.syms);
+	mark_env_members(c, &c->macro_ns.value.norm.syms);
 	mark_string(c, c->error.msg);
 }
 

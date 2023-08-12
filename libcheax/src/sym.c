@@ -23,12 +23,18 @@
 #include "setup.h"
 #include "unpack.h"
 
-static int
-full_sym_cmp(struct rb_tree *tree, struct rb_node *a, struct rb_node *b)
+static uint32_t
+full_sym_hash(const struct htab_entry *item)
 {
-	struct full_sym *fs_a = a->value, *fs_b = b->value;
-	intptr_t id_a = (intptr_t)fs_a->name, id_b = (intptr_t)fs_b->name;
-	return (id_a > id_b) - (id_a < id_b);
+	const struct full_sym *fs = (struct full_sym *)item;
+	return ((struct id_entry *)fs->name)->hash;
+}
+
+static bool
+full_sym_eq(const struct htab_entry *a, const struct htab_entry *b)
+{
+	const struct full_sym *fs_a = (struct full_sym *)a, *fs_b = (struct full_sym *)b;
+	return fs_a->name == fs_b->name;
 }
 
 /*
@@ -53,7 +59,9 @@ find_sym_in(struct chx_env *env, struct chx_id *name)
 	if (env == NULL)
 		return NULL;
 
-	return rb_tree_find(&env->value.norm.syms, &dummy);
+	struct htab_entry **result;
+	htab_get(&env->value.norm.syms, &dummy.entry, &result);
+	return (*result == NULL) ? NULL : (struct full_sym *)*result;
 }
 
 static struct full_sym *
@@ -89,7 +97,7 @@ find_sym(CHEAX *c, struct chx_id *name)
 struct chx_env *
 norm_env_init(CHEAX *c, struct chx_env *env, struct chx_env *below)
 {
-	rb_tree_init(&env->value.norm.syms, full_sym_cmp, c);
+	htab_init(c, &env->value.norm.syms, full_sym_hash, full_sym_eq);
 	env->is_bif = false;
 	env->value.norm.below = below;
 	return env;
@@ -107,21 +115,24 @@ sym_destroy(CHEAX *c, struct full_sym *fs)
 static void
 undef_sym(CHEAX *c, struct chx_env *env, struct full_sym *fs)
 {
-	if (rb_tree_remove(&env->value.norm.syms, fs))
+	struct htab_entry **e;
+	htab_get(&env->value.norm.syms, &fs->entry, &e);
+	if (*e != NULL) {
+		htab_remove(&env->value.norm.syms, e);
 		sym_destroy(c, fs);
+	}
 }
 
 static void
-full_sym_node_dealloc(struct rb_tree *syms, struct rb_node *node)
+sym_destroy_in_htab(struct htab_entry *fs, void *c)
 {
-	sym_destroy(syms->c, node->value);
-	rb_node_dealloc(syms->c, node);
+	sym_destroy(c, (struct full_sym *)fs);
 }
 
 void
-norm_env_cleanup(struct chx_env *env)
+norm_env_cleanup(CHEAX *c, struct chx_env *env)
 {
-	rb_tree_cleanup(&env->value.norm.syms, full_sym_node_dealloc);
+	htab_cleanup(&env->value.norm.syms, sym_destroy_in_htab, c);
 }
 
 void
@@ -130,7 +141,7 @@ env_fin(CHEAX *c, void *obj)
 	(void)c;
 	struct chx_env *env = obj;
 	if (!env->is_bif)
-		norm_env_cleanup(env);
+		norm_env_cleanup(c, env);
 }
 
 static void
@@ -238,7 +249,9 @@ defsym_id(CHEAX *c, struct chx_id *id,
 	if (prev_fs != NULL && prev_fs->allow_redef)
 		undef_sym(c, env, prev_fs);
 
-	rb_tree_insert(&env->value.norm.syms, fs);
+	struct htab_entry **e;
+	uint32_t hash = htab_get(&env->value.norm.syms, &fs->entry, &e);
+	htab_set(&env->value.norm.syms, e, &fs->entry, hash);
 	return &fs->sym;
 }
 

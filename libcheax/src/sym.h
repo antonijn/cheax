@@ -18,16 +18,17 @@
 
 #include <cheax.h>
 
-#include "rbtree.h"
+#include "htab.h"
 
 struct full_sym {
+	struct htab_entry entry;
 	struct chx_id *name;
-	bool allow_redef;
 	struct chx_sym sym;
+	bool allow_redef;
 };
 
 struct chx_env *norm_env_init(CHEAX *c, struct chx_env *env, struct chx_env *below);
-void norm_env_cleanup(struct chx_env *env);
+void norm_env_cleanup(CHEAX *c, struct chx_env *env);
 void env_fin(CHEAX *c, void *obj);
 
 void export_sym_bltns(CHEAX *c);

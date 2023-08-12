@@ -104,11 +104,11 @@ add_library (libcheax
 	src/feat.c
 	src/format.c
 	src/gc.c
+	src/htab.c
 	src/io.c
 	src/loc.c
 	src/maths.c
 	src/print.c
-	src/rbtree.c
 	src/read.c
 	src/strm.c
 	src/sym.c

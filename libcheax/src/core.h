@@ -17,7 +17,6 @@
 #define CORE_H
 
 #include "gc.h"
-#include "rbtree.h"
 #include "types.h"
 #include "sym.h"
 
@@ -120,7 +119,7 @@ struct cheax {
 		struct chx_string *msg;
 	} error;
 
-	struct rb_tree interned_ids;
+	struct htab interned_ids;
 
 	struct {
 		struct bt_entry {
