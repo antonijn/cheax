@@ -33,7 +33,7 @@ void cheax_env_fin_(CHEAX *c, void *obj);
 
 void cheax_export_sym_bltns_(CHEAX *c);
 
-void cheax_def_id_(CHEAX *c, struct chx_id *id, struct chx_value value, int flags);
+struct chx_sym *cheax_def_id_(CHEAX *c, struct chx_id *id, struct chx_value value, int flags);
 struct chx_sym *cheax_defsym_id_(CHEAX *c, struct chx_id *id,
                                  chx_getter get, chx_setter set,
                                  chx_finalizer fin, void *user_info);

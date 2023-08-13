@@ -12,42 +12,178 @@
 ;;;; ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF
 ;;;; OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
 
+;;;
+;;;   (defun name args
+;;;     expresion...)
+;;;
+;;; Define a function with name `name', arguments `args' and body
+;;; `body'.
+;;;
 (defmacro defun (: name args body) `(def ,name (fn ,args ,@body)))
 
-(defmacro if   (c t e) `(cond (,c ,t) (true ,e)))
-(defmacro when   (c t) `(cond (,c ,t)))
-(defmacro unless (c t) `(cond (,c ()) (true ,t)))
-(defun    not      (x)  (cond (x false) (true true)))
-(defmacro and    (a b) `(if ,a   ,b false))
-(defmacro or     (a b) `(if ,a true    ,b))
+;;;
+;;;   (if test then else)
+;;;
+;;; If boolean `test' is true, evaluate `then' and return its value.
+;;; Otherwise, evaluate `else' and return its value.
+;;;
+;;; SEE ALSO
+;;; when, unless
+;;;
+(defmacro if (test then else) `(cond (,test ,then) (true ,else)))
 
+;;;
+;;;   (when test then)
+;;;
+;;; If boolean `test' is true, evaluate `then' and return its value.
+;;; Otherwise, return nil.
+;;;
+;;; SEE ALSO
+;;; if, unless
+;;;
+(defmacro when (test then) `(cond (,test ,then)))
+
+;;;
+;;;   (unless test then)
+;;;
+;;; If boolean `test' is false, evaluate `then' and return its value.
+;;; Otherwise, return nil.
+;;;
+;;; SEE ALSO
+;;; if, when
+;;;
+(defmacro unless (test then) `(cond (,test ()) (true ,then)))
+
+;;;
+;;;   (not x)
+;;;
+;;; If boolean `x' is false, return true. Otherwise, return false.
+;;;
+(defun not (x) (cond (x false) (true true)))
+
+;;;
+;;;   (and x y)
+;;;
+;;; Short-circuit logical and. If boolean `x' is false, return false.
+;;; Otherwise, return `y'.
+;;;
+(defmacro and (x y) `(if ,x ,y false))
+
+;;;
+;;;   (or x y)
+;;;
+;;; Short-circuit logical or. If boolean `x' is true, return true.
+;;; Otherwise, return `y'.
+;;;
+(defmacro or (x y) `(if ,x true ,y))
+
+;;;
+;;;   (do
+;;;     expression...)
+;;;
+;;; Enter a new scope and, within it, evaluate each given expression.
+;;; Return the value of the last expression.
+;;;
 (defmacro do body `(let () ,@body))
 
 (defun any-of? (ty-in types)
   (case types
     ((: ty tys) (or (= ty-in ty) (any-of? ty-in tys)))
     (()         false)))
+
+;;;
+;;;   (check-type symbol type...)
+;;;
+;;; Confirm that symbol `symbol' is of one of the given types. If not,
+;;; throw ETYPE.
+;;;
 (defmacro check-type (: symbol types)
  `(unless (any-of? (type-of ,symbol) (list ,@types))
     (throw ETYPE (format "`{}' must have type {}" ',symbol (unsafe-join (unsafe-map show ',types) " or ")))))
 
+;;;
+;;; The empty list.
+;;;
 (def nil ())
 
+;;;
+;;; List type.
+;;;
 (def List      (type-of '(0)))
+
+;;;
+;;; Identifier type.
+;;;
 (def ID        (type-of 'a))
+
+;;;
+;;; Integer type.
+;;;
 (def Int       (type-of 0))
+
+;;;
+;;; Floating point type.
+;;;
 (def Double    (type-of 0.0))
+
+;;;
+;;; Boolean type.
+;;;
 (def Bool      (type-of true))
+
+;;;
+;;; Function type.
+;;;
 (def Func      (type-of (fn () ())))
+
+;;;
+;;; External function type.
+;;;
 (def ExtFunc   (type-of =))
+
+;;;
+;;; Quote type.
+;;;
 (def Quote     (type-of ''0))
+
+;;;
+;;; Back-quote type.
+;;;
 (def BackQuote (type-of '`0))
+
+;;;
+;;; String type.
+;;;
 (def String    (type-of ""))
+
+;;;
+;;; Environment type.
+;;;
 (def Env       (type-of ((fn () (env)))))
 
+;;;
+;;;   (const e)
+;;;
+;;; Return a function that ignores its parameters and always evaluates
+;;; to `e'.
+;;;
+;;; EXAMPLES
+;;;
+;;;   (map (const "hello!") (.. 3)) => ("hello!" "hello!" "hello!")
+;;;
 (defun const (e)
   (fn args e))
 
+;;;
+;;; Symbol that initially evaluates to the latest value it was set to
+;;; (or 0, if not set to anything before), and thereafter evaluates to
+;;; its last value incremented by one.
+;;;
+;;; It may be set to any integer value.
+;;;
+;;; ERRORS
+;;; - EOVERFLOW, if the previous value was `int-max'.
+;;;
 (defsym iota
   (var _iota 0)
   (defget
@@ -64,88 +200,376 @@
     (check-type value Int)
     (set _iota value)))
 
-(defun unsafe-map (f xs)
-  (case xs
-    ((: z zs) (: (f z) (unsafe-map f zs)))
-    (() ())))
+;;;
+;;;   (map f xs)
+;;;
+;;; Apply function `f' to all values in list `xs', in order. Return a
+;;; list consisting of the values that `f' returned, in order.
+;;;
+;;; EXAMPLES
+;;;
+;;;   (map (fn (n) (+ n 1)) '(1 2 4)) => (2 3 5)
+;;;
+;;; ERRORS
+;;; - ETYPE, if `f' is not of type "function" or "external function".
+;;; - ETYPE, if `xs' is not of type "list".
+;;;
+;;; PERFORMANCE
+;;; This function is non-tail recursive.
+;;;
+;;; SEE ALSO
+;;; mapc, filter
+;;;
 (defun map (f xs)
   (check-type f Func ExtFunc)
   (check-type xs List)
   (unsafe-map f xs))
+(defun unsafe-map (f xs)
+  (case xs
+    ((: z zs) (: (f z) (unsafe-map f zs)))
+    (() ())))
 
+;;;
+;;;   (mapc f xs)
+;;;
+;;; Apply function `f' to all values in list `xs', in order. Return nil.
+;;;
+;;; ERRORS
+;;; - ETYPE, if `f' is not of type "function" or "external function".
+;;; - ETYPE, if `xs' is not of type "list".
+;;;
+;;; PERFORMANCE
+;;; This function is tail recursive.
+;;;
+;;; SEE ALSO
+;;; map
+;;;
+(defun mapc (f xs)
+  (check-type f Func ExtFunc)
+  (check-type xs List)
+  (unsafe-mapc f xs))
 (defun unsafe-mapc (f xs)
   (case xs
     ((: z zs)
       (f z)
       (unsafe-mapc f zs))
     (() ())))
-(defun mapc (f xs)
-  (check-type f Func ExtFunc)
-  (check-type xs List)
-  (unsafe-mapc f xs))
 
+;;;
+;;;   (head xs)
+;;;
+;;; Return the first element of list `xs'.
+;;;
+;;; EXAMPLES
+;;;
+;;;   (head '(a b c)) => a
+;;;
+;;; ERRORS
+;;; - ETYPE, if `xs' is not of type "list".
+;;; - EMATCH, if `xs' is empty.
+;;;
+;;; PERFORMANCE
+;;; This function has O(1) time comlexity.
+;;;
+;;; SEE ALSO
+;;; tail, last
+;;;
 (defun head (xs)
   (check-type xs List)
   (let (((: t _) xs)) t))
+
+;;;
+;;;   (tail xs)
+;;;
+;;; Return list `xs' without its first element.
+;;;
+;;; EXAMPLES
+;;;
+;;;   (tail '(a b c)) => (b c)
+;;;
+;;; ERRORS
+;;; - ETYPE, if `xs' is not of type "list".
+;;; - EMATCH, if `xs' is empty.
+;;;
+;;; PERFORMANCE
+;;; This function has O(1) time complexity.
+;;;
+;;; SEE ALSO
+;;; head, last
+;;;
 (defun tail (xs)
   (check-type xs List)
   (let (((: _ ts) xs)) ts))
+
+;;;
+;;;   (last xs)
+;;;
+;;; Return the last element of list `xs'.
+;;;
+;;; EXAMPLES
+;;;
+;;;   (last '(a b c)) => c
+;;;
+;;; ERRORS
+;;; - ETYPE, if `xs' is not of type "list".
+;;; - EMATCH, if `xs' is empty.
+;;;
+;;; PERFORMANCE
+;;; This function has O(n) time compexity, with n = (length xs), and is
+;;; tail recursive.
+;;;
+;;; SEE ALSO
+;;; head, tail
+;;;
+(defun last (xs)
+  (check-type xs List)
+  (unsafe-last xs))
 (defun unsafe-last ((: x xs))
   (case xs
     (() x)
     (_  (unsafe-last xs))))
-(defun last (xs)
-  (check-type xs List)
-  (unsafe-last xs))
 
+;;;
+;;;   (list args...)
+;;;
+;;; Return a list consisting of the given argument list.
+;;;
+;;; EXAMPLES
+;;;
+;;;   (list 1 "two" 'three) => (1 "two" three)
+;;;
 (defun list args args)
 
+;;;
+;;;   (filter p xs)
+;;;
+;;; Given a predicate function `p' and list `xs', return a list
+;;; consisting of all elements `x' of `xs' for which `(p x)' is true,
+;;; in order.
+;;;
+;;; EXAMPLES
+;;;
+;;;   (defun even? (n) (= 0 (% n 2)))
+;;;   (filter even? '(1 2 3 4 5 6 7)) => (2 4 6)
+;;;
+;;; ERRORS
+;;; - ETYPE, if `p' is not of type "function" or "external function".
+;;; - ETYPE, if `xs' is not of type "list".
+;;;
+;;; PERFORMANCE
+;;; This function is tail recursive.
+;;;
+;;; SEE ALSO
+;;; map
+;;;
 (defun filter (p xs)
   (check-type p Func ExtFunc)
   (check-type xs List)
   (reverse (foldl (fn (ts t) (if (p t) (: t ts) ts)) () xs)))
 
-(defun unsafe-any? (p xs)
-  (case xs
-    ((: y ys) (or (p y) (unsafe-any? p ys)))
-    (() false)))
+;;;
+;;;   (any? p xs)
+;;;
+;;; Given a predicate function `p' and list `xs', return whether `(p x)'
+;;; is true for any element `x' of `xs'.
+;;;
+;;; EXAMPLES
+;;;
+;;;   (defun even? (n) (= 0 (% n 2)))
+;;;   (any? even? '(1 2 3))           => true
+;;;   (any? even? '(1 3))             => false
+;;;   (any? even? ())                 => false
+;;;
+;;; ERRORS
+;;; - ETYPE, if `p' is not of type "function" or "external function".
+;;; - ETYPE, if `xs' is not of type "list".
+;;;
+;;; PERFORMANCE
+;;; This function is tail recursive.
+;;;
+;;; SEE ALSO
+;;; all?
+;;;
 (defun any? (p xs)
   (check-type p Func ExtFunc)
   (check-type xs List)
   (unsafe-any? p xs))
-
-(defun unsafe-all? (p xs)
+(defun unsafe-any? (p xs)
   (case xs
-    ((: y ys) (and (p y) (unsafe-all? p ys)))
-    (() true)))
+    ((: y ys) (or (p y) (unsafe-any? p ys)))
+    (() false)))
+
+;;;
+;;;   (all? p xs)
+;;;
+;;; Given a predicate function `p' and list `xs', return whether `(p x)'
+;;; is true for all elements `x' of `xs'.
+;;;
+;;; EXAMPLES
+;;;
+;;;   (defun even? (n) (= 0 (% n 2)))
+;;;   (all? even? '(0 1 2))           => false
+;;;   (any? even? '(0 2))             => true
+;;;   (any? even? ())                 => true
+;;;
+;;; ERRORS
+;;; - ETYPE, if `p' is not of type "function" or "external function".
+;;; - ETYPE, if `xs' is not of type "list".
+;;;
+;;; PERFORMANCE
+;;; This function is tail recursive.
+;;;
+;;; SEE ALSO
+;;; any?
+;;;
 (defun all? (p xs)
   (check-type p Func ExtFunc)
   (check-type xs List)
   (unsafe-all? p xs))
+(defun unsafe-all? (p xs)
+  (case xs
+    ((: y ys) (and (p y) (unsafe-all? p ys)))
+    (() true)))
 
-(defun unsafe-foldr (f start lst)
-  (case lst
+;;;
+;;;   (foldr f start xs)
+;;;
+;;; Fold list `xs' right to left, using function `f' and initial
+;;; accumulator `start'.
+;;;
+;;; Its basic algorithm is as follows.
+;;;
+;;;   (defun foldr (f start xs)
+;;;     (case xs
+;;;       ((: z zs) (f z (foldr f start zs)))
+;;;       (() start)))
+;;;
+;;; ERRORS
+;;; - ETYPE, if `f' is not of type "function" or "external function".
+;;; - ETYPE, if `xs' is not of type "list".
+;;;
+;;; PERFORMANCE
+;;; This function is non-tail recursive.
+;;;
+;;; SEE ALSO
+;;; foldl
+;;;
+(defun foldr (f start xs)
+  (check-type f Func ExtFunc)
+  (check-type xs List)
+  (unsafe-foldr f start xs))
+(defun unsafe-foldr (f start xs)
+  (case xs
     ((: z zs) (f z (unsafe-foldr f start zs)))
     (() start)))
-(defun foldr (f start lst)
-  (check-type f Func ExtFunc)
-  (check-type lst List)
-  (unsafe-foldr f start lst))
 
-(defun unsafe-foldl (f start lst)
-  (case lst
+;;;
+;;;   (foldl f start xs)
+;;;
+;;; Fold list `xs' left to right, using function `f' and initial
+;;; accumulator `start'.
+;;;
+;;; Its basic algorithm is as follows.
+;;;
+;;;   (defun foldl (f start xs)
+;;;     (case xs
+;;;       ((: z zs) (foldl f (f start z) zs))
+;;;       (() start)))
+;;;
+;;; This function is often used to implement simple tail recursive list
+;;; operations.
+;;;
+;;; EXAMPLES
+;;;
+;;;   (defun sum (xs) (foldl + 0 xs))
+;;;   (sum '(1 2 3 4))                => 10
+;;;
+;;; ERRORS
+;;; - ETYPE, if `f' is not of type "function" or "external function".
+;;; - ETYPE, if `xs' is not of type "list".
+;;;
+;;; PERFORMANCE
+;;; This function is tail recursive.
+;;;
+;;; SEE ALSO
+;;; foldr
+;;;
+(defun foldl (f start xs)
+  (check-type f Func ExtFunc)
+  (check-type xs List)
+  (unsafe-foldl f start xs))
+(defun unsafe-foldl (f start xs)
+  (case xs
     ((: z zs) (unsafe-foldl f (f start z) zs))
     (() start)))
-(defun foldl (f start lst)
-  (check-type f Func ExtFunc)
-  (check-type lst List)
-  (unsafe-foldl f start lst))
 
+;;;
+;;;   (repeat x n)
+;;;
+;;; Return a list consisting of `n' copies of `x'.
+;;;
+;;; EXAMPLES
+;;;
+;;;   (repeat "hello" 3) => ("hello" "hello" "hello")
+;;;   (repeat "hello" 0) => ()
+;;;
+;;; ERRORS
+;;; - ETYPE, if `n' is not of type "integer".
+;;; - EVALUE, if `n' is negative.
+;;;
 (defun repeat (x n) (map (const x) (.. n)))
 
+;;;
+;;;   (element? e xs)
+;;;
+;;; Return whether `e' is an element of list `xs'.
+;;;
+;;; ERRORS
+;;; - ETYPE, if `xs' is not of type "list".
+;;;
+;;; PERFORMANCE
+;;; This function has O(n) time complexity, with n = (length xs), and is
+;;; tail recursive.
+;;;
+;;; SEE ALSO
+;;; find
+;;;
 (defun element? (e xs)
   (any? (fn (x) (= e x)) xs))
 
+;;;
+;;;   (find e xs)
+;;;
+;;; If `xs' is of type "list", then return the first position of element
+;;; `e' in list `xs', or nil if it is not present in `xs'. If `xs' is of
+;;; type "string", then return the first position of string `e' in
+;;; string `xs', or nil if it is not a substring of `xs'.
+;;;
+;;; EXAMPLES
+;;;
+;;;   (find 10 '(30 10 40 10))      => 1
+;;;   (find 'a '(a "b" c))          => 0
+;;;   (find 'b '(a "b" c))          => ()
+;;;   (find "world" "hello, world") => 7
+;;;
+;;; ERRORS
+;;; - ETYPE, if `xs' is not of type "list" or "string".
+;;; - ETYPE, if `xs' is of type "string" but `e' is not.
+;;;
+;;; PERFORMANCE
+;;; This function has O(n) time complexity, with n = (length xs), and is
+;;; tail recursive. Contrary to `(rfind)`, this function has minimal
+;;; space overhead.
+;;;
+;;; SEE ALSO
+;;; rfind, !!
+;;;
+(defun find (e xs)
+  (if (= (type-of xs) String)
+    (do (check-type e String)
+        (unsafe-strfind e xs 0))
+    (do (check-type xs List)
+        (unsafe-find e xs 0))))
 (defun unsafe-strfind (e s acc)
   (cond
     ((prefix? e s) acc)
@@ -158,22 +582,33 @@
         acc
         (unsafe-find e ys (+ acc 1))))
     (() nil)))
-(defun find (e xs)
-  (if (= (type-of xs) String)
-    (do (check-type e String)
-        (unsafe-strfind e xs 0))
-    (do (check-type xs List)
-        (unsafe-find e xs 0))))
 
-(defun unsafe-strrfind (e s le ls)
-  (cond
-    ((> le ls)     nil)
-    ((suffix? e s) (- ls le))
-    (true          (unsafe-strrfind e (substr s 0 (- ls 1)) le (- ls 1)))))
-(defun rev-and-len (xs rev len)
-  (case xs
-    ((: t ts) (rev-and-len ts (: t rev) (+ len 1)))
-    (() (list rev len))))
+;;;
+;;;   (rfind e xs)
+;;;
+;;; If `xs' is of type "list", then return the last position of element
+;;; `e' in list `xs', or nil if it is not present in `xs'. If `xs' is of
+;;; type "string", then return the last position of string `e' in
+;;; string `xs', or nil if it is not a substring of `xs'.
+;;;
+;;; EXAMPLES
+;;;
+;;;   (rfind 10 '(30 10 40 10)) => 3
+;;;   (rfind 'a '(a "b" c))     => 0
+;;;   (rfind 'b '(a "b" c))     => ()
+;;;   (rfind "ABA" "ABABABAC")  => 4
+;;;
+;;; ERRORS
+;;; - ETYPE, if `xs' is not of type "list" or "string".
+;;; - ETYPE, if `xs' is of type "string" but `e' is not.
+;;;
+;;; PERFORMANCE
+;;; This function has O(n) time and space complexity, with n = (length
+;;; xs), and is tail recursive.
+;;;
+;;; SEE ALSO
+;;; find, !!
+;;;
 (defun rfind (e xs)
   (if (= (type-of xs) String)
     (do (check-type e String)
@@ -183,24 +618,104 @@
                (pos (find e rev)))
           (unless (= nil pos)
             (- (- len 1) pos))))))
+(defun unsafe-strrfind (e s le ls)
+  (cond
+    ((> le ls)     nil)
+    ((suffix? e s) (- ls le))
+    (true          (unsafe-strrfind e (substr s 0 (- ls 1)) le (- ls 1)))))
+(defun rev-and-len (xs rev len)
+  (case xs
+    ((: t ts) (rev-and-len ts (: t rev) (+ len 1)))
+    (() (list rev len))))
 
-(defun unsafe-zip-with (: op args)
+;;;
+;;;   (zip-with f as bs)
+;;;
+;;; Iterate over the elements `a' of list `as' and `b' of list `bs'
+;;; simultaneously, return a list consisting of the elements `(f a b)`,
+;;; for given binary operation `f'.
+;;;
+;;; `as' and `bs' may have different lengths, say `n' is the length of
+;;; the smaller list. In this case, only the first `n' elements of both
+;;; lists are considered.
+;;;
+;;; EXAMPLES
+;;;
+;;;   (zip-with * '(1 2 3 4) '(1 3 5 8 13)) => (1 6 15 32)
+;;;
+;;; ERRORS
+;;; - ETYPE, if `f' is not of type "function" or "external function".
+;;; - ETYPE, if `as' or `bs' is not of type "list".
+;;;
+;;; PERFORMANCE
+;;; This function is non-tail recursive.
+;;;
+;;; SEE ALSO
+;;; zip
+;;;
+(defun zip-with (f as bs)
+  (check-type f Func ExtFunc)
+  (check-type as List)
+  (check-type bs List)
+  (unsafe-zip-with f as bs))
+(defun unsafe-zip-with (: f args)
   (case args
     ((as ()) ())
     ((() bs) ())
-    (((: a as) (: b bs)) (: (op a b) (unsafe-zip-with op as bs)))))
-(defun zip-with (op as bs)
-  (check-type op Func ExtFunc)
-  (check-type as List)
-  (check-type bs List)
-  (unsafe-zip-with op as bs))
-(defun zip (xs ys)
-  (zip-with list xs ys))
+    (((: a as) (: b bs)) (: (f a b) (unsafe-zip-with f as bs)))))
 
-(defun ++helper (xs ys)
-  (case xs
-    ((: z zs) (: z (++helper zs ys)))
-    (() ys)))
+;;;
+;;;   (zip as bs)
+;;;
+;;; Iterate over the elements `a' of list `as' and `b' of list `bs'
+;;; simultaneously, return a list consisting of the pairs `(a b)`.
+;;;
+;;; `as' and `bs' may have different lengths, say `n' is the length of
+;;; the smaller list. In this case, only the first `n' elements of both
+;;; lists are considered.
+;;;
+;;; EXAMPLES
+;;;
+;;;   (zip '(1 2 3 4) '(1 3 5 8 13)) => ((1 1) (2 3) (3 5) (4 8))
+;;;
+;;; ERRORS
+;;; - ETYPE, if `as' or `bs' is not of type "list".
+;;;
+;;; PERFORMANCE
+;;; This function is non-tail recursive.
+;;;
+;;; SEE ALSO
+;;; zip-with
+;;;
+(defun zip (as bs)
+  (zip-with list as bs))
+
+;;;
+;;;   (++ xs ys)
+;;;
+;;; Concatenate two lists or strings.
+;;;
+;;; EXAMPLES
+;;;
+;;;   (++ '(1 2) '(3 4 5))   => (1 2 3 4 5)
+;;;   (++ "hello, " "world") => "hello, world"
+;;;
+;;; ERRORS
+;;; - ETYPE, if `xs' is not of type "list" or "string".
+;;; - ETYPE, if `xs' has different type from `ys'.
+;;;
+;;; PERFORMANCE
+;;; The list version of this function has O(n) time complexity, with n =
+;;; (length xs), when `ys' is non-empty. If `ys' is empty, then it has
+;;; O(1) time complexity. It is non-tail recursive.
+;;;
+;;; The string version of this
+;;; function has O(n + m) time complexity, with n = (string-length xs),
+;;; m = (string-length ys).
+;;;
+;;; SEE ALSO
+;;; concat, strcat, append
+;;;
 (defun ++ (xs ys)
   (if (= (type-of xs) String)
     (do (check-type ys String)
@@ -210,18 +725,156 @@
         (case ys
           (() xs)
           (_  (++helper xs ys))))))
+(defun ++helper (xs ys)
+  (case xs
+    ((: z zs) (: z (++helper zs ys)))
+    (() ys)))
 
-(defun concat (xs) (foldl ++ () xs))
-(defun strcat (xs) (foldl ++ "" xs))
+;;;
+;;;   (concat xss)
+;;;
+;;; Concatenate all lists in given list of lists `xss'.
+;;;
+;;; ERRORS
+;;; - ETYPE, if any element of `xss' is not of type "list".
+;;;
+;;; PERFORMANCE
+;;; This function has O(n) time complexity, where n is the sum of the
+;;; number of elements of every but the last list in `xss'. This
+;;; function is non-tail recursive.
+;;;
+;;; SEE ALSO
+;;; ++, strcat, append
+;;;
+(defun concat (xss) (foldr ++ () xss))
+
+;;;
+;;;   (strcat ss)
+;;;
+;;; Concatenate all strings in given list of strings `ss'.
+;;;
+;;; ERRORS
+;;; - ETYPE, if any element of `xss' is not of type "string".
+;;;
+;;; PERFORMANCE
+;;; This function has O(n) time complexity, where n is the sum of the
+;;; number of bytes in every but the last string in `ss'. This function
+;;; is tail recursive.
+;;;
+;;; SEE ALSO
+;;; ++, strcat, append
+;;;
+(defun strcat (ss) (foldl ++ "" ss))
+
+;;;
+;;;   (append args...)
+;;;
+;;; Concatenate all given lists. Equivalent to `(concat args)'.
+;;;
+;;; SEE ALSO
+;;; concat
+;;;
 (defun append args (concat args))
 
+;;;
+;;;   (reverse xs)
+;;;
+;;; Reverse list `xs'.
+;;;
+;;; EXAMPLES
+;;;
+;;;   (reverse '(1 2 3)) => (3 2 1)
+;;;
+;;; ERRORS
+;;; - ETYPE, if `xs' is not of type "list".
+;;;
+;;; PERFORMANCE
+;;; This function has O(n) time complexity, with n = (length xs), and is
+;;; tail recursive.
+;;;
+(defun reverse (xs)
+  (check-type xs List)
+  (rev-helper xs ()))
 (defun rev-helper (xs ys)
   (case xs
     ((: z zs) (rev-helper zs (: z ys)))
     (() ys)))
-(defun reverse (xs)
+
+;;;
+;;;   (compare a b)
+;;;
+;;; Compare `a' and `b'. Return -1 if `a' is strictly smaller than `b',
+;;; 1 if `a' is strictly greater than `b', 0 otherwise.
+;;;
+;;; SEE ALSO
+;;; sort-with
+;;;
+(defun compare (a b)
+  (cond
+    ((< a b) -1)
+    ((> a b)  1)
+    (true     0)))
+
+;;;
+;;;   (sort-with xs cmp)
+;;;
+;;; Sort list `xs' using comparator function `cmp'. The sorting
+;;; algorithm is stable.
+;;;
+;;; ERRORS
+;;; - ETYPE, if `xs' is not of type "list".
+;;; - ETYPE, if `cmp' is not of type "function" or "external function".
+;;;
+;;; PERFORMANCE
+;;; This function has O(n log n) average time complexity, with n =
+;;; (length xs).
+;;;
+;;; SEE ALSO
+;;; compare, sort
+;;;
+(defun sort-with (xs cmp)
   (check-type xs List)
-  (rev-helper xs ()))
+  (check-type cmp Func ExtFunc)
+  (tree-to-list (list-to-tree xs cmp) ()))
+
+;;;
+;;;   (sort xs)
+;;;
+;;; Sort list `xs' using the default comparator. The sorting algorithm
+;;; is stable.
+;;;
+;;; ERRORS
+;;; - ETYPE, if `xs' is not of type "list".
+;;;
+;;; PERFORMANCE
+;;; This function has O(n log n) average time complexity, with n =
+;;; (length xs).
+;;;
+;;; SEE ALSO
+;;; sort-with, sort-by, compare
+;;;
+(defun sort (xs) (sort-with xs compare))
+
+;;;
+;;;   (sort-by xs key)
+;;;
+;;; Sort list `xs' using the default comparator. The sorting algorithm
+;;; is stable.
+;;;
+;;; ERRORS
+;;; - ETYPE, if `xs' is not of type "list".
+;;;
+;;; PERFORMANCE
+;;; This function has O(n log n) average time complexity, with n =
+;;; (length xs).
+;;;
+;;; SEE ALSO
+;;; sort-with, sort-by, compare
+;;;
+(defun sort-by (xs key)
+  (check-type key Func ExtFunc)
+  (let ((tups (map (fn (x) (list x (key x))) xs)))
+    (map (fn ((a b)) a) (sort-with tups (fn ((al bl) (ar br)) (compare bl br))))))
 
 (defun tree-insert (x tree cmp)
   (case tree
@@ -239,103 +892,503 @@
     (()      res)
     ((l v r) (tree-to-list l (: v (tree-to-list r res))))))
 
-(defun compare (a b)
-  (cond
-    ((< a b) -1)
-    ((> a b)  1)
-    (true     0)))
-
-(defun sort-with (lst cmp)
-  (check-type lst List)
-  (check-type cmp Func ExtFunc)
-  (tree-to-list (list-to-tree lst cmp) ()))
-(defun sort (xs) (sort-with xs compare))
-(defun sort-by (xs key)
-  (check-type key Func ExtFunc)
-  (let ((tups (map (fn (x) (list x (key x))) xs)))
-    (map (fn ((a b)) a) (sort-with tups (fn ((al bl) (ar br)) (compare bl br))))))
-
+;;;
+;;;   (length xs)
+;;;
+;;; Calculate the length of list `xs'.
+;;;
+;;; EXAMPLES
+;;;
+;;;    (length '(a b c)) => 3
+;;;    (length ())       => 0
+;;;
+;;; ERRORS
+;;; - ETYPE, if `xs' is not of type "list".
+;;;
+;;; PERFORMANCE
+;;; This function has O(n) time complexity, with n = (length xs), and is
+;;; tail recursive.
+;;;
 (defun length (xs) (foldl (fn (l _) (+ 1 l)) 0 xs))
 
-(defun unsafe-!! (xs i orig-i)
-  (case xs
-    ((: y ys) (if (= i 0) y (unsafe-!! ys (- i 1) orig-i)))
-    (() (throw EINDEX (format "index {} out of bounds" orig-i)))))
+;;;
+;;;   (!! xs i)
+;;;
+;;; Retrieve the element at position `i' in list `xs'.
+;;;
+;;; EXAMPLES
+;;;
+;;;   (!! '(a b c) 0) => a
+;;;   (!! '(a b c) 1) => b
+;;;   (!! '(a b c) 2) => c
+;;;
+;;; ERRORS
+;;; - ETYPE, if `xs' is not of type "list".
+;;; - ETYPE, if `i' is not of type "integer".
+;;; - EINDEX, if `i' is an invalid position for list `xs'.
+;;;
+;;; PERFORMANCE
+;;; This function has O(i) time complexity, and is tail recursive.
+;;;
+;;; SEE ALSO
+;;; find, rfind
+;;;
 (defun !! (xs i)
   (check-type xs List)
   (check-type i Int)
   (when (< i 0)
     (throw EINDEX (format "expected non-negative index (got {})" i)))
   (unsafe-!! xs i i))
+(defun unsafe-!! (xs i orig-i)
+  (case xs
+    ((: y ys) (if (= i 0) y (unsafe-!! ys (- i 1) orig-i)))
+    (() (throw EINDEX (format "index {} out of bounds" orig-i)))))
 
-(defun list-prefix? (pfx arg)
+;;;
+;;;   (prefix? pfx xs)
+;;;
+;;; Return whether the first `n' elements of list `xs' correspond to
+;;; list `pfx', where `n' is the number of elements of `pfx'. Or, if
+;;; `pfx' is a string: return whether the first `n' bytes of string `xs'
+;;; correspond to string `pfx', where `n' is the number of bytes of
+;;; `pfx'.
+;;;
+;;; EXAMPLES
+;;;
+;;;   (prefix? "hello" "hello, world") => true
+;;;   (prefix? "world" "hello, world") => false
+;;;
+;;; ERRORS
+;;; - ETYPE, if `xs' is not of type "list" or "string".
+;;; - ETYPE, if `xs' has different type from `pfx'.
+;;;
+;;; PERFORMANCE
+;;; This function has O(n) time complexity, with n = (length pfx), and
+;;; is tail recursive.
+;;;
+;;; SEE ALSO
+;;; suffix?
+;;;
+(defun prefix? (pfx xs)
+  (if (= (type-of pfx) String)
+    (do (check-type xs String)
+        (let ((n (string-length pfx)))
+          (and (<= n (string-length xs)) (= pfx (substr xs 0 n)))))
+    (do (check-type pfx List)
+        (check-type xs List)
+        (list-prefix? pfx xs))))
+(defun list-prefix? (pfx xs)
   (case pfx
     ((: p ps)
-      (case arg
+      (case xs
         ((: a as) (and (= p a) (list-prefix? ps as)))
         (()       false)))
     (() true)))
-(defun prefix? (pfx arg)
-  (if (= (type-of pfx) String)
-    (do (check-type arg String)
-        (let ((n (string-length pfx)))
-          (and (<= n (string-length arg)) (= pfx (substr arg 0 n)))))
-    (do (check-type pfx List)
-        (check-type arg List)
-        (list-prefix? pfx arg))))
 
-(defun suffix? (sfx arg)
+;;;
+;;;   (suffix? sfx xs)
+;;;
+;;; Return whether the last `n' elements of list `xs' correspond to
+;;; list `sfx', where `n' is the number of elements of `sfx'. Or, if
+;;; `sfx' is a string: return whether the last `n' bytes of string `xs'
+;;; correspond to string `sfx', where `n' is the number of bytes of
+;;; `sfx'.
+;;;
+;;; EXAMPLES
+;;;
+;;;   (suffix? "hello" "hello, world") => false
+;;;   (suffix? "world" "hello, world") => true
+;;;
+;;; ERRORS
+;;; - ETYPE, if `xs' is not of type "list" or "string".
+;;; - ETYPE, if `xs' has different type from `sfx'.
+;;;
+;;; PERFORMANCE
+;;; This function has O(n) time complexity, with n = (length xs), and is
+;;; tail recursive.
+;;;
+;;; SEE ALSO
+;;; prefix?
+;;;
+(defun suffix? (sfx xs)
   (if (= (type-of sfx) String)
-    (do (check-type arg String)
-        (let ((n (string-length sfx)) (m (string-length arg)))
-          (and (<= n m) (= sfx (substr arg (- m n))))))
+    (do (check-type xs String)
+        (let ((n (string-length sfx)) (m (string-length xs)))
+          (and (<= n m) (= sfx (substr xs (- m n))))))
     (do (check-type sfx List)
-        (check-type arg List)
-        (list-prefix? (reverse sfx) (reverse arg)))))
+        (check-type xs List)
+        (list-prefix? (reverse sfx) (reverse xs)))))
 
+;;;
+;;;   (show arg)
+;;;
+;;; Convert `arg' to string. Equivalent to `(format "{!s}" arg)'.
+;;;
+;;; EXAMPLES
+;;;
+;;;   (show 10)       => "10"
+;;;   (show "string") => "string"
+;;;
+;;; SEE ALSO
+;;; format, repr
+;;;
 (defun show (arg) (format "{!s}" arg))
+
+;;;
+;;;   (repr arg)
+;;;
+;;; Convert `arg' to string. Equivalent to `(format "{!r}" arg)'. To the
+;;; best of its ability, `(repr)' attempts to return a string such that
+;;; `x' equals `(read-string (repr x))' for all `x'.
+;;;
+;;; EXAMPLES
+;;;
+;;;   (repr 10)       => "10"
+;;;   (repr "string") => "\"string\""
+;;;
+;;; SEE ALSO
+;;; format, show
+;;;
 (defun repr (arg) (format "{!r}" arg))
 
-(defun unsafe-split (s at)
-  (case (find at s)
-    (() (list s))
-    (n  (: (substr s 0 n) (unsafe-split (substr s (+ n (string-length at))) at)))))
-(defun split (s at)
+;;;
+;;;   (lstrip str pat)
+;;;
+;;; Recursively remove prefix string `pat' from string `str'.
+;;;
+;;; EXAMPLES
+;;;
+;;;   (lstrip " " "  hello  ") => "hello  "
+;;;
+;;; ERRORS
+;;; - ETYPE, if `str' or `pat' is not of type "string".
+;;;
+;;; PERFORMANCE
+;;; This function is tail recursive, and does not allocate a new string.
+;;;
+;;; SEE ALSO
+;;; rstrip, strip, prefix?
+;;;
+(defun lstrip (str pat)
+  (if (= pat (substr str 0 (string-length pat)))
+    (lstrip (substr str (string-length pat)) pat)
+    str))
+
+;;;
+;;;   (rstrip str pat)
+;;;
+;;; Recursively remove suffix string `pat' from string `str'.
+;;;
+;;; EXAMPLES
+;;;
+;;;   (lstrip " " "  hello  ") => "  hello"
+;;;
+;;; ERRORS
+;;; - ETYPE, if `str' or `pat' is not of type "string".
+;;;
+;;; PERFORMANCE
+;;; This function is tail recursive, and does not allocate a new string.
+;;;
+;;; SEE ALSO
+;;; lstrip, strip, suffix?
+;;;
+(defun rstrip (str pat)
+  (let ((n (string-length str)) (patn (string-length pat)))
+    (if (= pat (substr str (- n patn) patn))
+      (rstrip (substr str 0 (- n patn)) pat)
+      str)))
+
+;;;
+;;;   (strip str pat)
+;;;
+;;; Recursively remove suffixes and prefixes of the form `pat' from
+;;; string `str'.
+;;;
+;;; EXAMPLES
+;;;
+;;;   (strip " " "  hello  ") => "hello"
+;;;
+;;; ERRORS
+;;; - ETYPE, if `str' or `pat' is not of type "string".
+;;;
+;;; PERFORMANCE
+;;; This function is tail recursive, and does not allocate a new string.
+;;;
+;;; SEE ALSO
+;;; lstrip, rstrip, prefix?, suffix?
+;;;
+(defun strip (str pat)
+  (rstrip (lstrip str pat) pat))
+
+;;;
+;;;   (split s delim)
+;;;
+;;; Split string `s' at delimiter string `delim'. Return a list of
+;;; segments, which exclude any delimiters.
+;;;
+;;; EXAMPLES
+;;;
+;;;   (split "foo, bar, baz" ", ") => ("foo" "bar" "baz")
+;;;
+;;; ERRORS
+;;; - ETYPE, if `s' or `delim' is not of type "string".
+;;; - EVALUE, if `delim' is empty.
+;;;
+;;; PERFORMANCE
+;;; This function is non-tail recursive, and does not allocate new
+;;; strings.
+;;;
+;;; SEE ALSO
+;;; join
+;;;
+(defun split (s delim)
   (check-type s String)
-  (check-type at String)
-  (when (= "" at)
+  (check-type delim String)
+  (when (= "" delim)
     (throw EVALUE "cannot split on empty string"))
-  (unsafe-split s at))
+  (unsafe-split s delim))
+(defun unsafe-split (s delim)
+  (case (find delim s)
+    (() (list s))
+    (n  (: (substr s 0 n) (unsafe-split (substr s (+ n (string-length delim))) delim)))))
 
-(defun unsafe-join (xs j)
-  (case xs
-    ((: y ys)
-      (if (= () ys)
-        y
-        (format "{}{}{}" y j (unsafe-join ys j))))
+;;;
+;;;   (join ss delim)
+;;;
+;;; Join list of strings `ss' using delimiter `delim'.
+;;;
+;;; EXAMPLES
+;;;
+;;;   (join '("foo" "bar" "baz") ", ") => "foo, bar, baz"
+;;;
+;;; ERRORS
+;;; - ETYPE, if `ss' is not of type "list".
+;;; - ETYPE, if any element of `ss' is not of type "string".
+;;; - ETYPE, if delim' is not of type "string".
+;;;
+;;; PERFORMANCE
+;;; This function is non-tail recursive, and allocates a new string.
+;;;
+;;; SEE ALSO
+;;; split
+;;;
+(defun join (ss delim)
+  (check-type ss List)
+  (check-type delim String)
+  (mapc (fn (x) (check-type x String)) ss)
+  (unsafe-join ss delim))
+(defun unsafe-join (ss delim)
+  (case ss
+    ((y)      y)
+    ((: y ys) (format "{}{}{}" y delim (unsafe-join ys delim)))
     (()       "")))
-(defun join (xs j)
-  (check-type xs List)
-  (check-type j String)
-  (map (fn (x) (check-type x String)) xs)
-  (unsafe-join xs j))
 
+;;;
+;;;   (read)
+;;;
+;;; Read a cheax object from stdin.
+;;;
+;;; SEE ALSO
+;;; read-from, eval, print
+;;;
 (defun read () (read-from stdin))
+
+;;;
+;;;   (print arg)
+;;;
+;;; Print object `arg' to stdout.
+;;;
+;;; SEE ALSO
+;;; print-to, read, eval
+;;;
 (defun print (arg) (print-to stdout arg))
+
+;;;
+;;;   (put arg)
+;;;
+;;; Print string `arg' to stdout.
+;;;
+;;; ERRORS
+;;; - ETYPE, if `arg' is not of type "string".
+;;;
+;;; SEE ALSO
+;;; putf, put-to
+;;;
 (defun put (arg) (put-to stdout arg))
+
+;;;
+;;;   (putf fmt args...)
+;;;
+;;; Format arguments according to format string `fmt', and print to
+;;; stdout. Functionally equivalent to `(put (format fmt args...))'.
+;;;
+;;; ERRORS
+;;; - ETYPE, if `fmt' is not of type "string".
+;;;
+;;; SEE ALSO
+;;; put, putf-to
+;;;
 (defun putf args (apply putf-to (: stdout args)))
+
+;;;
+;;;   (get-line)
+;;;
+;;; Read a line from stdin and return it as a string, including any
+;;; newline characters.
+;;;
 (defun get-line () (get-line-from stdin))
+
+;;;
+;;;   (get-byte)
+;;;
+;;; Read a byte from stdin and return it as an integer. End-of-file is
+;;; indicated with the value -1.
+;;;
 (defun get-byte () (get-byte-from stdin))
 
-(defun sum (args) (foldl + 0 args))
-(defun product (args) (foldl * 1 args))
+;;;
+;;; Error indicating no documentation is available.
+;;;
+(new-error-code ENODOC)
 
+;;;
+;;;   (help-to file id)
+;;;
+;;; Format documentation of symbol `id' and write to file `file'.
+;;;
+;;; ERRORS
+;;; - ETYPE, if `id' is not of type "identifier".
+;;; - ETYPE, if `file' is not of type "file handle".
+;;; - ENOSYM, if no symbol by the name of `id' can be found.
+;;; - ENODOC, if no documentation is available for `id'.
+;;;
+;;; SEE ALSO
+;;; help, documentation
+;;;
+(defmacro help-to (file id)
+ `(let ((f ,file) (d (documentation ,id)))
+    (case d
+      (()
+        (throw ENODOC (format "no documentation available for symbol `{}'" ',id)))
+      (docstr
+        (put-to f "\n")
+        (mapc (fn (line) (putf-to f " {}\n" line)) (split (strip docstr "\n") "\n"))
+        (put-to f "\n")))))
+
+;;;
+;;;   (help id)
+;;;
+;;; Format documentation of symbol `id' and write to stdout.
+;;;
+;;; ERRORS
+;;; - ETYPE, if `id' is not of type "identifier".
+;;; - ENOSYM, if no symbol by the name of `id' can be found.
+;;; - ENODOC, if no documentation is available for `id'.
+;;;
+;;; SEE ALSO
+;;; help-to, documentation
+;;;
+(defmacro help (id)
+  `(help-to stdout ,id))
+
+;;;
+;;;   (sum xs)
+;;;
+;;; Return the sum of all numbers in list `xs'. The returned value will
+;;; be of type "integer", unless any number in `xs' has floating point
+;;; type, in which case a floating point number will be returned.
+;;;
+;;; EXAMPLES
+;;;
+;;;   (sum ())                   => 0
+;;;   (sum '(1 2 3))             => 6
+;;;   (sum '(1 2 3.0))           => 6.0
+;;;   (sum (list int-max 2 1.0)) => [EOVERFLOW]
+;;;   (sum (list int-max 2.0 1)) => 9223372036854775808.0
+;;;
+;;; ERRORS
+;;; - ETYPE, if `xs' is not of type "list".
+;;; - ETYPE, if any element of `xs' is not of numerical type.
+;;; - EOVERFLOW, if an integer overflow occurs. Since the calculation is
+;;;   done from "left to right", this could occur even if the final
+;;;   return value will be a floating point number.
+;;;
+;;; SEE ALSO
+;;; product
+;;;
+(defun sum (xs) (foldl + 0 xs))
+
+;;;
+;;;   (product xs)
+;;;
+;;; Return the product of all numbers in list `xs'. The returned value
+;;; will be of type "integer", unless any number in `xs' has floating
+;;; point type, in which case a floating point number will be returned.
+;;;
+;;; EXAMPLES
+;;;
+;;;   (product ())                   => 1
+;;;   (product '(1 2 3))             => 6
+;;;   (product '(1 2 3.0))           => 6.0
+;;;   (product (list int-max 2 1.0)) => [EOVERFLOW]
+;;;   (product (list int-max 2.0 1)) => 18446744073709551616.0
+;;;
+;;; ERRORS
+;;; - ETYPE, if `xs' is not of type "list".
+;;; - ETYPE, if any element of `xs' is not of numerical type.
+;;; - EOVERFLOW, if an integer overflow occurs. Since the calculation is
+;;;   done from "left to right", this could occur even if the final
+;;;   return value will be a floating point number.
+;;;
+;;; SEE ALSO
+;;; sum
+;;;
+(defun product (xs) (foldl * 1 xs))
+
+;;;
+;;;   (~ x)
+;;;
+;;; Return the additive inverse of number `x'. That is to say, negative
+;;; `x'.
+;;;
+;;; EXAMPLES
+;;;
+;;;   (~ 1)    => -1
+;;;   (~ 3.14) => -3.14
+;;;
+;;; ERRORS
+;;; - ETYPE, if `x' does not have numerical type.
+;;; - EOVERFLOW, if `x' is `int-min'.
+;;;
 (defun ~ (x) (- 0 x))
 
-(defun ..helper (from to step fin acc)
-  (if (fin from to)
-    acc
-    (..helper from (- to step) step fin (: to acc))))
+;;;
+;;;   (.. n)             #1
+;;;   (.. from to)       #2
+;;;
+;;; Create a list of monotonically increasing or decreasing integers.
+;;;
+;;; For version #1, return a list of integers starting at 1, increasing
+;;; stepwise with increment 1, up to and including integer `n'. If `n'
+;;; is zero, the empty list is returned.
+;;;
+;;; For version #2, return a list starting at `from' and ending at `to'
+;;; (inclusive), where the increment is 1 if `to' is greater than or
+;;; equal to `from', and -1 if `to' is less than `from'. If `to' and
+;;; `from' are equal, return a singleton list.
+;;;
+;;; EXAMPLES
+;;;
+;;;   (.. 5)    => (1 2 3 4 5)
+;;;   (.. 0)    => ()
+;;;   (.. 0 5)  => (0 1 2 3 4 5)
+;;;   (.. 3 -2) => (3 2 1 0 -1 -2)
+;;;
+;;; ERRORS
+;;; - (#1) ETYPE, if `n' is not of type "integer".
+;;; - (#1) EVALUE, if `n' is negative.
+;;; - (#2) ETYPE, if `from' or `to' is not of type "integer".
+;;;
 (defun .. args
   (case args
     ((from to)
@@ -350,35 +1403,131 @@
         ((> n 0) (..helper 1 n 1 > ()))
         ((= n 0) ())
         (true    (throw EVALUE "`n' must be non-negative"))))))
+(defun ..helper (from to step fin acc)
+  (if (fin from to)
+    acc
+    (..helper from (- to step) step fin (: to acc))))
 
-(defun unsafe-iterate (f x n)
-  (if (= n 0)
-    x
-    (unsafe-iterate f (f x) (- n 1))))
+;;;
+;;;   (iterate f x n)
+;;;
+;;; Return iterated application of function `f', starting with value
+;;; `x', repeated `n' times.
+;;;
+;;; EXAMPLES
+;;;
+;;;   (iterate (fn (n) (+ n 1)) 0.5 3) => 3.5
+;;;
+;;; ERRORS
+;;; - ETYPE, if `f' is not of type "function" or "external function".
+;;; - ETYPE, if `n' is not of type "integer".
+;;; - EVALUE, if `n' is negative.
+;;;
 (defun iterate (f x n)
   (check-type f Func ExtFunc)
   (check-type n Int)
   (when (< n 0)
     (throw EVALUE (format "expected non-negative iteration count (got {})" n)))
   (unsafe-iterate f x n))
+(defun unsafe-iterate (f x n)
+  (if (= n 0)
+    x
+    (unsafe-iterate f (f x) (- n 1))))
 
-(defun maximum (lst)
-  (check-type lst List)
-  (let (((: x xs) lst))
-    (foldl (fn (a b) (if (>= a b) a b)) x xs)))
+;;;
+;;;   (maximum xs)
+;;;
+;;; Return the first element `m' of list `xs' such that no elements
+;;; after `m' are greater than `m'.
+;;;
+;;; EXAMPLES
+;;;
+;;;   (maximum '(4 5   2 5.0 1)) => 5
+;;;   (maximum '(4 5.0 2 5   1)) => 5.0
+;;;
+;;; ERRORS
+;;; - ETYPE, if `xs' is not of type "list".
+;;; - ETYPE, if any elements of `xs' are not of numerical type.
+;;;
+;;; SEE ALSO
+;;; minimum, max
+;;;
+(defun maximum (xs)
+  (check-type xs List)
+  (let (((: z zs) xs))
+    (foldl (fn (a b) (if (>= a b) a b)) z zs)))
+
+;;;
+;;;   (minimum xs)
+;;;
+;;; Return the first element `m' of list `xs' such that no elements
+;;; after `m' are smaller than `m'.
+;;;
+;;; EXAMPLES
+;;;
+;;;   (minimum '(9 5   7 5.0 6))   => 5
+;;;   (minimum '(9 5.0 7 5   6))   => 5.0
+;;;
+;;; ERRORS
+;;; - ETYPE, if `xs' is not of type "list".
+;;; - ETYPE, if any elements of `xs' are not of numerical type.
+;;;
+;;; SEE ALSO
+;;; maximum, min
+;;;
 (defun minimum (lst)
   (check-type lst List)
   (let (((: x xs) lst))
     (foldl (fn (a b) (if (<= a b) a b)) x xs)))
 
+;;;
+;;;   (max args...)
+;;;
+;;; Equivalent to `(maximum (list args...))'.
+;;;
+;;; SEE ALSO
+;;; maximum, min
+;;;
 (defun max args (maximum args))
+
+;;;
+;;;   (min args...)
+;;;
+;;; Equivalent to `(minimum (list args...))'.
+;;;
+;;; SEE ALSO
+;;; minimum, max
+;;;
 (defun min args (minimum args))
 
+;;;
+;;;   (clamp x a b)
+;;;
+;;; Equivalent to `(min (max x a) b)'.
+;;;
+;;; ERRORS
+;;; - ETYPE, if `x', `a' or `b' is not of numerical type.
+;;;
+;;; SEE ALSO
+;;; lerp, min, max
+;;;
 (defun clamp (x a b)
   (check-type x Int Double)
   (check-type a Int Double)
   (check-type b Int Double)
   (min (max x a) b))
+
+;;;
+;;;   (lerp a b t)
+;;;
+;;; Linear interpolation. Equivalent to `(+ (* a (- 1 t)) (* b t))'.
+;;;
+;;; ERRORS
+;;; - ETYPE, if `a', `b' or `t' is not of numerical type.
+;;;
+;;; SEE ALSO
+;;; clamp
+;;;
 (defun lerp (a b t)
   (check-type a Int Double)
   (check-type b Int Double)

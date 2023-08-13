@@ -251,24 +251,25 @@ cheax_add_bt(CHEAX *c)
 
 	struct chx_list *list_line1, *list_line2;
 
-	struct loc_debug_info *info;
-	struct chx_list *orig_form = cheax_get_orig_form_(last_call);
-	if (orig_form != NULL) {
-		info = cheax_get_loc_debug_info_(orig_form);
+	struct attrib *loc_attr;
+	struct attrib *orig_form_attr = cheax_attrib_get_(c, last_call, ATTRIB_ORIG_FORM);
+	if (orig_form_attr != NULL) {
+		struct chx_list *orig_form = orig_form_attr->orig_form;
+		loc_attr = cheax_attrib_get_(c, orig_form, ATTRIB_LOC);
 		list_line1 = orig_form;
 		if (cheax_eq(c, cheax_list_value(orig_form), cheax_list_value(last_call)))
 			list_line2 = NULL;
 		else
 			list_line2 = last_call;
 	} else {
-		info = cheax_get_loc_debug_info_(last_call);
+		loc_attr = cheax_attrib_get_(c, last_call, ATTRIB_LOC);
 		list_line1 = last_call;
 		list_line2 = NULL;
 	}
 
-	struct loc_debug_info no_info = { .file = "<filename unknown>", .pos = -1, .line = -1, };
+	struct attrib_loc no_loc = { .file = "<filename unknown>", .pos = -1, .line = -1, };
 
-	ent->info = (info != NULL) ? *info : no_info;
+	ent->info = (loc_attr != NULL) ? loc_attr->loc : no_loc;
 
 	truncate_list_msg(c, ent->line1, sizeof(ent->line1), list_line1);
 	if (list_line2 != NULL)

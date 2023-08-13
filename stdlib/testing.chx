@@ -78,6 +78,13 @@
       (unless (= (type-of val) ty)
         (fail-test (format "type assertion failed: expected {}, got {}" ty (type-of val)) msg)))))
 
+(defmacro assert-have-doc args
+  (case args
+    ((id) `(assert-have-doc ,id nil))
+    ((id msg)
+      `(when (= (documentation ,id) nil)
+        (fail-test (format "no documentation available for {}" ',id) ,msg)))))
+
 (defmacro test (: name body)
  `(let ((_name ,name) (prev-has-failed has-failed))
     (set has-failed false)

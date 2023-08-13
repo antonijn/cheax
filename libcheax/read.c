@@ -38,6 +38,7 @@ struct read_info {
 	bool allow_splice;
 	int lah_buf[MAX_LOOKAHEAD];
 	const char *path;
+	struct sostrm doc_stream;
 };
 
 static struct chx_value read_value(struct read_info *ri, struct scnr *s, bool consume_final);
@@ -57,22 +58,59 @@ read_init(struct read_info *ri,
 	ri->path = path;
 
 	cheax_scnr_init_(s, strm, MAX_LOOKAHEAD, &ri->lah_buf[0], line, pos);
+	cheax_sostrm_init_(&ri->doc_stream, c);
 }
 
 static void
-skip_space(struct scnr *s)
+skip_space(struct scnr *s, bool skip_newlines)
+{
+	while ((skip_newlines || s->ch != '\n') && cheax_isspace_(s->ch))
+		cheax_scnr_adv_(s);
+}
+
+static void
+process_comments(struct read_info *ri, struct scnr *s)
+{
+	bool was_doc = false;
+
+	while (s->ch == ';') {
+		/* Two semicolons defines doc comment*/
+		bool is_doc = cheax_scnr_adv_(s) == ';';
+	
+		while (s->ch == ';')
+			cheax_scnr_adv_(s);
+
+		if (s->ch == ' ')
+			cheax_scnr_adv_(s);
+
+		if (is_doc && !was_doc) {
+			cheax_free(ri->c, ri->doc_stream.buf);
+			cheax_sostrm_init_(&ri->doc_stream, ri->c);
+			was_doc = true;
+		}
+
+		do {
+			if (s->ch == EOF)
+				return;
+
+			if (is_doc)
+				cheax_ostrm_putc_(&ri->doc_stream.strm, s->ch);
+		} while (cheax_scnr_adv_(s) != '\n');
+
+		skip_space(s, false);
+	}
+}
+
+static void
+skip_space_and_comments(struct read_info *ri, struct scnr *s)
 {
 	for (;;) {
-		while (cheax_isspace_(s->ch))
-			cheax_scnr_adv_(s);
+		skip_space(s, true);
 
 		if (s->ch != ';')
 			break;
 
-		/* skip comment line */
-		cheax_scnr_adv_(s);
-		while (s->ch != '\n' && s->ch != EOF)
-			cheax_scnr_adv_(s);
+		process_comments(ri, s);
 	}
 }
 
@@ -370,22 +408,36 @@ static struct chx_value
 read_list(struct read_info *ri, struct scnr *s, bool consume_final)
 {
 	struct chx_list *lst = NULL;
-	struct loc_debug_info info = { ri->path, s->pos, s->line };
+	struct attrib_loc loc = { ri->path, s->pos, s->line };
 
 	bool did_allow_splice = ri->allow_splice;
 	if (ri->bkquote_stack - ri->comma_stack > 0)
 		ri->allow_splice = true;
 
 	cheax_scnr_adv_(s);
-	if ((skip_space(s), s->ch) != ')') {
+	if ((skip_space_and_comments(ri, s), s->ch) != ')') {
 		if (s->ch == EOF)
 			goto eof_pad;
 
-		lst = cheax_loc_debug_list_(ri->c, read_value(ri, s, true), NULL, info);
+		lst = cheax_list(ri->c, read_value(ri, s, true), NULL).data.as_list;
 		cheax_ft(ri->c, pad);
+		struct attrib *loc_attr = cheax_attrib_add_(ri->c, lst, ATTRIB_LOC);
+		cheax_ft(ri->c, pad);
+		loc_attr->loc = loc;
+
+		if (ri->doc_stream.idx != 0) {
+			struct chx_value doc = cheax_nstring(ri->c, ri->doc_stream.buf, ri->doc_stream.idx);
+			cheax_ft(ri->c, pad);
+			struct attrib *doc_attr = cheax_attrib_add_(ri->c, lst, ATTRIB_DOC);
+			cheax_ft(ri->c, pad);
+			doc_attr->doc = doc.data.as_string;
+
+			cheax_free(ri->c, ri->doc_stream.buf);
+			cheax_sostrm_init_(&ri->doc_stream, ri->c);
+		}
 
 		struct chx_list **next = &lst->next;
-		while ((skip_space(s), s->ch) != ')') {
+		while ((skip_space_and_comments(ri, s), s->ch) != ')') {
 			if (s->ch == EOF)
 				goto eof_pad;
 
@@ -413,7 +465,7 @@ pad:
 static struct chx_value
 read_value(struct read_info *ri, struct scnr *s, bool consume_final)
 {
-	skip_space(s);
+	skip_space_and_comments(ri, s);
 
 	if (s->ch == '-') {
 		cheax_scnr_adv_(s);
@@ -535,6 +587,7 @@ istrm_read_at(CHEAX *c, struct istrm *strm, const char *path, int *line, int *po
 	if (pos != NULL)
 		*pos = s.pos;
 
+	cheax_free(c, ri.doc_stream.buf);
 	return res;
 }
 

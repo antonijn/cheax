@@ -16,6 +16,7 @@
 #ifndef CORE_H
 #define CORE_H
 
+#include "attrib.h"
 #include "gc.h"
 #include "types.h"
 #include "sym.h"
@@ -36,15 +37,17 @@
 
 /* for rtflags field in chx_value */
 enum {
-	GC_BIT      = 0x0001, /* allocated by gc */
-	GC_MARKED   = 0x0002, /* marked in use by gc (temporary) */
-	REF_BIT     = 0x0004, /* carries cheax_ref() */
-	NO_ESC_BIT  = 0x0008, /* chx_env presumed not to have escaped */
-	LOC_INFO    = 0x0010, /* list is struct loc_debug_list */
-	ORIG_INFO   = 0x0020, /* list is struct orig_debug_list */
-	DEBUG_BITS  = 0x0030,
-	PREPROC_BIT = 0x0040, /* This form has been preprocessed */
+	GC_BIT           = 0x0001, /* allocated by gc */
+	GC_MARKED        = 0x0002, /* marked in use by gc (temporary) */
+	REF_BIT          = 0x0004, /* carries cheax_ref() */
+	NO_ESC_BIT       = 0x0008, /* chx_env presumed not to have escaped */
+	PREPROC_BIT      = 0x0010, /* This form has been preprocessed */
+	FIRST_ATTRIB_BIT = 0x0020,
+	LAST_ATTRIB_BIT  = FIRST_ATTRIB_BIT << ATTRIB_LAST,
+	ATTRIB_BITS      = ((LAST_ATTRIB_BIT << 1) - 1) & ~(FIRST_ATTRIB_BIT - 1),
 };
+
+#define ATTRIB_BIT(attr) (FIRST_ATTRIB_BIT << (attr))
 
 static inline bool
 has_flag(int i, int f)
@@ -52,22 +55,7 @@ has_flag(int i, int f)
 	return (i & f) == f;
 }
 
-struct loc_debug_info {
-	const char *file;
-	int pos, line;
-};
-
-struct chx_list *cheax_loc_debug_list_(CHEAX *c,
-                                       struct chx_value car,
-                                       struct chx_list *cdr,
-                                       struct loc_debug_info info);
-struct chx_list *cheax_orig_debug_list_(CHEAX *c,
-                                        struct chx_value car,
-                                        struct chx_list *cdr,
-                                        struct chx_list *orig_form);
-
-struct loc_debug_info *cheax_get_loc_debug_info_(struct chx_list *list);
-struct chx_list *cheax_get_orig_form_(struct chx_list *list);
+void cheax_set_orig_form_(CHEAX *c, void *key, struct chx_list *orig_form);
 
 struct chx_id *cheax_find_id_(CHEAX *c, const char *name);
 
@@ -133,7 +121,7 @@ struct cheax {
 
 	struct {
 		struct bt_entry {
-			struct loc_debug_info info;
+			struct attrib_loc info;
 			char line1[81];
 			char line2[81];
 		} *array;
@@ -153,6 +141,8 @@ struct cheax {
 	} typestore;
 
 	struct gc_info gc;
+
+	attrib_info attribs;
 
 	struct chx_id *std_ids[NUM_STD_IDS];
 

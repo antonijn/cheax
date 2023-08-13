@@ -145,6 +145,21 @@ cheax_user_ptr(CHEAX *c, void *value, int type)
 	return ((struct chx_value){ .type = type, .data.user_ptr = value });
 }
 
+void
+cheax_set_orig_form_(CHEAX *c, void *key, struct chx_list *orig_form)
+{
+	struct attrib *attr = cheax_attrib_add_(c, key, ATTRIB_ORIG_FORM);
+	cheax_ft(c, pad);
+
+	struct attrib *src_attr = cheax_attrib_get_(c, orig_form, ATTRIB_ORIG_FORM);
+	if (src_attr != NULL)
+		orig_form = src_attr->orig_form;
+
+	attr->orig_form = orig_form;
+pad:
+	return;
+}
+
 static void
 id_fin(CHEAX *c, void *obj)
 {
@@ -220,72 +235,6 @@ struct chx_value
 cheax_list_value_proc(struct chx_list *list)
 {
 	return cheax_list_value(list);
-}
-
-struct loc_debug_list {
-	struct chx_list base;
-	struct loc_debug_info info;
-};
-
-struct orig_debug_list {
-	struct chx_list base;
-	struct chx_list *orig_form;
-};
-
-struct chx_list *
-cheax_loc_debug_list_(CHEAX *c, struct chx_value car, struct chx_list *cdr, struct loc_debug_info info)
-{
-	if (!c->gen_debug_info)
-		return cheax_list(c, car, cdr).data.as_list;
-
-	struct loc_debug_list *res = cheax_gc_alloc_(c, sizeof(struct loc_debug_list), CHEAX_LIST);
-	if (res == NULL)
-		return NULL;
-	res->base.rtflags |= LOC_INFO;
-	res->base.value = car;
-	res->base.next = cdr;
-	res->info = info;
-	return &res->base;
-}
-struct chx_list *
-cheax_orig_debug_list_(CHEAX *c, struct chx_value car, struct chx_list *cdr, struct chx_list *orig_form)
-{
-	if (!c->gen_debug_info)
-		return cheax_list(c, car, cdr).data.as_list;
-
-	struct orig_debug_list *res = cheax_gc_alloc_(c, sizeof(struct loc_debug_list), CHEAX_LIST);
-	if (res == NULL)
-		return NULL;
-	res->base.rtflags |= ORIG_INFO;
-	res->base.value = car;
-	res->base.next = cdr;
-
-	struct chx_list *true_origin = orig_form;
-	while ((orig_form = cheax_get_orig_form_(true_origin)) != NULL)
-		true_origin = orig_form;
-
-	res->orig_form = true_origin;
-	return &res->base;
-}
-
-struct loc_debug_info *
-cheax_get_loc_debug_info_(struct chx_list *list)
-{
-	if (list == NULL || (list->rtflags & DEBUG_BITS) != LOC_INFO)
-		return NULL;
-
-	struct loc_debug_list *dbg_list = (struct loc_debug_list *)list;
-	return &dbg_list->info;
-}
-
-struct chx_list *
-cheax_get_orig_form_(struct chx_list *list)
-{
-	if (list == NULL || (list->rtflags & DEBUG_BITS) != ORIG_INFO)
-		return NULL;
-
-	struct orig_debug_list *dbg_list = (struct orig_debug_list *)list;
-	return dbg_list->orig_form;
 }
 
 struct chx_value
@@ -419,6 +368,7 @@ cheax_init(void)
 	cheax_gc_init_(res);
 	cheax_gc_register_finalizer_(res, CHEAX_ID,   id_fin);
 	cheax_gc_register_finalizer_(res, CHEAX_ENV, cheax_env_fin_);
+	cheax_gc_register_finalizer_(res, CHEAX_LIST, (chx_fin)cheax_attrib_remove_all_);
 
 	res->global_ns.rtflags = 0;
 	cheax_norm_env_init_(res, &res->global_ns, NULL);
@@ -430,7 +380,7 @@ cheax_init(void)
 	cheax_norm_env_init_(res, &res->macro_ns, NULL);
 
 	cheax_bt_init_(res, 32);
-
+	cheax_attrib_init_(res);
 	cheax_htab_init_(res, &res->interned_ids, id_hash_for_htab, id_eq_for_htab);
 
 	res->typestore.array = NULL;
@@ -474,6 +424,7 @@ cheax_destroy(CHEAX *c)
 	cheax_norm_env_cleanup_(c, &c->global_ns);
 	cheax_norm_env_cleanup_(c, &c->specop_ns);
 	cheax_norm_env_cleanup_(c, &c->macro_ns);
+	cheax_attrib_cleanup_(c);
 
 	cheax_free(c, c->bt.array);
 

@@ -17,6 +17,7 @@
 
 #include "core.h"
 #include "err.h"
+#include "eval.h"
 #include "gc.h"
 #include "unpack.h"
 
@@ -365,7 +366,12 @@ eval_bkquoted_list(CHEAX *c, struct chx_list *quoted, int nest)
 		cheax_unref(c, car, car_ref);
 		cheax_ft(c, pad);
 
-		return cheax_orig_debug_list_(c, car, (struct chx_list *)cdr, quoted);
+		struct chx_list *res = cheax_list(c, car, cdr).data.as_list;
+		cheax_ft(c, pad);
+		cheax_set_orig_form_(c, res, quoted);
+		cheax_ft(c, pad);
+
+		return res;
 
 	case BKQ_SPLICED:
 		spl_list_value = cheax_list_value(spl_list);
@@ -682,7 +688,10 @@ cheax_macroexpand_once(CHEAX *c, struct chx_value expr)
 
 	if (res.type == CHEAX_LIST && res.data.as_list != NULL && c->gen_debug_info) {
 		struct chx_list *exp_lst = res.data.as_list;
-		res = cheax_list_value(cheax_orig_debug_list_(c, exp_lst->value, exp_lst->next, lst));
+		res = cheax_list(c, exp_lst->value, exp_lst->next);
+		cheax_ft(c, pad);
+		cheax_set_orig_form_(c, res.data.as_list, lst);
+		cheax_ft(c, pad);
 	}
 
 	return res;
@@ -719,7 +728,11 @@ preproc_specop(CHEAX *c, const char *id, struct chx_value specop_val, struct chx
 		goto pad;
 	}
 
-	struct chx_list *out_list = cheax_orig_debug_list_(c, specop_val, out_tail.data.as_list, call);
+	struct chx_list *out_list = cheax_list(c, specop_val, out_tail.data.as_list).data.as_list;
+	cheax_ft(c, pad);
+	cheax_set_orig_form_(c, out_list, call);
+	cheax_ft(c, pad);
+
 	if (out_list != NULL)
 		out_list->rtflags |= PREPROC_BIT;
 	return cheax_list_value(out_list);
@@ -846,38 +859,34 @@ match_colon(CHEAX *c,
 }
 
 static bool
-match_list(CHEAX *c, struct chx_env *env, struct chx_list *pan, struct chx_list *match, int flags)
+match_list(CHEAX *c, struct chx_list *pan, struct chx_list *value, struct match_info info)
 {
 	if (pan != NULL && pan->value.type == CHEAX_ID && pan->value.as_id == c->std_ids[COLON_ID])
-		return match_colon(c, env, pan->next, match, flags);
+		return match_colon(c, info.env, pan->next, value, info.flags);
 
-	while (pan != NULL && match != NULL) {
-		if (!match_node(c, env, pan->value, match->value, flags))
+	while (pan != NULL && value != NULL) {
+		if (!match_node(c, info.env, pan->value, value->value, info.flags))
 			return false;
 
 		pan = pan->next;
-		match = match->next;
+		value = value->next;
 	}
 
-	return (pan == NULL) && (match == NULL);
+	return (pan == NULL) && (value == NULL);
 }
 
 bool
-cheax_match_in(CHEAX *c,
-               struct chx_env *env,
-               struct chx_value pan,
-               struct chx_value match,
-               int flags)
+cheax_ex_match_(CHEAX *c, struct chx_value pan, struct chx_value value, struct match_info info)
 {
 	if (pan.type == CHEAX_ID) {
-		if (has_flag(flags, CHEAX_EVAL_NODES) && match.type == CHEAX_LIST) {
+		if (has_flag(info.flags, CHEAX_EVAL_NODES) && value.type == CHEAX_LIST) {
 			struct chx_env *prev_env = c->env;
 			chx_ref prev_env_ref = cheax_ref_ptr(c, prev_env);
-			c->env = env;
+			c->env = info.env;
 
 			struct chx_list *evald_match;
-			int res = cheax_unpack_(c, match.data.as_list, ".*", &evald_match);
-			match = cheax_list_value(evald_match);
+			int res = cheax_unpack_(c, value.data.as_list, ".*", &evald_match);
+			value = cheax_list_value(evald_match);
 
 			cheax_unref_ptr(c, prev_env, prev_env_ref);
 			c->env = prev_env;
@@ -885,30 +894,44 @@ cheax_match_in(CHEAX *c,
 				return false;
 		}
 
-		cheax_def_id_(c, pan.data.as_id, match, flags);
+		struct chx_sym *sym = cheax_def_id_(c, pan.data.as_id, value, info.flags);
+		if (sym != NULL)
+			sym->doc = info.doc;
 		return cheax_errno(c) == 0; /* false if cheax_def() failed */
 	}
 
-	if (pan.type != match.type)
+	if (pan.type != value.type)
 		return false;
 
 	switch (pan.type) {
 	case CHEAX_LIST:
-		return match_list(c, env, pan.data.as_list, match.data.as_list, flags);
+		return match_list(c, pan.data.as_list, value.data.as_list, info);
 	case CHEAX_INT:
 	case CHEAX_DOUBLE:
 	case CHEAX_BOOL:
 	case CHEAX_STRING:
-		return cheax_eq(c, pan, match);
+		return cheax_eq(c, pan, value);
 	default:
 		return false;
 	}
 }
 
 bool
-cheax_match(CHEAX *c, struct chx_value pan, struct chx_value match, int flags)
+cheax_match_in(CHEAX *c,
+               struct chx_env *env,
+               struct chx_value pan,
+               struct chx_value value,
+               int flags)
 {
-	return cheax_match_in(c, c->env, pan, match, flags);
+	struct match_info info = { flags, env, NULL };
+	return cheax_ex_match_(c, pan, value, info);
+}
+
+bool
+cheax_match(CHEAX *c, struct chx_value pan, struct chx_value value, int flags)
+{
+	struct match_info info = { flags, c->env, NULL };
+	return cheax_ex_match_(c, pan, value, info);
 }
 
 static bool

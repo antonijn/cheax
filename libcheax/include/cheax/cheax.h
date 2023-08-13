@@ -546,6 +546,7 @@ struct chx_sym {
 	chx_finalizer fin;        /*!< Finalizer. */
 	struct chx_value protect; /*!< Value that remains protected from garbage
 	                               collection as long as the symbol exists. */
+	struct chx_string *doc;   /*!< Symbol documentation string. */
 };
 
 typedef int chx_ref;

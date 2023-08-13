@@ -13,6 +13,8 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  */
 
+#include "attrib.h"
+#include "htab.h"
 #include "setup.h"
 #include "types.h"
 
@@ -341,20 +343,28 @@ mark_once(CHEAX *c, void *obj)
 static void mark_obj(CHEAX *c, struct chx_value used);
 
 static void
-mark_list(CHEAX *c, struct chx_list *lst)
-{
-	struct chx_list *orig_form = cheax_get_orig_form_(lst);
-	if (orig_form != NULL)
-		mark_list(c, orig_form);
-
-	for (; mark_once(c, lst); lst = lst->next)
-		mark_obj(c, lst->value);
-}
-static void
 mark_string(CHEAX *c, struct chx_string *str)
 {
 	for (; mark_once(c, str); str = str->orig)
 		;
+}
+static void
+mark_doc(struct htab_entry *entry, void *data)
+{
+	CHEAX *c = data;
+	struct attrib *attrib = container_of(entry, struct attrib, entry);
+	mark_string(c, attrib->doc);
+}
+static void
+mark_list(CHEAX *c, struct chx_list *lst)
+{
+	/* Only list heads can have the orig_form attribute (right?) */
+	struct attrib *orig_form_attr = cheax_attrib_get_(c, lst, ATTRIB_ORIG_FORM);
+	if (orig_form_attr != NULL)
+		mark_list(c, orig_form_attr->orig_form);
+
+	for (; mark_once(c, lst); lst = lst->next)
+		mark_obj(c, lst->value);
 }
 static void
 mark_env_member(struct htab_entry *item, void *data)
@@ -363,6 +373,7 @@ mark_env_member(struct htab_entry *item, void *data)
 	struct full_sym *sym = container_of(item, struct full_sym, entry);
 	mark_obj(c, cheax_id_value(sym->name));
 	mark_obj(c, sym->sym.protect);
+	mark_string(c, sym->sym.doc);
 }
 static void
 mark_env_members(CHEAX *c, struct htab *htab)
@@ -448,6 +459,8 @@ mark(CHEAX *c)
 
 	for (int i = 0; i < NUM_STD_IDS; ++i)
 		mark_obj(c, cheax_id_value(c->std_ids[i]));
+
+	cheax_htab_foreach_(&c->attribs[ATTRIB_DOC].table, mark_doc, c);
 }
 
 static void

@@ -96,6 +96,7 @@ set(CMAKE_C_VISIBILITY_PRESET hidden)
 
 add_library (libcheax
 	arith.c
+	attrib.c
 	cinfo.c
 	config.c
 	core.c

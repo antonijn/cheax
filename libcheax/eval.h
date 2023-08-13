@@ -18,6 +18,17 @@
 
 #include <cheax.h>
 
+struct match_info {
+	int flags;
+	struct chx_env *env;
+	struct chx_string *doc;
+};
+
+bool cheax_ex_match_(CHEAX *c,
+                     struct chx_value pan,
+                     struct chx_value match,
+                     struct match_info info);
+
 void cheax_export_eval_bltns_(CHEAX *c);
 
 #endif

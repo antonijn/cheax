@@ -1,4 +1,5 @@
 (test "function (..)"
+  (assert-have-doc ..)
   (assert-eq '(1 2 3 4) (.. 4))
   (assert-eq '(5 6 7 8) (.. 5 8))
   (assert-eq '(4 3 2 1) (.. 4 1))
@@ -9,6 +10,7 @@
   (assert-arg-count .. '(1 2)))
 
 (test "function (map)"
+  (assert-have-doc map)
   (assert-eq (.. 2 6) (map (fn (n) (+ n 1)) (.. 5)))
   (assert-eq () (map throw ()))
   (assert-eq '(foo foo foo) (map (const 'foo) (.. 3)))
@@ -17,6 +19,7 @@
   (assert-takes-only map `((,Func ,ExtFunc) ,List)))
 
 (test "function (mapc)"
+  (assert-have-doc mapc)
   (assert-eq () (mapc (fn (n) (+ n 1)) (.. 5)))
   (assert-eq () (mapc throw ()))
 
@@ -28,6 +31,7 @@
   (assert-takes-only map `((,Func ,ExtFunc) ,List)))
 
 (test "function (const)"
+  (assert-have-doc const)
   (assert-type (const 'foo) Func)
   (assert-eq "bar" ((const "bar")))
   (assert-eq "qux" ((const "qux") 1 2 3))
@@ -39,6 +43,8 @@
   (assert-arg-count const 1))
 
 (test "symbol iota"
+  (assert-have-doc iota)
+
   (set iota 0)
   (assert-eq 0 iota)
   (assert-eq 1 iota)
@@ -60,25 +66,30 @@
   iota)
 
 (test "function (head)"
+  (assert-have-doc head)
   (assert-eq 1 (head (.. 10)))
   (assert-error EMATCH (head ()))
   (assert-takes-only head `(,List)))
 
 (test "function (tail)"
+  (assert-have-doc tail)
   (assert-eq (.. 2 10) (tail (.. 10)))
   (assert-error EMATCH (tail ()))
   (assert-takes-only tail `(,List)))
 
 (test "function (last)"
+  (assert-have-doc last)
   (assert-eq 10 (last (.. 10)))
   (assert-error EMATCH (last ()))
   (assert-takes-only last `(,List)))
 
 (test "function (list)"
+  (assert-have-doc list)
   (assert-eq '(2 foo "bar") (list (+ 1 1) 'foo "bar"))
   (assert-eq () (list)))
 
 (test "function (filter)"
+  (assert-have-doc filter)
   (let ((xs (.. 100)))
     (assert-eq xs (filter (const true) xs))
     (assert-eq () (filter (const false) xs)))
@@ -89,6 +100,7 @@
   (assert-takes-only filter `((,Func ,ExtFunc) ,List)))
 
 (test "function (any?)"
+  (assert-have-doc any?)
   (assert-true  (any? (fn (n) (= n 5)) (.. 10)))
   (assert-false (any? (fn (n) (< n 0)) (.. 10)))
   (assert-false (any? throw ()))
@@ -96,6 +108,7 @@
   (assert-takes-only any? `((,Func ,ExtFunc) ,List)))
 
 (test "function (all?)"
+  (assert-have-doc all?)
   (assert-false (all? (fn (n) (= n 5)) (.. 10)))
   (assert-true  (all? (fn (n) (> n 0)) (.. 10)))
   (assert-true  (all? throw ()))
@@ -103,6 +116,7 @@
   (assert-takes-only all? `((,Func ,ExtFunc) ,List)))
 
 (test "function (foldl)"
+  (assert-have-doc foldl)
   (assert-eq '(((() 1) 2) 3) (foldl list () (.. 3)))
   (assert-eq 'foo (foldl (const 'foo) nil (.. 100)))
   (assert-eq 'init (foldl (const nil) 'init ()))
@@ -110,6 +124,7 @@
   (assert-takes-only foldl `((,Func ,ExtFunc) ,all-types ,List)))
 
 (test "function (foldr)"
+  (assert-have-doc foldr)
   (assert-eq '(1 (2 (3 ()))) (foldr list () (.. 3)))
   (assert-eq 'foo (foldr (const 'foo) nil (.. 100)))
   (assert-eq 'init (foldr (const nil) 'init ()))
@@ -117,18 +132,21 @@
   (assert-takes-only foldr `((,Func ,ExtFunc) ,all-types ,List)))
 
 (test "function (repeat)"
+  (assert-have-doc repeat)
   (assert-eq '(x x x) (repeat 'x 3))
   (assert-eq () (repeat "foo" 0))
   (assert-error EVALUE (repeat "bar" -1))
   (assert-takes-only (fn (n) (repeat () n)) `(,Int)))
 
 (test "function (element?)"
+  (assert-have-doc element?)
   (assert-true  (element? 5 (.. 10)))
   (assert-false (element? 11 (.. 10)))
   (assert-false (element? 10 ()))
   (assert-takes-only element? `(,all-types ,List)))
 
 (test "function (find)"
+  (assert-have-doc find)
   (assert-eq 0 (find 'a '(a "b" c)))
   (assert-eq 1 (find "b" '(a "b" c)))
   (assert-eq 2 (find 3 '(1 2 3 3 4 5)))
@@ -146,6 +164,7 @@
   (assert-arg-count find 2))
 
 (test "function (rfind)"
+  (assert-have-doc rfind)
   (assert-eq 0 (rfind 'a '(a "b" c)))
   (assert-eq 1 (rfind "b" '(a "b" c)))
   (assert-eq 3 (rfind 3 '(1 2 3 3 4 5)))
@@ -163,18 +182,21 @@
   (assert-arg-count rfind 2))
 
 (test "function (zip-with)"
+  (assert-have-doc zip-with)
   (assert-eq '(2 4 6) (zip-with + (.. 0 2) (.. 2 10)))
   (assert-eq '((0 1) (1 2) (2 3)) (zip-with .. (.. 0 2) (.. 1 3)))
   (assert-eq () (zip-with throw (.. 10) ()))
   (assert-takes-only zip-with `((,Func ,ExtFunc) ,List ,List)))
 
 (test "function (zip)"
+  (assert-have-doc zip)
   (assert-eq '((0 a) (1 b) (2 c)) (zip (.. 0 2) '(a b c)))
   (assert-eq '((a b) (c d)) (zip '(a c e) '(b d)))
   (assert-eq () (zip () (.. 10)))
   (assert-takes-only zip `(,List ,List)))
 
 (test "function (++)"
+  (assert-have-doc ++)
   (assert-eq (.. 100) (++ (.. 50) (.. 51 100)))
   (assert-eq (.. 10) (++ (.. 10) ()))
   (assert-eq (.. 10) (++ () (.. 10)))
@@ -186,6 +208,7 @@
   (assert-arg-count ++ 2))
 
 (test "function (concat)"
+  (assert-have-doc concat)
   (assert-eq (.. 7) (concat '((1 2) (3 4 5) (6 7))))
   (assert-eq (.. 10) (concat (list (.. 10))))
   (assert-eq () (concat ()))
@@ -193,6 +216,7 @@
   (assert-takes-only concat `(,List)))
 
 (test "function (strcat)"
+  (assert-have-doc strcat)
   (assert-eq "abcdefg" (strcat '("ab" "cde" "fg")))
   (assert-eq "foobar" (strcat (list "foobar")))
   (assert-eq "" (strcat ()))
@@ -201,18 +225,22 @@
   (assert-takes-only strcat `(,List)))
 
 (test "function (append)"
+  (assert-have-doc append)
   (assert-eq (.. 7) (append '(1 2) '(3 4 5) '(6 7)))
   (assert-eq (.. 10) (append (.. 10)))
   (assert-eq () (append))
   (assert-takes append `(,List ,List ,List)))
 
 (test "function (reverse)"
+  (assert-have-doc reverse)
   (assert-eq '(3 2 1) (reverse (.. 3)))
   (assert-eq () (reverse ()))
   (assert-eq (.. 100) (reverse (reverse (.. 100))))
   (assert-takes-only reverse `(,List)))
 
 (test "function (sort-with)"
+  (assert-have-doc sort-with)
+
   (defun dict-compare (x y)
     (case (list x y)
       ((() ()) 0)
@@ -242,6 +270,8 @@
   (assert-takes-only sort-with `(,List (,Func ,ExtFunc))))
 
 (test "function (sort-by)"
+  (assert-have-doc sort-by)
+
   (assert-eq '("fo" "bar" "quux") (sort-by '("quux" "fo" "bar") string-length))
   (assert-eq () (sort-by () (fn _ (throw EVALUE))))
   (assert-eq (.. 10 1) (sort-by (.. 10 1) (const 42)))
@@ -250,6 +280,7 @@
   (assert-takes-only sort-by `(,List (,Func ,ExtFunc))))
 
 (test "function (sort)"
+  (assert-have-doc sort)
   (assert-eq (.. 5) (sort '(5 3 4 1 2)))
   (assert-eq '(0 0 1) (sort '(0 1 0)))
   (assert-eq '(0 0.0 1) (sort '(0 1 0.0)))
@@ -257,12 +288,14 @@
   (assert-takes-only sort `(,List)))
 
 (test "function (length)"
+  (assert-have-doc length)
   (assert-eq 0 (length ()))
   (assert-eq 3 (length '(foo "bar" 0x123)))
   (map (fn (n) (assert-eq n (length (.. n)))) (.. 0 100))
   (assert-takes-only length `(,List)))
 
 (test "function (!!)"
+  (assert-have-doc !!)
   (let ((xs '(1 two "three")))
     (assert-eq 1 (!! xs 0))
     (assert-eq 'two (!! xs 1))
@@ -277,6 +310,7 @@
   (assert-takes-only !! `(,List ,Int)))
 
 (test "function (prefix?)"
+  (assert-have-doc prefix?)
   (assert-true (prefix? (.. 5) (.. 10)))
   (assert-true (prefix? () '(foo bar qux)))
   (assert-true (prefix? () ()))
@@ -298,6 +332,7 @@
   (assert-arg-count prefix? 2))
 
 (test "function (suffix?)"
+  (assert-have-doc suffix?)
   (assert-true (suffix? (.. 6 10) (.. 10)))
   (assert-true (suffix? () '(foo bar qux)))
   (assert-true (suffix? () ()))
@@ -319,6 +354,7 @@
   (assert-arg-count suffix? 2))
 
 (test "function (show)"
+  (assert-have-doc show)
   (assert-eq "16" (show 0x10))
   (assert-eq "foo" (show 'foo))
   (assert-eq "foo" (show "foo"))
@@ -328,6 +364,7 @@
   (assert-arg-count show 1))
 
 (test "function (repr)"
+  (assert-have-doc repr)
   (assert-eq "16" (repr 0x10))
   (assert-eq "foo" (repr 'foo))
   (assert-eq "\"foo\"" (repr "foo"))
@@ -338,6 +375,7 @@
   (assert-arg-count repr 1))
 
 (test "function (split)"
+  (assert-have-doc split)
   (assert-eq '("one" "two" "three") (split "one, two, three" ", "))
   (assert-eq '("" "four/five" "" "six" "") (split "//four/five////six//" "//"))
   (assert-eq '("foobar") (split "foobar" "/"))
@@ -347,6 +385,7 @@
   (assert-takes-only split `(,String ,String)))
 
 (test "function (join)"
+  (assert-have-doc join)
   (assert-eq "weet... ik... veel" (join '("weet" "ik" "veel") "... "))
   (assert-eq "foobar" (join '("foo" "bar") ""))
   (assert-eq "" (join () "foo"))
@@ -355,6 +394,7 @@
   (assert-takes-only join `(,List ,String)))
 
 (test "function (sum)"
+  (assert-have-doc sum)
   (assert-eq 5050 (sum (.. 100)))
   (assert-eq 0 (sum ()))
   (assert-eq 5050.0 (sum (: 0.0 (.. 100))))
@@ -363,6 +403,7 @@
   (assert-takes-only sum `(,List)))
 
 (test "function (~)"
+  (assert-have-doc ~)
   (assert-eq -20 (~ 20))
   (assert-eq -20.0 (~ 20.0))
   (assert-eq int-max (~ (~ int-max)))
@@ -370,6 +411,7 @@
   (assert-takes-only ~ `((,Int ,Double))))
 
 (test "function (iterate)"
+  (assert-have-doc iterate)
   (defun collatz (n)
     (if (= (bit-and n 1) 0)
       (/ n 2)
@@ -380,6 +422,7 @@
   (assert-takes-only iterate `((,Func ,ExtFunc) ,all-types ,Int)))
 
 (test "function (maximum)"
+  (assert-have-doc maximum)
   (assert-eq 10 (maximum (++ (.. 10) (.. 9 1))))
   (assert-eq 5 (maximum '(4 5 2 5.0 1)))
   (assert-eq 5.0 (maximum '(4 5.0 2 5 1)))
@@ -388,6 +431,7 @@
   (assert-takes-only maximum `(,List)))
 
 (test "function (minimum)"
+  (assert-have-doc minimum)
   (assert-eq 10 (minimum (++ (.. 20 10) (.. 11 20))))
   (assert-eq 5 (minimum '(9 5 7 5.0 6)))
   (assert-eq 5.0 (minimum '(9 5.0 7 5 6)))
@@ -396,6 +440,7 @@
   (assert-takes-only minimum `(,List)))
 
 (test "function (max)"
+  (assert-have-doc max)
   (assert-eq 10 (max 6 7 10 9 8 4))
   (assert-eq 5 (max 4 5 2 5.0 1))
   (assert-eq 5.0 (max 4 5.0 2 5 1))
@@ -404,6 +449,7 @@
   (assert-arg-count max (list 1 int-max)))
 
 (test "function (min)"
+  (assert-have-doc min)
   (assert-eq 4 (min 6 7 4 9 8 10))
   (assert-eq 5 (min 9 5 7 5.0 6))
   (assert-eq 5.0 (min 9 5.0 7 5 6))
@@ -412,6 +458,7 @@
   (assert-arg-count min (list 1 int-max)))
 
 (test "function (clamp)"
+  (assert-have-doc clamp)
   (assert-eq 3.0 (clamp 3.0 1 4))
   (assert-eq 1 (clamp 0 1 4))
   (assert-eq 4 (clamp 5 1 4))
@@ -428,6 +475,7 @@
   (assert-takes-only clamp `((,Int ,Double) (,Int ,Double) (,Int ,Double))))
 
 (test "function (lerp)"
+  (assert-have-doc lerp)
   (assert-eq 5.0 (lerp 4.0 8.0 0.25))
   (assert-eq 7.0 (lerp 4.0 8.0 0.75))
   (assert-eq 7.0 (lerp 8.0 4.0 0.25))
