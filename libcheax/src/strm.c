@@ -411,7 +411,8 @@ static int
 fostrm_write(void *info, const char *buf, size_t len)
 {
 	struct fostrm *fs = info;
-	if (fwrite(buf, len, 1, fs->f) < 1) {
+	fwrite(buf, len, 1, fs->f);
+	if (ferror(fs->f)) {
 		cheax_throwf(fs->c, CHEAX_EIO, "fostrm_putc(): fwrite() unsuccessful");
 		return -1;
 	}
