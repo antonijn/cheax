@@ -148,17 +148,17 @@ id_fin(CHEAX *c, void *obj)
 	htab_remove(&c->interned_ids, htab_get(&c->interned_ids, &((struct id_entry *)id)->entry));
 }
 
+static struct htab_search
+search_id(CHEAX *c, const char *name)
+{
+	struct id_entry ref_entry = { .hash = good_hash(name, strlen(name)), .id.value = (char *)name };
+	return htab_get(&c->interned_ids, &ref_entry.entry);
+}
+
 struct chx_id *
 find_id(CHEAX *c, const char *name)
 {
-	/*
-	 * This is very nasty but we can get away with it since we know
-	 * id_cmp() doesn't rely on anything but the value field of
-	 * chx_id
-	 */
-
-	struct id_entry ref_entry = { .hash = good_hash(name, strlen(name)), .id.value = (char *)name };
-	struct htab_search search = htab_get(&c->interned_ids, &ref_entry.entry);
+	struct htab_search search = search_id(c, name);
 	return (search.item == NULL)
 	     ? NULL
 	     : &container_of(search.item, struct id_entry, entry)->id;
@@ -170,18 +170,20 @@ cheax_id(CHEAX *c, const char *id)
 	if (id == NULL)
 		return CHEAX_NIL;
 
-	struct chx_id *res = find_id(c, id);
-	if (res == NULL) {
+	struct chx_id *res;
+	struct htab_search search = search_id(c, id);
+	if (search.item != NULL) {
+		res = &container_of(search.item, struct id_entry, entry)->id;
+	} else {
 		size_t len = strlen(id) + 1;
-		uint32_t hash = good_hash(id, len - 1);
 		struct id_entry *ent = gc_alloc(c, offsetof(struct id_entry, value) + len, CHEAX_ID);
 		if (ent == NULL)
 			return CHEAX_NIL;
 		memcpy(&ent->value[0], id, len);
 		ent->id.value = &ent->value[0];
-		ent->hash = hash;
+		ent->hash = search.hash;
 
-		htab_set(&c->interned_ids, htab_get(&c->interned_ids, &ent->entry), &ent->entry);
+		htab_set(&c->interned_ids, search, &ent->entry);
 		res = &ent->id;
 	}
 

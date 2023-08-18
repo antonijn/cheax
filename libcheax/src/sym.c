@@ -52,48 +52,45 @@ norm_env(struct chx_env *env)
 	return env;
 }
 
-static struct full_sym *
+static struct htab_search
 find_sym_in(struct chx_env *env, struct chx_id *name)
 {
-	struct full_sym dummy;
-	dummy.name = name;
-	env = norm_env(env);
-
-	if (env == NULL)
-		return NULL;
-
-	struct htab_search search = htab_get(&env->value.norm.syms, &dummy.entry);
-	return (search.item == NULL) ? NULL : container_of(search.item, struct full_sym, entry);
+	struct full_sym dummy = { .name = name };
+	return ((env = norm_env(env)) == NULL)
+	     ? (struct htab_search){ 0 }
+	     : htab_get(&env->value.norm.syms, &dummy.entry);
 }
 
-static struct full_sym *
+static struct htab_search
 find_sym_in_or_below(struct chx_env *env, struct chx_id *name)
 {
+	struct htab_search res = { 0 };
 	if (env == NULL)
-		return NULL;
+		return res;
 
 	if (!env->is_bif) {
-		struct full_sym *sym = find_sym_in(env, name);
-		if (sym != NULL)
-			return sym;
-
-		return find_sym_in_or_below(env->value.norm.below, name);
+		res = find_sym_in(env, name);
+		return (res.item != NULL)
+		     ? res
+		     : find_sym_in_or_below(env->value.norm.below, name);
 	}
 
 	for (int i = 0; i < 2; ++i) {
-		struct full_sym *sym = find_sym_in_or_below(env->value.bif[i], name);
-		if (sym != NULL)
-			return sym;
+		res = find_sym_in_or_below(env->value.bif[i], name);
+		if (res.item != NULL)
+			return res;
 	}
 
-	return NULL;
+	return (struct htab_search){ 0 };
 }
 
-static struct full_sym *
+static struct htab_search
 find_sym(CHEAX *c, struct chx_id *name)
 {
-	struct full_sym *fs = find_sym_in_or_below(c->env, name);
-	return (fs != NULL) ? fs : find_sym_in(c->global_env, name);
+	struct htab_search res = find_sym_in_or_below(c->env, name);
+	return (res.item != NULL)
+	     ? res
+	     : find_sym_in(c->global_env, name);
 }
 
 struct chx_env *
@@ -112,15 +109,6 @@ sym_destroy(CHEAX *c, struct full_sym *fs)
 	if (sym->fin != NULL)
 		sym->fin(c, sym);
 	cheax_free(c, fs);
-}
-
-static void
-undef_sym(CHEAX *c, struct chx_env *env, struct full_sym *fs)
-{
-	struct htab_search search;
-	htab_remove(&env->value.norm.syms, (search = htab_get(&env->value.norm.syms, &fs->entry)));
-	if (search.item != NULL)
-		sym_destroy(c, fs);
 }
 
 static void
@@ -227,10 +215,14 @@ defsym_id(CHEAX *c, struct chx_id *id,
 	if (env == NULL)
 		env = c->global_env;
 
-	struct full_sym *prev_fs = find_sym_in(env, id);
-	if (prev_fs != NULL && !prev_fs->allow_redef) {
-		cheax_throwf(c, CHEAX_EEXIST, "symbol `%s' already exists", id->value);
-		return NULL;
+	struct htab_search search = find_sym_in(env, id);
+	struct full_sym *prev_fs = NULL;
+	if (search.item != NULL) {
+		prev_fs = container_of(search.item, struct full_sym, entry);
+		if (!prev_fs->allow_redef) {
+			cheax_throwf(c, CHEAX_EEXIST, "symbol `%s' already exists", id->value);
+			return NULL;
+		}
 	}
 
 	struct full_sym *fs = cheax_malloc(c, sizeof(struct full_sym));
@@ -245,10 +237,10 @@ defsym_id(CHEAX *c, struct chx_id *id,
 	fs->sym.user_info = user_info;
 	fs->sym.protect = CHEAX_NIL;
 
-	if (prev_fs != NULL && prev_fs->allow_redef)
-		undef_sym(c, env, prev_fs);
+	htab_set(&env->value.norm.syms, search, &fs->entry);
 
-	htab_set(&env->value.norm.syms, htab_get(&env->value.norm.syms, &fs->entry), &fs->entry);
+	if (prev_fs != NULL)
+		sym_destroy(c, prev_fs);
 
 	return &fs->sym;
 }
@@ -334,13 +326,13 @@ cheax_set(CHEAX *c, const char *name, struct chx_value value)
 	ASSERT_NOT_NULL_VOID("set", name);
 
 	struct chx_id *id = find_id(c, name);
-	struct full_sym *fs;
-	if (id == NULL || (fs = find_sym(c, id)) == NULL) {
+	struct htab_search search;
+	if (id == NULL || (search = find_sym(c, id)).item == NULL) {
 		cheax_throwf(c, CHEAX_ENOSYM, "no such symbol `%s'", name);
 		return;
 	}
 
-	struct chx_sym *sym = &fs->sym;
+	struct chx_sym *sym = &container_of(search.item, struct full_sym, entry)->sym;
 	if (sym->set == NULL)
 		cheax_throwf(c, CHEAX_EREADONLY, "cannot write to read-only symbol");
 	else
@@ -377,11 +369,11 @@ try_get_id(CHEAX *c, struct chx_id *id, struct chx_value *out)
 {
 	ASSERT_NOT_NULL("get", id, false);
 
-	struct full_sym *fs = find_sym(c, id);
-	if (fs == NULL)
+	struct htab_search search = find_sym(c, id);
+	if (search.item == NULL)
 		return false;
 
-	struct chx_sym *sym = &fs->sym;
+	struct chx_sym *sym = &container_of(search.item, struct full_sym, entry)->sym;
 	if (sym->get == NULL) {
 		cheax_throwf(c, CHEAX_EWRITEONLY, "cannot read from write-only symbol");
 		return false;
@@ -420,11 +412,11 @@ cheax_try_get_from(CHEAX *c, struct chx_env *env, const char *name, struct chx_v
 	if (id == NULL)
 		return false;
 
-	struct full_sym *fs = find_sym_in(norm_env(env), id);
-	if (fs == NULL)
+	struct htab_search search = find_sym_in(env, id);
+	if (search.item == NULL)
 		return false;
 
-	struct chx_sym *sym = &fs->sym;
+	struct chx_sym *sym = &container_of(search.item, struct full_sym, entry)->sym;
 	if (sym->get == NULL) {
 		cheax_throwf(c, CHEAX_EWRITEONLY, "cannot read from write-only symbol");
 		return false;
