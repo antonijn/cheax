@@ -445,6 +445,9 @@ mark(CHEAX *c)
 	mark_env_members(c, &c->specop_ns.value.norm.syms);
 	mark_env_members(c, &c->macro_ns.value.norm.syms);
 	mark_string(c, c->error.msg);
+
+	for (int i = 0; i < NUM_STD_IDS; ++i)
+		mark_obj(c, cheax_id_value(c->std_ids[i]));
 }
 
 static void

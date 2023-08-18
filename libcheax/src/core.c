@@ -435,6 +435,13 @@ cheax_init(void)
 
 	export_bltns(res);
 	config_init(res);
+
+	res->std_ids[COLON_ID]   = cheax_id(res, ":").data.as_id;
+	res->std_ids[DEFGET_ID]  = cheax_id(res, "defget").data.as_id;
+	res->std_ids[DEFSET_ID]  = cheax_id(res, "defset").data.as_id;
+	res->std_ids[CATCH_ID]   = cheax_id(res, "catch").data.as_id;
+	res->std_ids[FINALLY_ID] = cheax_id(res, "finally").data.as_id;
+
 	return res;
 }
 void

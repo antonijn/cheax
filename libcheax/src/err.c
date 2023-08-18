@@ -363,13 +363,13 @@ validate_catch_blocks(CHEAX *c, struct chx_list *catch_blocks, struct chx_list *
 		struct chx_value keyword = cb_list->value;
 		bool is_id = (keyword.type == CHEAX_ID);
 
-		if (is_id && 0 == strcmp("catch", keyword.data.as_id->value)) {
+		if (is_id && keyword.data.as_id == c->std_ids[CATCH_ID]) {
 			if (cb_list->next == NULL || cb_list->next->next == NULL) {
 				cheax_throwf(c, CHEAX_EMATCH, "expected at least two arguments");
 				cheax_add_bt(c);
 				return -1;
 			}
-		} else if (is_id && 0 == strcmp("finally", keyword.data.as_id->value)) {
+		} else if (is_id && keyword.data.as_id == c->std_ids[FINALLY_ID]) {
 			if (cb->next != NULL) {
 				cheax_throwf(c, CHEAX_EVALUE, "unexpected values after finally block");
 				cheax_add_bt(c);

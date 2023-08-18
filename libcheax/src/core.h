@@ -87,6 +87,16 @@ struct type_alias {
 	struct type_cast *casts;
 };
 
+enum {
+	COLON_ID,
+	DEFGET_ID,
+	DEFSET_ID,
+	CATCH_ID,
+	FINALLY_ID,
+
+	NUM_STD_IDS = FINALLY_ID + 1,
+};
+
 struct cheax {
 	/* contains all global symbols defined at runtime */
 	struct chx_env global_ns;
@@ -142,9 +152,11 @@ struct cheax {
 		size_t len, cap;
 	} typestore;
 
-	struct chx_sym **config_syms;
-
 	struct gc_info gc;
+
+	struct chx_id *std_ids[NUM_STD_IDS];
+
+	struct chx_sym **config_syms;
 };
 
 /* v-to-i: value to int */

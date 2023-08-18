@@ -669,14 +669,14 @@ eval_defsym_stat(CHEAX *c, struct chx_value stat, struct defsym_info *info)
 		return;
 	}
 
-	const char *id = head.data.as_id->value;
+	struct chx_id *id = head.data.as_id;
 
-	if (0 == strcmp(id, "defget")) {
+	if (id == c->std_ids[DEFGET_ID]) {
 		defgetset(c, "defget", CHEAX_NIL, tail, info, &info->get, &info->get_ref);
 		return;
 	}
 
-	if (0 == strcmp(id, "defset")) {
+	if (id == c->std_ids[DEFSET_ID]) {
 		struct chx_value id = cheax_id(c, "value");
 		struct chx_value set_args = cheax_list(c, id, NULL);
 
@@ -772,8 +772,8 @@ pp_defsym_stat(CHEAX *c, struct chx_value stat)
 	struct chx_value head = lst->value;
 
 	if (head.type == CHEAX_ID
-	 && (0 == strcmp(head.data.as_id->value, "defget")
-	 ||  0 == strcmp(head.data.as_id->value, "defset")))
+	 && (head.data.as_id == c->std_ids[DEFGET_ID]
+	 ||  head.data.as_id == c->std_ids[DEFSET_ID]))
 	{
 		/* (node LIT (node EXPR (seq EXPR))) */
 		static const uint8_t ops[] = {

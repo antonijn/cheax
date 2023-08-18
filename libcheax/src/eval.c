@@ -848,11 +848,8 @@ match_colon(CHEAX *c,
 static bool
 match_list(CHEAX *c, struct chx_env *env, struct chx_list *pan, struct chx_list *match, int flags)
 {
-	if (pan != NULL && pan->value.type == CHEAX_ID
-	 && strcmp(pan->value.data.as_id->value, ":") == 0)
-	{
+	if (pan != NULL && pan->value.type == CHEAX_ID && pan->value.as_id == c->std_ids[COLON_ID])
 		return match_colon(c, env, pan->next, match, flags);
-	}
 
 	while (pan != NULL && match != NULL) {
 		if (!match_node(c, env, pan->value, match->value, flags))
@@ -936,7 +933,7 @@ cheax_eq(CHEAX *c, struct chx_value l, struct chx_value r)
 
 	switch (cheax_resolve_type(c, l.type)) {
 	case CHEAX_ID:
-		return 0 == strcmp(l.data.as_id->value, r.data.as_id->value);
+		return l.data.as_id == r.data.as_id;
 	case CHEAX_INT:
 		return l.data.as_int == r.data.as_int;
 	case CHEAX_BOOL:
