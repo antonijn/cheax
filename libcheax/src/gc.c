@@ -14,6 +14,7 @@
  */
 
 #include "setup.h"
+#include "types.h"
 
 #if defined(HAVE_MALLOC_USABLE_SIZE)
 #  define MSIZE malloc_usable_size
@@ -30,7 +31,6 @@
 #  endif
 #endif
 #include <stdalign.h>
-#include <stddef.h>
 #include <stdlib.h>
 #include <string.h>
 
@@ -228,12 +228,6 @@ cheax_free(CHEAX *c, void *obj)
 	}
 }
 
-static struct gc_header *
-get_header(void *obj)
-{
-	return (struct gc_header *)((char *)obj - offsetof(struct gc_header, obj));
-}
-
 void
 gc_init(CHEAX *c)
 {
@@ -312,7 +306,7 @@ gc_free(CHEAX *c, void *obj)
 	if (obj == NULL)
 		return;
 
-	struct gc_header *hdr = get_header(obj);
+	struct gc_header *hdr = container_of(obj, struct gc_header, obj);
 
 	struct gc_header_node *prev, *next;
 	prev = hdr->node.prev;
@@ -366,7 +360,7 @@ static void
 mark_env_member(struct htab_entry *item, void *data)
 {
 	CHEAX *c = data;
-	struct full_sym *sym = (struct full_sym *)item;
+	struct full_sym *sym = container_of(item, struct full_sym, entry);
 	mark_obj(c, cheax_id_value(sym->name));
 	mark_obj(c, sym->sym.protect);
 }

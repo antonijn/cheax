@@ -32,13 +32,15 @@
 static uint32_t
 id_hash_for_htab(const struct htab_entry *item)
 {
-	return id_entry_container(item)->hash;
+	return container_of(item, struct id_entry, entry)->hash;
 }
 
 static bool
 id_eq_for_htab(const struct htab_entry *ent_a, const struct htab_entry *ent_b)
 {
-	struct id_entry *a = id_entry_container(ent_a), *b = id_entry_container(ent_b);
+	struct id_entry *a, *b;
+	a = container_of(ent_a, struct id_entry, entry);
+	b = container_of(ent_b, struct id_entry, entry);
 	return strcmp(a->id.value, b->id.value) == 0;
 }
 
@@ -143,9 +145,7 @@ static void
 id_fin(CHEAX *c, void *obj)
 {
 	struct chx_id *id = obj;
-	struct htab_entry **rm;
-	htab_get(&c->interned_ids, &((struct id_entry *)id)->entry, &rm);
-	htab_remove(&c->interned_ids, rm);
+	htab_remove(&c->interned_ids, htab_get(&c->interned_ids, &((struct id_entry *)id)->entry));
 }
 
 struct chx_id *
@@ -158,9 +158,10 @@ find_id(CHEAX *c, const char *name)
 	 */
 
 	struct id_entry ref_entry = { .hash = good_hash(name, strlen(name)), .id.value = (char *)name };
-	struct htab_entry **item;
-	htab_get(&c->interned_ids, &ref_entry.entry, &item);
-	return (*item == NULL) ? NULL : &id_entry_container(*item)->id;
+	struct htab_search search = htab_get(&c->interned_ids, &ref_entry.entry);
+	return (search.item == NULL)
+	     ? NULL
+	     : &container_of(search.item, struct id_entry, entry)->id;
 }
 
 struct chx_value
@@ -180,9 +181,7 @@ cheax_id(CHEAX *c, const char *id)
 		ent->id.value = &ent->value[0];
 		ent->hash = hash;
 
-		struct htab_entry **insert;
-		htab_get(&c->interned_ids, &ent->entry, &insert);
-		htab_set(&c->interned_ids, insert, &ent->entry, hash);
+		htab_set(&c->interned_ids, htab_get(&c->interned_ids, &ent->entry), &ent->entry);
 		res = &ent->id;
 	}
 

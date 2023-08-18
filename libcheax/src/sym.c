@@ -21,20 +21,23 @@
 #include "err.h"
 #include "gc.h"
 #include "setup.h"
+#include "types.h"
 #include "unpack.h"
 
 static uint32_t
 full_sym_hash(const struct htab_entry *item)
 {
-	const struct full_sym *fs = (struct full_sym *)item;
-	return ((struct id_entry *)fs->name)->hash;
+	const struct full_sym *fs = container_of(item, struct full_sym, entry);
+	return container_of(fs->name, struct id_entry, id)->hash;
 }
 
 static bool
-full_sym_eq(const struct htab_entry *a, const struct htab_entry *b)
+full_sym_eq(const struct htab_entry *ent_a, const struct htab_entry *ent_b)
 {
-	const struct full_sym *fs_a = (struct full_sym *)a, *fs_b = (struct full_sym *)b;
-	return fs_a->name == fs_b->name;
+	const struct full_sym *a, *b;
+	a = container_of(ent_a, struct full_sym, entry);
+	b = container_of(ent_b, struct full_sym, entry);
+	return a->name == b->name;
 }
 
 /*
@@ -59,9 +62,8 @@ find_sym_in(struct chx_env *env, struct chx_id *name)
 	if (env == NULL)
 		return NULL;
 
-	struct htab_entry **result;
-	htab_get(&env->value.norm.syms, &dummy.entry, &result);
-	return (*result == NULL) ? NULL : (struct full_sym *)*result;
+	struct htab_search search = htab_get(&env->value.norm.syms, &dummy.entry);
+	return (search.item == NULL) ? NULL : container_of(search.item, struct full_sym, entry);
 }
 
 static struct full_sym *
@@ -115,18 +117,16 @@ sym_destroy(CHEAX *c, struct full_sym *fs)
 static void
 undef_sym(CHEAX *c, struct chx_env *env, struct full_sym *fs)
 {
-	struct htab_entry **e;
-	htab_get(&env->value.norm.syms, &fs->entry, &e);
-	if (*e != NULL) {
-		htab_remove(&env->value.norm.syms, e);
+	struct htab_search search;
+	htab_remove(&env->value.norm.syms, (search = htab_get(&env->value.norm.syms, &fs->entry)));
+	if (search.item != NULL)
 		sym_destroy(c, fs);
-	}
 }
 
 static void
 sym_destroy_in_htab(struct htab_entry *fs, void *c)
 {
-	sym_destroy(c, (struct full_sym *)fs);
+	sym_destroy(c, container_of(fs, struct full_sym, entry));
 }
 
 void
@@ -233,11 +233,10 @@ defsym_id(CHEAX *c, struct chx_id *id,
 		return NULL;
 	}
 
-	char *fs_mem = cheax_malloc(c, sizeof(struct full_sym));
-	if (fs_mem == NULL)
+	struct full_sym *fs = cheax_malloc(c, sizeof(struct full_sym));
+	if (fs == NULL)
 		return NULL;
 
-	struct full_sym *fs = (struct full_sym *)fs_mem;
 	fs->name = id;
 	fs->allow_redef = c->allow_redef && (env == c->global_env);
 	fs->sym.get = get;
@@ -249,9 +248,8 @@ defsym_id(CHEAX *c, struct chx_id *id,
 	if (prev_fs != NULL && prev_fs->allow_redef)
 		undef_sym(c, env, prev_fs);
 
-	struct htab_entry **e;
-	uint32_t hash = htab_get(&env->value.norm.syms, &fs->entry, &e);
-	htab_set(&env->value.norm.syms, e, &fs->entry, hash);
+	htab_set(&env->value.norm.syms, htab_get(&env->value.norm.syms, &fs->entry), &fs->entry);
+
 	return &fs->sym;
 }
 

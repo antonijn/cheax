@@ -18,7 +18,16 @@
 
 #include <cheax.h>
 
+#include <stddef.h>
+
 #include "htab.h"
+
+/*
+ * Taken from the Wikipedia (definitely not how-to-style) article
+ * https://en.wikipedia.org/w/index.php?title=Offsetof&oldid=1052498292
+ */
+#define container_of(ptr, type, member) \
+	((type *)((char *)(1 ? (ptr) : &((type *)0)->member) - offsetof(type, member)))
 
 struct id_entry {
 	struct chx_id id;
@@ -26,8 +35,6 @@ struct id_entry {
 	uint32_t hash;
 	char value[1];
 };
-
-#define id_entry_container(ep) ((struct id_entry *)((char *)(ep) - offsetof(struct id_entry, entry)))
 
 struct chx_special_op {
 	unsigned rtflags;

@@ -60,6 +60,15 @@ struct htab {
 };
 
 /*
+ * Hash table look-up result.
+ */
+struct htab_search {
+	struct htab_entry *item; /* Pointer to found item, or NULL if none found */
+	struct htab_entry **pos; /* Insertion location, or NULL if there are no buckets */
+	uint32_t hash;           /* Hash of key */
+};
+
+/*
  * Intialize hash table. This is very quick, since nothing is allocated
  * until the first entry is added to the table!
  */
@@ -73,24 +82,21 @@ void htab_cleanup(struct htab *htab, htab_item_func del, void *data);
 
 /*
  * Get hash table entry, or the location where a new one might be
- * inserted. This is stored in `ep'. If after calling this function,
- * ep points to a NULL pointer, entry `item' has not been found.
- *
- * Returns hash of `item'.
+ * inserted.
  */
-uint32_t htab_get(struct htab *htab, const struct htab_entry *item, struct htab_entry ***ep);
+struct htab_search htab_get(struct htab *htab, const struct htab_entry *item);
 
 /*
- * Set or add a hash table entry. Parameter `entry' must be a value
+ * Set or add a hash table entry. Parameter `search' must be a value
  * given by htab_get().
  */
-void htab_set(struct htab *htab, struct htab_entry **entry, struct htab_entry *item, uint32_t hash);
+void htab_set(struct htab *htab, struct htab_search search, struct htab_entry *item);
 
 /*
- * Remove a hash table entry. Parameter `entry' must be a value given
+ * Remove a hash table entry. Parameter `search' must be a value given
  * by htab_get().
  */
-void htab_remove(struct htab *htab, struct htab_entry **entry);
+void htab_remove(struct htab *htab, struct htab_search search);
 
 /*
  * Perform an action for each entry in the hash table.

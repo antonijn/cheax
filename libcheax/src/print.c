@@ -24,10 +24,10 @@
 #include "strm.h"
 
 static void
-show_sym(struct htab_entry *entry, void *info)
+show_sym(struct htab_entry *item, void *info)
 {
 	struct ostrm *s = info;
-	struct full_sym *fs = (struct full_sym *)entry;
+	struct full_sym *fs = container_of(item, struct full_sym, entry);
 	struct chx_sym *sym = &fs->sym;
 	if (sym->get == NULL)
 		ostrm_printf(s, "\n;%s", fs->name);

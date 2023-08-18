@@ -56,16 +56,13 @@ htab_cleanup(struct htab *htab, htab_item_func del, void *data)
 	memset(htab, 0, sizeof(*htab));
 }
 
-uint32_t
-htab_get(struct htab *htab, const struct htab_entry *item, struct htab_entry ***ep)
+struct htab_search
+htab_get(struct htab *htab, const struct htab_entry *item)
 {
-	static struct htab_entry *const sentinel = NULL;
-	size_t h = htab->hash(item);
+	uint32_t h = htab->hash(item);
 
-	if (htab->cap == 0) {
-		*ep = (struct htab_entry **)&sentinel;
-		return h;
-	}
+	if (htab->cap == 0)
+		return (struct htab_search){ .item = NULL, .pos = NULL, .hash = h };
 
 	struct htab_entry **b, *e;
 	for (b = &htab->buckets[(size_t)h % htab->cap]; (e = *b) != NULL; b = &e->next) {
@@ -73,8 +70,7 @@ htab_get(struct htab *htab, const struct htab_entry *item, struct htab_entry ***
 			break;
 	}
 
-	*ep = b;
-	return h;
+	return (struct htab_search){ .item = e, .pos = b, .hash = h };
 }
 
 static void
@@ -131,28 +127,28 @@ resize_down(struct htab *htab)
 }
 
 void
-htab_set(struct htab *htab, struct htab_entry **entry, struct htab_entry *item, uint32_t hash)
+htab_set(struct htab *htab, struct htab_search search, struct htab_entry *item)
 {
-	if (*entry == NULL) {
+	if (search.item == NULL) {
 		++htab->size;
 		if (resize_up(htab)) {
 			if (cheax_errno(htab->c) != 0)
 				return;
-			entry = &htab->buckets[(size_t)hash % htab->cap];
+			search.pos = &htab->buckets[(size_t)search.hash % htab->cap];
+			search.item = *search.pos;
 		}
 	}
 
-	item->next = *entry;
-	*entry = item;
+	item->next = search.item;
+	*search.pos = item;
 }
 
 void
-htab_remove(struct htab *htab, struct htab_entry **entry)
+htab_remove(struct htab *htab, struct htab_search search)
 {
-	struct htab_entry *e = *entry;
-	if (e != NULL) {
-		*entry = e->next;
-		e->next = NULL;
+	if (search.item != NULL) {
+		*search.pos = search.item->next;
+		search.item->next = NULL;
 		resize_down(htab);
 	}
 }
