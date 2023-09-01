@@ -12,10 +12,9 @@ digraph "chx_func"
   Node4 -> Node3 [dir="back",color="darkorchid3",fontsize="10",style="dashed",label=" as_quote" ,fontname="Helvetica"];
   Node4 [label="chx_quote",height=0.2,width=0.4,color="black", fillcolor="white", style="filled",URL="$structchx__quote.html",tooltip="Quoted value type."];
   Node3 -> Node4 [dir="back",color="darkorchid3",fontsize="10",style="dashed",label=" value" ,fontname="Helvetica"];
-  Node5 -> Node3 [dir="back",color="darkorchid3",fontsize="10",style="dashed",label=" as_form" ,fontname="Helvetica"];
-  Node5 [label="chx_form",height=0.2,width=0.4,color="black", fillcolor="white", style="filled",URL="$structchx__form.html",tooltip="Cheax external/user function expression."];
-  Node2 -> Node5 [dir="back",color="darkorchid3",fontsize="10",style="dashed",label=" tail_func" ,fontname="Helvetica"];
-  Node3 -> Node5 [dir="back",color="darkorchid3",fontsize="10",style="dashed",label=" func" ,fontname="Helvetica"];
+  Node5 -> Node3 [dir="back",color="darkorchid3",fontsize="10",style="dashed",label=" as_ext_func" ,fontname="Helvetica"];
+  Node5 [label="chx_ext_func",height=0.2,width=0.4,color="black", fillcolor="white", style="filled",URL="$structchx__ext__func.html",tooltip="Cheax external/user function expression."];
+  Node3 -> Node5 [dir="back",color="darkorchid3",fontsize="10",style="dashed",label=" perform" ,fontname="Helvetica"];
   Node6 -> Node3 [dir="back",color="darkorchid3",fontsize="10",style="dashed",label=" as_id" ,fontname="Helvetica"];
   Node6 [label="chx_id",height=0.2,width=0.4,color="black", fillcolor="white", style="filled",URL="$structchx__id.html",tooltip="Identifier type."];
   Node2 -> Node3 [dir="back",color="darkorchid3",fontsize="10",style="dashed",label=" as_list" ,fontname="Helvetica"];

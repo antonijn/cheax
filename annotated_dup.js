@@ -2,7 +2,7 @@ var annotated_dup =
 [
     [ "chx_config_help", "structchx__config__help.html", "structchx__config__help" ],
     [ "chx_eval_out", "unionchx__eval__out.html", "unionchx__eval__out" ],
-    [ "chx_form", "structchx__form.html", "structchx__form" ],
+    [ "chx_ext_func", "structchx__ext__func.html", "structchx__ext__func" ],
     [ "chx_func", "structchx__func.html", "structchx__func" ],
     [ "chx_id", "structchx__id.html", "structchx__id" ],
     [ "chx_list", "structchx__list.html", "structchx__list" ],

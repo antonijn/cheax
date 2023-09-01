@@ -11,7 +11,7 @@ var group__ErrorHandling =
       [ "CHEAX_ESTACK", "group__ErrorHandling.html#gga99fb83031ce9923c84392b4e92f956b5aeffdc535f29eb46a6fc2983d5d81631c", null ],
       [ "CHEAX_ETYPE", "group__ErrorHandling.html#gga99fb83031ce9923c84392b4e92f956b5a0638c380515dceeab48567502c8c9e7e", null ],
       [ "CHEAX_EMATCH", "group__ErrorHandling.html#gga99fb83031ce9923c84392b4e92f956b5a091d5e88b195b81242df0fe4309bbd70", null ],
-      [ "CHEAX_EMACRO", "group__ErrorHandling.html#gga99fb83031ce9923c84392b4e92f956b5acc02d978e3c0366f6e1bd3a485d56645", null ],
+      [ "CHEAX_ESTATIC", "group__ErrorHandling.html#gga99fb83031ce9923c84392b4e92f956b5abeda5b52db228563986ab57392849257", null ],
       [ "CHEAX_EDIVZERO", "group__ErrorHandling.html#gga99fb83031ce9923c84392b4e92f956b5a6de88a830996034f4a314d3f6625da82", null ],
       [ "CHEAX_EREADONLY", "group__ErrorHandling.html#gga99fb83031ce9923c84392b4e92f956b5aa2d122f6c373978a55fa426ff948968d", null ],
       [ "CHEAX_EWRITEONLY", "group__ErrorHandling.html#gga99fb83031ce9923c84392b4e92f956b5a20f6c45bd36a2957ab21cb8cf864f076", null ],
@@ -24,12 +24,12 @@ var group__ErrorHandling =
       [ "CHEAX_ENOMEM", "group__ErrorHandling.html#gga99fb83031ce9923c84392b4e92f956b5a13fabfa6ce59d57237eb86741cbbed16", null ],
       [ "CHEAX_EUSER0", "group__ErrorHandling.html#gga99fb83031ce9923c84392b4e92f956b5af7156e3d6e7388ffbcc135e32c440106", null ]
     ] ],
-    [ "cheax_errno", "group__ErrorHandling.html#ga146c925e6989b70f61a5cb798e74a0f9", null ],
+    [ "cheax_errno", "group__ErrorHandling.html#ga99493fda48b2a7bb3a6d98dfd8c73b7d", null ],
     [ "cheax_perror", "group__ErrorHandling.html#gaf1d17c5c1c4bce01616bd414fddfe3e4", null ],
     [ "cheax_clear_errno", "group__ErrorHandling.html#ga5a36ad3064ecb2576614e0b0bc7a2f9d", null ],
     [ "cheax_throw", "group__ErrorHandling.html#ga19372077c9fc18789fa5591c805caa98", null ],
-    [ "cheax_throwf", "group__ErrorHandling.html#ga1a4e76d4aec955a06654684705926892", null ],
-    [ "cheax_add_bt", "group__ErrorHandling.html#ga3de3963593ca1cad8258c8feced21c90", null ],
+    [ "cheax_throwf", "group__ErrorHandling.html#ga1938cd7c5369ee8dcf50399df2ca38dc", null ],
+    [ "cheax_add_bt", "group__ErrorHandling.html#gafc357fba424a5f1bc161ba76e343b62f", null ],
     [ "cheax_new_error_code", "group__ErrorHandling.html#ga5909bf42f2d85bee4f3dc83ba44ca77f", null ],
     [ "cheax_find_error_code", "group__ErrorHandling.html#ga4c3ce9dae899e0a486416dd0ec49c915", null ]
 ];

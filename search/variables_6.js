@@ -1,4 +1,4 @@
 var searchData=
 [
-  ['info_342',['info',['../structchx__form.html#adfbeb280575c59d3e8c56c6757645697',1,'chx_form']]]
+  ['info_357',['info',['../structchx__ext__func.html#a50b23135800d2092472bd83a90b87f20',1,'chx_ext_func']]]
 ];
