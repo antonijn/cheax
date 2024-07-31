@@ -401,7 +401,7 @@ static void
 exec_cmd(CHEAX *c, const char *cmd)
 {
 	struct chx_value v = cheax_readstr(c, cmd);
-	if (cheax_errno(c) != 0)
+	if (cheax_errno(c) == 0)
 		cheax_eval(c, v);
 }
 
