@@ -9,7 +9,7 @@ include (GenerateExportHeader)
 add_custom_target (
 	generate_version_header
 	COMMAND
-		${CMAKE_COMMAND} -DBUILD_SHARED_LIBS=${BUILD_SHARED_LIBS} -DIN_FILE=${CMAKE_CURRENT_SOURCE_DIR}/src/version.h.in -DOUT_FILE=${CMAKE_CURRENT_SOURCE_DIR}/src/version.h -P ${CMAKE_CURRENT_SOURCE_DIR}/GenerateVersion.cmake
+		${CMAKE_COMMAND} -DBUILD_SHARED_LIBS=${BUILD_SHARED_LIBS} -DIN_FILE=${CMAKE_CURRENT_SOURCE_DIR}/version.h.in -DOUT_FILE=${CMAKE_CURRENT_SOURCE_DIR}/version.h -P ${CMAKE_CURRENT_SOURCE_DIR}/GenerateVersion.cmake
 	WORKING_DIRECTORY
 		${CMAKE_SOURCE_DIR}
 )
@@ -89,30 +89,30 @@ else ()
 endif ()
 list (JOIN FEATURES " " VERSION_SUFFIX)
 
-configure_file (src/setup.h.in "${CMAKE_CURRENT_SOURCE_DIR}/src/setup.h")
+configure_file (setup.h.in "${CMAKE_CURRENT_SOURCE_DIR}/setup.h")
 
 # hide all library functions, unless declared with CHX_API
 set(CMAKE_C_VISIBILITY_PRESET hidden)
 
 add_library (libcheax
-	src/arith.c
-	src/cinfo.c
-	src/config.c
-	src/core.c
-	src/err.c
-	src/eval.c
-	src/feat.c
-	src/format.c
-	src/gc.c
-	src/htab.c
-	src/io.c
-	src/loc.c
-	src/maths.c
-	src/print.c
-	src/read.c
-	src/strm.c
-	src/sym.c
-	src/unpack.c)
+	arith.c
+	cinfo.c
+	config.c
+	core.c
+	err.c
+	eval.c
+	feat.c
+	format.c
+	gc.c
+	htab.c
+	io.c
+	loc.c
+	maths.c
+	print.c
+	read.c
+	strm.c
+	sym.c
+	unpack.c)
 add_dependencies (libcheax generate_version_header)
 if (NOT MSVC)
 	target_link_libraries (libcheax m)
