@@ -57,19 +57,19 @@ struct loc_debug_info {
 	int pos, line;
 };
 
-struct chx_list *loc_debug_list(CHEAX *c,
-                                struct chx_value car,
-                                struct chx_list *cdr,
-                                struct loc_debug_info info);
-struct chx_list *orig_debug_list(CHEAX *c,
-                                 struct chx_value car,
-                                 struct chx_list *cdr,
-                                 struct chx_list *orig_form);
+struct chx_list *cheax_loc_debug_list_(CHEAX *c,
+                                       struct chx_value car,
+                                       struct chx_list *cdr,
+                                       struct loc_debug_info info);
+struct chx_list *cheax_orig_debug_list_(CHEAX *c,
+                                        struct chx_value car,
+                                        struct chx_list *cdr,
+                                        struct chx_list *orig_form);
 
-struct loc_debug_info *get_loc_debug_info(struct chx_list *list);
-struct chx_list *get_orig_form(struct chx_list *list);
+struct loc_debug_info *cheax_get_loc_debug_info_(struct chx_list *list);
+struct chx_list *cheax_get_orig_form_(struct chx_list *list);
 
-struct chx_id *find_id(CHEAX *c, const char *name);
+struct chx_id *cheax_find_id_(CHEAX *c, const char *name);
 
 struct type_cast {
 	int to;
@@ -160,14 +160,14 @@ struct cheax {
 };
 
 /* v-to-i: value to int */
-bool try_vtoi(struct chx_value value, chx_int *res);
+bool cheax_try_vtoi_(struct chx_value value, chx_int *res);
 /* v-to-d: value to double */
-bool try_vtod(struct chx_value value, chx_double *res);
-double vtod(struct chx_value value);
+bool cheax_try_vtod_(struct chx_value value, chx_double *res);
+double cheax_vtod_(struct chx_value value);
 
 #define typecode(X)  ((struct chx_value){ .type = CHEAX_TYPECODE,  .data.as_int = (X) })
 #define errorcode(X) ((struct chx_value){ .type = CHEAX_ERRORCODE, .data.as_int = (X) })
 
-void export_core_bltns(CHEAX *c);
+void cheax_export_core_bltns_(CHEAX *c);
 
 #endif

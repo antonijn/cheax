@@ -21,30 +21,30 @@
 #include "strm.h"
 
 static int sostrm_vprintf(void *info, const char *frmt, va_list ap);
-static int sostrm_putc(void *info, int ch);
-static int sostrm_write(void *info, const char *buf, size_t len);
-static int sostrm_expand(void *info, size_t extra);
+static int cheax_sostrm_putc_(void *info, int ch);
+static int cheax_sostrm_write_(void *info, const char *buf, size_t len);
+static int cheax_sostrm_expand_(void *info, size_t extra);
 static int sostrm_alloc(struct sostrm *ss, size_t req_buf);
 
 static int snostrm_vprintf(void *info, const char *frmt, va_list ap);
-static int snostrm_putc(void *info, int ch);
-static int snostrm_write(void *info, const char *buf, size_t len);
+static int cheax_snostrm_putc_(void *info, int ch);
+static int cheax_snostrm_write_(void *info, const char *buf, size_t len);
 
 static int fostrm_vprintf(void *info, const char *frmt, va_list ap);
-static int fostrm_putc(void *info, int ch);
-static int fostrm_write(void *info, const char *buf, size_t len);
+static int cheax_fostrm_putc_(void *info, int ch);
+static int cheax_fostrm_write_(void *info, const char *buf, size_t len);
 
 static int costrm_vprintf(void *info, const char *frmt, va_list ap);
-static int costrm_putc(void *info, int ch);
-static int costrm_write(void *info, const char *buf, size_t len);
-static int costrm_expand(void *info, size_t extra);
+static int cheax_costrm_putc_(void *info, int ch);
+static int cheax_costrm_write_(void *info, const char *buf, size_t len);
+static int cheax_costrm_expand_(void *info, size_t extra);
 
-static int sistrm_getc(void *info);
+static int cheax_sistrm_getc_(void *info);
 
-static int fistrm_getc(void *info);
+static int cheax_fistrm_getc_(void *info);
 
 int
-ostrm_printf(struct ostrm *strm, const char *frmt, ...)
+cheax_ostrm_printf_(struct ostrm *strm, const char *frmt, ...)
 {
 	va_list ap;
 	va_start(ap, frmt);
@@ -54,15 +54,15 @@ ostrm_printf(struct ostrm *strm, const char *frmt, ...)
 }
 
 int
-ostrm_putc(struct ostrm *strm, int ch)
+cheax_ostrm_putc_(struct ostrm *strm, int ch)
 {
 	return (strm->sputc != NULL)
 	     ? strm->sputc(strm->info, ch)
-	     : ostrm_printf(strm, "%c", ch);
+	     : cheax_ostrm_printf_(strm, "%c", ch);
 }
 
 int
-ostrm_write(struct ostrm *strm, const char *buf, size_t len)
+cheax_ostrm_write_(struct ostrm *strm, const char *buf, size_t len)
 {
 	if (strm->write != NULL)
 		return strm->write(strm->info, buf, len);
@@ -71,7 +71,7 @@ ostrm_write(struct ostrm *strm, const char *buf, size_t len)
 		return 0;
 
 	for (size_t i = 0; i <= (len - 1); ++i) {
-		if (ostrm_putc(strm, buf[i]) < 0)
+		if (cheax_ostrm_putc_(strm, buf[i]) < 0)
 			return -1;
 	}
 
@@ -79,7 +79,7 @@ ostrm_write(struct ostrm *strm, const char *buf, size_t len)
 }
 
 int
-ostrm_expand(struct ostrm *strm, size_t extra)
+cheax_ostrm_expand_(struct ostrm *strm, size_t extra)
 {
 	return (strm->expand != NULL)
 	     ? strm->expand(strm->info, extra)
@@ -87,27 +87,27 @@ ostrm_expand(struct ostrm *strm, size_t extra)
 }
 
 void
-ostrm_put_utf8(struct ostrm *ostr, unsigned cp)
+cheax_ostrm_put_utf_8(struct ostrm *ostr, unsigned cp)
 {
 	if (cp < 0x80) {
-		ostrm_putc(ostr, cp);
+		cheax_ostrm_putc_(ostr, cp);
 	} else if (cp < 0x800) {
-		ostrm_putc(ostr, 0xC0 |  (cp >> 6));
-		ostrm_putc(ostr, 0x80 |  (cp & 0x3F));
+		cheax_ostrm_putc_(ostr, 0xC0 |  (cp >> 6));
+		cheax_ostrm_putc_(ostr, 0x80 |  (cp & 0x3F));
 	} else if (cp < 0x10000) {
-		ostrm_putc(ostr, 0xE0 |  (cp >> 12));
-		ostrm_putc(ostr, 0x80 | ((cp >>  6) & 0x3F));
-		ostrm_putc(ostr, 0x80 |  (cp & 0x3F));
+		cheax_ostrm_putc_(ostr, 0xE0 |  (cp >> 12));
+		cheax_ostrm_putc_(ostr, 0x80 | ((cp >>  6) & 0x3F));
+		cheax_ostrm_putc_(ostr, 0x80 |  (cp & 0x3F));
 	} else {
-		ostrm_putc(ostr, 0xF0 | ((cp >> 18) & 0x07));
-		ostrm_putc(ostr, 0x80 | ((cp >> 12) & 0x3F));
-		ostrm_putc(ostr, 0x80 | ((cp >>  6) & 0x3F));
-		ostrm_putc(ostr, 0x80 |  (cp & 0x3F));
+		cheax_ostrm_putc_(ostr, 0xF0 | ((cp >> 18) & 0x07));
+		cheax_ostrm_putc_(ostr, 0x80 | ((cp >> 12) & 0x3F));
+		cheax_ostrm_putc_(ostr, 0x80 | ((cp >>  6) & 0x3F));
+		cheax_ostrm_putc_(ostr, 0x80 |  (cp & 0x3F));
 	}
 }
 
 void
-ostrm_printi(struct ostrm *strm, chx_int num, char pad_char, int field_width, char misc_spec)
+cheax_ostrm_printi_(struct ostrm *strm, chx_int num, char pad_char, int field_width, char misc_spec)
 {
 	if (field_width < 0)
 		field_width = 0;
@@ -162,21 +162,21 @@ ostrm_printi(struct ostrm *strm, chx_int num, char pad_char, int field_width, ch
 	if (num < 0) {
 		++content_len;
 		if (pad_char != ' ')
-			ostrm_putc(strm, '-');
+			cheax_ostrm_putc_(strm, '-');
 	}
 
 	for (int j = 0; j < field_width - content_len; ++j)
-		ostrm_putc(strm, pad_char);
+		cheax_ostrm_putc_(strm, pad_char);
 
 	if (num < 0 && pad_char == ' ')
-		ostrm_putc(strm, '-');
+		cheax_ostrm_putc_(strm, '-');
 
-	ostrm_printf(strm, "%s", buf + i);
+	cheax_ostrm_printf_(strm, "%s", buf + i);
 }
 
 
 void
-sostrm_init(struct sostrm *ss, CHEAX *c)
+cheax_sostrm_init_(struct sostrm *ss, CHEAX *c)
 {
 	ss->c = c;
 	ss->buf = NULL;
@@ -184,9 +184,9 @@ sostrm_init(struct sostrm *ss, CHEAX *c)
 
 	ss->strm.info = ss;
 	ss->strm.vprintf = sostrm_vprintf;
-	ss->strm.sputc = sostrm_putc;
-	ss->strm.write = sostrm_write;
-	ss->strm.expand = sostrm_expand;
+	ss->strm.sputc = cheax_sostrm_putc_;
+	ss->strm.write = cheax_sostrm_write_;
+	ss->strm.expand = cheax_sostrm_expand_;
 }
 
 static int
@@ -199,12 +199,12 @@ sostrm_vprintf(void *info, const char *frmt, va_list ap)
 
 	va_copy(len_ap, ap);
 #if defined(HAVE_VSNPRINTF_L)
-	int msg_len = vsnprintf_l(strm->buf + strm->idx, rem, get_c_locale(), frmt, len_ap);
+	int msg_len = vsnprintf_l(strm->buf + strm->idx, rem, cheax_get_c_locale_(), frmt, len_ap);
 #elif defined(HAVE_WINDOWS_VSNPRINTF_L)
-	int msg_len = _vsnprintf_l(strm->buf + strm->idx, rem, frmt, get_c_locale(), len_ap);
+	int msg_len = _vsnprintf_l(strm->buf + strm->idx, rem, frmt, cheax_get_c_locale_(), len_ap);
 #else
 #define SHOULD_RESTORE_LOCALE
-	locale_t prev_locale = uselocale(get_c_locale());
+	locale_t prev_locale = uselocale(cheax_get_c_locale_());
 	int msg_len = vsnprintf(strm->buf + strm->idx, rem, frmt, len_ap);
 #endif
 	va_end(len_ap);
@@ -218,9 +218,9 @@ sostrm_vprintf(void *info, const char *frmt, va_list ap)
 			return -1;
 
 #if defined(HAVE_VSNPRINTF_L)
-		msg_len = vsnprintf_l(strm->buf + strm->idx, msg_len + 1, get_c_locale(), frmt, ap);
+		msg_len = vsnprintf_l(strm->buf + strm->idx, msg_len + 1, cheax_get_c_locale_(), frmt, ap);
 #elif defined(HAVE_WINDOWS_VSNPRINTF_L)
-		msg_len = _vsnprintf_l(strm->buf + strm->idx, msg_len + 1, frmt, get_c_locale(), ap);
+		msg_len = _vsnprintf_l(strm->buf + strm->idx, msg_len + 1, frmt, cheax_get_c_locale_(), ap);
 #else
 		msg_len = vsnprintf(strm->buf + strm->idx, msg_len + 1, frmt, ap);
 #endif
@@ -239,12 +239,12 @@ msg_len_error:
 #undef SHOULD_RESTORE_LOCALE
 	uselocale(prev_locale);
 #endif
-	cheax_throwf(strm->c, CHEAX_EEVAL, "sostrm_printf(): internal error (vsnprintf returned %d)", msg_len);
+	cheax_throwf(strm->c, CHEAX_EEVAL, "cheax_sostrm_printf_(): internal error (vsnprintf returned %d)", msg_len);
 	return -1;
 }
 
 static int
-sostrm_putc(void *info, int ch)
+cheax_sostrm_putc_(void *info, int ch)
 {
 	struct sostrm *strm = info;
 	if (sostrm_alloc(strm, strm->idx + 1) < 0)
@@ -255,7 +255,7 @@ sostrm_putc(void *info, int ch)
 }
 
 static int
-sostrm_write(void *info, const char *buf, size_t len)
+cheax_sostrm_write_(void *info, const char *buf, size_t len)
 {
 	struct sostrm *strm = info;
 	if (len > SIZE_MAX - strm->idx)
@@ -270,11 +270,11 @@ sostrm_write(void *info, const char *buf, size_t len)
 }
 
 static int
-sostrm_expand(void *info, size_t extra)
+cheax_sostrm_expand_(void *info, size_t extra)
 {
 	struct sostrm *strm = info;
 	if (extra > SIZE_MAX - strm->idx) {
-		cheax_throwf(strm->c, CHEAX_ENOMEM, "sostrm_expand(): overflow");
+		cheax_throwf(strm->c, CHEAX_ENOMEM, "cheax_sostrm_expand_(): overflow");
 		return -1;
 	}
 
@@ -309,7 +309,7 @@ sostrm_alloc(struct sostrm *strm, size_t req_buf)
 
 
 void
-snostrm_init(struct snostrm *ss, char *buf, size_t cap)
+cheax_snostrm_init_(struct snostrm *ss, char *buf, size_t cap)
 {
 	ss->buf = memset(buf, 0, cap);
 	ss->idx = 0;
@@ -317,8 +317,8 @@ snostrm_init(struct snostrm *ss, char *buf, size_t cap)
 
 	ss->strm.info = ss;
 	ss->strm.vprintf = snostrm_vprintf;
-	ss->strm.sputc = snostrm_putc;
-	ss->strm.write = snostrm_write;
+	ss->strm.sputc = cheax_snostrm_putc_;
+	ss->strm.write = cheax_snostrm_write_;
 	ss->strm.expand = NULL;
 }
 
@@ -329,11 +329,11 @@ snostrm_vprintf(void *info, const char *frmt, va_list ap)
 
 	size_t rem = strm->cap - strm->idx;
 #if defined(HAVE_VFPRINTF_L)
-	int msg_len = vsnprintf_l(strm->buf + strm->idx, rem, get_c_locale(), frmt, ap);
+	int msg_len = vsnprintf_l(strm->buf + strm->idx, rem, cheax_get_c_locale_(), frmt, ap);
 #elif defined(HAVE_WINDOWS_VFPRINTF_L)
-	int msg_len = _vsnprintf_l(strm->buf + strm->idx, rem, frmt, get_c_locale(), ap);
+	int msg_len = _vsnprintf_l(strm->buf + strm->idx, rem, frmt, cheax_get_c_locale_(), ap);
 #else
-	locale_t prev_locale = uselocale(get_c_locale());
+	locale_t prev_locale = uselocale(cheax_get_c_locale_());
 	int msg_len = vsnprintf(strm->buf + strm->idx, rem, frmt, ap);
 	uselocale(prev_locale);
 #endif
@@ -343,7 +343,7 @@ snostrm_vprintf(void *info, const char *frmt, va_list ap)
 }
 
 static int
-snostrm_putc(void *info, int ch)
+cheax_snostrm_putc_(void *info, int ch)
 {
 	struct snostrm *strm = info;
 	if (strm->idx + 1 >= strm->cap)
@@ -354,7 +354,7 @@ snostrm_putc(void *info, int ch)
 }
 
 static int
-snostrm_write(void *info, const char *buf, size_t len)
+cheax_snostrm_write_(void *info, const char *buf, size_t len)
 {
 	struct snostrm *strm = info;
 	if (len > SIZE_MAX - strm->idx || strm->idx + len >= strm->cap)
@@ -367,15 +367,15 @@ snostrm_write(void *info, const char *buf, size_t len)
 
 
 void
-fostrm_init(struct fostrm *fs, FILE *f, CHEAX *c)
+cheax_fostrm_init_(struct fostrm *fs, FILE *f, CHEAX *c)
 {
 	fs->c = c;
 	fs->f = f;
 
 	fs->strm.info = fs;
 	fs->strm.vprintf = fostrm_vprintf;
-	fs->strm.sputc = fostrm_putc;
-	fs->strm.write = fostrm_write;
+	fs->strm.sputc = cheax_fostrm_putc_;
+	fs->strm.write = cheax_fostrm_write_;
 	fs->strm.expand = NULL;
 }
 
@@ -384,11 +384,11 @@ fostrm_vprintf(void *info, const char *frmt, va_list ap)
 {
 	struct fostrm *fs = info;
 #if defined(HAVE_VFPRINTF_L)
-	int res = vfprintf_l(fs->f, get_c_locale(), frmt, ap);
+	int res = vfprintf_l(fs->f, cheax_get_c_locale_(), frmt, ap);
 #elif defined(HAVE_WINDOWS_VFPRINTF_L)
-	int res = _vfprintf_l(fs->f, frmt, get_c_locale(), ap);
+	int res = _vfprintf_l(fs->f, frmt, cheax_get_c_locale_(), ap);
 #else
-	locale_t prev_locale = uselocale(get_c_locale());
+	locale_t prev_locale = uselocale(cheax_get_c_locale_());
 	int res = vfprintf(fs->f, frmt, ap);
 	uselocale(prev_locale);
 #endif
@@ -398,22 +398,22 @@ fostrm_vprintf(void *info, const char *frmt, va_list ap)
 }
 
 static int
-fostrm_putc(void *info, int ch)
+cheax_fostrm_putc_(void *info, int ch)
 {
 	struct fostrm *fs = info;
 	int res = fputc(ch, fs->f);
 	if (res < 0)
-		cheax_throwf(fs->c, CHEAX_EIO, "fostrm_putc(): fputc() returned negative value");
+		cheax_throwf(fs->c, CHEAX_EIO, "cheax_fostrm_putc_(): fputc() returned negative value");
 	return res;
 }
 
 static int
-fostrm_write(void *info, const char *buf, size_t len)
+cheax_fostrm_write_(void *info, const char *buf, size_t len)
 {
 	struct fostrm *fs = info;
 	fwrite(buf, len, 1, fs->f);
 	if (ferror(fs->f)) {
-		cheax_throwf(fs->c, CHEAX_EIO, "fostrm_putc(): fwrite() unsuccessful");
+		cheax_throwf(fs->c, CHEAX_EIO, "cheax_fostrm_putc_(): fwrite() unsuccessful");
 		return -1;
 	}
 
@@ -422,16 +422,16 @@ fostrm_write(void *info, const char *buf, size_t len)
 
 
 void
-costrm_init(struct costrm *cs, struct ostrm *base)
+cheax_costrm_init_(struct costrm *cs, struct ostrm *base)
 {
 	cs->base = base;
 	cs->written = 0;
 
 	cs->strm.info = cs;
 	cs->strm.vprintf = costrm_vprintf;
-	cs->strm.sputc = costrm_putc;
-	cs->strm.write = costrm_write;
-	cs->strm.expand = costrm_expand;
+	cs->strm.sputc = cheax_costrm_putc_;
+	cs->strm.write = cheax_costrm_write_;
+	cs->strm.expand = cheax_costrm_expand_;
 }
 
 static int
@@ -447,10 +447,10 @@ costrm_vprintf(void *info, const char *frmt, va_list ap)
 }
 
 static int
-costrm_putc(void *info, int ch)
+cheax_costrm_putc_(void *info, int ch)
 {
 	struct costrm *cs = info;
-	if (ostrm_putc(cs->base, ch) < 0)
+	if (cheax_ostrm_putc_(cs->base, ch) < 0)
 		return -1;
 
 	++cs->written;
@@ -458,10 +458,10 @@ costrm_putc(void *info, int ch)
 }
 
 static int
-costrm_write(void *info, const char *buf, size_t len)
+cheax_costrm_write_(void *info, const char *buf, size_t len)
 {
 	struct costrm *cs = info;
-	if (ostrm_write(cs->base, buf, len) < 0)
+	if (cheax_ostrm_write_(cs->base, buf, len) < 0)
 		return -1;
 
 	cs->written += len;
@@ -469,39 +469,39 @@ costrm_write(void *info, const char *buf, size_t len)
 }
 
 static int
-costrm_expand(void *info, size_t req)
+cheax_costrm_expand_(void *info, size_t req)
 {
 	struct costrm *cs = info;
-	return ostrm_expand(cs->base, req);
+	return cheax_ostrm_expand_(cs->base, req);
 }
 
 
 int
-istrm_getc(struct istrm *strm)
+cheax_istrm_getc_(struct istrm *strm)
 {
 	return strm->sgetc(strm->info);
 }
 
 
 void
-sistrm_initn(struct sistrm *ss, const char *str, size_t len)
+cheax_sistrm_initn_(struct sistrm *ss, const char *str, size_t len)
 {
 	ss->str = str;
 	ss->len = len;
 	ss->idx = 0;
 
 	ss->strm.info = ss;
-	ss->strm.sgetc = sistrm_getc;
+	ss->strm.sgetc = cheax_sistrm_getc_;
 }
 
 void
-sistrm_init(struct sistrm *ss, const char *str)
+cheax_sistrm_init_(struct sistrm *ss, const char *str)
 {
-	sistrm_initn(ss, str, strlen(str));
+	cheax_sistrm_initn_(ss, str, strlen(str));
 }
 
 static int
-sistrm_getc(void *info)
+cheax_sistrm_getc_(void *info)
 {
 	struct sistrm *ss = info;
 	if (ss->idx >= ss->len)
@@ -512,17 +512,17 @@ sistrm_getc(void *info)
 
 
 void
-fistrm_init(struct fistrm *fs, FILE *f, CHEAX *c)
+cheax_fistrm_init_(struct fistrm *fs, FILE *f, CHEAX *c)
 {
 	fs->c = c;
 	fs->f = f;
 
 	fs->strm.info = fs;
-	fs->strm.sgetc = fistrm_getc;
+	fs->strm.sgetc = cheax_fistrm_getc_;
 }
 
 static int
-fistrm_getc(void *info)
+cheax_fistrm_getc_(void *info)
 {
 	struct fistrm *ff = info;
 	return fgetc(ff->f);
@@ -530,7 +530,7 @@ fistrm_getc(void *info)
 
 
 void
-scnr_init(struct scnr *s, struct istrm *strm, size_t max_lah, int *lah_buf, int line, int pos)
+cheax_scnr_init_(struct scnr *s, struct istrm *strm, size_t max_lah, int *lah_buf, int line, int pos)
 {
 	s->ch = 0;
 	s->strm = strm;
@@ -539,15 +539,15 @@ scnr_init(struct scnr *s, struct istrm *strm, size_t max_lah, int *lah_buf, int 
 	s->lah = 0;
 	s->line = line;
 	s->pos = pos;
-	scnr_adv(s);
+	cheax_scnr_adv_(s);
 }
 
 int
-scnr_adv(struct scnr *s)
+cheax_scnr_adv_(struct scnr *s)
 {
 	int res = s->ch;
 	if (res != EOF) {
-		s->ch = (s->lah > 0) ? s->lah_buf[--s->lah] : istrm_getc(s->strm);
+		s->ch = (s->lah > 0) ? s->lah_buf[--s->lah] : cheax_istrm_getc_(s->strm);
 		if (s->ch == '\n') {
 			s->pos = 0;
 			++s->line;
@@ -559,7 +559,7 @@ scnr_adv(struct scnr *s)
 }
 
 int
-scnr_backup(struct scnr *s, int to)
+cheax_scnr_backup_(struct scnr *s, int to)
 {
 	if (s->lah >= s->max_lah)
 		return -1;

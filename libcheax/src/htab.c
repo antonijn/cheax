@@ -29,7 +29,7 @@ static const size_t capacities[] = {
 };
 
 void
-htab_init(CHEAX *c, struct htab *htab, htab_hash_func hash, htab_eq_func eq)
+cheax_htab_init_(CHEAX *c, struct htab *htab, htab_hash_func hash, htab_eq_func eq)
 {
 	htab->c = c;
 	htab->hash = hash;
@@ -41,7 +41,7 @@ htab_init(CHEAX *c, struct htab *htab, htab_hash_func hash, htab_eq_func eq)
 }
 
 void
-htab_cleanup(struct htab *htab, htab_item_func del, void *data)
+cheax_htab_cleanup_(struct htab *htab, htab_item_func del, void *data)
 {
 	for (size_t i = 0; i < htab->cap; ++i) {
 		struct htab_entry *bucket, *next;
@@ -57,7 +57,7 @@ htab_cleanup(struct htab *htab, htab_item_func del, void *data)
 }
 
 struct htab_search
-htab_get(struct htab *htab, const struct htab_entry *item)
+cheax_htab_get_(struct htab *htab, const struct htab_entry *item)
 {
 	uint32_t h = htab->hash(item);
 
@@ -127,7 +127,7 @@ resize_down(struct htab *htab)
 }
 
 void
-htab_set(struct htab *htab, struct htab_search search, struct htab_entry *item)
+cheax_htab_set_(struct htab *htab, struct htab_search search, struct htab_entry *item)
 {
 	if (search.item == NULL) {
 		++htab->size;
@@ -144,7 +144,7 @@ htab_set(struct htab *htab, struct htab_search search, struct htab_entry *item)
 }
 
 void
-htab_remove(struct htab *htab, struct htab_search search)
+cheax_htab_remove_(struct htab *htab, struct htab_search search)
 {
 	if (search.item != NULL) {
 		*search.pos = search.item->next;
@@ -154,7 +154,7 @@ htab_remove(struct htab *htab, struct htab_search search)
 }
 
 void
-htab_foreach(struct htab *htab, htab_item_func f, void *data)
+cheax_htab_foreach_(struct htab *htab, htab_item_func f, void *data)
 {
 	for (size_t i = 0; i < htab->cap; ++i) {
 		for (struct htab_entry *e = htab->buckets[i]; e != NULL; e = e->next)
@@ -163,7 +163,7 @@ htab_foreach(struct htab *htab, htab_item_func f, void *data)
 }
 
 uint32_t
-good_hash(const void *p, size_t n)
+cheax_good_hash_(const void *p, size_t n)
 {
 	/* Daniel J. Bernstein hash (djb2) */
 	uint32_t hash = 5381U;

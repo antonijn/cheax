@@ -106,7 +106,7 @@ eval_ext_func(CHEAX *c, struct chx_ext_func *form, struct chx_list *args, bool e
 			next_argp = &arg_buf[i++].next;
 		}
 
-		if (unpack(c, args, ".*", &other_args) < 0)
+		if (cheax_unpack_(c, args, ".*", &other_args) < 0)
 			goto pad;
 
 		*next_argp = other_args;
@@ -187,7 +187,7 @@ eval_func_call(CHEAX *c,
 	if (fn->body != NULL) {
 		struct chx_list *stat;
 		for (stat = fn->body; stat->next != NULL; stat = stat->next) {
-			bt_wrap(c, cheax_eval(c, stat->value));
+			cheax_bt_wrap_(c, cheax_eval(c, stat->value));
 			cheax_ft(c, pad2);
 		}
 
@@ -219,13 +219,13 @@ eval_env_call(CHEAX *c,
 {
 	cheax_enter_env(c, env);
 	if (cheax_errno(c) != 0) {
-		out->value = bt_wrap(c, CHEAX_NIL);
+		out->value = cheax_bt_wrap_(c, CHEAX_NIL);
 		return CHEAX_VALUE_OUT;
 	}
 
 	struct chx_value res = CHEAX_NIL;
 	for (struct chx_list *cons = args; cons != NULL; cons = cons->next) {
-		res = bt_wrap(c, cheax_eval(c, cons->value));
+		res = cheax_bt_wrap_(c, cheax_eval(c, cons->value));
 		cheax_ft(c, env_pad);
 	}
 env_pad:
@@ -242,8 +242,8 @@ eval_cast(CHEAX *c,
           union chx_eval_out *out)
 {
 	struct chx_value cast_arg;
-	out->value = (0 == unpack(c, args, ".", &cast_arg))
-	           ? bt_wrap(c, cheax_cast(c, cast_arg, head))
+	out->value = (0 == cheax_unpack_(c, args, ".", &cast_arg))
+	           ? cheax_bt_wrap_(c, cheax_cast(c, cast_arg, head))
 	           : CHEAX_NIL;
 	return CHEAX_VALUE_OUT;
 }
@@ -302,7 +302,7 @@ eval_sexpr(CHEAX *c, struct chx_list *input, struct chx_env *pop_stop, union chx
 
 	default:
 		cheax_throwf(c, CHEAX_ETYPE, "invalid function call");
-		out->value = bt_wrap(c, CHEAX_NIL);
+		out->value = cheax_bt_wrap_(c, CHEAX_NIL);
 		res = CHEAX_VALUE_OUT;
 		break;
 	}
@@ -365,7 +365,7 @@ eval_bkquoted_list(CHEAX *c, struct chx_list *quoted, int nest)
 		cheax_unref(c, car, car_ref);
 		cheax_ft(c, pad);
 
-		return orig_debug_list(c, car, (struct chx_list *)cdr, quoted);
+		return cheax_orig_debug_list_(c, car, (struct chx_list *)cdr, quoted);
 
 	case BKQ_SPLICED:
 		spl_list_value = cheax_list_value(spl_list);
@@ -498,7 +498,7 @@ eval(CHEAX *c, struct chx_value input, struct chx_env *pop_stop, union chx_eval_
 
 	switch (input.type) {
 	case CHEAX_ID:
-		res = get_id(c, input.data.as_id);
+		res = cheax_get_id_(c, input.data.as_id);
 		break;
 
 	case CHEAX_LIST:
@@ -623,7 +623,7 @@ pad2:
 pad:
 	if (cheax_errno(c) != 0) {
 		if (c->tail_call_elimination)
-			bt_add_tail_msg(c, tail_lvls);
+			cheax_bt_add_tail_msg_(c, tail_lvls);
 		c->bt.last_call = was_last_call;
 		cheax_add_bt(c);
 	} else {
@@ -682,7 +682,7 @@ cheax_macroexpand_once(CHEAX *c, struct chx_value expr)
 
 	if (res.type == CHEAX_LIST && res.data.as_list != NULL && c->gen_debug_info) {
 		struct chx_list *exp_lst = res.data.as_list;
-		res = cheax_list_value(orig_debug_list(c, exp_lst->value, exp_lst->next, lst));
+		res = cheax_list_value(cheax_orig_debug_list_(c, exp_lst->value, exp_lst->next, lst));
 	}
 
 	return res;
@@ -719,7 +719,7 @@ preproc_specop(CHEAX *c, const char *id, struct chx_value specop_val, struct chx
 		goto pad;
 	}
 
-	struct chx_list *out_list = orig_debug_list(c, specop_val, out_tail.data.as_list, call);
+	struct chx_list *out_list = cheax_orig_debug_list_(c, specop_val, out_tail.data.as_list, call);
 	if (out_list != NULL)
 		out_list->rtflags |= PREPROC_BIT;
 	return cheax_list_value(out_list);
@@ -731,7 +731,7 @@ static struct chx_value
 preproc_fcall(CHEAX *c, struct chx_list *call)
 {
 	static const uint8_t ops[] = { PP_SEQ, PP_EXPR, };
-	struct chx_value call_out_val = preproc_pattern(c, cheax_list_value(call), ops, NULL);
+	struct chx_value call_out_val = cheax_preproc_pattern_(c, cheax_list_value(call), ops, NULL);
 	cheax_ft(c, pad);
 
 	if (call_out_val.type != CHEAX_LIST) {
@@ -876,7 +876,7 @@ cheax_match_in(CHEAX *c,
 			c->env = env;
 
 			struct chx_list *evald_match;
-			int res = unpack(c, match.data.as_list, ".*", &evald_match);
+			int res = cheax_unpack_(c, match.data.as_list, ".*", &evald_match);
 			match = cheax_list_value(evald_match);
 
 			cheax_unref_ptr(c, prev_env, prev_env_ref);
@@ -885,7 +885,7 @@ cheax_match_in(CHEAX *c,
 				return false;
 		}
 
-		def_id(c, pan.data.as_id, match, flags);
+		cheax_def_id_(c, pan.data.as_id, match, flags);
 		return cheax_errno(c) == 0; /* false if cheax_def() failed */
 	}
 
@@ -980,8 +980,8 @@ static struct chx_value
 bltn_eval(CHEAX *c, struct chx_list *args, void *info)
 {
 	struct chx_value arg;
-	return (0 == unpack(c, args, "_", &arg))
-	     ? bt_wrap(c, cheax_eval(c, arg))
+	return (0 == cheax_unpack_(c, args, "_", &arg))
+	     ? cheax_bt_wrap_(c, cheax_eval(c, arg))
 	     : CHEAX_NIL;
 }
 
@@ -992,7 +992,7 @@ bltn_apply(CHEAX *c, struct chx_list *args, void *info)
 
 	struct chx_value func;
 	struct chx_list *list;
-	if (unpack(c, args, "[LP]C", &func, &list) < 0)
+	if (cheax_unpack_(c, args, "[LP]C", &func, &list) < 0)
 		return CHEAX_NIL;
 
 	return cheax_apply(c, func, list);
@@ -1002,8 +1002,8 @@ static struct chx_value
 bltn_eq(CHEAX *c, struct chx_list *args, void *info)
 {
 	struct chx_value l, r;
-	return (0 == unpack(c, args, "__", &l, &r))
-	     ? bt_wrap(c, cheax_bool(cheax_eq(c, l, r)))
+	return (0 == cheax_unpack_(c, args, "__", &l, &r))
+	     ? cheax_bt_wrap_(c, cheax_bool(cheax_eq(c, l, r)))
 	     : CHEAX_NIL;
 }
 
@@ -1011,8 +1011,8 @@ static struct chx_value
 bltn_ne(CHEAX *c, struct chx_list *args, void *info)
 {
 	struct chx_value l, r;
-	return (0 == unpack(c, args, "__", &l, &r))
-	     ? bt_wrap(c, cheax_bool(!cheax_eq(c, l, r)))
+	return (0 == cheax_unpack_(c, args, "__", &l, &r))
+	     ? cheax_bt_wrap_(c, cheax_bool(!cheax_eq(c, l, r)))
 	     : CHEAX_NIL;
 }
 
@@ -1025,7 +1025,7 @@ sf_case(CHEAX *c,
 {
 	if (args == NULL) {
 		cheax_throwf(c, CHEAX_EMATCH, "invalid case");
-		out->value = bt_wrap(c, CHEAX_NIL);
+		out->value = cheax_bt_wrap_(c, CHEAX_NIL);
 		return CHEAX_VALUE_OUT;
 	}
 
@@ -1037,7 +1037,7 @@ sf_case(CHEAX *c,
 		struct chx_value pair = pvp->value;
 		if (pair.type != CHEAX_LIST || pair.data.as_list == NULL) {
 			cheax_throwf(c, CHEAX_EMATCH, "pattern-value pair expected");
-			out->value = bt_wrap(c, CHEAX_NIL);
+			out->value = cheax_bt_wrap_(c, CHEAX_NIL);
 			return CHEAX_VALUE_OUT;
 		}
 
@@ -1059,7 +1059,7 @@ sf_case(CHEAX *c,
 
 		struct chx_list *stat;
 		for (stat = cons_pair->next; stat->next != NULL; stat = stat->next) {
-			bt_wrap(c, cheax_eval(c, stat->value));
+			cheax_bt_wrap_(c, cheax_eval(c, stat->value));
 			cheax_ft(c, pad2);
 		}
 
@@ -1091,7 +1091,7 @@ pp_sf_case(CHEAX *c, struct chx_list *args, void *info)
 		"pattern-value pair expected",
 	};
 
-	return preproc_pattern(c, cheax_list_value(args), ops, errors);
+	return cheax_preproc_pattern_(c, cheax_list_value(args), ops, errors);
 }
 
 static int
@@ -1132,7 +1132,7 @@ sf_cond(CHEAX *c,
 
 		struct chx_list *stat;
 		for (stat = cons_pair->next; stat->next != NULL; stat = stat->next) {
-			bt_wrap(c, cheax_eval(c, stat->value));
+			cheax_bt_wrap_(c, cheax_eval(c, stat->value));
 			cheax_ft(c, pad2);
 		}
 
@@ -1157,11 +1157,11 @@ pp_sf_cond(CHEAX *c, struct chx_list *args, void *info)
 		PP_SEQ, PP_NODE | PP_ERR(0), PP_EXPR, PP_SEQ, PP_EXPR,
 	};
 	static const char *errors[] = { "test-value pair expected" };
-	return preproc_pattern(c, cheax_list_value(args), ops, errors);
+	return cheax_preproc_pattern_(c, cheax_list_value(args), ops, errors);
 }
 
 void
-export_eval_bltns(CHEAX *c)
+cheax_export_eval_bltns_(CHEAX *c)
 {
 	cheax_defun(c, "eval",  bltn_eval,  NULL);
 	cheax_defun(c, "apply", bltn_apply, NULL);

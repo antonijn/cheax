@@ -66,7 +66,7 @@ cheax_perror(CHEAX *c, const char *s)
 	if (err == 0)
 		return;
 
-	bt_print(c);
+	cheax_bt_print_(c);
 
 	if (s != NULL)
 		fprintf(stderr, "%s: ", s);
@@ -190,20 +190,20 @@ cheax_find_error_code(CHEAX *c, const char *name)
 }
 
 int
-bt_init(CHEAX *c, size_t limit)
+cheax_bt_init_(CHEAX *c, size_t limit)
 {
 	c->bt.array = NULL;
 	c->bt.len = c->bt.limit = 0;
 	c->bt.last_call = NULL;
 	c->bt.truncated = false;
-	return bt_limit(c, limit);
+	return cheax_bt_limit_(c, limit);
 }
 
 int
-bt_limit(CHEAX *c, size_t limit)
+cheax_bt_limit_(CHEAX *c, size_t limit)
 {
 	if (c->bt.len > 0) {
-		cheax_throwf(c, CHEAX_EEVAL, "bt_limit(): backtrace limit locked");
+		cheax_throwf(c, CHEAX_EEVAL, "cheax_bt_limit_(): backtrace limit locked");
 		return -1;
 	}
 
@@ -223,8 +223,8 @@ truncate_list_msg(CHEAX *c, char *dest, size_t size, struct chx_list *list)
 {
 	struct snostrm ss;
 	strcpy(dest, "    ");
-	snostrm_init(&ss, dest + 4, size - 4);
-	ostrm_show(c, &ss.strm, cheax_list_value(list));
+	cheax_snostrm_init_(&ss, dest + 4, size - 4);
+	cheax_ostrm_show_(c, &ss.strm, cheax_list_value(list));
 	strcpy(dest + size - 8, "...");
 }
 
@@ -252,16 +252,16 @@ cheax_add_bt(CHEAX *c)
 	struct chx_list *list_line1, *list_line2;
 
 	struct loc_debug_info *info;
-	struct chx_list *orig_form = get_orig_form(last_call);
+	struct chx_list *orig_form = cheax_get_orig_form_(last_call);
 	if (orig_form != NULL) {
-		info = get_loc_debug_info(orig_form);
+		info = cheax_get_loc_debug_info_(orig_form);
 		list_line1 = orig_form;
 		if (cheax_eq(c, cheax_list_value(orig_form), cheax_list_value(last_call)))
 			list_line2 = NULL;
 		else
 			list_line2 = last_call;
 	} else {
-		info = get_loc_debug_info(last_call);
+		info = cheax_get_loc_debug_info_(last_call);
 		list_line1 = last_call;
 		list_line2 = NULL;
 	}
@@ -276,7 +276,7 @@ cheax_add_bt(CHEAX *c)
 }
 
 void
-bt_add_tail_msg(CHEAX *c, int tail_lvls)
+cheax_bt_add_tail_msg_(CHEAX *c, int tail_lvls)
 {
 	if (c->bt.len >= c->bt.limit) {
 		c->bt.truncated = true;
@@ -288,7 +288,7 @@ bt_add_tail_msg(CHEAX *c, int tail_lvls)
 }
 
 void
-bt_print(CHEAX *c)
+cheax_bt_print_(CHEAX *c)
 {
 	if (c->bt.len == 0)
 		return;
@@ -318,7 +318,7 @@ bt_print(CHEAX *c)
 }
 
 struct chx_value
-bt_wrap(CHEAX *c, struct chx_value v)
+cheax_bt_wrap_(CHEAX *c, struct chx_value v)
 {
 	return (cheax_errno(c) == 0) ? v : (cheax_add_bt(c), CHEAX_NIL);
 }
@@ -337,7 +337,7 @@ bltn_throw(CHEAX *c, struct chx_list *args, void *info)
 {
 	chx_int code;
 	struct chx_value msg;
-	if (unpack(c, args, "X[S-]?", &code, &msg) < 0)
+	if (cheax_unpack_(c, args, "X[S-]?", &code, &msg) < 0)
 		return CHEAX_NIL;
 
 	if (code == 0)
@@ -345,7 +345,7 @@ bltn_throw(CHEAX *c, struct chx_list *args, void *info)
 	else
 		cheax_throw(c, code, cheax_is_nil(msg) ? NULL : msg.data.as_string);
 
-	return bt_wrap(c, CHEAX_NIL);
+	return cheax_bt_wrap_(c, CHEAX_NIL);
 }
 
 static int
@@ -500,7 +500,7 @@ sf_try(CHEAX *c,
 {
 	if (args == NULL) {
 		cheax_throwf(c, CHEAX_EMATCH, "expected at least two arguments");
-		out->value = bt_wrap(c, CHEAX_NIL);
+		out->value = cheax_bt_wrap_(c, CHEAX_NIL);
 		return CHEAX_VALUE_OUT;
 	}
 
@@ -508,7 +508,7 @@ sf_try(CHEAX *c,
 	struct chx_list *catch_blocks = args->next;
 	if (catch_blocks == NULL) {
 		cheax_throwf(c, CHEAX_EMATCH, "expected at least one catch/finally block");
-		out->value = bt_wrap(c, CHEAX_NIL);
+		out->value = cheax_bt_wrap_(c, CHEAX_NIL);
 		return CHEAX_VALUE_OUT;
 	}
 
@@ -620,7 +620,7 @@ pp_sf_try(CHEAX *c, struct chx_list *args, void *info)
 		"expected body",
 	};
 
-	return preproc_pattern(c, cheax_list_value(args), ops, errors);
+	return cheax_preproc_pattern_(c, cheax_list_value(args), ops, errors);
 }
 
 static int
@@ -631,7 +631,7 @@ sf_new_error_code(CHEAX *c,
                   union chx_eval_out *out)
 {
 	const char *errname;
-	if (unpack(c, args, "N!", &errname) < 0) {
+	if (cheax_unpack_(c, args, "N!", &errname) < 0) {
 		out->value = CHEAX_NIL;
 		return CHEAX_VALUE_OUT;
 	}
@@ -640,7 +640,7 @@ sf_new_error_code(CHEAX *c,
 		cheax_throwf(c, CHEAX_EEXIST, "error with name %s already exists", errname);
 	else
 		cheax_new_error_code(c, errname);
-	out->value = bt_wrap(c, CHEAX_NIL);
+	out->value = cheax_bt_wrap_(c, CHEAX_NIL);
 	return CHEAX_VALUE_OUT;
 }
 
@@ -657,7 +657,7 @@ pp_sf_new_error_code(CHEAX *c, struct chx_list *args, void *info)
 		"unexpected values after error code name",
 	};
 
-	return preproc_pattern(c, cheax_list_value(args), ops, errors);
+	return cheax_preproc_pattern_(c, cheax_list_value(args), ops, errors);
 }
 
 static void
@@ -674,7 +674,7 @@ export_error_names(CHEAX *c)
 }
 
 void
-export_err_bltns(CHEAX *c)
+cheax_export_err_bltns_(CHEAX *c)
 {
 	cheax_defun(c, "throw", bltn_throw, NULL);
 	cheax_defsyntax(c, "try",            sf_try,            pp_sf_try,            NULL);

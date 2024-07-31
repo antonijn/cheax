@@ -18,6 +18,6 @@
 
 #include <cheax.h>
 
-void export_math_bltns(CHEAX *c);
+void cheax_export_math_bltns_(CHEAX *c);
 
 #endif

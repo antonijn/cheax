@@ -37,15 +37,15 @@ struct gc_info {
 	bool lock, triggered;
 };
 
-void gc_init(CHEAX *c);
-void gc_cleanup(CHEAX *c);
-void *gc_alloc(CHEAX *c, size_t size, int type);
-void gc_free(CHEAX *c, void *obj);
-void gc_register_finalizer(CHEAX *c, int type, chx_fin fin);
+void cheax_gc_init_(CHEAX *c);
+void cheax_gc_cleanup_(CHEAX *c);
+void *cheax_gc_alloc_(CHEAX *c, size_t size, int type);
+void cheax_gc_free_(CHEAX *c, void *obj);
+void cheax_gc_register_finalizer_(CHEAX *c, int type, chx_fin fin);
 
 void cheax_gc(CHEAX *c);
 void cheax_force_gc(CHEAX *c);
 
-void load_gc_feature(CHEAX *c, int bits);
+void cheax_load_gc_feature_(CHEAX *c, int bits);
 
 #endif

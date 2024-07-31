@@ -177,7 +177,7 @@ store_arg(CHEAX *c,
 			*va_arg(ap, bool *) = v.data.as_int;
 			return 0;
 		case NUM_TYPE:
-			return try_vtod(v, va_arg(ap, chx_double *)) ? 0 : -1;
+			return cheax_try_vtod_(v, va_arg(ap, chx_double *)) ? 0 : -1;
 		default:
 			*va_arg(ap, void **) = v.data.user_ptr;
 			return 0;
@@ -262,7 +262,7 @@ unpack_arg(CHEAX *c,
 }
 
 int
-unpack(CHEAX *c, struct chx_list *args, const char *fmt, ...)
+cheax_unpack_(CHEAX *c, struct chx_list *args, const char *fmt, ...)
 {
 	int argc = 0, res = 0;
 	struct valueref argv[16];
@@ -399,7 +399,7 @@ pp_pan_list(CHEAX *c, struct chx_value value, const uint8_t **prog_p, const char
 		cheax_unref(c, head, head_ref);
 		cheax_ft(c, pad);
 
-		return orig_debug_list(c, head, tail, lst);
+		return cheax_orig_debug_list_(c, head, tail, lst);
 
 	case PP_MAYBE:
 		if (lst == NULL) {
@@ -422,7 +422,7 @@ pp_pan_list(CHEAX *c, struct chx_value value, const uint8_t **prog_p, const char
 
 			cheax_ft(c, pad);
 
-			*nextp = orig_debug_list(c, head, NULL, lst);
+			*nextp = cheax_orig_debug_list_(c, head, NULL, lst);
 			nextp = &(*nextp)->next;
 
 			/* Allocation failure */
@@ -458,7 +458,7 @@ pp_pan_value(CHEAX *c, struct chx_value value, const uint8_t **prog_p, const cha
 }
 
 struct chx_value
-preproc_pattern(CHEAX *c, struct chx_value input, const uint8_t *prog, const char **errors)
+cheax_preproc_pattern_(CHEAX *c, struct chx_value input, const uint8_t *prog, const char **errors)
 {
 	/* TODO optimise in case preprocess didn't change syntax */
 	return pp_pan_value(c, input, &prog, errors);

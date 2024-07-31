@@ -18,7 +18,7 @@
 
 #include <cheax.h>
 
-void load_io_feature(CHEAX *c, int bits);
-void export_io_bltns(CHEAX *c);
+void cheax_load_io_feature_(CHEAX *c, int bits);
+void cheax_export_io_bltns_(CHEAX *c);
 
 #endif

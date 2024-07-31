@@ -229,7 +229,7 @@ cheax_free(CHEAX *c, void *obj)
 }
 
 void
-gc_init(CHEAX *c)
+cheax_gc_init_(CHEAX *c)
 {
 	c->gc.objects.prev = c->gc.objects.next = &c->gc.objects;
 
@@ -241,11 +241,11 @@ gc_init(CHEAX *c)
 
 /* sets GC_MARKED bit for all reachable objects */
 static void mark(CHEAX *c);
-/* locks GC and gc_free()'s all non-GC_MARKED objects */
+/* locks GC and cheax_gc_free_()'s all non-GC_MARKED objects */
 static void sweep(CHEAX *c);
 
 void
-gc_cleanup(CHEAX *c)
+cheax_gc_cleanup_(CHEAX *c)
 {
 	if (c->gc.lock) {
 		/* give up*/
@@ -265,11 +265,11 @@ gc_cleanup(CHEAX *c)
 }
 
 void *
-gc_alloc(CHEAX *c, size_t size, int type)
+cheax_gc_alloc_(CHEAX *c, size_t size, int type)
 {
 	const size_t hdr_size = offsetof(struct gc_header, obj);
 	if (size > SIZE_MAX - hdr_size) {
-		cheax_throwf(c, CHEAX_ENOMEM, "gc_alloc(): not enough space for gc header");
+		cheax_throwf(c, CHEAX_ENOMEM, "cheax_gc_alloc_(): not enough space for gc header");
 		return NULL;
 	}
 
@@ -301,7 +301,7 @@ gc_alloc(CHEAX *c, size_t size, int type)
 }
 
 void
-gc_free(CHEAX *c, void *obj)
+cheax_gc_free_(CHEAX *c, void *obj)
 {
 	if (obj == NULL)
 		return;
@@ -323,7 +323,7 @@ gc_free(CHEAX *c, void *obj)
 }
 
 void
-gc_register_finalizer(CHEAX *c, int type, chx_fin fin)
+cheax_gc_register_finalizer_(CHEAX *c, int type, chx_fin fin)
 {
 	c->gc.finalizers[type] = fin;
 }
@@ -343,7 +343,7 @@ static void mark_obj(CHEAX *c, struct chx_value used);
 static void
 mark_list(CHEAX *c, struct chx_list *lst)
 {
-	struct chx_list *orig_form = get_orig_form(lst);
+	struct chx_list *orig_form = cheax_get_orig_form_(lst);
 	if (orig_form != NULL)
 		mark_list(c, orig_form);
 
@@ -367,7 +367,7 @@ mark_env_member(struct htab_entry *item, void *data)
 static void
 mark_env_members(CHEAX *c, struct htab *htab)
 {
-	htab_foreach(htab, mark_env_member, c);
+	cheax_htab_foreach_(htab, mark_env_member, c);
 }
 static void
 mark_env(CHEAX *c, struct chx_env *env)
@@ -461,7 +461,7 @@ sweep(CHEAX *c)
 		nxt = n->next;
 		struct gc_header *hdr = (struct gc_header *)n;
 		if (!has_flag(hdr->obj.rtflags, GC_MARKED))
-			gc_free(c, &hdr->obj);
+			cheax_gc_free_(c, &hdr->obj);
 		else
 			hdr->obj.rtflags &= ~GC_MARKED;
 	}
@@ -526,7 +526,7 @@ cheax_unref_ptr(CHEAX *c, void *restrict value, chx_ref ref)
 static struct chx_value
 bltn_gc(CHEAX *c, struct chx_list *args, void *info)
 {
-	if (unpack(c, args, "") < 0)
+	if (cheax_unpack_(c, args, "") < 0)
 		return CHEAX_NIL;
 
 	int mem_i = c->gc.all_mem, obj_i = c->gc.num_objects;
@@ -537,19 +537,19 @@ bltn_gc(CHEAX *c, struct chx_list *args, void *info)
 		cheax_id(c, "mem"), cheax_int(mem_i), cheax_id(c, "->"), cheax_int(mem_f),
 		cheax_id(c, "obj"), cheax_int(obj_i), cheax_id(c, "->"), cheax_int(obj_f),
 	};
-	return bt_wrap(c, cheax_array_to_list(c, res, sizeof(res) / sizeof(res[0])));
+	return cheax_bt_wrap_(c, cheax_array_to_list(c, res, sizeof(res) / sizeof(res[0])));
 }
 
 static struct chx_value
 bltn_get_used_memory(CHEAX *c, struct chx_list *args, void *info)
 {
-	return (0 == unpack(c, args, ""))
-	     ? bt_wrap(c, cheax_int(c->gc.all_mem))
+	return (0 == cheax_unpack_(c, args, ""))
+	     ? cheax_bt_wrap_(c, cheax_int(c->gc.all_mem))
 	     : CHEAX_NIL;
 }
 
 void
-load_gc_feature(CHEAX *c, int bits)
+cheax_load_gc_feature_(CHEAX *c, int bits)
 {
 	if (has_flag(bits, GC_BUILTIN)) {
 		cheax_defun(c, "gc", bltn_gc, NULL);

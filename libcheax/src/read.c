@@ -56,23 +56,23 @@ read_init(struct read_info *ri,
 	ri->allow_splice = false;
 	ri->path = path;
 
-	scnr_init(s, strm, MAX_LOOKAHEAD, &ri->lah_buf[0], line, pos);
+	cheax_scnr_init_(s, strm, MAX_LOOKAHEAD, &ri->lah_buf[0], line, pos);
 }
 
 static void
 skip_space(struct scnr *s)
 {
 	for (;;) {
-		while (c_isspace(s->ch))
-			scnr_adv(s);
+		while (cheax_isspace_(s->ch))
+			cheax_scnr_adv_(s);
 
 		if (s->ch != ';')
 			break;
 
 		/* skip comment line */
-		scnr_adv(s);
+		cheax_scnr_adv_(s);
 		while (s->ch != '\n' && s->ch != EOF)
-			scnr_adv(s);
+			cheax_scnr_adv_(s);
 	}
 }
 
@@ -80,14 +80,14 @@ static struct chx_value
 read_id(struct read_info *ri, struct scnr *s) /* consume_final = true */
 {
 	struct sostrm ss;
-	sostrm_init(&ss, ri->c);
+	cheax_sostrm_init_(&ss, ri->c);
 
 	struct chx_value res = CHEAX_NIL;
 
-	while (c_isid(s->ch))
-		ostrm_putc(&ss.strm, scnr_adv(s));
+	while (cheax_isid_(s->ch))
+		cheax_ostrm_putc_(&ss.strm, cheax_scnr_adv_(s));
 
-	if (s->ch != EOF && !c_isspace(s->ch) && s->ch != ')') {
+	if (s->ch != EOF && !cheax_isspace_(s->ch) && s->ch != ')') {
 		cheax_throwf(ri->c, CHEAX_EREAD, "only whitespace or `)' may follow identifier");
 		goto done;
 	}
@@ -97,7 +97,7 @@ read_id(struct read_info *ri, struct scnr *s) /* consume_final = true */
 	} else if (ss.idx == 5 && memcmp(ss.buf, "false", 5) == 0) {
 		res = cheax_false();
 	} else {
-		ostrm_putc(&ss.strm, '\0');
+		cheax_ostrm_putc_(&ss.strm, '\0');
 		res = cheax_id(ri->c, ss.buf);
 	}
 
@@ -113,11 +113,11 @@ read_digits(struct scnr *s, struct ostrm *ostr, bool neg, int base, bool *too_bi
 	bool overflow = false, ofl, ufl;
 
 	for (;;) {
-		int digit = c_todigit(s->ch, base);
+		int digit = cheax_todigit_(s->ch, base);
 		if (digit < 0)
 			break;
 
-		ostrm_putc(ostr, scnr_adv(s));
+		cheax_ostrm_putc_(ostr, cheax_scnr_adv_(s));
 
 		ofl = value > CHX_INT_MAX / base;
 		ufl = value < CHX_INT_MIN / base;
@@ -151,7 +151,7 @@ static struct chx_value
 read_num(struct read_info *ri, struct scnr *s) /* consume_final = true */
 {
 	struct sostrm ss;
-	sostrm_init(&ss, ri->c);
+	cheax_sostrm_init_(&ss, ri->c);
 
 	struct chx_value res = CHEAX_NIL;
 
@@ -171,20 +171,20 @@ read_num(struct read_info *ri, struct scnr *s) /* consume_final = true */
 
 	if (s->ch == '-') {
 		negative = true;
-		ostrm_putc(&ss.strm, scnr_adv(s));
+		cheax_ostrm_putc_(&ss.strm, cheax_scnr_adv_(s));
 	} else if (s->ch == '+') {
-		ostrm_putc(&ss.strm, scnr_adv(s));
+		cheax_ostrm_putc_(&ss.strm, cheax_scnr_adv_(s));
 	}
 
 	if (s->ch == '0') {
-		ostrm_putc(&ss.strm, scnr_adv(s));
+		cheax_ostrm_putc_(&ss.strm, cheax_scnr_adv_(s));
 		if (s->ch == 'x' || s->ch == 'X') {
 			base = 16;
-			ostrm_putc(&ss.strm, scnr_adv(s));
+			cheax_ostrm_putc_(&ss.strm, cheax_scnr_adv_(s));
 		} else if (s->ch == 'b' || s->ch == 'B') {
 			base = 2;
-			ostrm_putc(&ss.strm, scnr_adv(s));
-		} else if (c_isdigit(s->ch)) {
+			cheax_ostrm_putc_(&ss.strm, cheax_scnr_adv_(s));
+		} else if (cheax_isdigit_(s->ch)) {
 			base = 8;
 		}
 	}
@@ -193,22 +193,22 @@ read_num(struct read_info *ri, struct scnr *s) /* consume_final = true */
 
 	if (s->ch == '.' && (base == 10 || base == 16)) {
 		is_double = true;
-		ostrm_putc(&ss.strm, scnr_adv(s));
+		cheax_ostrm_putc_(&ss.strm, cheax_scnr_adv_(s));
 		read_digits(s, &ss.strm, false, base, NULL);
 	}
 
 	if ((base == 10 && (s->ch == 'e' || s->ch == 'E'))
 	 || (base == 16 && (s->ch == 'p' || s->ch == 'P')))
 	{
-		ostrm_putc(&ss.strm, scnr_adv(s));
+		cheax_ostrm_putc_(&ss.strm, cheax_scnr_adv_(s));
 
 		if (s->ch == '-' || s->ch == '+')
-			ostrm_putc(&ss.strm, scnr_adv(s));
+			cheax_ostrm_putc_(&ss.strm, cheax_scnr_adv_(s));
 
 		read_digits(s, &ss.strm, false, base, NULL);
 	}
 
-	if (s->ch != EOF && !c_isspace(s->ch) && s->ch != ')') {
+	if (s->ch != EOF && !cheax_isspace_(s->ch) && s->ch != ')') {
 		cheax_throwf(ri->c, CHEAX_EREAD, "only whitespace or `)' may follow number");
 		goto done;
 	}
@@ -223,17 +223,17 @@ read_num(struct read_info *ri, struct scnr *s) /* consume_final = true */
 		goto done;
 	}
 
-	ostrm_putc(&ss.strm, '\0');
+	cheax_ostrm_putc_(&ss.strm, '\0');
 
 	double dval;
 	char *endptr;
 
 #if defined(HAVE_STRTOD_L)
-	dval = strtod_l(ss.buf, &endptr, get_c_locale());
+	dval = strtod_l(ss.buf, &endptr, cheax_get_c_locale_());
 #elif defined(HAVE_WINDOWS_STRTOD_L)
-	dval = _strtod_l(ss.buf, &endptr, get_c_locale());
+	dval = _strtod_l(ss.buf, &endptr, cheax_get_c_locale_());
 #else
-	locale_t prev_locale = uselocale(get_c_locale());
+	locale_t prev_locale = uselocale(cheax_get_c_locale_());
 	dval = strtod(ss.buf, &endptr);
 	uselocale(prev_locale);
 #endif
@@ -267,26 +267,26 @@ read_bslash(struct read_info *ri, struct scnr *s, struct ostrm *ostr) /* consume
 	}
 
 	if (ch != -1) {
-		ostrm_putc(ostr, ch);
-		scnr_adv(s);
+		cheax_ostrm_putc_(ostr, ch);
+		cheax_scnr_adv_(s);
 		return;
 	}
 
 	if (s->ch == 'x' || s->ch == 'X') {
-		scnr_adv(s);
+		cheax_scnr_adv_(s);
 		unsigned digits[2];
 		for (int i = 0; i < 2; ++i) {
-			int x = c_todigit(s->ch, 16);
+			int x = cheax_todigit_(s->ch, 16);
 			if (x < 0) {
 				cheax_throwf(ri->c, CHEAX_EREAD, "expected two hex digits after `\\x'");
 				return;
 			}
 
 			digits[i] = x;
-			scnr_adv(s);
+			cheax_scnr_adv_(s);
 		}
 
-		ostrm_putc(ostr, (digits[0] << 4) + digits[1]);
+		cheax_ostrm_putc_(ostr, (digits[0] << 4) + digits[1]);
 		return;
 	}
 
@@ -295,9 +295,9 @@ read_bslash(struct read_info *ri, struct scnr *s, struct ostrm *ostr) /* consume
 		unsigned digits[8];
 		size_t num_digits = (spec == 'u') ? 4 : 8;
 
-		scnr_adv(s);
+		cheax_scnr_adv_(s);
 		for (size_t i = 0; i < num_digits; ++i) {
-			int x = c_todigit(s->ch, 16);
+			int x = cheax_todigit_(s->ch, 16);
 			if (x < 0) {
 				cheax_throwf(ri->c,
 				             CHEAX_EREAD,
@@ -308,7 +308,7 @@ read_bslash(struct read_info *ri, struct scnr *s, struct ostrm *ostr) /* consume
 			}
 
 			digits[i] = x;
-			scnr_adv(s);
+			cheax_scnr_adv_(s);
 		}
 
 		/* code point */
@@ -321,7 +321,7 @@ read_bslash(struct read_info *ri, struct scnr *s, struct ostrm *ostr) /* consume
 			return;
 		}
 
-		ostrm_put_utf8(ostr, cp);
+		cheax_ostrm_put_utf_8(ostr, cp);
 		return;
 	}
 
@@ -332,16 +332,16 @@ static struct chx_value
 read_string(struct read_info *ri, struct scnr *s, bool consume_final)
 {
 	struct sostrm ss;
-	sostrm_init(&ss, ri->c);
+	cheax_sostrm_init_(&ss, ri->c);
 
 	struct chx_value res = CHEAX_NIL;
 
 	/* consume initial `"' */
-	scnr_adv(s);
+	cheax_scnr_adv_(s);
 
 	while (s->ch != '"') {
 		int ch;
-		switch ((ch = scnr_adv(s))) {
+		switch ((ch = cheax_scnr_adv_(s))) {
 		case '\n':
 		case EOF:
 			cheax_throwf(ri->c, CHEAX_EREAD, "unexpected string termination");
@@ -352,13 +352,13 @@ read_string(struct read_info *ri, struct scnr *s, bool consume_final)
 			cheax_ft(ri->c, done);
 			break;
 		default:
-			ostrm_putc(&ss.strm, ch);
+			cheax_ostrm_putc_(&ss.strm, ch);
 			break;
 		}
 	}
 
 	if (consume_final)
-		scnr_adv(s);
+		cheax_scnr_adv_(s);
 
 	res = cheax_nstring(ri->c, ss.buf, ss.idx);
 done:
@@ -376,12 +376,12 @@ read_list(struct read_info *ri, struct scnr *s, bool consume_final)
 	if (ri->bkquote_stack - ri->comma_stack > 0)
 		ri->allow_splice = true;
 
-	scnr_adv(s);
+	cheax_scnr_adv_(s);
 	if ((skip_space(s), s->ch) != ')') {
 		if (s->ch == EOF)
 			goto eof_pad;
 
-		lst = loc_debug_list(ri->c, read_value(ri, s, true), NULL, info);
+		lst = cheax_loc_debug_list_(ri->c, read_value(ri, s, true), NULL, info);
 		cheax_ft(ri->c, pad);
 
 		struct chx_list **next = &lst->next;
@@ -398,7 +398,7 @@ read_list(struct read_info *ri, struct scnr *s, bool consume_final)
 	ri->allow_splice = did_allow_splice;
 
 	if (consume_final)
-		scnr_adv(s);
+		cheax_scnr_adv_(s);
 
 	struct chx_value res;
 	res.type = CHEAX_LIST;
@@ -416,34 +416,34 @@ read_value(struct read_info *ri, struct scnr *s, bool consume_final)
 	skip_space(s);
 
 	if (s->ch == '-') {
-		scnr_adv(s);
+		cheax_scnr_adv_(s);
 		bool is_num = false;
 
-		if (c_isdigit(s->ch)) {
+		if (cheax_isdigit_(s->ch)) {
 			is_num = true;
 		} else if (s->ch == '.') {
-			scnr_adv(s);
-			is_num = c_isdigit(s->ch);
-			scnr_backup(s, '.');
+			cheax_scnr_adv_(s);
+			is_num = cheax_isdigit_(s->ch);
+			cheax_scnr_backup_(s, '.');
 		}
 
-		scnr_backup(s, '-');
+		cheax_scnr_backup_(s, '-');
 
 		return is_num ? read_num(ri, s) : read_id(ri, s);
 	}
 
 	if (s->ch == '.') {
-		scnr_adv(s);
-		bool is_num = c_isdigit(s->ch);
-		scnr_backup(s, '.');
+		cheax_scnr_adv_(s);
+		bool is_num = cheax_isdigit_(s->ch);
+		cheax_scnr_backup_(s, '.');
 
 		return is_num ? read_num(ri, s) : read_id(ri, s);
 	}
 
-	if (c_isid_initial(s->ch))
+	if (cheax_isid_initial_(s->ch))
 		return read_id(ri, s);
 
-	if (c_isdigit(s->ch))
+	if (cheax_isdigit_(s->ch))
 		return read_num(ri, s);
 
 	if (s->ch == '(')
@@ -458,7 +458,7 @@ read_value(struct read_info *ri, struct scnr *s, bool consume_final)
 		if (ri->bkquote_stack - ri->comma_stack > 0)
 			ri->allow_splice = true;
 
-		scnr_adv(s);
+		cheax_scnr_adv_(s);
 		struct chx_value to_quote = read_value(ri, s, consume_final);
 		ri->allow_splice = did_allow_splice;
 		cheax_ft(ri->c, pad);
@@ -471,7 +471,7 @@ read_value(struct read_info *ri, struct scnr *s, bool consume_final)
 		if (ri->bkquote_stack - ri->comma_stack > 0)
 			ri->allow_splice = true;
 
-		scnr_adv(s);
+		cheax_scnr_adv_(s);
 		++ri->bkquote_stack;
 		struct chx_value to_quote = read_value(ri, s, consume_final);
 		--ri->bkquote_stack;
@@ -491,7 +491,7 @@ read_value(struct read_info *ri, struct scnr *s, bool consume_final)
 			return CHEAX_NIL;
 		}
 
-		scnr_adv(s);
+		cheax_scnr_adv_(s);
 		bool splice = false;
 		if (s->ch == '@') {
 			if (!ri->allow_splice) {
@@ -500,7 +500,7 @@ read_value(struct read_info *ri, struct scnr *s, bool consume_final)
 			}
 
 			splice = true;
-			scnr_adv(s);
+			cheax_scnr_adv_(s);
 		}
 		++ri->comma_stack;
 		struct chx_value to_comma = read_value(ri, s, consume_final);
@@ -549,7 +549,7 @@ cheax_read_at(CHEAX *c, FILE *infile, const char *path, int *line, int *pos)
 	ASSERT_NOT_NULL("read_at", infile, CHEAX_NIL);
 
 	struct fistrm fs;
-	fistrm_init(&fs, infile, c);
+	cheax_fistrm_init_(&fs, infile, c);
 	return istrm_read_at(c, &fs.strm, path, line, pos);
 }
 struct chx_value
@@ -564,7 +564,7 @@ cheax_readstr_at(CHEAX *c, const char **str, const char *path, int *line, int *p
 	ASSERT_NOT_NULL("readstr_at", *str, CHEAX_NIL);
 
 	struct sistrm ss;
-	sistrm_init(&ss, *str);
+	cheax_sistrm_init_(&ss, *str);
 	struct chx_value res = istrm_read_at(c, &ss.strm, path, line, pos);
 	if (cheax_errno(c) == 0)
 		*str = ss.str + ss.idx;

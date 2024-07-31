@@ -27,17 +27,17 @@ struct full_sym {
 	bool allow_redef;
 };
 
-struct chx_env *norm_env_init(CHEAX *c, struct chx_env *env, struct chx_env *below);
-void norm_env_cleanup(CHEAX *c, struct chx_env *env);
-void env_fin(CHEAX *c, void *obj);
+struct chx_env *cheax_norm_env_init_(CHEAX *c, struct chx_env *env, struct chx_env *below);
+void cheax_norm_env_cleanup_(CHEAX *c, struct chx_env *env);
+void cheax_env_fin_(CHEAX *c, void *obj);
 
-void export_sym_bltns(CHEAX *c);
+void cheax_export_sym_bltns_(CHEAX *c);
 
-void def_id(CHEAX *c, struct chx_id *id, struct chx_value value, int flags);
-struct chx_sym *defsym_id(CHEAX *c, struct chx_id *id,
-                          chx_getter get, chx_setter set,
-                          chx_finalizer fin, void *user_info);
-struct chx_value get_id(CHEAX *c, struct chx_id *id);
-bool try_get_id(CHEAX *c, struct chx_id *id, struct chx_value *out);
+void cheax_def_id_(CHEAX *c, struct chx_id *id, struct chx_value value, int flags);
+struct chx_sym *cheax_defsym_id_(CHEAX *c, struct chx_id *id,
+                                 chx_getter get, chx_setter set,
+                                 chx_finalizer fin, void *user_info);
+struct chx_value cheax_get_id_(CHEAX *c, struct chx_id *id);
+bool cheax_try_get_id_(CHEAX *c, struct chx_id *id, struct chx_value *out);
 
 #endif

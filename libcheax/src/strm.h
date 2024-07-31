@@ -37,13 +37,13 @@ struct ostrm {
 	int (*expand)(void *info, size_t req);
 };
 
-int ostrm_printf(struct ostrm *strm, const char *frmt, ...);
-int ostrm_putc(struct ostrm *strm, int ch);
-int ostrm_write(struct ostrm *strm, const char *buf, size_t len);
-int ostrm_expand(struct ostrm *strm, size_t extra);
+int cheax_ostrm_printf_(struct ostrm *strm, const char *frmt, ...);
+int cheax_ostrm_putc_(struct ostrm *strm, int ch);
+int cheax_ostrm_write_(struct ostrm *strm, const char *buf, size_t len);
+int cheax_ostrm_expand_(struct ostrm *strm, size_t extra);
 
 /* Write unicode code point `cp' to output stream in UTF-8 encoding. */
-void ostrm_put_utf8(struct ostrm *ostr, unsigned cp);
+void cheax_ostrm_put_utf_8(struct ostrm *ostr, unsigned cp);
 
 /* Print integer `num' to ostrm `strm', padding it to length
  * `field_width' using padding character `pad_char' if necessary.
@@ -59,7 +59,7 @@ void ostrm_put_utf8(struct ostrm *ostr, unsigned cp);
  * data types (unsigned int for 'x', for instance). This one just
  * handles int, and handles it well.
  */
-void ostrm_printi(struct ostrm *strm, chx_int num, char pad_char, int field_width, char misc_spec);
+void cheax_ostrm_printi_(struct ostrm *strm, chx_int num, char pad_char, int field_width, char misc_spec);
 
 /* string output stream */
 struct sostrm {
@@ -70,7 +70,7 @@ struct sostrm {
 	size_t idx, cap;
 };
 
-void sostrm_init(struct sostrm *ss, CHEAX *c);
+void cheax_sostrm_init_(struct sostrm *ss, CHEAX *c);
 
 /* buffer (string-n) output stream.
  * or snowstorm, whichever you prefer. */
@@ -81,7 +81,7 @@ struct snostrm {
 	size_t idx, cap;
 };
 
-void snostrm_init(struct snostrm *ss, char *buf, size_t cap);
+void cheax_snostrm_init_(struct snostrm *ss, char *buf, size_t cap);
 
 /* file output stream */
 struct fostrm {
@@ -91,7 +91,7 @@ struct fostrm {
 	FILE *f;
 };
 
-void fostrm_init(struct fostrm *fs, FILE *f, CHEAX *c);
+void cheax_fostrm_init_(struct fostrm *fs, FILE *f, CHEAX *c);
 
 /* counting output stream */
 struct costrm {
@@ -99,7 +99,7 @@ struct costrm {
 	size_t written;
 };
 
-void costrm_init(struct costrm *cs, struct ostrm *base);
+void cheax_costrm_init_(struct costrm *cs, struct ostrm *base);
 
 /* input stream */
 struct istrm {
@@ -108,7 +108,7 @@ struct istrm {
 	int (*sgetc)(void *info);
 };
 
-int istrm_getc(struct istrm *strm);
+int cheax_istrm_getc_(struct istrm *strm);
 
 /* string input stream */
 struct sistrm {
@@ -118,8 +118,8 @@ struct sistrm {
 	size_t idx, len;
 };
 
-void sistrm_initn(struct sistrm *ss, const char *str, size_t len);
-void sistrm_init(struct sistrm *ss, const char *str);
+void cheax_sistrm_initn_(struct sistrm *ss, const char *str, size_t len);
+void cheax_sistrm_init_(struct sistrm *ss, const char *str);
 
 /* file input stream */
 struct fistrm {
@@ -129,7 +129,7 @@ struct fistrm {
 	FILE *f;
 };
 
-void fistrm_init(struct fistrm *fs, FILE *f, CHEAX *c);
+void cheax_fistrm_init_(struct fistrm *fs, FILE *f, CHEAX *c);
 
 /* scanner */
 struct scnr {
@@ -141,8 +141,8 @@ struct scnr {
 	int pos, line;
 };
 
-void scnr_init(struct scnr *s, struct istrm *strm, size_t max_lah, int *lah_buf, int line, int pos);
-int scnr_adv(struct scnr *s);
-int scnr_backup(struct scnr *s, int to);
+void cheax_scnr_init_(struct scnr *s, struct istrm *strm, size_t max_lah, int *lah_buf, int line, int pos);
+int cheax_scnr_adv_(struct scnr *s);
+int cheax_scnr_backup_(struct scnr *s, int to);
 
 #endif

@@ -33,7 +33,7 @@ struct htab_entry {
 };
 
 /*
- * Calculate hash for hash table entry. See also: good_hash().
+ * Calculate hash for hash table entry. See also: cheax_good_hash_().
  */
 typedef uint32_t (*htab_hash_func)(const struct htab_entry *item);
 
@@ -72,40 +72,40 @@ struct htab_search {
  * Intialize hash table. This is very quick, since nothing is allocated
  * until the first entry is added to the table!
  */
-void htab_init(CHEAX *c, struct htab *htab, htab_hash_func hash, htab_eq_func eq);
+void cheax_htab_init_(CHEAX *c, struct htab *htab, htab_hash_func hash, htab_eq_func eq);
 
 /*
  * Clean up hash table, performing action `del' for each entry if `del'
  * is not NULL.
  */
-void htab_cleanup(struct htab *htab, htab_item_func del, void *data);
+void cheax_htab_cleanup_(struct htab *htab, htab_item_func del, void *data);
 
 /*
  * Get hash table entry, or the location where a new one might be
  * inserted.
  */
-struct htab_search htab_get(struct htab *htab, const struct htab_entry *item);
+struct htab_search cheax_htab_get_(struct htab *htab, const struct htab_entry *item);
 
 /*
  * Set or add a hash table entry. Parameter `search' must be a value
- * given by htab_get().
+ * given by cheax_htab_get_().
  */
-void htab_set(struct htab *htab, struct htab_search search, struct htab_entry *item);
+void cheax_htab_set_(struct htab *htab, struct htab_search search, struct htab_entry *item);
 
 /*
  * Remove a hash table entry. Parameter `search' must be a value given
- * by htab_get().
+ * by cheax_htab_get_().
  */
-void htab_remove(struct htab *htab, struct htab_search search);
+void cheax_htab_remove_(struct htab *htab, struct htab_search search);
 
 /*
  * Perform an action for each entry in the hash table.
  */
-void htab_foreach(struct htab *htab, htab_item_func f, void *data);
+void cheax_htab_foreach_(struct htab *htab, htab_item_func f, void *data);
 
 /*
  * A reasonably good default hash function.
  */
-uint32_t good_hash(const void *p, size_t n);
+uint32_t cheax_good_hash_(const void *p, size_t n);
 
 #endif

@@ -16,46 +16,46 @@
 #include "cinfo.h"
 
 bool
-c_isdigit(int c)
+cheax_isdigit_(int c)
 {
 	return c >= '0' && c <= '9';
 }
 
 bool
-c_isspace(int c)
+cheax_isspace_(int c)
 {
 	return c == ' '  || c == '\n' || c == '\r'
 	    || c == '\t' || c == '\v' || c == '\f';
 }
 
 bool
-c_isgraph(int c)
+cheax_isgraph_(int c)
 {
 	return c >= '!' && c <= '~';
 }
 
 bool
-c_isprint(int c)
+cheax_isprint_(int c)
 {
-	return c_isgraph(c) || c_isspace(c);
+	return cheax_isgraph_(c) || cheax_isspace_(c);
 }
 
 bool
-c_isid(int c)
+cheax_isid_(int c)
 {
-	return c_isgraph(c)
+	return cheax_isgraph_(c)
 	    && c != '(' && c != ')' && c != '\'' && c != '`'
 	    && c != ',' && c != '"' && c != ';';
 }
 
 bool
-c_isid_initial(int c)
+cheax_isid_initial_(int c)
 {
-	return !c_isdigit(c) && c_isid(c);
+	return !cheax_isdigit_(c) && cheax_isid_(c);
 }
 
 int
-c_todigit(int c, int base)
+cheax_todigit_(int c, int base)
 {
 	int max_digit = (base <= 10) ? '0' + base - 1 : '9';
 	if (c >= '0' && c <= max_digit)

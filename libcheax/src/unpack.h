@@ -26,7 +26,7 @@
  *
  *   int i1, i2;
  *   struct chx_value i3;
- *   unpack(c, <arg-list>, "iIi?", &i1, &i2, &i3);
+ *   cheax_unpack_(c, <arg-list>, "iIi?", &i1, &i2, &i3);
  *
  * Will unpack an argument list of two or three integers into i1, i2
  * and i3, where the first argument gets evaluated (lowercase "i"
@@ -39,7 +39,7 @@
  *
  *   const char *id;
  *   struct chx_list *nums;
- *   unpack(c, <arg-list>, "N![id]+", &id, &nums);
+ *   cheax_unpack_(c, <arg-list>, "N![id]+", &id, &nums);
  *
  * Will unpack an argument list of one identifier followed by at least
  * one integer or double. The identifier argument is not evaluated
@@ -54,7 +54,7 @@
  *
  * Returns 0 on success, -1 on failure.
  */
-int unpack(CHEAX *c, struct chx_list *args, const char *fmt, ...);
+int cheax_unpack_(CHEAX *c, struct chx_list *args, const char *fmt, ...);
 
 enum {
 	PP_NIL         = 0x00,
@@ -70,9 +70,9 @@ enum {
 #define PP_ERRMSG_OFS 4
 #define PP_ERR(n) ((((n) + 1) << PP_ERRMSG_OFS) & PP_ERRMSG_BITS)
 
-struct chx_value preproc_pattern(CHEAX *c,
-                                 struct chx_value input,
-                                 const uint8_t *prog,
-                                 const char **errors);
+struct chx_value cheax_preproc_pattern_(CHEAX *c,
+                                        struct chx_value input,
+                                        const uint8_t *prog,
+                                        const char **errors);
 
 #endif

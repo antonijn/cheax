@@ -62,7 +62,7 @@ feature_list(CHEAX *c, struct chx_list *base)
 static struct chx_value
 get_features(CHEAX *c, struct chx_sym *sym)
 {
-	return cheax_list_value(feature_list(c, config_feature_list(c, NULL)));
+	return cheax_list_value(feature_list(c, cheax_config_feature_list_(c, NULL)));
 }
 
 static int
@@ -79,7 +79,7 @@ static struct chx_value
 bltn_exit(CHEAX *c, struct chx_list *args, void *info)
 {
 	struct chx_value code_val;
-	if (unpack(c, args, "I?", &code_val) < 0)
+	if (cheax_unpack_(c, args, "I?", &code_val) < 0)
 		return CHEAX_NIL;
 
 	exit(cheax_is_nil(code_val) ? 0 : (int)code_val.data.as_int);
@@ -88,7 +88,7 @@ bltn_exit(CHEAX *c, struct chx_list *args, void *info)
 int
 cheax_load_feature(CHEAX *c, const char *feat)
 {
-	int feats = find_feature(feat) | find_config_feature(feat);
+	int feats = find_feature(feat) | cheax_find_config_feature_(feat);
 	if (feats == 0)
 		return -1;
 
@@ -98,25 +98,25 @@ cheax_load_feature(CHEAX *c, const char *feat)
 	if (has_flag(nf, EXIT_BUILTIN))
 		cheax_defun(c, "exit", bltn_exit, NULL);
 
-	load_config_feature(c, nf);
-	load_gc_feature(c, nf);
-	load_io_feature(c, nf);
+	cheax_load_config_feature_(c, nf);
+	cheax_load_gc_feature_(c, nf);
+	cheax_load_io_feature_(c, nf);
 
 	c->features |= nf;
 	return 0;
 }
 
 void
-export_bltns(CHEAX *c)
+cheax_export_bltns_(CHEAX *c)
 {
-	export_arith_bltns(c);
-	export_core_bltns(c);
-	export_err_bltns(c);
-	export_eval_bltns(c);
-	export_format_bltns(c);
-	export_io_bltns(c);
-	export_math_bltns(c);
-	export_sym_bltns(c);
+	cheax_export_arith_bltns_(c);
+	cheax_export_core_bltns_(c);
+	cheax_export_err_bltns_(c);
+	cheax_export_eval_bltns_(c);
+	cheax_export_format_bltns_(c);
+	cheax_export_io_bltns_(c);
+	cheax_export_math_bltns_(c);
+	cheax_export_sym_bltns_(c);
 
 	cheax_defsym(c, "features", get_features, NULL, NULL, NULL);
 }

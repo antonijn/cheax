@@ -24,9 +24,9 @@
 #endif
 
 #if defined(HAVE_NEWLOCALE)
-locale_t get_c_locale(void);
+locale_t cheax_get_c_locale_(void);
 #elif defined(HAVE_WINDOWS_CREATE_LOCALE)
-_locale_t get_c_locale(void);
+_locale_t cheax_get_c_locale_(void);
 #endif
 
 #endif

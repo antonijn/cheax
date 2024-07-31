@@ -33,6 +33,6 @@ enum {
 	ALL_FEATURES    = ~0,
 };
 
-void export_bltns(CHEAX *c);
+void cheax_export_bltns_(CHEAX *c);
 
 #endif

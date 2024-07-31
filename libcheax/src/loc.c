@@ -20,7 +20,7 @@
 #if defined(HAVE_NEWLOCALE)
 
 locale_t
-get_c_locale(void)
+cheax_get_c_locale_(void)
 {
 	static bool is_cached = false;
 	static locale_t cached;
@@ -36,7 +36,7 @@ get_c_locale(void)
 #else
 
 _locale_t
-get_c_locale(void)
+cheax_get_c_locale_(void)
 {
 	static bool is_cached = false;
 	static _locale_t cached;

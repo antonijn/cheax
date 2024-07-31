@@ -18,17 +18,17 @@
 
 #include <cheax.h>
 
-int bt_init(CHEAX *c, size_t limit);
-int bt_limit(CHEAX *c, size_t limit);
-void bt_add_tail_msg(CHEAX *c, int tail_lvls);
-void bt_print(CHEAX *c);
+int cheax_bt_init_(CHEAX *c, size_t limit);
+int cheax_bt_limit_(CHEAX *c, size_t limit);
+void cheax_bt_add_tail_msg_(CHEAX *c, int tail_lvls);
+void cheax_bt_print_(CHEAX *c);
 
 /*
  * Helper function: calls cheax_add_bt(c) and returns NULL if
  * cheax_errno(c) is set, just returns `v' otherwise.
  */
-struct chx_value bt_wrap(CHEAX *c, struct chx_value v);
+struct chx_value cheax_bt_wrap_(CHEAX *c, struct chx_value v);
 
-void export_err_bltns(CHEAX *c);
+void cheax_export_err_bltns_(CHEAX *c);
 
 #endif

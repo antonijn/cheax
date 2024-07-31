@@ -65,7 +65,7 @@ set_bt_limit(CHEAX *c, int value)
 	else if (value > max_bt_limit)
 		cheax_throwf(c, CHEAX_EAPI, "backtrace limit must be at most %d", max_bt_limit);
 	else
-		bt_limit(c, value);
+		cheax_bt_limit_(c, value);
 }
 
 static bool
@@ -219,7 +219,7 @@ config_sym_set(CHEAX *c, struct chx_sym *sym, struct chx_value value)
 
 	switch (ci->type) {
 	case CHEAX_INT:
-		if (try_vtoi(value, &i))
+		if (cheax_try_vtoi_(value, &i))
 			ci->set.set_int(c, i);
 		else
 			cheax_throwf(c, CHEAX_ETYPE, "invalid type");
@@ -241,7 +241,7 @@ config_sym_set(CHEAX *c, struct chx_sym *sym, struct chx_value value)
 }
 
 int
-config_init(CHEAX *c)
+cheax_config_init_(CHEAX *c)
 {
 	size_t nopts = sizeof(opts) / sizeof(opts[0]);
 	c->config_syms = malloc(nopts * sizeof(struct chx_sym *));
@@ -261,7 +261,7 @@ pad:
 }
 
 int
-find_config_feature(const char *feat)
+cheax_find_config_feature_(const char *feat)
 {
 	if (strncmp(feat, "set-", 4) != 0)
 		return 0;
@@ -271,7 +271,7 @@ find_config_feature(const char *feat)
 }
 
 void
-load_config_feature(CHEAX *c, int bits)
+cheax_load_config_feature_(CHEAX *c, int bits)
 {
 	int nopts = sizeof(opts) / sizeof(opts[0]);
 	for (int i = 0; i < nopts; ++i)
@@ -280,7 +280,7 @@ load_config_feature(CHEAX *c, int bits)
 }
 
 struct chx_list *
-config_feature_list(CHEAX *c, struct chx_list *base)
+cheax_config_feature_list_(CHEAX *c, struct chx_list *base)
 {
 	struct chx_list *list = base;
 	int nopts = sizeof(opts) / sizeof(opts[0]);

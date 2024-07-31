@@ -28,7 +28,7 @@
 static int
 read_int(CHEAX *c, const char *desc, struct scnr *fmt, int *out)
 {
-	for (*out = 0; c_isdigit(fmt->ch); scnr_adv(fmt)) {
+	for (*out = 0; cheax_isdigit_(fmt->ch); cheax_scnr_adv_(fmt)) {
 		if (*out > INT_MAX / 10 || (*out * 10) > INT_MAX - (fmt->ch - '0')) {
 			cheax_throwf(c, CHEAX_EVALUE, "%s too big", desc);
 			return -1;
@@ -80,13 +80,13 @@ read_fspec(CHEAX *c, struct scnr *fmt, struct fspec *sp)
 	sp->precision = -1;
 	sp->misc_spec = '\0';
 
-	if (c_isdigit(fmt->ch) && read_int(c, "index", fmt, &sp->index) < 0)
+	if (cheax_isdigit_(fmt->ch) && read_int(c, "index", fmt, &sp->index) < 0)
 		return -1;
 
 	if (fmt->ch == '!') {
-		scnr_adv(fmt);
+		cheax_scnr_adv_(fmt);
 		if (fmt->ch == 's' || fmt->ch == 'r') {
-			sp->conv = (scnr_adv(fmt) == 's') ? CONV_S : CONV_R;
+			sp->conv = (cheax_scnr_adv_(fmt) == 's') ? CONV_S : CONV_R;
 		} else {
 			cheax_throwf(c, CHEAX_EVALUE, "expected `s' or `r' after `!'");
 			return -1;
@@ -94,7 +94,7 @@ read_fspec(CHEAX *c, struct scnr *fmt, struct fspec *sp)
 	}
 
 	if (fmt->ch == ':') {
-		scnr_adv(fmt);
+		cheax_scnr_adv_(fmt);
 		if (fmt->ch == '<')
 			sp->aln = ALN_LEFT;
 		else if (fmt->ch == '^')
@@ -103,17 +103,17 @@ read_fspec(CHEAX *c, struct scnr *fmt, struct fspec *sp)
 			sp->aln = ALN_RIGHT;
 
 		if (sp->aln != ALN_NONE)
-			scnr_adv(fmt);
+			cheax_scnr_adv_(fmt);
 
 		if (fmt->ch == ' ' || fmt->ch == '0')
-			sp->pad_char = scnr_adv(fmt);
+			sp->pad_char = cheax_scnr_adv_(fmt);
 
-		if (c_isdigit(fmt->ch) && read_int(c, "field width", fmt, &sp->field_width) < 0)
+		if (cheax_isdigit_(fmt->ch) && read_int(c, "field width", fmt, &sp->field_width) < 0)
 			return -1;
 
 		if (fmt->ch == '.') {
-			scnr_adv(fmt);
-			if (!c_isdigit(fmt->ch)) {
+			cheax_scnr_adv_(fmt);
+			if (!cheax_isdigit_(fmt->ch)) {
 				cheax_throwf(c, CHEAX_EVALUE, "expected precision specifier");
 				return -1;
 			}
@@ -123,10 +123,10 @@ read_fspec(CHEAX *c, struct scnr *fmt, struct fspec *sp)
 		}
 
 		if (fmt->ch != '\0' && strchr("xXobcdeEfFgG", fmt->ch) != NULL)
-			sp->misc_spec = scnr_adv(fmt);
+			sp->misc_spec = cheax_scnr_adv_(fmt);
 	}
 
-	if (scnr_adv(fmt) != '}') {
+	if (cheax_scnr_adv_(fmt) != '}') {
 		cheax_throwf(c, CHEAX_EVALUE, "expected `}'");
 		return -1;
 	}
@@ -193,9 +193,9 @@ format_num(CHEAX *c, struct ostrm *strm, struct fspec *sp, struct chx_value arg)
 				return -1;
 			}
 
-			ostrm_putc(strm, arg.data.as_int);
+			cheax_ostrm_putc_(strm, arg.data.as_int);
 		} else {
-			ostrm_printi(strm, arg.data.as_int, sp->pad_char, field_width, ms);
+			cheax_ostrm_printi_(strm, arg.data.as_int, sp->pad_char, field_width, ms);
 		}
 
 		return 0;
@@ -209,7 +209,7 @@ format_num(CHEAX *c, struct ostrm *strm, struct fspec *sp, struct chx_value arg)
 		else
 			snprintf(fmt_buf, sizeof(fmt_buf), "%%%c*.*%c", sp->pad_char, ms);
 
-		ostrm_printf(strm, fmt_buf, field_width, sp->precision, arg.data.as_double);
+		cheax_ostrm_printf_(strm, fmt_buf, field_width, sp->precision, arg.data.as_double);
 		return 0;
 
 	default:
@@ -238,7 +238,7 @@ show_env(CHEAX *c, struct ostrm *strm, struct chx_env *env, const char *func_des
 	}
 
 	for (size_t i = 0; i < ret.data.as_string->len; ++i)
-		ostrm_putc(strm, ret.data.as_string->value[i]);
+		cheax_ostrm_putc_(strm, ret.data.as_string->value[i]);
 
 	return 0;
 pad:
@@ -258,13 +258,13 @@ format_noalign(CHEAX *c, struct ostrm *strm, struct fspec *sp, struct chx_value 
 			return -1;
 	} else {
 		if (arg.type == CHEAX_STRING && nsp.conv != CONV_R) {
-			ostrm_write(strm, arg.data.as_string->value, arg.data.as_string->len);
+			cheax_ostrm_write_(strm, arg.data.as_string->value, arg.data.as_string->len);
 		} else if (arg.type == CHEAX_ENV && nsp.conv != CONV_NONE) {
 			const char *func = (nsp.conv == CONV_S) ? "show" : "repr";
 			if (show_env(c, strm, arg.data.as_env, func) < 0)
 				return -1;
 		} else {
-			ostrm_show(c, strm, arg);
+			cheax_ostrm_show_(c, strm, arg);
 		}
 	}
 
@@ -276,7 +276,7 @@ static void
 do_padding(struct ostrm *strm, int padding, char pad_char)
 {
 	for (int i = 0; i < padding; ++i)
-		ostrm_putc(strm, pad_char);
+		cheax_ostrm_putc_(strm, pad_char);
 
 }
 
@@ -295,13 +295,13 @@ format_fspec(CHEAX *c, struct ostrm *strm, struct fspec *sp, struct chx_value ar
 	 * field_width is too big, instead of letting the mem use slowly
 	 * creep up as we add more and more padding. */
 	size_t ufield_width = sp->field_width;
-	if (ostrm_expand(strm, ufield_width) < 0)
+	if (cheax_ostrm_expand_(strm, ufield_width) < 0)
 		return -1;
 
 	/* Count output bytes to gauge how much padding is necessary. */
 	struct costrm cs;
 	if (ufield_width > 0) {
-		costrm_init(&cs, strm);
+		cheax_costrm_init_(&cs, strm);
 		strm = &cs.strm;
 	}
 
@@ -322,14 +322,14 @@ format_fspec(CHEAX *c, struct ostrm *strm, struct fspec *sp, struct chx_value ar
 			prepad /= 2;
 
 		do_padding(strm, (int)prepad, sp->pad_char);
-		if (ostrm_write(strm, arg.data.as_string->value, arg.data.as_string->len) < 0)
+		if (cheax_ostrm_write_(strm, arg.data.as_string->value, arg.data.as_string->len) < 0)
 			return -1;
 	} else {
 		/* This should be seen as the default way to format
 		 * and align, the cases above are just optimizations. */
 
 		struct sostrm temp_ss;
-		sostrm_init(&temp_ss, c);
+		cheax_sostrm_init_(&temp_ss, c);
 
 		if (format_noalign(c, &temp_ss.strm, sp, arg, eff_type) < 0) {
 			cheax_free(c, temp_ss.buf);
@@ -344,7 +344,7 @@ format_fspec(CHEAX *c, struct ostrm *strm, struct fspec *sp, struct chx_value ar
 			prepad /= 2;
 
 		do_padding(strm, prepad, sp->pad_char);
-		ostrm_write(strm, temp_ss.buf, temp_ss.idx);
+		cheax_ostrm_write_(strm, temp_ss.buf, temp_ss.idx);
 
 		cheax_free(c, temp_ss.buf);
 	}
@@ -372,24 +372,24 @@ format(CHEAX *c, struct ostrm *strm, struct chx_string *fmt_str, struct chx_list
 	size_t auto_idx = 0;
 
 	struct sistrm is;
-	sistrm_initn(&is, fmt_str->value, fmt_str->len);
+	cheax_sistrm_initn_(&is, fmt_str->value, fmt_str->len);
 
 	struct scnr fmt;
-	scnr_init(&fmt, &is.strm, 0, NULL, 1, 0);
+	cheax_scnr_init_(&fmt, &is.strm, 0, NULL, 1, 0);
 
 	for (;;) {
 		if (fmt.ch == EOF)
 			break;
 
-		if (fmt.ch == '}' && (scnr_adv(&fmt), fmt.ch) != '}') {
+		if (fmt.ch == '}' && (cheax_scnr_adv_(&fmt), fmt.ch) != '}') {
 			cheax_throwf(c, CHEAX_EVALUE, "encountered single `}' in format string");
 			break;
 		}
 
-		if (fmt.ch != '{' || (scnr_adv(&fmt), fmt.ch) == '{') {
+		if (fmt.ch != '{' || (cheax_scnr_adv_(&fmt), fmt.ch) == '{') {
 			/* most likely condition: 'regular' character or
 			 * double "{{" */
-			ostrm_putc(strm, scnr_adv(&fmt));
+			cheax_ostrm_putc_(strm, cheax_scnr_adv_(&fmt));
 			continue;
 		}
 
@@ -433,7 +433,7 @@ cheax_format(CHEAX *c, struct chx_string *fmt, struct chx_list *args)
 	ASSERT_NOT_NULL("format", fmt, CHEAX_NIL);
 
 	struct sostrm ss;
-	sostrm_init(&ss, c);
+	cheax_sostrm_init_(&ss, c);
 	ss.cap = fmt->len;
 	ss.buf = cheax_malloc(c, ss.cap);
 
@@ -451,8 +451,8 @@ bltn_format(CHEAX *c, struct chx_list *args, void *info)
 {
 	struct chx_string *fmt;
 	struct chx_list *lst;
-	return (0 == unpack(c, args, "S_*", &fmt, &lst))
-	     ? bt_wrap(c, cheax_format(c, fmt, lst))
+	return (0 == cheax_unpack_(c, args, "S_*", &fmt, &lst))
+	     ? cheax_bt_wrap_(c, cheax_format(c, fmt, lst))
 	     : CHEAX_NIL;
 }
 
@@ -462,19 +462,19 @@ bltn_putf_to(CHEAX *c, struct chx_list *args, void *info)
 	FILE *f;
 	struct chx_string *fmt;
 	struct chx_list *lst;
-	if (unpack(c, args, "FS_*", &f, &fmt, &lst) < 0)
+	if (cheax_unpack_(c, args, "FS_*", &f, &fmt, &lst) < 0)
 		return CHEAX_NIL;
 
 	struct fostrm fs;
-	fostrm_init(&fs, f, c);
+	cheax_fostrm_init_(&fs, f, c);
 
 	format(c, &fs.strm, fmt, lst);
-	return bt_wrap(c, CHEAX_NIL);
+	return cheax_bt_wrap_(c, CHEAX_NIL);
 }
 
 
 void
-export_format_bltns(CHEAX *c)
+cheax_export_format_bltns_(CHEAX *c)
 {
 	cheax_defun(c, "format",  bltn_format,  NULL);
 	cheax_defun(c, "putf-to", bltn_putf_to, NULL);

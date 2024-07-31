@@ -20,18 +20,18 @@
 
 /* ascii-only, locale-invariant, portable versions of ctype.h functions */
 
-bool c_isdigit(int c);
-bool c_isspace(int c);
-bool c_isgraph(int c);
-bool c_isprint(int c);
+bool cheax_isdigit_(int c);
+bool cheax_isspace_(int c);
+bool cheax_isgraph_(int c);
+bool cheax_isprint_(int c);
 
 /* whether c is valid character in identifier */
-bool c_isid(int c);
+bool cheax_isid_(int c);
 
 /* whether c is valid character for starting an identifier */
-bool c_isid_initial(int c);
+bool cheax_isid_initial_(int c);
 
 /* ascii character to integer digit */
-int c_todigit(int c, int base);
+int cheax_todigit_(int c, int base);
 
 #endif

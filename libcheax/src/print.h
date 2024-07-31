@@ -20,6 +20,6 @@
 
 #include "strm.h"
 
-void ostrm_show(CHEAX *c, struct ostrm *s, struct chx_value val);
+void cheax_ostrm_show_(CHEAX *c, struct ostrm *s, struct chx_value val);
 
 #endif

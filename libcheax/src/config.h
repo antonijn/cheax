@@ -18,9 +18,9 @@
 
 #include <cheax.h>
 
-int config_init(CHEAX *c);
-int find_config_feature(const char *feat);
-void load_config_feature(CHEAX *c, int bits);
-struct chx_list *config_feature_list(CHEAX *c, struct chx_list *base);
+int cheax_config_init_(CHEAX *c);
+int cheax_find_config_feature_(const char *feat);
+void cheax_load_config_feature_(CHEAX *c, int bits);
+struct chx_list *cheax_config_feature_list_(CHEAX *c, struct chx_list *base);
 
 #endif
