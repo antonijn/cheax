@@ -155,8 +155,8 @@ bool cheax_try_vtoi_(struct chx_value value, chx_int *res);
 bool cheax_try_vtod_(struct chx_value value, chx_double *res);
 double cheax_vtod_(struct chx_value value);
 
-#define typecode(X)  ((struct chx_value){ .type = CHEAX_TYPECODE,  .data.as_int = (X) })
-#define errorcode(X) ((struct chx_value){ .type = CHEAX_ERRORCODE, .data.as_int = (X) })
+#define typecode(X)  ((struct chx_value){ .type = CHEAX_TYPECODE,  .as_int = (X) })
+#define errorcode(X) ((struct chx_value){ .type = CHEAX_ERRORCODE, .as_int = (X) })
 
 void cheax_export_core_bltns_(CHEAX *c);
 

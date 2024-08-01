@@ -233,7 +233,7 @@ cheax_free(CHEAX *c, void *obj)
 void
 cheax_gc_init_(CHEAX *c)
 {
-	c->gc.objects.prev = c->gc.objects.next = &c->gc.objects;
+	c->gc.objects.first = c->gc.objects.last = &c->gc.objects;
 
 	c->gc.all_mem = c->gc.prev_run = c->gc.num_objects = 0;
 	c->gc.lock = c->gc.triggered = false;
@@ -292,7 +292,7 @@ cheax_gc_alloc_(CHEAX *c, size_t size, int type)
 	struct gc_header_node *new, *prev, *next;
 	new = &hdr->node;
 	prev = &c->gc.objects;
-	next = c->gc.objects.next;
+	next = c->gc.objects.first;
 
 	new->prev = prev;
 	new->next = next;
@@ -403,31 +403,31 @@ mark_obj(CHEAX *c, struct chx_value used)
 
 	switch (ty) {
 	case CHEAX_LIST:
-		mark_list(c, used.data.as_list);
+		mark_list(c, used.as_list);
 		return;
 	case CHEAX_STRING:
-		mark_string(c, used.data.as_string);
+		mark_string(c, used.as_string);
 		return;
 	case CHEAX_ENV:
-		mark_env(c, used.data.as_env);
+		mark_env(c, used.as_env);
 		return;
 	}
 
-	if (!mark_once(c, used.data.rtflags_ptr))
+	if (!mark_once(c, used.rtflags_ptr))
 		return;
 
 	switch (ty) {
 	case CHEAX_FUNC:
-		mark_list(c, used.data.as_func->body);
-		mark_env(c, used.data.as_func->lexenv);
-		mark_obj(c, used.data.as_func->args);
+		mark_list(c, used.as_func->body);
+		mark_env(c, used.as_func->lexenv);
+		mark_obj(c, used.as_func->args);
 		break;
 
 	case CHEAX_QUOTE:
 	case CHEAX_BACKQUOTE:
 	case CHEAX_COMMA:
 	case CHEAX_SPLICE:
-		mark_obj(c, used.data.as_quote->value);
+		mark_obj(c, used.as_quote->value);
 		break;
 	}
 }
@@ -443,11 +443,11 @@ static void
 mark(CHEAX *c)
 {
 	struct gc_header_node *n;
-	for (n = c->gc.objects.next; n != &c->gc.objects; n = n->next) {
+	for (n = c->gc.objects.first; n != &c->gc.objects; n = n->next) {
 		struct gc_header *hdr = (struct gc_header *)n;
 		if (has_flag(hdr->obj.rtflags, REF_BIT)) {
-			mark_obj(c, ((struct chx_value){ .type          = hdr->rsvd_type,
-			                                 .data.user_ptr = &hdr->obj }));
+			mark_obj(c, ((struct chx_value){ .type     = hdr->rsvd_type,
+			                                 .user_ptr = &hdr->obj }));
 		}
 	}
 
@@ -470,7 +470,7 @@ sweep(CHEAX *c)
 	c->gc.lock = true;
 
 	struct gc_header_node *n, *nxt;
-	for (n = c->gc.objects.next; n != &c->gc.objects; n = nxt) {
+	for (n = c->gc.objects.first; n != &c->gc.objects; n = nxt) {
 		nxt = n->next;
 		struct gc_header *hdr = (struct gc_header *)n;
 		if (!has_flag(hdr->obj.rtflags, GC_MARKED))
@@ -500,7 +500,7 @@ cheax_force_gc(CHEAX *c)
 chx_ref
 cheax_ref(CHEAX *c, struct chx_value value)
 {
-	return gc_type(c, value.type) ? cheax_ref_ptr(c, value.data.rtflags_ptr) : DO_NOTHING;
+	return gc_type(c, value.type) ? cheax_ref_ptr(c, value.rtflags_ptr) : DO_NOTHING;
 }
 
 chx_ref
@@ -517,7 +517,7 @@ cheax_ref_ptr(CHEAX *c, void *restrict value)
 void
 cheax_unref(CHEAX *c, struct chx_value value, chx_ref ref)
 {
-	cheax_unref_ptr(c, value.data.rtflags_ptr, ref);
+	cheax_unref_ptr(c, value.rtflags_ptr, ref);
 }
 
 void

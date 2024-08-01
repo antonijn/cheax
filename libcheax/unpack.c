@@ -158,7 +158,7 @@ store_arg(CHEAX *c,
 	case STORE_DEEP_DATA:
 		switch (fty) {
 		case CHEAX_ID:
-			*va_arg(ap, const char **) = v.data.as_id->value;
+			*va_arg(ap, const char **) = v.as_id->value;
 			return 0;
 		}
 
@@ -168,18 +168,18 @@ store_arg(CHEAX *c,
 		switch (fty) {
 		case CHEAX_INT:
 		case CHEAX_ERRORCODE:
-			*va_arg(ap, chx_int *) = v.data.as_int;
+			*va_arg(ap, chx_int *) = v.as_int;
 			return 0;
 		case CHEAX_DOUBLE:
-			*va_arg(ap, chx_double *) = v.data.as_double;
+			*va_arg(ap, chx_double *) = v.as_double;
 			return 0;
 		case CHEAX_BOOL:
-			*va_arg(ap, bool *) = v.data.as_int;
+			*va_arg(ap, bool *) = v.as_int;
 			return 0;
 		case NUM_TYPE:
 			return cheax_try_vtod_(v, va_arg(ap, chx_double *)) ? 0 : -1;
 		default:
-			*va_arg(ap, void **) = v.data.user_ptr;
+			*va_arg(ap, void **) = v.user_ptr;
 			return 0;
 		}
 
@@ -238,7 +238,7 @@ unpack_arg(CHEAX *c,
 				if (res != 0)
 					break;
 
-				*nxt = cheax_list(c, v, NULL).data.as_list;
+				*nxt = cheax_list(c, v, NULL).as_list;
 				if (*nxt == NULL) {
 					res = -CHEAX_EEVAL;
 					break;
@@ -377,7 +377,7 @@ pp_pan_list(CHEAX *c, struct chx_value value, const uint8_t **prog_p, const char
 		return NULL;
 	}
 
-	lst = value.data.as_list;
+	lst = value.as_list;
 
 	switch (op & PP_INSTR_BITS) {
 	case PP_NIL:
@@ -399,7 +399,7 @@ pp_pan_list(CHEAX *c, struct chx_value value, const uint8_t **prog_p, const char
 		cheax_unref(c, head, head_ref);
 		cheax_ft(c, pad);
 
-		struct chx_list *res = cheax_list(c, head, tail).data.as_list;
+		struct chx_list *res = cheax_list(c, head, tail).as_list;
 		cheax_ft(c, pad);
 		cheax_set_orig_form_(c, res, lst);
 		cheax_ft(c, pad);
@@ -426,7 +426,7 @@ pp_pan_list(CHEAX *c, struct chx_value value, const uint8_t **prog_p, const char
 
 			cheax_ft(c, pad);
 
-			struct chx_list *new = cheax_list(c, head, NULL).data.as_list;
+			struct chx_list *new = cheax_list(c, head, NULL).as_list;
 			cheax_ft(c, pad);
 			cheax_set_orig_form_(c, new, lst);
 			cheax_ft(c, pad);

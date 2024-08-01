@@ -226,7 +226,7 @@ config_sym_set(CHEAX *c, struct chx_sym *sym, struct chx_value value)
 		break;
 	case CHEAX_BOOL:
 		if (value.type == CHEAX_BOOL)
-			ci->set.set_bool(c, value.data.as_int);
+			ci->set.set_bool(c, value.as_int);
 		else
 			cheax_throwf(c, CHEAX_ETYPE, "invalid type");
 		break;
@@ -288,7 +288,7 @@ cheax_config_feature_list_(CHEAX *c, struct chx_list *base)
 		if (has_flag(c->features, CONFIG_FEAT_BIT << i)) {
 			char buf[128];
 			sprintf(buf, "set-%s", opts[i].name);
-			list = cheax_list(c, cheax_string(c, buf), list).data.as_list;
+			list = cheax_list(c, cheax_string(c, buf), list).as_list;
 		}
 	}
 	return list;

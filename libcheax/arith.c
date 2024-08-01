@@ -28,7 +28,7 @@ static struct chx_value
 do_aop_once(CHEAX *c, struct chx_value l, struct chx_value r, iop_cb iop, fop_cb fop)
 {
 	if (l.type == CHEAX_INT && r.type == CHEAX_INT)
-		return cheax_bt_wrap_(c, cheax_int(iop(c, l.data.as_int, r.data.as_int)));
+		return cheax_bt_wrap_(c, cheax_int(iop(c, l.as_int, r.as_int)));
 
 	if (fop == NULL) {
 		cheax_throwf(c, CHEAX_ETYPE, "invalid operation on floating point numbers");
@@ -287,7 +287,7 @@ do_shift(CHEAX *c, struct chx_list *args, bool right, int mode)
 	if (cheax_unpack_(c, args, "II?", &i, &jval) < 0)
 		return CHEAX_NIL;
 
-	j = cheax_is_nil(jval) ? 1 : jval.data.as_int;
+	j = cheax_is_nil(jval) ? 1 : jval.as_int;
 	if (j < 0) {
 		if (j == CHX_INT_MIN) {
 			cheax_throwf(c, CHEAX_EOVERFLOW, "integer overflow");
@@ -342,7 +342,7 @@ do_cmp(CHEAX *c, struct chx_list *args, bool lt, bool eq, bool gt)
 	bool is_lt, is_eq, is_gt;
 
 	if (l.type == CHEAX_INT && r.type == CHEAX_INT) {
-		chx_int li = l.data.as_int, ri = r.data.as_int;
+		chx_int li = l.as_int, ri = r.as_int;
 		is_lt = li < ri;
 		is_eq = li == ri;
 		is_gt = li > ri;

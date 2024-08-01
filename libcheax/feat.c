@@ -55,7 +55,7 @@ feature_list(CHEAX *c, struct chx_list *base)
 	int len = sizeof(named_feats) / sizeof(named_feats[0]);
 	for (int i = len - 1; i >= 0; --i)
 		if (has_flag(c->features, named_feats[i].feat))
-			list = cheax_list(c, cheax_string(c, named_feats[i].name), list).data.as_list;
+			list = cheax_list(c, cheax_string(c, named_feats[i].name), list).as_list;
 	return list;
 }
 
@@ -82,7 +82,7 @@ bltn_exit(CHEAX *c, struct chx_list *args, void *info)
 	if (cheax_unpack_(c, args, "I?", &code_val) < 0)
 		return CHEAX_NIL;
 
-	exit(cheax_is_nil(code_val) ? 0 : (int)code_val.data.as_int);
+	exit(cheax_is_nil(code_val) ? 0 : (int)code_val.as_int);
 }
 
 int

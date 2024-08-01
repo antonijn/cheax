@@ -45,20 +45,20 @@ cheax_ostrm_show_basic_(CHEAX *c, struct ostrm *s, struct chx_value val)
 	int ty = cheax_resolve_type(c, val.type);
 	switch (ty) {
 	case CHEAX_INT:
-		cheax_ostrm_printi_(s, val.data.as_int, 0, 0, 'd');
+		cheax_ostrm_printi_(s, val.as_int, 0, 0, 'd');
 		break;
 	case CHEAX_DOUBLE:
-		cheax_ostrm_printf_(s, "%f", val.data.as_double);
+		cheax_ostrm_printf_(s, "%f", val.as_double);
 		break;
 	case CHEAX_BOOL:
-		cheax_ostrm_printf_(s, "%s", val.data.as_int ? "true" : "false");
+		cheax_ostrm_printf_(s, "%s", val.as_int ? "true" : "false");
 		break;
 	case CHEAX_ID:
-		cheax_ostrm_printf_(s, "%s", val.data.as_id->value);
+		cheax_ostrm_printf_(s, "%s", val.as_id->value);
 		break;
 	case CHEAX_LIST:
 		cheax_ostrm_putc_(s, '(');
-		for (struct chx_list *list = val.data.as_list; list != NULL; list = list->next) {
+		for (struct chx_list *list = val.as_list; list != NULL; list = list->next) {
 			cheax_ostrm_show_(c, s, list->value);
 			if (list->next)
 				cheax_ostrm_putc_(s, ' ');
@@ -67,23 +67,23 @@ cheax_ostrm_show_basic_(CHEAX *c, struct ostrm *s, struct chx_value val)
 		break;
 	case CHEAX_QUOTE:
 		cheax_ostrm_putc_(s, '\'');
-		cheax_ostrm_show_(c, s, val.data.as_quote->value);
+		cheax_ostrm_show_(c, s, val.as_quote->value);
 		break;
 	case CHEAX_BACKQUOTE:
 		cheax_ostrm_putc_(s, '`');
-		cheax_ostrm_show_(c, s, val.data.as_quote->value);
+		cheax_ostrm_show_(c, s, val.as_quote->value);
 		break;
 	case CHEAX_COMMA:
 		cheax_ostrm_putc_(s, ',');
-		cheax_ostrm_show_(c, s, val.data.as_quote->value);
+		cheax_ostrm_show_(c, s, val.as_quote->value);
 		break;
 	case CHEAX_SPLICE:
 		cheax_ostrm_printf_(s, ",@");
-		cheax_ostrm_show_(c, s, val.data.as_quote->value);
+		cheax_ostrm_show_(c, s, val.as_quote->value);
 		break;
 	case CHEAX_FUNC:
 		cheax_ostrm_putc_(s, '(');
-		struct chx_func *func = val.data.as_func;
+		struct chx_func *func = val.as_func;
 		cheax_ostrm_printf_(s, "fn ");
 		cheax_ostrm_show_(c, s, func->args);
 		for (struct chx_list *body = func->body; body != NULL; body = body->next) {
@@ -94,7 +94,7 @@ cheax_ostrm_show_basic_(CHEAX *c, struct ostrm *s, struct chx_value val)
 		break;
 	case CHEAX_STRING:
 		cheax_ostrm_putc_(s, '"');
-		struct chx_string *string = val.data.as_string;
+		struct chx_string *string = val.as_string;
 		for (size_t i = 0; i < string->len; ++i) {
 			char ch = string->value[i];
 			if (ch == '"' || ch == '\\')
@@ -107,24 +107,24 @@ cheax_ostrm_show_basic_(CHEAX *c, struct ostrm *s, struct chx_value val)
 		cheax_ostrm_putc_(s, '"');
 		break;
 	case CHEAX_EXT_FUNC:
-		macro = val.data.as_ext_func;
+		macro = val.as_ext_func;
 		if (macro->name == NULL)
 			cheax_ostrm_printf_(s, "[external function]");
 		else
 			cheax_ostrm_printf_(s, "%s", macro->name);
 		break;
 	case CHEAX_SPECIAL_OP:
-		specop = val.data.as_special_op;
+		specop = val.as_special_op;
 		if (specop->name == NULL)
 			cheax_ostrm_printf_(s, "[special operator]");
 		else
 			cheax_ostrm_printf_(s, "%s", specop->name);
 		break;
 	case CHEAX_USER_PTR:
-		cheax_ostrm_printf_(s, "%p", val.data.user_ptr);
+		cheax_ostrm_printf_(s, "%p", val.user_ptr);
 		break;
 	case CHEAX_ENV:
-		env = val.data.as_env;
+		env = val.as_env;
 		while (env->is_bif) {
 			if (env->value.bif[1] == NULL) {
 				env = env->value.bif[0];

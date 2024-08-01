@@ -188,14 +188,14 @@ format_num(CHEAX *c, struct ostrm *strm, struct fspec *sp, struct chx_value arg)
 	switch (arg.type) {
 	case CHEAX_INT:
 		if (sp->misc_spec == 'c') {
-			if (arg.data.as_int < 0 || arg.data.as_int >= 256) {
-				cheax_throwf(c, CHEAX_EVALUE, "invalid character %" PRIdCHX, arg.data.as_int);
+			if (arg.as_int < 0 || arg.as_int >= 256) {
+				cheax_throwf(c, CHEAX_EVALUE, "invalid character %" PRIdCHX, arg.as_int);
 				return -1;
 			}
 
-			cheax_ostrm_putc_(strm, arg.data.as_int);
+			cheax_ostrm_putc_(strm, arg.as_int);
 		} else {
-			cheax_ostrm_printi_(strm, arg.data.as_int, sp->pad_char, field_width, ms);
+			cheax_ostrm_printi_(strm, arg.as_int, sp->pad_char, field_width, ms);
 		}
 
 		return 0;
@@ -209,7 +209,7 @@ format_num(CHEAX *c, struct ostrm *strm, struct fspec *sp, struct chx_value arg)
 		else
 			snprintf(fmt_buf, sizeof(fmt_buf), "%%%c*.*%c", sp->pad_char, ms);
 
-		cheax_ostrm_printf_(strm, fmt_buf, field_width, sp->precision, arg.data.as_double);
+		cheax_ostrm_printf_(strm, fmt_buf, field_width, sp->precision, arg.as_double);
 		return 0;
 
 	default:
@@ -237,8 +237,8 @@ show_env(CHEAX *c, struct ostrm *strm, struct chx_env *env, const char *func_des
 		return -1;
 	}
 
-	for (size_t i = 0; i < ret.data.as_string->len; ++i)
-		cheax_ostrm_putc_(strm, ret.data.as_string->value[i]);
+	for (size_t i = 0; i < ret.as_string->len; ++i)
+		cheax_ostrm_putc_(strm, ret.as_string->value[i]);
 
 	return 0;
 pad:
@@ -258,10 +258,10 @@ format_noalign(CHEAX *c, struct ostrm *strm, struct fspec *sp, struct chx_value 
 			return -1;
 	} else {
 		if (arg.type == CHEAX_STRING && nsp.conv != CONV_R) {
-			cheax_ostrm_write_(strm, arg.data.as_string->value, arg.data.as_string->len);
+			cheax_ostrm_write_(strm, arg.as_string->value, arg.as_string->len);
 		} else if (arg.type == CHEAX_ENV && nsp.conv != CONV_NONE) {
 			const char *func = (nsp.conv == CONV_S) ? "show" : "repr";
-			if (show_env(c, strm, arg.data.as_env, func) < 0)
+			if (show_env(c, strm, arg.as_env, func) < 0)
 				return -1;
 		} else {
 			cheax_ostrm_show_(c, strm, arg);
@@ -313,8 +313,8 @@ format_fspec(CHEAX *c, struct ostrm *strm, struct fspec *sp, struct chx_value ar
 			return -1;
 	} else if (arg.type == CHEAX_STRING && sp->conv != CONV_R) {
 		size_t prepad = (size_t)sp->field_width;
-		if (prepad >= arg.data.as_string->len)
-			prepad -= arg.data.as_string->len;
+		if (prepad >= arg.as_string->len)
+			prepad -= arg.as_string->len;
 		else
 			prepad = 0;
 
@@ -322,7 +322,7 @@ format_fspec(CHEAX *c, struct ostrm *strm, struct fspec *sp, struct chx_value ar
 			prepad /= 2;
 
 		do_padding(strm, (int)prepad, sp->pad_char);
-		if (cheax_ostrm_write_(strm, arg.data.as_string->value, arg.data.as_string->len) < 0)
+		if (cheax_ostrm_write_(strm, arg.as_string->value, arg.as_string->len) < 0)
 			return -1;
 	} else {
 		/* This should be seen as the default way to format
@@ -365,7 +365,7 @@ format(CHEAX *c, struct ostrm *strm, struct chx_string *fmt_str, struct chx_list
 
 	struct chx_value args_val;
 	args_val.type = CHEAX_LIST;
-	args_val.data.as_list = args;
+	args_val.as_list = args;
 	chx_ref args_ref = cheax_ref(c, args_val);
 
 	enum { UNSPECIFIED, AUTO_IDX, MAN_IDX } indexing = UNSPECIFIED;

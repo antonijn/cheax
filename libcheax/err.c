@@ -119,7 +119,7 @@ cheax_throwf(CHEAX *c, int code, const char *fmt, ...)
 	int prev_mem_limit = c->mem_limit;
 	c->mem_limit = 0;
 
-	msg = cheax_string(c, sbuf).data.as_string;
+	msg = cheax_string(c, sbuf).as_string;
 
 	c->mem_limit = prev_mem_limit;
 	cheax_throw(c, code, msg);
@@ -344,7 +344,7 @@ bltn_throw(CHEAX *c, struct chx_list *args, void *info)
 	if (code == 0)
 		cheax_throwf(c, CHEAX_EVALUE, "cannot throw ENOERR");
 	else
-		cheax_throw(c, code, cheax_is_nil(msg) ? NULL : msg.data.as_string);
+		cheax_throw(c, code, cheax_is_nil(msg) ? NULL : msg.as_string);
 
 	return cheax_bt_wrap_(c, CHEAX_NIL);
 }
@@ -360,17 +360,17 @@ validate_catch_blocks(CHEAX *c, struct chx_list *catch_blocks, struct chx_list *
 			return -1;
 		}
 
-		struct chx_list *cb_list = cb_value.data.as_list;
+		struct chx_list *cb_list = cb_value.as_list;
 		struct chx_value keyword = cb_list->value;
 		bool is_id = (keyword.type == CHEAX_ID);
 
-		if (is_id && keyword.data.as_id == c->std_ids[CATCH_ID]) {
+		if (is_id && keyword.as_id == c->std_ids[CATCH_ID]) {
 			if (cb_list->next == NULL || cb_list->next->next == NULL) {
 				cheax_throwf(c, CHEAX_EMATCH, "expected at least two arguments");
 				cheax_add_bt(c);
 				return -1;
 			}
-		} else if (is_id && keyword.data.as_id == c->std_ids[FINALLY_ID]) {
+		} else if (is_id && keyword.as_id == c->std_ids[FINALLY_ID]) {
 			if (cb->next != NULL) {
 				cheax_throwf(c, CHEAX_EVALUE, "unexpected values after finally block");
 				cheax_add_bt(c);
@@ -397,7 +397,7 @@ match_catch(CHEAX *c,
 	for (struct chx_list *cb = catch_blocks; cb != finally_block; cb = cb->next) {
 		/* these type casts should be safe, we did these checks
 		 * beforehand */
-		struct chx_list *cb_list = cb->value.data.as_list;
+		struct chx_list *cb_list = cb->value.as_list;
 
 		/* two example catch blocks:
 		 *   (catch EVALUE ...)
@@ -419,7 +419,7 @@ match_catch(CHEAX *c,
 		}
 
 		struct chx_list *enode;
-		for (enode = errcodes.data.as_list; enode != NULL; enode = enode->next) {
+		for (enode = errcodes.as_list; enode != NULL; enode = enode->next) {
 			struct chx_value code = enode->value;
 			if (code.type != CHEAX_ERRORCODE) {
 				cheax_throwf(c, CHEAX_ETYPE, "expected error code or list thereof");
@@ -427,7 +427,7 @@ match_catch(CHEAX *c,
 				return NULL;
 			}
 
-			if (code.data.as_int == active_errno)
+			if (code.as_int == active_errno)
 				return cb_list;
 		}
 	}
@@ -477,7 +477,7 @@ run_finally(CHEAX *c, struct chx_list *finally_block)
 	cheax_ft(c, pad2);
 
 	/* types checked before, so this should all be safe */
-	struct chx_list *fb = finally_block->value.data.as_list;
+	struct chx_list *fb = finally_block->value.as_list;
 	for (struct chx_list *cons = fb->next; cons != NULL; cons = cons->next) {
 		cheax_eval(c, cons->value);
 		cheax_ft(c, pad);

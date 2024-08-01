@@ -27,7 +27,12 @@
 typedef void (*chx_fin)(CHEAX *c, void *obj);
 
 struct gc_header_node {
-	struct gc_header_node *prev, *next;
+	union {
+		struct gc_header_node *prev, *last;
+	};
+	union {
+		struct gc_header_node *next, *first;
+	};
 };
 
 struct gc_info {

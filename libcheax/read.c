@@ -419,7 +419,7 @@ read_list(struct read_info *ri, struct scnr *s, bool consume_final)
 		if (s->ch == EOF)
 			goto eof_pad;
 
-		lst = cheax_list(ri->c, read_value(ri, s, true), NULL).data.as_list;
+		lst = cheax_list(ri->c, read_value(ri, s, true), NULL).as_list;
 		cheax_ft(ri->c, pad);
 		struct attrib *loc_attr = cheax_attrib_add_(ri->c, lst, ATTRIB_LOC);
 		cheax_ft(ri->c, pad);
@@ -430,7 +430,7 @@ read_list(struct read_info *ri, struct scnr *s, bool consume_final)
 			cheax_ft(ri->c, pad);
 			struct attrib *doc_attr = cheax_attrib_add_(ri->c, lst, ATTRIB_DOC);
 			cheax_ft(ri->c, pad);
-			doc_attr->doc = doc.data.as_string;
+			doc_attr->doc = doc.as_string;
 
 			cheax_free(ri->c, ri->doc_stream.buf);
 			cheax_sostrm_init_(&ri->doc_stream, ri->c);
@@ -441,7 +441,7 @@ read_list(struct read_info *ri, struct scnr *s, bool consume_final)
 			if (s->ch == EOF)
 				goto eof_pad;
 
-			*next = cheax_list(ri->c, read_value(ri, s, true), NULL).data.as_list;
+			*next = cheax_list(ri->c, read_value(ri, s, true), NULL).as_list;
 			cheax_ft(ri->c, pad);
 			next = &(*next)->next;
 		}
@@ -454,7 +454,7 @@ read_list(struct read_info *ri, struct scnr *s, bool consume_final)
 
 	struct chx_value res;
 	res.type = CHEAX_LIST;
-	res.data.as_list = lst;
+	res.as_list = lst;
 	return res;
 eof_pad:
 	cheax_throwf(ri->c, CHEAX_EEOF, "unexpected end-of-file in S-expression");

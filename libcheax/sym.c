@@ -270,7 +270,7 @@ cheax_defsym(CHEAX *c, const char *name,
 {
 	ASSERT_NOT_NULL("defsym", name, NULL);
 
-	struct chx_id *id = cheax_id(c, name).data.as_id;
+	struct chx_id *id = cheax_id(c, name).as_id;
 	return id != NULL
 	     ? cheax_defsym_id_(c, id, get, set, fin, user_info)
 	     : NULL;
@@ -305,7 +305,7 @@ cheax_def(CHEAX *c, const char *name, struct chx_value value, int flags)
 {
 	ASSERT_NOT_NULL_VOID("def", name);
 
-	struct chx_id *id = cheax_id(c, name).data.as_id;
+	struct chx_id *id = cheax_id(c, name).as_id;
 	if (id != NULL)
 		cheax_def_id_(c, id, value, flags);
 }
@@ -324,14 +324,14 @@ cheax_defsyntax(CHEAX *c,
 {
 	struct chx_value specop;
 	specop.type = CHEAX_SPECIAL_OP;
-	specop.data.as_special_op = cheax_gc_alloc_(c, sizeof(struct chx_special_op), CHEAX_SPECIAL_OP);
-	if (specop.data.as_special_op == NULL)
+	specop.as_special_op = cheax_gc_alloc_(c, sizeof(struct chx_special_op), CHEAX_SPECIAL_OP);
+	if (specop.as_special_op == NULL)
 		return;
 
-	specop.data.as_special_op->name = id;
-	specop.data.as_special_op->perform = perform;
-	specop.data.as_special_op->preproc = preproc;
-	specop.data.as_special_op->info = info;
+	specop.as_special_op->name = id;
+	specop.as_special_op->perform = perform;
+	specop.as_special_op->preproc = preproc;
+	specop.as_special_op->info = info;
 
 	struct chx_env *prev_env = c->env;
 	c->env = &c->specop_ns;
@@ -480,7 +480,7 @@ sync_bool_set(CHEAX *c, struct chx_sym *sym, struct chx_value value)
 	if (value.type != CHEAX_BOOL)
 		cheax_throwf(c, CHEAX_ETYPE, "invalid type");
 	else
-		*(bool *)sym->user_info = (value.data.as_int != 0);
+		*(bool *)sym->user_info = (value.as_int != 0);
 }
 
 void
@@ -560,13 +560,13 @@ sync_nstring_set(CHEAX *c, struct chx_sym *sym, struct chx_value value)
 	}
 
 	struct sync_nstring_info *info = sym->user_info;
-	if (info->size - 1 < value.data.as_string->len) {
+	if (info->size - 1 < value.as_string->len) {
 		cheax_throwf(c, CHEAX_EVALUE, "string too big");
 		return;
 	}
 
-	memcpy(info->buf, value.data.as_string->value, value.data.as_string->len);
-	info->buf[value.data.as_string->len] = '\0';
+	memcpy(info->buf, value.as_string->value, value.as_string->len);
+	info->buf[value.as_string->len] = '\0';
 }
 static void
 sync_nstring_finalizer(CHEAX *c, struct chx_sym *sym)
@@ -642,7 +642,7 @@ defgetset(CHEAX *c, const char *name,
 	if (res != NULL) {
 		res->args = getset_args;
 		res->body = args;
-		res->lexenv = cheax_env(c).data.as_env;
+		res->lexenv = cheax_env(c).as_env;
 		*ref_out = cheax_ref_ptr(c, res);
 	}
 	*out = res;
@@ -655,14 +655,14 @@ defsym_get(CHEAX *c, struct chx_sym *sym)
 	struct chx_list sexpr = { 0, cheax_func_value(info->get), NULL };
 	struct chx_value sexpr_val;
 	sexpr_val.type = CHEAX_LIST;
-	sexpr_val.data.as_list = &sexpr;
+	sexpr_val.as_list = &sexpr;
 	return cheax_eval(c, sexpr_val);
 }
 static void
 defsym_set(CHEAX *c, struct chx_sym *sym, struct chx_value value)
 {
 	struct defsym_info *info = sym->user_info;
-	cheax_apply(c, cheax_func_value(info->set), cheax_list(c, value, NULL).data.as_list);
+	cheax_apply(c, cheax_func_value(info->set), cheax_list(c, value, NULL).as_list);
 }
 static void
 defsym_finalizer(CHEAX *c, struct chx_sym *sym)
@@ -678,7 +678,7 @@ eval_defsym_stat(CHEAX *c, struct chx_value stat, struct defsym_info *info)
 		return;
 	}
 
-	struct chx_list *lst = stat.data.as_list;
+	struct chx_list *lst = stat.as_list;
 	if (lst == NULL)
 		return;
 
@@ -690,7 +690,7 @@ eval_defsym_stat(CHEAX *c, struct chx_value stat, struct defsym_info *info)
 		return;
 	}
 
-	struct chx_id *id = head.data.as_id;
+	struct chx_id *id = head.as_id;
 
 	if (id == c->std_ids[DEFGET_ID]) {
 		defgetset(c, "defget", CHEAX_NIL, tail, info, &info->get, &info->get_ref);
@@ -724,7 +724,7 @@ sf_defsym(CHEAX *c, struct chx_list *args, void *info, struct chx_env *ps, union
 		return CHEAX_VALUE_OUT;
 	}
 
-	struct chx_id *id = idval.data.as_id;
+	struct chx_id *id = idval.as_id;
 	struct chx_string *doc = get_def_doc(c);
 	bool body_ok = false;
 
@@ -770,9 +770,9 @@ pad:
 
 	struct chx_list *protect = NULL;
 	if (dinfo->get != NULL)
-		protect = cheax_list(c, cheax_func_value(dinfo->get), protect).data.as_list;
+		protect = cheax_list(c, cheax_func_value(dinfo->get), protect).as_list;
 	if (dinfo->set != NULL)
-		protect = cheax_list(c, cheax_func_value(dinfo->set), protect).data.as_list;
+		protect = cheax_list(c, cheax_func_value(dinfo->set), protect).as_list;
 	sym->protect = cheax_list_value(protect);
 
 	out->value = CHEAX_NIL;
@@ -789,15 +789,15 @@ pp_defsym_stat(CHEAX *c, struct chx_value stat)
 	if (stat.type != CHEAX_LIST)
 		return cheax_preproc(c, stat);
 
-	struct chx_list *lst = stat.data.as_list;
+	struct chx_list *lst = stat.as_list;
 	if (lst == NULL)
 		return CHEAX_NIL;
 
 	struct chx_value head = lst->value;
 
 	if (head.type == CHEAX_ID
-	 && (head.data.as_id == c->std_ids[DEFGET_ID]
-	 ||  head.data.as_id == c->std_ids[DEFSET_ID]))
+	 && (head.as_id == c->std_ids[DEFGET_ID]
+	 ||  head.as_id == c->std_ids[DEFSET_ID]))
 	{
 		/* (node LIT (node EXPR (seq EXPR))) */
 		static const uint8_t ops[] = {
@@ -820,7 +820,7 @@ pp_sf_defsym(CHEAX *c, struct chx_list *args, void *info)
 		return CHEAX_NIL;
 	}
 
-	out = cheax_list(c, args->value, NULL).data.as_list;
+	out = cheax_list(c, args->value, NULL).as_list;
 	nextp = &out->next;
 	cheax_ft(c, pad);
 
@@ -831,7 +831,7 @@ pp_sf_defsym(CHEAX *c, struct chx_list *args, void *info)
 
 		cheax_ft(c, pad);
 
-		*nextp = cheax_list(c, stat, NULL).data.as_list;
+		*nextp = cheax_list(c, stat, NULL).as_list;
 		nextp = &(*nextp)->next;
 
 		/* Allocation failure */
@@ -945,7 +945,7 @@ sf_let(CHEAX *c,
 			c->env = outer_env;
 
 		struct chx_value idval, setto;
-		int upck = cheax_unpack_(c, pairv.data.as_list, "_.", &idval, &setto);
+		int upck = cheax_unpack_(c, pairv.as_list, "_.", &idval, &setto);
 
 		if (!star)
 			c->env = inner_env;
