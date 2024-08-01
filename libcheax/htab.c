@@ -137,9 +137,14 @@ cheax_htab_set_(struct htab *htab, struct htab_search search, struct htab_entry 
 			search.pos = &htab->buckets[(size_t)search.hash % htab->cap];
 			search.item = *search.pos;
 		}
+
+		/* Insert new key */
+		item->next = search.item;
+	} else {
+		/* Override existing key */
+		item->next = search.item->next;
 	}
 
-	item->next = search.item;
 	*search.pos = item;
 }
 
