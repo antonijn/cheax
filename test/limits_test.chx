@@ -1,0 +1,35 @@
+(test "built-in stack-limit"
+  (assert-eq stack-limit 0)
+  (assert-error EVALUE (set stack-limit 15))
+
+  (set stack-limit 16)
+  (assert-error ESTACK (foldr + 0 (.. 16)))
+
+  (set stack-limit 0))
+
+(test "built-in mem-limit"
+  (assert-eq mem-limit 0)
+  (assert-error EVALUE (set mem-limit 0x3FFFF))
+
+  (def mem-usage (!! (gc) 3))
+  (set mem-limit (max (+ mem-usage 0x1000) 0x40000))
+  (assert-error ENOMEM (.. mem-usage mem-limit))
+  (gc)
+
+  (set mem-limit 0))
+
+(test "built-in allow-redef"
+  (assert-eq allow-redef false)
+
+  (set allow-redef true)
+  (set allow-redef false)
+
+  ; Cannot test functionality; only works in global scope. Will test
+  ; EEXIST mechanism just for fun.
+
+  (assert-error EEXIST
+    (do
+      (def x 0)
+      (def x 1))))
+
+(testing-done)
