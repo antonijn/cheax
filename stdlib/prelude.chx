@@ -793,12 +793,7 @@
 ;;; tail recursive.
 ;;;
 (defun reverse (xs)
-  (check-type xs List)
-  (rev-helper xs ()))
-(defun rev-helper (xs ys)
-  (case xs
-    ((: z zs) (rev-helper zs (: z ys)))
-    (() ys)))
+  (foldl (fn (ts t) (: t ts)) () xs))
 
 ;;;
 ;;;   (compare a b)
